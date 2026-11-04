@@ -1,0 +1,37 @@
+{
+  "equipe": "FIRE LoL",
+  "mise_a_jour": "4 novembre 2026",
+  "joueurs": [
+    {
+      "role": "Top",
+      "pseudo": "",
+      "tableau": "",
+      "dpm": ""
+    },
+    {
+      "role": "Jungle",
+      "pseudo": "Toks42o#TTV",
+      "pool": "Jarvan IV · Zyra · Lee Sin",
+      "tableau": "https://claude.ai/artifact/BMVhYwiXEJhNWvtqwjFJ3H",
+      "dpm": "https://dpm.lol/Toks42o%20-TTV"
+    },
+    {
+      "role": "Mid",
+      "pseudo": "",
+      "tableau": "",
+      "dpm": ""
+    },
+    {
+      "role": "ADC",
+      "pseudo": "",
+      "tableau": "",
+      "dpm": ""
+    },
+    {
+      "role": "Support",
+      "pseudo": "",
+      "tableau": "",
+      "dpm": ""
+    }
+  ]
+}

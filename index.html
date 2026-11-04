@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FIRE LoL — tableaux de bord de l'équipe</title>
+<link rel="icon" href="fire.ico">
+<style>
+  :root {
+    --bg: #0f0d0c;
+    --panel: #1a1614;
+    --line: #2e2622;
+    --fg: #f5ede6;
+    --muted: #a8988c;
+    --fire1: #ffb347;
+    --fire2: #ff5e3a;
+    --fire3: #c81d25;
+    --ok: #4cc38a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(1200px 500px at 50% -10%, rgba(255, 94, 58, .22), transparent 70%),
+      var(--bg);
+    color: var(--fg);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 48px 24px 64px; }
+  header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .logo { width: 64px; height: 64px; }
+  h1 {
+    margin: 0;
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    letter-spacing: .04em;
+    background: linear-gradient(90deg, var(--fire1), var(--fire2) 55%, var(--fire3));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .tagline { color: var(--muted); margin: 6px 0 0; }
+  .grid {
+    margin-top: 36px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 220px;
+    overflow: hidden;
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--fire1), var(--fire2), var(--fire3));
+    opacity: .35;
+  }
+  .card.actif::before { opacity: 1; }
+  .card.actif:hover {
+    transform: translateY(-3px);
+    border-color: var(--fire2);
+    box-shadow: 0 10px 30px rgba(255, 94, 58, .18);
+  }
+  .role { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; }
+  .role .ico { font-size: 1.4rem; }
+  .pseudo { font-size: 1.3rem; font-weight: 600; word-break: break-word; }
+  .pool { color: var(--muted); font-size: .85rem; }
+  .vide { color: var(--muted); font-style: italic; }
+  .actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+  a.btn {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: .95rem;
+  }
+  a.btn.main { background: linear-gradient(90deg, var(--fire2), var(--fire3)); color: #fff; }
+  a.btn.main:hover { filter: brightness(1.1); }
+  a.btn.sec { border: 1px solid var(--line); color: var(--fg); }
+  a.btn.sec:hover { border-color: var(--muted); }
+  .bientot { margin-top: auto; text-align: center; padding: 10px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: .9rem; }
+  footer { margin-top: 40px; color: var(--muted); font-size: .85rem; line-height: 1.5; }
+  footer code { background: var(--panel); padding: 1px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <linearGradient id="f" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stop-color="#c81d25"/>
+          <stop offset=".55" stop-color="#ff5e3a"/>
+          <stop offset="1" stop-color="#ffb347"/>
+        </linearGradient>
+      </defs>
+      <path fill="url(#f)" d="M32 4c4 10 14 15 14 30a14 14 0 0 1-28 0c0-7 3-11 6-14 0 5 2 8 5 9-2-9 1-17 3-25z"/>
+      <path fill="#ffe2a8" d="M32 30c3 5 7 7 7 13a7 7 0 0 1-14 0c0-3 2-6 4-7 0 3 1 4 2 5 0-4 0-7 1-11z"/>
+    </svg>
+    <div>
+      <h1>FIRE LoL</h1>
+      <p class="tagline">Les tableaux de bord de l'équipe, un clic par joueur. <span id="maj"></span></p>
+    </div>
+  </header>
+
+  <main class="grid" id="grille" aria-live="polite"></main>
+
+  <footer>
+    Clique sur « Ouvrir mon tableau de bord » pour voir tes stats détaillées (relevées sur dpm.lol).
+    Si la page te demande de te connecter, utilise le compte Claude avec lequel le tableau de bord t'a été partagé.<br>
+    Ce lanceur vient du dépôt GitHub <a href="https://github.com/Toka120/fire-team-lol" style="color:inherit">Toka120/fire-team-lol</a>.
+  </footer>
+</div>
+
+<script>
+  const ICONES = { Top: "🛡️", Jungle: "🌲", Mid: "✨", ADC: "🏹", Support: "💞" };
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function lien(href, cls, text) {
+    const a = el("a", "btn " + cls, text);
+    a.href = href;
+    a.target = "_blank";
+    a.rel = "noopener";
+    return a;
+  }
+
+  function carte(j) {
+    const actif = Boolean(j.pseudo && j.tableau);
+    const c = el("article", "card" + (actif ? " actif" : ""));
+    const r = el("div", "role");
+    r.append(el("span", "ico", ICONES[j.role] || "🎮"), el("span", "", j.role));
+    c.append(r);
+    if (actif) {
+      c.append(el("div", "pseudo", j.pseudo));
+      if (j.pool) c.append(el("div", "pool", "Pool : " + j.pool));
+      const act = el("div", "actions");
+      act.append(lien(j.tableau, "main", "🔥 Ouvrir mon tableau de bord"));
+      if (j.dpm) act.append(lien(j.dpm, "sec", "Profil dpm.lol"));
+      c.append(act);
+    } else {
+      c.append(el("div", "pseudo vide", j.pseudo || "Joueur à venir"));
+      c.append(el("div", "bientot", "Tableau de bord bientôt disponible"));
+    }
+    return c;
+  }
+
+  fetch("joueurs.json", { cache: "no-store" })
+    .then((r) => r.json())
+    .then((data) => {
+      if (data.mise_a_jour) document.getElementById("maj").textContent = "Mis à jour le " + data.mise_a_jour + ".";
+      const g = document.getElementById("grille");
+      data.joueurs.forEach((j) => g.append(carte(j)));
+    })
+    .catch(() => {
+      document.getElementById("grille").append(el("p", "vide", "Impossible de charger la liste des joueurs. Réessaie dans un instant."));
+    });
+</script>
+</body>
+</html>
