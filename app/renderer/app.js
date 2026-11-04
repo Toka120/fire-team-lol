@@ -159,6 +159,7 @@
     window.fire.team([]).then((r) => { if (r && r.games) { S.teamGames = r.games; if (S.section === 'stats' && !typing()) render(); } }).catch(() => {});
     refreshAll();
     S.timer = setInterval(refreshContent, REFRESH_EVERY);
+    if (!S.moi && !load('fire.moi.demande', false)) later(askWho);
   }
 
   function wire() {
@@ -1577,6 +1578,24 @@
     return sel;
   }
 
+  // Au premier lancement : on demande une seule fois qui utilise l'app, pour ouvrir directement sa tierlist.
+  function askWho() {
+    if (document.querySelector('.who')) return;
+    const close = (slug) => {
+      save('fire.moi.demande', true);
+      if (slug) { S.moi = slug; save('fire.moi', slug); }
+      box.remove();
+      render();
+    };
+    const box = h('div', { class: 'who' }, h('div', { class: 'who-card' },
+      h('div', { class: 'who-t' }, '👋 Qui es-tu ?'),
+      h('p', { class: 'muted' }, 'Choisis ton pseudo : l’app te reconnaîtra, et dans POOL un seul bouton « ✏️ Faire ma tierlist » suffira. Tu pourras changer plus tard.'),
+      h('div', { class: 'who-grid' }, S.players.filter((x) => x.slug).map((p) => h('button', { class: 'who-p', onclick: () => close(p.slug) },
+        h('span', { class: 'who-ico' }, roleOf(p).ico), h('span', { class: 'who-n' }, String(p.pseudo).split('#')[0]), h('span', { class: 'muted small' }, p.role || roleOf(p).label)))),
+      h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => close(null) }, 'Je suis le coach / plus tard'))));
+    document.body.append(box);
+  }
+
   function renderPool() {
     const view = $('view');
     const weeks = S.pools || [];
@@ -1598,7 +1617,8 @@
 
     nodes.push(h('div', { class: 'row me-row' }, h('label', { class: 'fld-inline' }, '👤 Je suis ', meSelect()),
       !coach && S.moi && !S.poolWrite ? h('span', { class: 'muted small' }, "Le coach n'a pas encore ouvert l'écriture des tierlists aux joueurs.") : null,
-      !coach && S.moi && S.poolWrite ? h('span', { class: 'good small' }, '✓ Tu peux modifier ta tierlist (bouton ✏️ sur ta carte).') : null));
+      !coach && S.moi && S.poolWrite && !S.cardEdit ? h('button', { class: 'btn-fire big-cta', onclick: () => editMine(w) }, '✏️ Faire ma tierlist') : null,
+      !coach && !S.moi ? h('span', { class: 'muted small' }, '← choisis ton pseudo pour faire ta tierlist') : null));
 
     const chips = weeks.slice().reverse().map((x) => h('button', { class: 'chip', 'aria-pressed': String(x.id === wid), onclick: () => { S.poolWeek = x.id; S.confirm = null; S.cardEdit = null; render(); } },
       weekLabel(x) + (cur && x.id === cur.id ? ' · en cours' : x.debut > todayYmd() ? ' · à venir' : '')));
@@ -1673,11 +1693,26 @@
     return h('div', { class: 'apills' }, notes.map((n) => h('div', { class: 'apill k-' + n.kind }, h('span', { class: 'apill-ico' }, n.ico || '•'), h('span', null, n.text))));
   }
 
+  function cardTiers(p, w) {
+    const raw = w ? (w.joueurs || {})[p.slug] : null;
+    const cfgT = { O: [...((p._cfg && p._cfg.pool_ids) || p.pool_ids || [])], M: [...((p._cfg && p._cfg.maitrise_ids) || [])] };
+    return (w && FC.normTiers(raw)) || cfgT;
+  }
+
+  function editMine(w) {
+    const p = S.players.find((x) => x.slug === S.moi);
+    if (!p) return;
+    const t = cardTiers(p, w);
+    S.cardEdit = { slug: p.slug, O: [...t.O], M: [...t.M] };
+    S.pickQ = ''; S.pickRow = 'O';
+    render();
+    later(() => { const el = document.querySelector('.pool-card.editing'); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
+  }
+
   function poolCard(p, w, prev, rng, obj) {
     const R = roleOf(p);
     const raw = w ? (w.joueurs || {})[p.slug] : null;
-    const cfgT = { O: [...((p._cfg && p._cfg.pool_ids) || p.pool_ids || [])], M: [...((p._cfg && p._cfg.maitrise_ids) || [])] };
-    const tiers = (w && FC.normTiers(raw)) || cfgT;
+    const tiers = cardTiers(p, w);
     const fallback = !!w && !raw;
     const d = S.data[p.slug];
     const editing = S.cardEdit && S.cardEdit.slug === p.slug;
@@ -1685,7 +1720,7 @@
     const head = h('div', { class: 'pc-head' },
       h('div', { class: 'pc-who' }, h('span', { class: 'pc-ico' }, R.ico), h('div', null, h('div', { class: 'pname' }, p.pseudo, mine ? h('span', { class: 'me-tag' }, "C'est toi") : null), h('div', { class: 'muted small' }, p.role || R.label))),
       raw && raw.par === 'joueur' ? h('span', { class: 'tag' }, `✍️ faite par le joueur${raw.maj ? ' · ' + new Date(raw.maj).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : ''}`) : null,
-      !editing && canEdit(p.slug) ? h('button', { class: 'btn-ghost', onclick: () => { S.cardEdit = { slug: p.slug, O: [...(tiers ? tiers.O : [])], M: [...(tiers ? tiers.M : [])] }; render(); } }, mine && !S.coachState.coach ? '✏️ Modifier ma tierlist' : '✏️ Modifier') : null);
+      !editing && canEdit(p.slug) ? h('button', { class: 'btn-ghost', onclick: () => { S.cardEdit = { slug: p.slug, O: [...(tiers ? tiers.O : [])], M: [...(tiers ? tiers.M : [])] }; S.pickQ = ''; S.pickRow = 'O'; render(); } }, mine && !S.coachState.coach ? '✏️ Modifier ma tierlist' : '✏️ Modifier') : null);
     if (editing) return h('article', { class: 'card pool-card editing' }, head, cardEditor(p, w));
 
     const ch = w && prev ? FC.poolChanges((prev.joueurs || {})[p.slug], raw) : null;
@@ -1723,26 +1758,46 @@
   }
 
   // ----- Édition d'une tierlist (joueur pour la sienne, coach pour tout le monde) -----
+  // Éditeur de tierlist : on choisit la ligne (🎯 ou ⭐), puis on clique sur les portraits. Rien à taper.
   function tierEditor(t, onChange) {
-    const rows = TIERS.map((k) => h('div', { class: 'tier-row r' + k }, tierLabel(k), h('div', { class: 'tier-chips' },
-      t[k].length ? t[k].map((id) => {
-        const other = k === 'O' ? 'M' : 'O';
-        const both = t[other].includes(id);
-        return h('span', { class: 'pchip edit' }, champIcon(id, 30), h('b', null, FC.champName(id)),
-          h('button', { class: 'ibtn' + (both ? ' on' : ''), title: both ? `Retirer de ${TI[other].label}` : `Ajouter aussi en ${TI[other].label}`, onclick: () => { if (both) t[other] = t[other].filter((x) => x !== id); else t[other].push(id); onChange(); } }, TI[other].ico),
-          h('button', { class: 'ibtn', title: 'Retirer', onclick: () => { t[k] = t[k].filter((x) => x !== id); onChange(); } }, '✕'));
-      }) : h('span', { class: 'muted small' }, 'vide'))));
-    const inp = h('input', { class: 'inp', list: 'champ-list', placeholder: 'Ajouter un champion…' });
-    const where = h('select', null, h('option', { value: 'O' }, '🎯 Obligatoire'), h('option', { value: 'M' }, '⭐ Maîtrisé'), h('option', { value: 'OM' }, '🎯⭐ Les deux'));
-    const add = () => {
-      const id = champIdFromName(inp.value);
-      if (!id) return;
-      for (const k of where.value.split('')) if (!t[k].includes(id)) t[k].push(id);
-      onChange();
-    };
-    inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') add(); });
-    return h('div', { class: 'tier-editor' }, h('datalist', { id: 'champ-list' }, ((S.champList && S.champList.list) || []).map((c) => h('option', { value: c.name }))),
-      h('div', { class: 'tiers' }, rows), h('div', { class: 'row' }, inp, where, h('button', { class: 'btn-ghost', onclick: add }, 'Ajouter')));
+    const rowsBox = h('div', { class: 'tiers' });
+    const grid = h('div', { class: 'pk-grid' });
+    const list = ((S.champList && S.champList.list) || []).slice().sort((x, y) => x.name.localeCompare(y.name, 'fr'));
+    const norm = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+    const changed = () => { drawRows(); drawGrid(); if (onChange && onChange !== render) onChange(); };
+    function drawRows() {
+      rowsBox.replaceChildren(...TIERS.map((k) => h('div', { class: 'tier-row r' + k }, tierLabel(k), h('div', { class: 'tier-chips' },
+        t[k].length ? t[k].map((id) => {
+          const other = k === 'O' ? 'M' : 'O';
+          const both = t[other].includes(id);
+          return h('span', { class: 'pchip edit' }, champIcon(id, 30), h('b', null, FC.champName(id)),
+            h('button', { class: 'ibtn' + (both ? ' on' : ''), title: both ? `Retirer de ${TI[other].label}` : `Ajouter aussi en ${TI[other].label}`, onclick: () => { if (both) t[other] = t[other].filter((x) => x !== id); else t[other].push(id); changed(); } }, TI[other].ico),
+            h('button', { class: 'ibtn', title: 'Retirer', onclick: () => { t[k] = t[k].filter((x) => x !== id); changed(); } }, '✕'));
+        }) : h('span', { class: 'muted small' }, k === 'O' ? 'vide : clique sur des portraits ci-dessous' : 'vide'))))); 
+    }
+    function drawGrid() {
+      const q = norm(S.pickQ);
+      const row = S.pickRow || 'O';
+      const shown = list.filter((c) => !q || norm(c.name).includes(q) || norm(c.id).includes(q));
+      grid.replaceChildren(...(shown.length ? shown.map((c) => {
+        const inO = t.O.includes(c.id), inM = t.M.includes(c.id);
+        return h('button', { class: 'pk' + (inO ? ' inO' : '') + (inM ? ' inM' : '') + ((row === 'O' ? inO : inM) ? ' sel' : ''), title: c.name,
+          onclick: () => { const arr = t[row]; if (arr.includes(c.id)) t[row] = arr.filter((x) => x !== c.id); else arr.push(c.id); changed(); } },
+          champIcon(c.id, 48), h('span', { class: 'pk-n' }, c.name), inO || inM ? h('span', { class: 'pk-b' }, (inO ? '🎯' : '') + (inM ? '⭐' : '')) : null);
+      }) : [h('p', { class: 'muted small' }, list.length ? 'Aucun champion trouvé.' : 'Chargement des champions…')]));
+    }
+    const modeBtn = (k, label) => h('button', { class: 'pk-mode m' + k, 'aria-pressed': String((S.pickRow || 'O') === k), onclick: (ev) => {
+      S.pickRow = k;
+      ev.currentTarget.parentElement.querySelectorAll('.pk-mode').forEach((x) => x.setAttribute('aria-pressed', String(x === ev.currentTarget)));
+      drawGrid();
+    } }, label);
+    const search = h('input', { class: 'inp pk-search', type: 'search', placeholder: '🔎 Chercher un champion…', value: S.pickQ || '' });
+    search.addEventListener('input', () => { S.pickQ = search.value; drawGrid(); });
+    drawRows(); drawGrid();
+    return h('div', { class: 'tier-editor' }, rowsBox,
+      h('div', { class: 'pk-bar' }, h('span', { class: 'muted small' }, 'Je clique pour ajouter en :'), modeBtn('O', '🎯 Obligatoires'), modeBtn('M', '⭐ Maîtrisés'), search),
+      h('p', { class: 'muted small' }, 'Un clic ajoute le champion dans la ligne choisie, un 2e clic l’enlève. Un champion peut être dans les deux lignes.'),
+      grid);
   }
 
   function cardEditor(p, w) {
@@ -1791,7 +1846,7 @@
     const blocks = S.players.filter((x) => x.slug).map((p) => {
       const t = e.joueurs[p.slug];
       return h('div', { class: 'card pool-card' }, h('div', { class: 'pc-who' }, h('span', { class: 'pc-ico' }, roleOf(p).ico), h('div', { class: 'pname' }, p.pseudo)),
-        tierEditor(t, () => { t.par = 'coach'; t.maj = Date.now(); render(); }));
+        tierEditor(t, () => { t.par = 'coach'; t.maj = Date.now(); }));
     });
     const save = h('button', { class: 'btn-fire small-btn', disabled: e.busy || !(S.poolWrite || S.coachState.github) ? true : null, onclick: async () => {
       e.busy = true; e.err = ''; render();

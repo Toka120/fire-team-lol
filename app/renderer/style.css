@@ -581,3 +581,27 @@ details.acc[open] > summary::after { transform: rotate(180deg); }
 .team-modes{margin:6px 0 2px}
 .tg-q{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
 .tg-q.q710{color:var(--fire1);border-color:rgba(255,179,71,.5)}
+
+/* Tierlist : choix par portraits */
+.pk-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pk-mode{border:1px solid var(--line);background:var(--panel2);color:var(--fg);border-radius:999px;padding:7px 14px;font-weight:700;cursor:pointer}
+.pk-mode[aria-pressed="true"].mO{border-color:var(--fire2);background:rgba(255,94,58,.18)}
+.pk-mode[aria-pressed="true"].mM{border-color:var(--fire1);background:rgba(255,179,71,.18)}
+.pk-search{flex:1;min-width:180px}
+.pk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px;max-height:340px;overflow:auto;padding:4px;border:1px solid var(--line);border-radius:var(--r);background:rgba(0,0,0,.15)}
+.pk{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 4px;border-radius:10px;border:2px solid transparent;background:transparent;color:var(--fg);cursor:pointer}
+.pk:hover{background:var(--panel2)}
+.pk .cico,.pk .cico-l{border-radius:10px}
+.pk-n{font-size:11px;line-height:1.1;text-align:center;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk.inO,.pk.inM{background:rgba(255,179,71,.08)}
+.pk.sel{border-color:var(--fire1)}
+.pk-b{position:absolute;top:2px;right:4px;font-size:12px}
+.big-cta{font-size:16px;padding:10px 20px}
+/* Premier lancement : qui es-tu ? */
+.who{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(8,6,5,.78);backdrop-filter:blur(4px)}
+.who-card{width:min(720px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px}
+.who-t{font-size:24px;font-weight:800}
+.who-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.who-p{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer;text-align:left}
+.who-p:hover{border-color:var(--fire1)}
+.who-ico{font-size:22px} .who-n{font-weight:800;font-size:16px}
