@@ -27,7 +27,7 @@
     {
       "role": "Top",
       "role_id": "top",
-      "pseudo": "lebrésilien",
+      "pseudo": "lebrésilien#931",
       "slug": "lebr%C3%A9silien%20-931",
       "pool_ids": [
         "Renekton",
@@ -37,7 +37,8 @@
       ],
       "pool": "Renekton · Zaahen · Gwen · Yone",
       "tableau": "",
-      "dpm": "https://dpm.lol/lebr%C3%A9silien%20-931"
+      "dpm": "https://dpm.lol/lebr%C3%A9silien%20-931",
+      "puuid": "dgZW-YImN2kdzaa-9fiJ7dT7A4-LAu6FTsA0jacL7RVTbhaEiWxjzmRmvkzlj6GjAhwpeubS1MGDdA"
     },
     {
       "role": "Jungle",
