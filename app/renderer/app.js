@@ -109,22 +109,27 @@
     $('app').hidden = true;
     const up = updateNode();
     if (up) { $('lock-update').hidden = false; $('lock-update').replaceChildren(up); }
+    $('lock-version').textContent = `FIRE LoL v${S.version}` + (S.cfg && S.cfg._source === 'copie locale' ? ' · hors ligne : configuration enregistrée utilisée' : '');
     const inp = $('code');
     setTimeout(() => inp.focus(), 50);
     const go = async () => {
       const v = inp.value.replace(/[^a-z0-9]/gi, '').toUpperCase();
       if (!v) return;
       $('code-ok').disabled = true;
-      let ok = false;
+      let ok = false, why = '';
+      $('code-err').hidden = true;
+      $('code-ok').textContent = 'Vérification…';
       try {
-        if (S.cfg.code_scrypt) ok = (await window.fire.unlock(v)).ok;
+        if (S.cfg.code_scrypt) { const r = await window.fire.unlock(v); ok = !!(r && r.ok); why = (r && r.error) || ''; }
         else { const hsh = await window.fire.hash(v); ok = hsh === S.cfg.code_sha256; if (ok) save('fire.unlock', hsh); }
-      } catch (e) { ok = false; }
+      } catch (e) { ok = false; why = String((e && e.message) || e); }
       $('code-ok').disabled = false;
+      $('code-ok').textContent = 'Entrer';
       if (ok) {
         $('lock').hidden = true;
         showApp();
       } else {
+        $('code-err').textContent = why ? `Le code n'a pas pu être vérifié (${why}). Envoie ce message à Toka120.` : 'Code incorrect. Demande-le à ton coach.';
         $('code-err').hidden = false;
         inp.select();
       }

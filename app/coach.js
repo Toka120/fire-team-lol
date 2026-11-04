@@ -32,17 +32,19 @@ async function matches(code, spec) {
   return want.length === k.length && crypto.timingSafeEqual(k, want);
 }
 
+// Chiffré par Windows quand c'est possible ; sinon (ou si le chiffrement échoue) en clair dans le dossier de l'application.
 function writeSecret(name, obj) {
   const txt = JSON.stringify(obj);
-  const buf = safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(txt) : Buffer.from(txt, 'utf8');
-  fs.writeFileSync(file(name), buf);
+  let buf = null;
+  try { if (safeStorage.isEncryptionAvailable()) buf = safeStorage.encryptString(txt); } catch (e) { buf = null; }
+  fs.mkdirSync(dir(), { recursive: true });
+  fs.writeFileSync(file(name), buf || Buffer.from(txt, 'utf8'));
 }
 function readSecret(name) {
-  try {
-    const buf = fs.readFileSync(file(name));
-    const txt = safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(buf) : buf.toString('utf8');
-    return JSON.parse(txt);
-  } catch (e) { return null; }
+  let buf;
+  try { buf = fs.readFileSync(file(name)); } catch (e) { return null; }
+  if (buf[0] === 0x7b) { try { return JSON.parse(buf.toString('utf8')); } catch (e) { return null; } }
+  try { return JSON.parse(safeStorage.decryptString(buf)); } catch (e) { return null; }
 }
 function removeFile(name) { try { fs.unlinkSync(file(name)); } catch (e) { /* déjà absent */ } }
 
@@ -67,14 +69,39 @@ function teamKey() {
   return s && s.key && s.salt === (getConfig().fiches_salt || '') ? Buffer.from(s.key, 'hex') : null;
 }
 
+const sha256 = (t) => crypto.createHash('sha256').update(t).digest('hex');
+
+function unwrapTeamKey(coachCode, w) {
+  return scrypt(norm(coachCode), w.salt).then((k) => {
+    const d = crypto.createDecipheriv('aes-256-gcm', k, Buffer.from(w.iv, 'base64'));
+    d.setAAD(Buffer.from('fire-cle-equipe'));
+    d.setAuthTag(Buffer.from(w.tag, 'base64'));
+    return Buffer.concat([d.update(Buffer.from(w.data, 'base64')), d.final()]);
+  });
+}
+
+// Accepte le code d'équipe ou le code coach. Le code coach ouvre aussi le mode coach.
 async function unlock(code) {
   const cfg = getConfig();
-  if (!(await matches(code, cfg.code_scrypt))) return { ok: false };
-  if (cfg.fiches_salt) {
-    const key = await scrypt(norm(code), cfg.fiches_salt);
-    writeSecret('equipe.bin', { key: key.toString('hex'), salt: cfg.fiches_salt, hash: cfg.code_scrypt.hash });
+  const n = norm(code);
+  if (!n) return { ok: false };
+  let team = false, isCoach = false, err = null;
+  try { team = await matches(n, cfg.code_scrypt); } catch (e) { err = e; }
+  if (!team && err && cfg.code_sha256) team = sha256(n) === cfg.code_sha256; // secours si scrypt est indisponible
+  if (!team && cfg.coach_scrypt) { try { isCoach = await matches(n, cfg.coach_scrypt); } catch (e) { err = err || e; } }
+  if (!team && !isCoach) return { ok: false, error: err ? String((err && err.message) || err) : null };
+  let key = null;
+  try {
+    if (team && cfg.fiches_salt) key = await scrypt(n, cfg.fiches_salt);
+    else if (isCoach && cfg.fiches_cle_coach) key = await unwrapTeamKey(n, cfg.fiches_cle_coach);
+  } catch (e) { key = null; }
+  try {
+    writeSecret('equipe.bin', { key: key ? key.toString('hex') : '', salt: cfg.fiches_salt || '', hash: (cfg.code_scrypt && cfg.code_scrypt.hash) || '' });
+    if (isCoach) writeSecret('coach.bin', { ...(readSecret('coach.bin') || {}), hash: cfg.coach_scrypt.hash });
+  } catch (e) {
+    return { ok: false, error: "impossible d'enregistrer le code sur cet ordinateur : " + ((e && e.message) || e) };
   }
-  return { ok: true };
+  return { ok: true, coach: isCoach };
 }
 
 function isUnlocked() {
@@ -113,9 +140,18 @@ function coachState() {
 
 async function coachUnlock(code) {
   const cfg = getConfig();
-  if (!(await matches(code, cfg.coach_scrypt))) return { ok: false };
+  let ok = false;
+  try { ok = await matches(code, cfg.coach_scrypt); } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+  if (!ok) return { ok: false };
   const c = readSecret('coach.bin') || {};
   writeSecret('coach.bin', { ...c, hash: cfg.coach_scrypt.hash });
+  // Si la clé des fiches manque (ordinateur ouvert avec un ancien code), le code coach la retrouve.
+  if (!teamKey() && cfg.fiches_cle_coach) {
+    try {
+      const key = await unwrapTeamKey(code, cfg.fiches_cle_coach);
+      writeSecret('equipe.bin', { key: key.toString('hex'), salt: cfg.fiches_salt || '', hash: (cfg.code_scrypt && cfg.code_scrypt.hash) || '' });
+    } catch (e) { /* facultatif */ }
+  }
   return { ok: true, ...coachState() };
 }
 

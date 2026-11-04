@@ -11,6 +11,12 @@
     "hash": "b992d760c0ca3090e678d352bad50db7c8454a91b99def23493b6c7bb948e00c"
   },
   "fiches_salt": "5916c842ca2b8bc9b75ca3e5558f2fd6",
+  "fiches_cle_coach": {
+    "salt": "e753cadf35ce116dbb7f5ba47fef987c",
+    "iv": "WakIOMRcEAT9/HxX",
+    "tag": "QclgoQFLYHSYEpfE5SwZeQ==",
+    "data": "0WhK6ZLW0V/s+xh29cUhrQ+uVXu2BRo7ztCYqW/jXbY="
+  },
   "derniere_version": "1.2.1",
   "objectif": {
     "debut": "2026-10-31",
