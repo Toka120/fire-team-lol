@@ -446,3 +446,247 @@ CATEGORIES = [
     ]
   },
 ]
+
+
+# Diaporamas des autres lanes (générés depuis /home/claude/lanes/gen.py)
+DIAPOS_LANES = {
+ "top": {
+  "titre": "Le top en 13 slides",
+  "resume": "L'essentiel de la lane top, avec les skins. Le détail de chaque point est dans les thèmes juste en dessous.",
+  "base": "https://toka120.github.io/fire-team-lol/diapos/top/",
+  "slides": [
+   {
+    "img": "slide-01.jpg?v=1",
+    "titre": "Le TOP"
+   },
+   {
+    "img": "slide-02.jpg?v=1",
+    "titre": "Sommaire"
+   },
+   {
+    "img": "slide-03.jpg?v=1",
+    "titre": "Seul sur son île"
+   },
+   {
+    "img": "slide-04.jpg?v=1",
+    "titre": "Trois façons de jouer"
+   },
+   {
+    "img": "slide-05.jpg?v=1",
+    "titre": "Le freeze est ton arme"
+   },
+   {
+    "img": "slide-06.jpg?v=1",
+    "titre": "Ta TP change le fight"
+   },
+   {
+    "img": "slide-07.jpg?v=1",
+    "titre": "Crash, back, TP"
+   },
+   {
+    "img": "slide-08.jpg?v=1",
+    "titre": "Voir avant d’avancer"
+   },
+   {
+    "img": "slide-09.jpg?v=1",
+    "titre": "Lâcher pour rester en vie"
+   },
+   {
+    "img": "slide-10.jpg?v=1",
+    "titre": "Cinq réflexes à prendre"
+   },
+   {
+    "img": "slide-11.jpg?v=1",
+    "titre": "Freeze. Trade. Téléporte."
+   },
+   {
+    "img": "slide-12.jpg?v=1",
+    "titre": "Le détail est dans FIRE LoL"
+   },
+   {
+    "img": "slide-13.jpg?v=1",
+    "titre": "Merci !"
+   }
+  ]
+ },
+ "jungle": {
+  "titre": "La jungle en 13 slides",
+  "resume": "L'essentiel du rôle de jungler, avec les skins. Le détail de chaque point est dans les thèmes juste en dessous.",
+  "base": "https://toka120.github.io/fire-team-lol/diapos/jungle/",
+  "slides": [
+   {
+    "img": "slide-01.jpg?v=1",
+    "titre": "La JUNGLE"
+   },
+   {
+    "img": "slide-02.jpg?v=1",
+    "titre": "Sommaire"
+   },
+   {
+    "img": "slide-03.jpg?v=1",
+    "titre": "Le rythme de la game"
+   },
+   {
+    "img": "slide-04.jpg?v=1",
+    "titre": "Trois façons de jouer"
+   },
+   {
+    "img": "slide-05.jpg?v=1",
+    "titre": "Ganke au bon moment"
+   },
+   {
+    "img": "slide-06.jpg?v=1",
+    "titre": "Engage, ou reste au Smite"
+   },
+   {
+    "img": "slide-07.jpg?v=1",
+    "titre": "Back avec les timers"
+   },
+   {
+    "img": "slide-08.jpg?v=1",
+    "titre": "Voir avant d’avancer"
+   },
+   {
+    "img": "slide-09.jpg?v=1",
+    "titre": "Échanger plutôt que perdre"
+   },
+   {
+    "img": "slide-10.jpg?v=1",
+    "titre": "Cinq réflexes à prendre"
+   },
+   {
+    "img": "slide-11.jpg?v=1",
+    "titre": "Farmer. Ganker. Sécuriser."
+   },
+   {
+    "img": "slide-12.jpg?v=1",
+    "titre": "Le détail est dans FIRE LoL"
+   },
+   {
+    "img": "slide-13.jpg?v=1",
+    "titre": "Merci !"
+   }
+  ]
+ },
+ "mid": {
+  "titre": "Le mid en 13 slides",
+  "resume": "L'essentiel de la lane mid, avec les skins. Le détail de chaque point est dans les thèmes juste en dessous.",
+  "base": "https://toka120.github.io/fire-team-lol/diapos/mid/",
+  "slides": [
+   {
+    "img": "slide-01.jpg?v=1",
+    "titre": "Le MID"
+   },
+   {
+    "img": "slide-02.jpg?v=1",
+    "titre": "Sommaire"
+   },
+   {
+    "img": "slide-03.jpg?v=1",
+    "titre": "Au centre de tout"
+   },
+   {
+    "img": "slide-04.jpg?v=1",
+    "titre": "Trois façons de jouer"
+   },
+   {
+    "img": "slide-05.jpg?v=1",
+    "titre": "Pousse pour bouger en premier"
+   },
+   {
+    "img": "slide-06.jpg?v=1",
+    "titre": "Le bon sort sur la bonne cible"
+   },
+   {
+    "img": "slide-07.jpg?v=1",
+    "titre": "Back avec ton jungler"
+   },
+   {
+    "img": "slide-08.jpg?v=1",
+    "titre": "Voir avant d’avancer"
+   },
+   {
+    "img": "slide-09.jpg?v=1",
+    "titre": "Ne conteste pas seul"
+   },
+   {
+    "img": "slide-10.jpg?v=1",
+    "titre": "Cinq réflexes à prendre"
+   },
+   {
+    "img": "slide-11.jpg?v=1",
+    "titre": "Pousser. Bouger. Punir."
+   },
+   {
+    "img": "slide-12.jpg?v=1",
+    "titre": "Le détail est dans FIRE LoL"
+   },
+   {
+    "img": "slide-13.jpg?v=1",
+    "titre": "Merci !"
+   }
+  ]
+ },
+ "support": {
+  "titre": "Le support en 13 slides",
+  "resume": "L'essentiel du rôle de support, avec les skins. Le détail de chaque point est dans les thèmes juste en dessous.",
+  "base": "https://toka120.github.io/fire-team-lol/diapos/support/",
+  "slides": [
+   {
+    "img": "slide-01.jpg?v=1",
+    "titre": "Le SUPPORT"
+   },
+   {
+    "img": "slide-02.jpg?v=1",
+    "titre": "Sommaire"
+   },
+   {
+    "img": "slide-03.jpg?v=1",
+    "titre": "Tout préparer pour l'équipe"
+   },
+   {
+    "img": "slide-04.jpg?v=1",
+    "titre": "Trois façons de jouer"
+   },
+   {
+    "img": "slide-05.jpg?v=1",
+    "titre": "Gagne la course au niveau 2"
+   },
+   {
+    "img": "slide-06.jpg?v=1",
+    "titre": "Engage, ou protège"
+   },
+   {
+    "img": "slide-07.jpg?v=1",
+    "titre": "Back avec ton ADC"
+   },
+   {
+    "img": "slide-08.jpg?v=1",
+    "titre": "Voir avant d’avancer"
+   },
+   {
+    "img": "slide-09.jpg?v=1",
+    "titre": "Pas de fight perdu d'avance"
+   },
+   {
+    "img": "slide-10.jpg?v=1",
+    "titre": "Cinq réflexes à prendre"
+   },
+   {
+    "img": "slide-11.jpg?v=1",
+    "titre": "Voir. Engager. Protéger."
+   },
+   {
+    "img": "slide-12.jpg?v=1",
+    "titre": "Le détail est dans FIRE LoL"
+   },
+   {
+    "img": "slide-13.jpg?v=1",
+    "titre": "Merci !"
+   }
+  ]
+ }
+}
+for _c in CATEGORIES:
+    if _c['id'] in DIAPOS_LANES:
+        _c['diapo'] = DIAPOS_LANES[_c['id']]
