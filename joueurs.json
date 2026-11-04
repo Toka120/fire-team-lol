@@ -18,7 +18,7 @@
     "data": "0WhK6ZLW0V/s+xh29cUhrQ+uVXu2BRo7ztCYqW/jXbY="
   },
   "data_repo": "Toka120/fire-lol-data",
-  "derniere_version": "1.8.3",
+  "derniere_version": "1.8.4",
   "objectif": {
     "debut": "2026-10-31",
     "games": 20,
@@ -117,5 +117,6 @@
       "tableau": "https://claude.ai/artifact/9HJf1RfQVZUcL4oBFhh8hV",
       "dpm": "https://dpm.lol/TheM3talDrakonar-EUW"
     }
-  ]
+  ],
+  "debut_equipe": "2026-10-27"
 }
