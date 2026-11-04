@@ -114,7 +114,7 @@ async function grab(puuid, cutoff) {
     'turretPlatesTaken', 'dragon', 'horde', 'dpmScore'];
   const matches = [];
   for (let page = 1; page <= 14; page++) {
-    const r = await fetch(`/v1/players/${puuid}/match-history?size=15&page=${page}`);
+    const r = await fetch(`/v1/players/${puuid}/match-history?size=15&page=${page}&_=${Date.now()}`, { cache: 'no-store' });
     if (!r.ok) throw new Error('historique indisponible (' + r.status + ')');
     const j = await r.json();
     if (!j.matches || !j.matches.length) break;
@@ -129,7 +129,7 @@ async function grab(puuid, cutoff) {
   }
   let champs = [];
   try {
-    const c = await fetch(`/v1/players/${puuid}/champions?currentSplit=true&queue=420`).then((r) => (r.ok ? r.json() : []));
+    const c = await fetch(`/v1/players/${puuid}/champions?currentSplit=true&queue=420`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : []));
     champs = (Array.isArray(c) ? c : []).map((x) => ({
       id: x.championName, games: x.gamesPlayed, wins: x.win, kda: x.kda, kills: x.kills, deaths: x.deaths,
       assists: x.assists, csm: x.csm, gpm: x.gpm, dpm: x.dpm, kp: x.kp, goldDiff: x.goldDiff, recent: x.recentResults

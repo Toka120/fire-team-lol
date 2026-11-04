@@ -380,6 +380,16 @@
     $('status').textContent = t;
   }
 
+  // La dernière game classée Solo/Duo lue sur dpm.lol, pour vérifier d'un coup d'œil que tout est à jour.
+  function lastGame(d) {
+    const m = (d && d.matches || []).filter((x) => x.q === 420).sort((a, b) => b.t - a.t)[0];
+    if (!m) return null;
+    const dt = new Date(m.t);
+    const today = FC.ymd(dt) === FC.ymd(new Date());
+    const quand = today ? `aujourd'hui à ${hm(m.t)}` : `${dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} à ${hm(m.t)}`;
+    return `Dernière game : ${FC.champName(m.championName)} ${m.win ? '✓' : '✗'}, ${quand}`;
+  }
+
   function statusText(st, d) {
     if (st && st.state === 'loading') return '⟳ Lecture de dpm.lol…';
     if (st && st.state === 'wait') return '⏳ En attente…';
@@ -446,6 +456,8 @@
       later(() => ring(box, s, 84));
       card.append(progress(FC.objectif(p, d.matches, S.obj)));
     }
+    const lg = lastGame(d);
+    if (lg) card.append(h('div', { class: 'muted small' }, lg));
     card.append(h('div', { class: 'pstatus ' + ((st && st.state) || '') }, statusText(st, d)));
     return card;
   }
@@ -475,7 +487,7 @@
       h('div', { class: 'hero-txt' },
         h('div', { class: 'tags' }, tag(`${R.ico} ${p.role || R.label}`), tag('Classé Solo/Duo'), p.pool ? tag('Pool : ' + p.pool) : null, d.rank ? tag(d.rank) : null),
         h('h1', { class: 'title' }, p.pseudo),
-        h('p', { class: 'muted small' }, `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · stats dpm.lol de ${hm(d.at)} · `,
+        h('p', { class: 'muted small' }, `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · stats dpm.lol de ${hm(d.at)} · ${lastGame(d) || 'aucune game Solo/Duo'} · `,
           h('a', { href: 'https://dpm.lol/' + p.slug, target: '_blank' }, 'voir sur dpm.lol')),
         h('p', { class: 'lead' }, FC.lead(p, s)),
         progress(obj, true)),
