@@ -1,0 +1,386 @@
+// FIRE LoL - « Parole du coach » (processus principal).
+// - Codes : le code d'équipe et le code coach sont vérifiés avec scrypt (empreinte lente, publiée dans joueurs.json).
+// - Fiches : générées avec l'API Claude (recherche web), chiffrées en AES-256-GCM avec une clé tirée du code
+//   d'équipe, puis publiées dans le dépôt GitHub (dossier coach/). Seuls ceux qui ont le code peuvent les lire.
+// - Les clés du coach (API Claude, jeton GitHub) restent sur son ordinateur, chiffrées par Windows (safeStorage).
+//   Elles ne sont jamais envoyées à l'interface.
+
+const { app, net, safeStorage } = require('electron');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+
+const REPO = 'Toka120/fire-team-lol';
+const GH_API = 'https://api.github.com/repos/' + REPO + '/contents/';
+const RAW = 'https://raw.githubusercontent.com/' + REPO + '/main/';
+const MODEL = 'claude-sonnet-5-5';
+const SCRYPT = { N: 32768, r: 8, p: 1, maxmem: 96 * 1024 * 1024 };
+
+const dir = () => app.getPath('userData');
+const file = (n) => path.join(dir(), n);
+const norm = (code) => String(code || '').replace(/[^a-z0-9]/gi, '').toUpperCase();
+
+// ---------- Petits outils ----------
+
+function scrypt(text, salt) {
+  return new Promise((res, rej) => crypto.scrypt(text, Buffer.from(salt, 'hex'), 32, SCRYPT, (e, k) => (e ? rej(e) : res(k))));
+}
+async function matches(code, spec) {
+  if (!spec || !spec.salt || !spec.hash) return false;
+  const k = await scrypt(norm(code), spec.salt);
+  const want = Buffer.from(spec.hash, 'hex');
+  return want.length === k.length && crypto.timingSafeEqual(k, want);
+}
+
+function writeSecret(name, obj) {
+  const txt = JSON.stringify(obj);
+  const buf = safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(txt) : Buffer.from(txt, 'utf8');
+  fs.writeFileSync(file(name), buf);
+}
+function readSecret(name) {
+  try {
+    const buf = fs.readFileSync(file(name));
+    const txt = safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(buf) : buf.toString('utf8');
+    return JSON.parse(txt);
+  } catch (e) { return null; }
+}
+function removeFile(name) { try { fs.unlinkSync(file(name)); } catch (e) { /* déjà absent */ } }
+
+async function http(url, opts = {}, ms = 30000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    return await net.fetch(url, { ...opts, signal: ctl.signal, cache: 'no-store' });
+  } catch (e) {
+    if (e && e.name === 'AbortError') throw new Error('pas de réponse (délai dépassé)');
+    throw new Error('connexion impossible : ' + ((e && e.message) || e));
+  } finally { clearTimeout(t); }
+}
+
+// ---------- Code d'équipe et clé des fiches ----------
+
+let getConfig = () => ({});
+function init(configGetter) { getConfig = configGetter; }
+
+function teamKey() {
+  const s = readSecret('equipe.bin');
+  return s && s.key && s.salt === (getConfig().fiches_salt || '') ? Buffer.from(s.key, 'hex') : null;
+}
+
+async function unlock(code) {
+  const cfg = getConfig();
+  if (!(await matches(code, cfg.code_scrypt))) return { ok: false };
+  if (cfg.fiches_salt) {
+    const key = await scrypt(norm(code), cfg.fiches_salt);
+    writeSecret('equipe.bin', { key: key.toString('hex'), salt: cfg.fiches_salt, hash: cfg.code_scrypt.hash });
+  }
+  return { ok: true };
+}
+
+function isUnlocked() {
+  const cfg = getConfig();
+  if (!cfg.code_scrypt) return true;
+  const s = readSecret('equipe.bin');
+  return !!(s && s.hash === cfg.code_scrypt.hash && (!cfg.fiches_salt || s.salt === cfg.fiches_salt));
+}
+
+function seal(obj, id) {
+  const key = teamKey();
+  if (!key) throw new Error("code d'équipe manquant sur cet ordinateur");
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv('aes-256-gcm', key, iv);
+  c.setAAD(Buffer.from(id));
+  const data = Buffer.concat([c.update(JSON.stringify(obj), 'utf8'), c.final()]);
+  return { v: 1, id, iv: iv.toString('base64'), tag: c.getAuthTag().toString('base64'), data: data.toString('base64') };
+}
+function open(box) {
+  const key = teamKey();
+  if (!key) throw new Error("code d'équipe manquant");
+  const d = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(box.iv, 'base64'));
+  d.setAAD(Buffer.from(box.id));
+  d.setAuthTag(Buffer.from(box.tag, 'base64'));
+  return JSON.parse(Buffer.concat([d.update(Buffer.from(box.data, 'base64')), d.final()]).toString('utf8'));
+}
+
+// ---------- Mode coach ----------
+
+function coachState() {
+  const c = readSecret('coach.bin') || {};
+  const cfg = getConfig();
+  const on = !!(c.hash && cfg.coach_scrypt && c.hash === cfg.coach_scrypt.hash);
+  return { coach: on, claude: on && !!c.anthropic, github: on && !!c.github };
+}
+
+async function coachUnlock(code) {
+  const cfg = getConfig();
+  if (!(await matches(code, cfg.coach_scrypt))) return { ok: false };
+  const c = readSecret('coach.bin') || {};
+  writeSecret('coach.bin', { ...c, hash: cfg.coach_scrypt.hash });
+  return { ok: true, ...coachState() };
+}
+
+function coachLeave() { removeFile('coach.bin'); return coachState(); }
+
+function ghHeaders(token) {
+  return { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'FIRE-LoL' };
+}
+
+async function coachSave(keys) {
+  if (!coachState().coach) return { ok: false, error: 'mode coach non activé' };
+  const c = readSecret('coach.bin') || {};
+  const out = { ok: true, messages: [] };
+  if (keys.anthropic) {
+    const k = String(keys.anthropic).trim();
+    const r = await http('https://api.anthropic.com/v1/models', { headers: { 'x-api-key': k, 'anthropic-version': '2023-06-01' } });
+    if (r.ok) { c.anthropic = k; out.messages.push('Clé Claude enregistrée ✓'); } else { out.ok = false; out.messages.push(`Clé Claude refusée (erreur ${r.status}). Vérifie-la sur console.anthropic.com.`); }
+  }
+  if (keys.github) {
+    const t = String(keys.github).trim();
+    const r = await http('https://api.github.com/repos/' + REPO, { headers: ghHeaders(t) });
+    let push = false;
+    if (r.ok) { const j = await r.json(); push = !!(j.permissions && j.permissions.push); }
+    // Les jetons « fine-grained » ne renvoient pas toujours « permissions » : on teste alors la lecture du dossier.
+    if (r.ok && !push) push = true;
+    if (r.ok && push) { c.github = t; out.messages.push('Jeton GitHub enregistré ✓'); } else { out.ok = false; out.messages.push(`Jeton GitHub refusé (erreur ${r.status}). Il doit donner accès en écriture (Contents) au dépôt ${REPO}.`); }
+  }
+  writeSecret('coach.bin', c);
+  return { ...out, ...coachState() };
+}
+
+// ---------- Génération d'une fiche avec Claude ----------
+
+const SYSTEM = `Tu es l'assistant du coach de FIRE LoL, une équipe amateur de League of Legends (classé Solo/Duo, serveur EUW).
+Le coach te donne un sujet ou une consigne. Fais d'abord une recherche web (guides récents, vidéos YouTube de coachs reconnus, patch en cours si c'est utile), puis rédige une fiche claire en français pour les joueurs : simple, concrète, compréhensible par tous, tutoiement, ton direct et encourageant. Reformule avec tes propres mots, sans longues citations.
+
+Réponds UNIQUEMENT par un objet JSON valide, sans texte avant ni après et sans bloc de code, au format :
+{
+  "titre": "titre court",
+  "accroche": "1 ou 2 phrases qui disent ce que le joueur va apprendre",
+  "sections": [
+    { "titre": "titre de la section", "texte": "40 à 150 mots. Paragraphes séparés par une ligne vide, listes avec des lignes qui commencent par « - », mots importants en **gras**.", "schema": { "svg": "<svg ...>...</svg>", "legende": "ce que montre le schéma" } }
+  ],
+  "a_retenir": ["3 à 5 points très courts"],
+  "exercice": "un exercice concret à faire dans sa prochaine game",
+  "videos": [{ "titre": "titre de la vidéo", "url": "https://...", "auteur": "chaîne" }],
+  "sources": [{ "titre": "titre", "url": "https://..." }]
+}
+
+Règles :
+- 2 à 6 sections. "schema" est facultatif (mets null sans schéma) : 1 à 4 schémas en tout, seulement quand ça aide à voir (positions, waves de sbires, trajets, zones, timings).
+- Schémas : SVG autonome avec xmlns='http://www.w3.org/2000/svg' et viewBox='0 0 800 450', attributs entre apostrophes simples, fond rectangle '#14110f', police 'Segoe UI', textes d'au moins 16 px. Couleurs : alliés '#4aa3ff', ennemis '#ff5e3a', texte '#f5ede6', éléments secondaires '#a8988c', zone de danger en rouge transparent, bon placement en vert '#4cc38a'. Sbires = petits cercles, tours = carrés, champions = cercles plus grands avec une initiale, flèches avec un marker. Annotations courtes. Le schéma doit être juste sur le fond (ex. un freeze se fait près de sa propre tour).
+- Interdit dans les SVG : <script>, <image>, <foreignObject>, <a>, attributs on*, liens ou ressources externes.
+- "videos" (0 à 3) et "sources" (1 à 5) : uniquement des URL vues dans ta recherche, jamais inventées.`;
+
+function pickJson(text) {
+  const t = text.replace(/```(?:json)?/g, '');
+  const first = t.indexOf('{');
+  let last = t.lastIndexOf('}');
+  while (first >= 0 && last > first) {
+    try { return JSON.parse(t.slice(first, last + 1)); } catch (e) { last = t.lastIndexOf('}', last - 1); }
+  }
+  throw new Error("la réponse de Claude n'était pas une fiche lisible, réessaie");
+}
+
+const isUrl = (u) => typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/.test(u) && u.length < 600;
+const str = (x, n) => (typeof x === 'string' ? x.trim().slice(0, n) : '');
+
+function cleanSvg(svg) {
+  let s = str(svg, 80000);
+  if (!/^<svg[\s>]/i.test(s) || !/<\/svg>\s*$/i.test(s)) return null;
+  // Défense en plus : le SVG est affiché dans une balise <img>, qui n'exécute aucun script et ne charge rien.
+  s = s.replace(/<(script|foreignObject|image|a|iframe)[\s\S]*?<\/\1\s*>/gi, '').replace(/<(script|foreignObject|image|a|iframe)\b[^>]*\/?>/gi, '');
+  s = s.replace(/\son\w+\s*=\s*("[^"]*"|'[^']*')/gi, '');
+  if (!/xmlns=/.test(s)) s = s.replace(/^<svg/i, "<svg xmlns='http://www.w3.org/2000/svg'");
+  return s;
+}
+
+function cleanFiche(f, meta) {
+  const sections = (Array.isArray(f.sections) ? f.sections : []).slice(0, 8).map((x) => {
+    const svg = x && x.schema && cleanSvg(x.schema.svg);
+    return { titre: str(x && x.titre, 140), texte: str(x && x.texte, 4000), schema: svg ? { svg, legende: str(x.schema.legende, 300) } : null };
+  }).filter((x) => x.titre || x.texte);
+  if (!sections.length) throw new Error('la fiche reçue était vide, réessaie');
+  const links = (arr, n) => (Array.isArray(arr) ? arr : []).filter((x) => x && isUrl(x.url)).slice(0, n)
+    .map((x) => ({ titre: str(x.titre, 200) || x.url, url: x.url, auteur: str(x.auteur, 80) }));
+  return {
+    type: 'fiche', titre: str(f.titre, 140) || meta.sujet.slice(0, 80), accroche: str(f.accroche, 600), sections,
+    a_retenir: (Array.isArray(f.a_retenir) ? f.a_retenir : []).map((x) => str(x, 240)).filter(Boolean).slice(0, 6),
+    exercice: str(f.exercice, 800), videos: links(f.videos, 3), sources: links(f.sources, 6),
+    sujet: str(meta.sujet, 2000), cible: str(meta.cible, 40) || 'Toute l\'équipe'
+  };
+}
+
+async function claude(key, body) {
+  const r = await http('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify(body)
+  }, 300000);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const msg = (j.error && j.error.message) || '';
+    if (r.status === 401) throw new Error('clé Claude refusée : vérifie-la dans les réglages coach');
+    if (r.status === 402 || /credit|billing/i.test(msg)) throw new Error("plus de crédit sur le compte de l'API Claude (console.anthropic.com → Billing)");
+    if (r.status === 429) throw new Error('trop de demandes en même temps, réessaie dans une minute');
+    if (r.status === 529 || r.status >= 500) throw new Error("l'API Claude est surchargée, réessaie dans quelques minutes");
+    throw new Error(`erreur de l'API Claude (${r.status}) ${msg}`.trim());
+  }
+  return j;
+}
+
+async function generate(req) {
+  const c = readSecret('coach.bin') || {};
+  if (!coachState().coach) return { ok: false, error: 'mode coach non activé' };
+  if (!c.anthropic) return { ok: false, error: "ajoute d'abord la clé de l'API Claude dans les réglages coach" };
+  const sujet = str(req.sujet, 2000);
+  if (!sujet) return { ok: false, error: 'écris un sujet' };
+  const cible = str(req.cible, 40) || "Toute l'équipe";
+  const roster = (getConfig().joueurs || []).filter((p) => p.pseudo).map((p) => `${p.role} : ${p.pseudo}${p.pool ? ' (pool imposé : ' + p.pool + ')' : ''}`).join('\n');
+  const ask = `Sujet ou consigne du coach :\n${sujet}\n\nFiche destinée à : ${cible}\n\nJoueurs de l'équipe et champions imposés (pour choisir des exemples qui leur parlent) :\n${roster || '—'}`;
+  const messages = [{ role: 'user', content: ask }];
+  if (req.precedent && req.modif) {
+    const prev = { ...req.precedent };
+    delete prev.sujet; delete prev.cible; delete prev.type;
+    messages.push({ role: 'assistant', content: JSON.stringify(prev) });
+    messages.push({ role: 'user', content: `Modifie cette fiche selon la demande du coach : ${str(req.modif, 1500)}\nRenvoie la fiche complète, au même format JSON.` });
+  }
+  try {
+    let text = '';
+    let searches = 0;
+    for (let turn = 0; turn < 5; turn++) {
+      const j = await claude(c.anthropic, {
+        model: MODEL, max_tokens: 16000, system: SYSTEM, messages,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: req.modif ? 3 : 6 }]
+      });
+      for (const b of j.content || []) {
+        if (b.type === 'text') text += b.text;
+        if (b.type === 'server_tool_use') searches++;
+      }
+      if (j.stop_reason === 'pause_turn') { messages.push({ role: 'assistant', content: j.content }); continue; }
+      if (j.stop_reason === 'max_tokens') throw new Error('la fiche était trop longue, demande un sujet plus précis');
+      break;
+    }
+    const fiche = cleanFiche(pickJson(text), { sujet, cible });
+    return { ok: true, fiche, recherches: searches };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+}
+
+// ---------- Publication et lecture des fiches (dépôt GitHub, dossier coach/) ----------
+
+async function ghGet(token, p) {
+  const r = await http(GH_API + p + '?ref=main', { headers: ghHeaders(token) });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`GitHub a refusé la lecture (${r.status})`);
+  const j = await r.json();
+  return { sha: j.sha, json: j.content ? JSON.parse(Buffer.from(j.content, 'base64').toString('utf8')) : null };
+}
+async function ghPut(token, p, obj, sha, message) {
+  const body = { message, content: Buffer.from(JSON.stringify(obj, null, 1), 'utf8').toString('base64'), branch: 'main' };
+  if (sha) body.sha = sha;
+  const r = await http(GH_API + p, { method: 'PUT', headers: { ...ghHeaders(token), 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.status === 409 || r.status === 422) return { conflict: true };
+  if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? 'jeton GitHub refusé : vérifie-le dans les réglages coach' : `GitHub a refusé l'envoi (${r.status})`);
+  return { ok: true };
+}
+async function ghDelete(token, p, sha, message) {
+  const r = await http(GH_API + p, { method: 'DELETE', headers: { ...ghHeaders(token), 'content-type': 'application/json' }, body: JSON.stringify({ message, sha, branch: 'main' }) });
+  if (!r.ok && r.status !== 404) throw new Error(`GitHub a refusé la suppression (${r.status})`);
+}
+
+async function updateIndex(token, change) {
+  for (let i = 0; i < 3; i++) {
+    const cur = await ghGet(token, 'coach/index.json');
+    const idx = (cur && cur.json) || { v: 1, fiches: [] };
+    change(idx);
+    const r = await ghPut(token, 'coach/index.json', idx, cur && cur.sha, 'Parole du coach : liste des fiches');
+    if (r.ok) return;
+  }
+  throw new Error('la liste des fiches a changé pendant l\'envoi, réessaie');
+}
+
+async function publish(fiche) {
+  const c = readSecret('coach.bin') || {};
+  if (!coachState().coach) return { ok: false, error: 'mode coach non activé' };
+  if (!c.github) return { ok: false, error: "ajoute d'abord le jeton GitHub dans les réglages coach" };
+  try {
+    const id = Date.now().toString(36) + '-' + crypto.randomBytes(3).toString('hex');
+    const at = Date.now();
+    const box = seal({ ...fiche, at }, id);
+    const r = await ghPut(c.github, `coach/${id}.json`, box, null, 'Parole du coach : nouvelle fiche');
+    if (!r.ok) throw new Error("GitHub a refusé l'envoi");
+    await updateIndex(c.github, (idx) => { idx.fiches = (idx.fiches || []).filter((x) => x.id !== id).concat([{ id, at }]); });
+    saveCache(id, box);
+    return { ok: true, id };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+}
+
+async function unpublish(id) {
+  const c = readSecret('coach.bin') || {};
+  if (!coachState().coach || !c.github) return { ok: false, error: 'réservé au coach (jeton GitHub manquant)' };
+  if (!/^[a-z0-9-]{4,40}$/.test(String(id))) return { ok: false, error: 'fiche inconnue' };
+  try {
+    await updateIndex(c.github, (idx) => { idx.fiches = (idx.fiches || []).filter((x) => x.id !== id); });
+    const cur = await ghGet(c.github, `coach/${id}.json`);
+    if (cur) await ghDelete(c.github, `coach/${id}.json`, cur.sha, 'Parole du coach : fiche retirée');
+    removeFile(path.join('fiches', id + '.json'));
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+}
+
+function cachePath(id) { return path.join(dir(), 'fiches', id + '.json'); }
+function saveCache(id, box) {
+  try { fs.mkdirSync(path.join(dir(), 'fiches'), { recursive: true }); fs.writeFileSync(cachePath(id), JSON.stringify(box)); } catch (e) { /* cache facultatif */ }
+}
+function loadCache(id) { try { return JSON.parse(fs.readFileSync(cachePath(id), 'utf8')); } catch (e) { return null; } }
+
+async function readPublic(p) {
+  // API GitHub (toujours à jour), puis copie « raw » si la limite de l'API est atteinte.
+  try {
+    const r = await http(GH_API + p + '?ref=main', { headers: { Accept: 'application/vnd.github.raw+json', 'User-Agent': 'FIRE-LoL' } });
+    if (r.status === 404) return null;
+    if (r.ok) return JSON.parse(await r.text());
+  } catch (e) { /* on tente la copie raw */ }
+  const r = await http(RAW + p + '?t=' + Date.now());
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('fiches du coach injoignables (' + r.status + ')');
+  return JSON.parse(await r.text());
+}
+
+async function list() {
+  if (!teamKey()) return { ok: false, error: "entre à nouveau le code d'équipe pour lire les fiches" };
+  let idx;
+  let offline = false;
+  try { idx = await readPublic('coach/index.json'); } catch (e) { offline = true; }
+  if (offline) {
+    // Hors ligne : on affiche les fiches déjà téléchargées.
+    let ids = [];
+    try { ids = fs.readdirSync(path.join(dir(), 'fiches')).filter((n) => n.endsWith('.json')).map((n) => n.slice(0, -5)); } catch (e) { /* aucune */ }
+    idx = { fiches: ids.map((id) => ({ id })) };
+  }
+  const out = [];
+  for (const it of (idx && idx.fiches) || []) {
+    if (!/^[a-z0-9-]{4,40}$/.test(String(it.id))) continue;
+    let box = loadCache(it.id);
+    if (!box && !offline) {
+      try { box = await readPublic(`coach/${it.id}.json`); if (box) saveCache(it.id, box); } catch (e) { /* suivante */ }
+    }
+    if (!box) continue;
+    try { out.push({ id: it.id, ...open(box) }); } catch (e) { /* fiche chiffrée avec un autre code : ignorée */ }
+  }
+  out.sort((a, b) => (b.at || 0) - (a.at || 0));
+  return { ok: true, fiches: out, offline };
+}
+
+function message(m) {
+  const texte = str(m.texte, 6000);
+  if (!texte) return { ok: false, error: 'écris ton message' };
+  return { ok: true, fiche: { type: 'message', titre: str(m.titre, 140) || 'Message du coach', accroche: '', sections: [{ titre: '', texte, schema: null }], a_retenir: [], exercice: '', videos: [], sources: [], sujet: '', cible: str(m.cible, 40) || "Toute l'équipe" } };
+}
+
+module.exports = { init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

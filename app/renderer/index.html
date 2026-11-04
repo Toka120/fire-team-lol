@@ -16,6 +16,7 @@
     <button id="code-ok" class="btn-fire">Entrer</button>
     <p id="code-err" class="code-err" hidden>Code incorrect. Demande-le à ton coach.</p>
     <p class="lock-note">Le code n'est demandé qu'une seule fois sur cet ordinateur.</p>
+    <p id="lock-update" class="lock-update" hidden></p>
   </div>
 </section>
 
@@ -23,8 +24,9 @@
   <header class="topbar">
     <button id="back" class="btn-ghost" hidden>← Équipe</button>
     <div class="brand-sm"><img src="../assets/fire.png" alt=""><span>FIRE LoL</span></div>
+    <nav id="nav" class="mainnav" aria-label="Rubriques"></nav>
     <div class="spacer"></div>
-    <label class="period">Période
+    <label class="period" id="period-box">Période
       <select id="period">
         <option value="1">Aujourd'hui</option>
         <option value="7" selected>7 derniers jours</option>
@@ -36,6 +38,7 @@
     </label>
     <button id="refresh" class="btn-ghost">⟳ Mettre à jour</button>
   </header>
+  <div id="update" class="updatebar" hidden></div>
   <div id="status" class="statusbar"></div>
   <main id="view" class="view"></main>
 </section>

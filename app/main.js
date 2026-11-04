@@ -5,8 +5,10 @@ const { app, BrowserWindow, ipcMain, session, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const coach = require('./coach');
 
 const CONFIG_URL = 'https://toka120.github.io/fire-team-lol/joueurs.json';
+const GUIDES_URL = 'https://toka120.github.io/fire-team-lol/guides.json';
 const DPM = 'https://dpm.lol/';
 let mainWin = null;
 
@@ -40,22 +42,44 @@ function createMainWindow() {
 
 // ---------- Configuration (liste des joueurs, code d'équipe) ----------
 
-const configCache = () => path.join(app.getPath('userData'), 'joueurs.json');
+const cachePath = (name) => path.join(app.getPath('userData'), name);
+let lastCfg = null;
 
-ipcMain.handle('config', async () => {
+// Lit un fichier JSON en ligne (GitHub Pages), garde une copie locale, et retombe dessus hors ligne.
+async function remoteJson(url, name) {
   try {
-    const r = await fetch(CONFIG_URL + '?t=' + Date.now(), { cache: 'no-store' });
+    const r = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' });
     if (r.ok) {
       const j = await r.json();
-      try { fs.writeFileSync(configCache(), JSON.stringify(j)); } catch (e) { /* ignore */ }
+      try { fs.writeFileSync(cachePath(name), JSON.stringify(j)); } catch (e) { /* ignore */ }
       return { ...j, _source: 'en ligne' };
     }
   } catch (e) { /* hors ligne : on retombe sur la copie locale */ }
-  for (const file of [configCache(), path.join(__dirname, 'renderer', 'joueurs.default.json')]) {
-    try { return { ...JSON.parse(fs.readFileSync(file, 'utf8')), _source: 'copie locale' }; } catch (e) { /* suivant */ }
+  for (const f of [cachePath(name), path.join(__dirname, 'renderer', name.replace('.json', '.default.json'))]) {
+    try { return { ...JSON.parse(fs.readFileSync(f, 'utf8')), _source: 'copie locale' }; } catch (e) { /* suivant */ }
   }
-  return { joueurs: [], _source: 'aucune' };
+  return null;
+}
+
+ipcMain.handle('config', async () => {
+  const j = (await remoteJson(CONFIG_URL, 'joueurs.json')) || { joueurs: [], _source: 'aucune' };
+  lastCfg = j;
+  return j;
 });
+ipcMain.handle('guides', async () => (await remoteJson(GUIDES_URL, 'guides.json')) || { themes: [] });
+
+coach.init(() => lastCfg || {});
+ipcMain.handle('unlock', (e, code) => coach.unlock(code));
+ipcMain.handle('unlocked', () => coach.isUnlocked());
+ipcMain.handle('coach:state', () => coach.coachState());
+ipcMain.handle('coach:unlock', (e, code) => coach.coachUnlock(code));
+ipcMain.handle('coach:leave', () => coach.coachLeave());
+ipcMain.handle('coach:save', (e, keys) => coach.coachSave(keys || {}));
+ipcMain.handle('coach:generate', (e, req) => coach.generate(req || {}));
+ipcMain.handle('coach:message', (e, m) => coach.message(m || {}));
+ipcMain.handle('coach:publish', (e, fiche) => coach.publish(fiche));
+ipcMain.handle('coach:unpublish', (e, id) => coach.unpublish(id));
+ipcMain.handle('fiches', () => coach.list());
 
 ipcMain.handle('hash', (e, text) => crypto.createHash('sha256').update(String(text)).digest('hex'));
 ipcMain.handle('version', () => app.getVersion());

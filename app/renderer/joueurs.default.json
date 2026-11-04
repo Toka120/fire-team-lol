@@ -1,7 +1,17 @@
 {
   "equipe": "FIRE LoL",
   "mise_a_jour": "4 novembre 2026",
-  "code_sha256": "c1af5c9ab8216b70fdcdc82f8e779c63fc12c4ad92f4d35a4825b92c1261960d",
+  "code_sha256": "version-1.1-requise",
+  "code_scrypt": {
+    "salt": "d472c45fbafad12251527b6d83d8574f",
+    "hash": "72fd8f285485fe67809a8a3b7c4aa6860cadd64a9c361f25d41caaad001a915d"
+  },
+  "coach_scrypt": {
+    "salt": "7dacbaa696b253c4b238f6d162d45276",
+    "hash": "b992d760c0ca3090e678d352bad50db7c8454a91b99def23493b6c7bb948e00c"
+  },
+  "fiches_salt": "5916c842ca2b8bc9b75ca3e5558f2fd6",
+  "derniere_version": "1.1.0",
   "objectif": {
     "debut": "2026-10-31",
     "games": 20,
@@ -11,12 +21,17 @@
     {
       "role": "Top",
       "role_id": "top",
-      "pseudo": "",
-      "slug": "",
-      "pool_ids": [],
-      "pool": "",
+      "pseudo": "lebrésilien",
+      "slug": "lebr%C3%A9silien%20-931",
+      "pool_ids": [
+        "Renekton",
+        "Zaahen",
+        "Gwen",
+        "Yone"
+      ],
+      "pool": "Renekton · Zaahen · Gwen · Yone",
       "tableau": "",
-      "dpm": ""
+      "dpm": "https://dpm.lol/lebr%C3%A9silien%20-931"
     },
     {
       "role": "Jungle",

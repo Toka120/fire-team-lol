@@ -13,7 +13,10 @@
     cfg: null, players: [], period: '7', since: null, obj: null,
     data: load('fire.data', {}), status: {},
     view: 'hub', player: null, tab: 'resume', jour: 'tous',
-    refreshing: false, lastRefresh: null, timer: null
+    refreshing: false, lastRefresh: null, timer: null,
+    section: 'stats', version: '0', guides: null, theme: null,
+    fiches: null, fichesErr: '', fichesLoading: false, ficheId: null, seen: new Set(load('fire.vus', [])),
+    coachState: { coach: false, claude: false, github: false }, draft: null, flash: '', settingsMsg: '', confirm: null
   };
 
   // ---------- Petits outils ----------
@@ -75,25 +78,47 @@
   // ---------- Démarrage, code d'accès ----------
   async function start() {
     S.cfg = await window.fire.config();
+    try { S.version = await window.fire.version(); } catch (e) { /* inconnue */ }
     S.players = (S.cfg && S.cfg.joueurs) || [];
     S.obj = (S.cfg && S.cfg.objectif && S.cfg.objectif.debut) ? S.cfg.objectif : null;
     if (S.obj) S.period = 'obj';
-    const need = S.cfg && S.cfg.code_sha256;
-    if (need && load('fire.unlock', null) !== need) showLock();
+    let ok;
+    if (S.cfg && S.cfg.code_scrypt) ok = await window.fire.unlocked();
+    else { const need = S.cfg && S.cfg.code_sha256; ok = !need || load('fire.unlock', null) === need; }
+    if (!ok) showLock();
     else showApp();
+  }
+
+  const newer = (a, b) => {
+    const x = String(a || '').split('.').map(Number), y = String(b || '').split('.').map(Number);
+    for (let i = 0; i < 3; i++) { if ((x[i] || 0) > (y[i] || 0)) return true; if ((x[i] || 0) < (y[i] || 0)) return false; }
+    return false;
+  };
+  const SETUP_URL = 'https://github.com/Toka120/fire-team-lol/releases/latest/download/FIRE-LoL-Setup.exe';
+  function updateNode() {
+    const v = S.cfg && S.cfg.derniere_version;
+    if (!v || !newer(v, S.version)) return null;
+    return h('span', null, `🔥 Nouvelle version ${v} disponible (tu as la ${S.version}). `, h('a', { href: SETUP_URL, target: '_blank' }, 'Télécharger la mise à jour'));
   }
 
   function showLock() {
     $('lock').hidden = false;
     $('app').hidden = true;
+    const up = updateNode();
+    if (up) { $('lock-update').hidden = false; $('lock-update').replaceChildren(up); }
     const inp = $('code');
     setTimeout(() => inp.focus(), 50);
     const go = async () => {
       const v = inp.value.replace(/[^a-z0-9]/gi, '').toUpperCase();
       if (!v) return;
-      const hsh = await window.fire.hash(v);
-      if (hsh === S.cfg.code_sha256) {
-        save('fire.unlock', hsh);
+      $('code-ok').disabled = true;
+      let ok = false;
+      try {
+        if (S.cfg.code_scrypt) ok = (await window.fire.unlock(v)).ok;
+        else { const hsh = await window.fire.hash(v); ok = hsh === S.cfg.code_sha256; if (ok) save('fire.unlock', hsh); }
+      } catch (e) { ok = false; }
+      $('code-ok').disabled = false;
+      if (ok) {
         $('lock').hidden = true;
         showApp();
       } else {
@@ -108,9 +133,14 @@
   function showApp() {
     $('app').hidden = false;
     wire();
+    const up = updateNode();
+    if (up) { $('update').hidden = false; $('update').replaceChildren(up); }
     render();
+    window.fire.guides().then((g) => { S.guides = (g && g.themes) || []; if (S.section !== 'stats' && !typing()) render(); }).catch(() => { S.guides = []; });
+    window.fire.coach.state().then((c) => { S.coachState = c; if (S.section === 'coach' && !typing()) render(); }).catch(() => {});
+    loadFiches();
     refreshAll();
-    S.timer = setInterval(refreshAll, REFRESH_EVERY);
+    S.timer = setInterval(() => { refreshAll(); loadFiches(); }, REFRESH_EVERY);
   }
 
   function wire() {
@@ -134,10 +164,14 @@
       render();
     };
     since.onchange = () => { if (since.value && since.validity.valid) { S.since = since.value; S.jour = 'tous'; render(); } };
-    $('refresh').onclick = () => refreshAll();
-    $('back').onclick = () => { S.view = 'hub'; S.player = null; render(); window.scrollTo(0, 0); };
+    $('refresh').onclick = () => { refreshAll(); loadFiches(); };
+    $('back').onclick = () => {
+      if (S.section === 'stats') { S.view = 'hub'; S.player = null; } else if (S.section === 'guides') S.theme = null; else S.ficheId = null;
+      render();
+      window.scrollTo(0, 0);
+    };
     let t = null;
-    window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(render, 200); });
+    window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { if (S.section === 'stats') render(); }, 200); });
   }
 
   // ---------- Lecture dpm.lol ----------
@@ -155,14 +189,14 @@
     $('refresh').disabled = true;
     list.forEach((p) => { S.status[p.slug] = { state: 'wait' }; });
     renderStatus();
-    if (S.view === 'hub') render();
+    if (S.section === 'stats' && S.view === 'hub') render();
     let i = 0;
     const worker = async () => {
       while (i < list.length) {
         const p = list[i++];
         S.status[p.slug] = { state: 'loading' };
         renderStatus();
-        if (S.view === 'hub') render();
+        if (S.section === 'stats' && S.view === 'hub') render();
         let res;
         try { res = await window.fire.fetchPlayer({ slug: p.slug, puuid: p.puuid || null }, fetchDays()); } catch (e) { res = { ok: false, error: String(e) }; }
         if (res && res.ok) {
@@ -173,7 +207,7 @@
           S.status[p.slug] = { state: 'error', error: (res && res.error) || 'erreur inconnue' };
         }
         renderStatus();
-        if (S.view === 'hub' || S.player === p.slug) render();
+        if (S.section === 'stats' && (S.view === 'hub' || S.player === p.slug)) render();
       }
     };
     await Promise.all([worker(), worker(), worker()]);
@@ -207,8 +241,14 @@
   // ---------- Rendu ----------
   function render() {
     hideTip();
-    $('back').hidden = S.view !== 'player';
-    if (S.view === 'player') renderPlayer();
+    renderNav();
+    $('period-box').hidden = S.section !== 'stats';
+    const back = $('back');
+    back.hidden = !(S.section === 'stats' ? S.view === 'player' : S.section === 'guides' ? !!S.theme : !!S.ficheId);
+    back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? '← Lanes et principes' : '← Parole du coach';
+    if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
+    else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
+    else if (S.view === 'player') renderPlayer();
     else renderHub();
   }
 
@@ -223,6 +263,7 @@
     const start = periodStart();
     const view = $('view');
     view.replaceChildren(
+      newsBanner(),
       h('div', null,
         h('h1', { class: 'title' }, "L'équipe"),
         h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · clique sur un joueur pour voir tout le détail.`),
@@ -572,6 +613,342 @@
       svg.append('text').attr('class', 'strong').attr('x', ml - 8).attr('y', yy + y.bandwidth() / 2).attr('dy', '0.32em').attr('text-anchor', 'end').text(c.champion);
       svg.append('text').attr('class', 'strong').attr('x', x(c.games) + 6).attr('y', yy + y.bandwidth() / 2).attr('dy', '0.32em').text(label(c));
     });
+  }
+
+  // ================= Rubriques « Lanes et principes » et « Parole du coach » =================
+  const typing = () => { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && $('view').contains(a)); };
+  const CIBLES = ["Toute l'équipe", 'Top', 'Jungle', 'Mid', 'ADC', 'Support'];
+  const dateLong = (t) => { const d = new Date(t); return `${d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} à ${hm(t)}`; };
+  const themeOf = (id) => (S.guides || []).find((t) => t.id === id) || null;
+  const unseen = () => (S.fiches || []).filter((f) => !S.seen.has(f.id));
+  const pourLabel = (p) => (!p || p === 'tous') ? "Toute l'équipe" : String(p).split(/\s+/).map((r) => (FC.ROLES[r] ? FC.ROLES[r].label : r)).join(' et ');
+
+  function go(sec) {
+    S.section = sec;
+    if (sec === 'guides') S.theme = null;
+    if (sec === 'coach') S.ficheId = null;
+    if (sec === 'stats') { S.view = 'hub'; S.player = null; }
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  function renderNav() {
+    const n = unseen().length;
+    const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null));
+  }
+
+  function newsBanner() {
+    const u = unseen();
+    if (!u.length) return null;
+    const f = u[0];
+    return h('button', { class: 'news', onclick: () => openFiche(f.id) },
+      h('span', { class: 'news-ico' }, '📣'),
+      h('span', { class: 'news-txt' }, h('b', null, 'Nouveau du coach : '), f.titre, u.length > 1 ? h('span', { class: 'muted' }, ` (et ${u.length - 1} autre${u.length > 2 ? 's' : ''})`) : null),
+      h('span', { class: 'news-go' }, 'Lire →'));
+  }
+
+  async function loadFiches() {
+    S.fichesLoading = true;
+    let r;
+    try { r = await window.fire.fiches(); } catch (e) { r = { ok: false, error: String(e) }; }
+    S.fichesLoading = false;
+    if (r && r.ok) { S.fiches = r.fiches; S.fichesErr = r.offline ? 'Hors ligne : seules les fiches déjà téléchargées sont affichées.' : ''; }
+    else { S.fiches = S.fiches || []; S.fichesErr = (r && r.error) || 'fiches indisponibles'; }
+    renderNav();
+    if (typing()) return;
+    if (S.section === 'coach' || S.section === 'guides' || (S.section === 'stats' && S.view === 'hub')) render();
+  }
+
+  function markSeen(id) {
+    if (S.seen.has(id)) return;
+    S.seen.add(id);
+    save('fire.vus', [...S.seen].slice(-300));
+  }
+
+  function openFiche(id) {
+    S.section = 'coach';
+    S.ficheId = id;
+    markSeen(id);
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  // ----- Texte simple : paragraphes, listes « - », **gras** (sans HTML) -----
+  function inline(t) {
+    const out = [];
+    const re = /\*\*(.+?)\*\*/g;
+    let i = 0, m;
+    while ((m = re.exec(t))) { if (m.index > i) out.push(t.slice(i, m.index)); out.push(h('b', null, m[1])); i = re.lastIndex; }
+    if (i < t.length) out.push(t.slice(i));
+    return out;
+  }
+  function md(text) {
+    const out = [];
+    for (const block of String(text || '').split(/\n\s*\n/)) {
+      let list = null, para = [];
+      const flush = () => { if (para.length) { out.push(h('p', null, para.map((l, i) => [i ? h('br') : null, inline(l)]))); para = []; } };
+      for (const raw of block.split('\n')) {
+        const l = raw.trim();
+        if (!l) continue;
+        const m = l.match(/^[-•]\s+(.*)$/);
+        if (m) { flush(); if (!list) { list = h('ul'); out.push(list); } list.append(h('li', null, inline(m[1]))); }
+        else { list = null; para.push(l); }
+      }
+      flush();
+    }
+    return out;
+  }
+
+  const svgSrc = (svg) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  const ytId = (u) => { const m = String(u).match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/); return m ? m[1] : null; };
+
+  function zoom(src, cap) {
+    const box = h('div', { class: 'zoom', onclick: () => box.remove() }, h('img', { src, alt: cap || '' }), cap ? h('p', null, cap) : null, h('span', { class: 'zoom-x' }, '✕ Fermer'));
+    document.body.append(box);
+  }
+
+  function docNodes(doc) {
+    const nodes = [];
+    if (doc.accroche) nodes.push(h('p', { class: 'lead doc-lead' }, doc.accroche));
+    (doc.sections || []).forEach((sec) => {
+      let fig = null;
+      if (sec.schema && sec.schema.svg) {
+        const src = svgSrc(sec.schema.svg);
+        fig = h('figure', { class: 'schema' }, h('img', { src, alt: sec.schema.legende || 'schéma', onclick: () => zoom(src, sec.schema.legende) }),
+          h('figcaption', null, (sec.schema.legende ? sec.schema.legende + ' ' : ''), h('span', { class: 'muted' }, '(clique pour agrandir)')));
+      }
+      nodes.push(h('section', { class: 'card doc-sec' + (fig ? ' with-fig' : '') }, sec.titre ? h('h2', null, sec.titre) : null, h('div', { class: 'md' }, md(sec.texte)), fig));
+    });
+    if (doc.a_retenir && doc.a_retenir.length) nodes.push(h('div', { class: 'card doc-retenir' }, h('h2', null, '✅ À retenir'), h('ul', { class: 'checks' }, doc.a_retenir.map((x) => h('li', null, x)))));
+    if (doc.exercice) nodes.push(h('div', { class: 'card doc-exo' }, h('h2', null, '🎮 Exercice pour ta prochaine game'), h('p', null, doc.exercice)));
+    if (doc.videos && doc.videos.length) {
+      nodes.push(h('div', { class: 'card' }, h('h2', null, "🎬 Vidéos pour voir l'exemple"), h('div', { class: 'videos' }, doc.videos.map((v) => {
+        const id = ytId(v.url);
+        return h('a', { class: 'video', href: v.url, target: '_blank' },
+          id ? h('img', { src: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`, alt: '' }) : h('div', { class: 'video-ph' }, '▶'),
+          h('div', { class: 'video-t' }, v.titre), v.auteur ? h('div', { class: 'muted small' }, v.auteur) : null);
+      }))));
+    }
+    if (doc.sources && doc.sources.length) {
+      nodes.push(h('p', { class: 'muted small sources' }, 'Sources : ', doc.sources.map((x, i) => [i ? ' · ' : null, h('a', { href: x.url, target: '_blank' }, x.titre)])));
+    }
+    return nodes;
+  }
+
+  // ----- Lanes et principes -----
+  function renderGuides() {
+    const view = $('view');
+    const head = h('div', null, h('h1', { class: 'title' }, '📚 Lanes et principes'),
+      h('p', { class: 'muted' }, 'Tous les principes de LoL, expliqués simplement, avec des schémas. Clique sur un thème. À jour pour la saison 2026.'));
+    if (!S.guides) { view.replaceChildren(head, h('div', { class: 'empty-state' }, 'Chargement des thèmes…')); return; }
+    view.replaceChildren(head, h('div', { class: 'theme-grid' }, S.guides.map((t) => {
+      const extra = (S.fiches || []).filter((f) => f.rubrique === t.id).length;
+      return h('button', { class: 'tcard', onclick: () => { S.theme = t.id; render(); window.scrollTo(0, 0); } },
+        h('div', { class: 'tico' }, t.ico || '📘'),
+        h('div', { class: 'tname' }, t.titre),
+        h('p', { class: 'muted small' }, t.accroche),
+        h('div', { class: 'tfoot' }, tag(pourLabel(t.pour)), h('span', { class: 'muted small' }, `${(t.sections || []).length} principes`), extra ? h('span', { class: 'pill-new' }, `+${extra} du coach`) : null));
+    })));
+  }
+
+  function renderTheme() {
+    const t = themeOf(S.theme);
+    const view = $('view');
+    if (!t) { S.theme = null; renderGuides(); return; }
+    const extra = (S.fiches || []).filter((f) => f.rubrique === t.id);
+    view.replaceChildren(
+      h('header', { class: 'doc-head' }, h('div', { class: 'tags' }, tag(pourLabel(t.pour)), tag('Saison 2026')), h('h1', { class: 'title' }, `${t.ico || ''} ${t.titre}`)),
+      ...docNodes(t),
+      extra.length || S.coachState.coach ? h('div', { class: 'card' },
+        h('h2', null, '📣 Ajouts du coach'),
+        extra.length ? h('div', { class: 'fgrid' }, extra.map(ficheCard)) : h('p', { class: 'muted' }, 'Pas encore d\'ajout du coach dans ce thème.'),
+        S.coachState.coach ? h('button', { class: 'btn-ghost', onclick: () => { ensureDraft().rubrique = t.id; S.section = 'coach'; S.ficheId = null; render(); window.scrollTo(0, 0); setTimeout(() => { const x = $('sujet'); if (x) x.focus(); }, 50); } }, '✍️ Écrire un ajout pour ce thème') : null) : null);
+  }
+
+  // ----- Parole du coach -----
+  function ficheCard(f) {
+    const th = f.rubrique ? themeOf(f.rubrique) : null;
+    return h('button', { class: 'fcard', onclick: () => openFiche(f.id) },
+      h('div', { class: 'fmeta' }, h('span', { class: 'muted small' }, f.at ? dateLong(f.at) : ''), !S.seen.has(f.id) ? h('span', { class: 'pill-new' }, 'Nouveau') : null),
+      h('div', { class: 'fname' }, (f.type === 'message' ? '💬 ' : '📘 ') + f.titre),
+      f.accroche ? h('p', { class: 'muted small' }, f.accroche) : null,
+      h('div', { class: 'tags' }, tag('Pour : ' + (f.cible || "Toute l'équipe")), th ? tag(`${th.ico} ${th.titre}`) : null));
+  }
+
+  function renderFicheView() {
+    const f = (S.fiches || []).find((x) => x.id === S.ficheId);
+    const view = $('view');
+    if (!f) { S.ficheId = null; renderCoach(); return; }
+    const th = f.rubrique ? themeOf(f.rubrique) : null;
+    const nodes = [h('header', { class: 'doc-head' },
+      h('div', { class: 'tags' }, tag(f.type === 'message' ? '💬 Message du coach' : '📘 Fiche du coach'), tag('Pour : ' + (f.cible || "Toute l'équipe")), th ? tag(`${th.ico} ${th.titre}`) : null),
+      h('h1', { class: 'title' }, f.titre),
+      h('p', { class: 'muted small' }, f.at ? 'Publié le ' + dateLong(f.at) : ''))];
+    nodes.push(...docNodes(f));
+    if (S.coachState.coach) {
+      const confirming = S.confirm === 'del:' + f.id;
+      nodes.push(h('div', { class: 'card coach-zone' }, h('h2', null, '🔒 Réservé au coach'),
+        f.sujet ? h('p', { class: 'muted small' }, 'Sujet donné : ' + f.sujet) : null,
+        S.coachState.github ? h('button', { class: confirming ? 'btn-danger' : 'btn-ghost', onclick: async (e) => {
+          if (!confirming) { S.confirm = 'del:' + f.id; render(); return; }
+          e.target.disabled = true; e.target.textContent = 'Retrait en cours…';
+          const r = await window.fire.coach.unpublish(f.id);
+          S.confirm = null;
+          if (r.ok) { S.flash = 'Fiche retirée pour toute l\'équipe.'; S.ficheId = null; await loadFiches(); } else { S.flash = 'Impossible de retirer la fiche : ' + r.error; }
+          render();
+        } }, confirming ? 'Confirmer : retirer cette fiche pour tout le monde' : 'Retirer cette fiche') : h('p', { class: 'muted small' }, 'Ajoute le jeton GitHub dans les réglages coach pour pouvoir retirer une fiche.')));
+    }
+    view.replaceChildren(...nodes);
+  }
+
+  const newDraft = () => ({ mode: 'fiche', sujet: '', titre: '', cible: "Toute l'équipe", rubrique: '', fiche: null, busy: false, err: '', modif: '', t0: 0, info: '' });
+  const ensureDraft = () => (S.draft = S.draft || newDraft());
+  let busyTimer = null;
+
+  function renderCoach() {
+    const view = $('view');
+    const nodes = [h('div', null, h('h1', { class: 'title' }, '📣 Parole du coach'),
+      h('p', { class: 'muted' }, "Les fiches et les messages du coach pour l'équipe. Les nouvelles fiches arrivent toutes seules à l'ouverture de l'application.")) ];
+    if (S.flash) nodes.push(h('div', { class: 'flash' }, S.flash, h('button', { class: 'flash-x', onclick: () => { S.flash = ''; render(); } }, '✕')));
+    if (S.coachState.coach) nodes.push(composerCard(), settingsCard());
+    if (S.fichesErr) nodes.push(h('p', { class: 'muted small' }, '⚠ ' + S.fichesErr));
+    if (!S.fiches) nodes.push(h('div', { class: 'empty-state' }, 'Chargement des fiches du coach…'));
+    else if (!S.fiches.length) nodes.push(h('div', { class: 'empty-state' }, "Le coach n'a encore rien publié."));
+    else nodes.push(h('div', { class: 'fgrid' }, S.fiches.map(ficheCard)));
+    nodes.push(coachAccess());
+    view.replaceChildren(...nodes);
+  }
+
+  function coachAccess() {
+    if (S.coachState.coach) {
+      const c = S.confirm === 'leave';
+      return h('p', { class: 'coach-access muted small' }, '🔒 Mode coach activé sur cet ordinateur. ',
+        h('button', { class: 'linkbtn', onclick: async () => {
+          if (!c) { S.confirm = 'leave'; render(); return; }
+          S.coachState = await window.fire.coach.leave(); S.confirm = null; S.draft = null; render();
+        } }, c ? 'Confirmer : quitter le mode coach et effacer les clés de cet ordinateur' : 'Quitter le mode coach'));
+    }
+    const inp = h('input', { class: 'inp', type: 'password', placeholder: 'Code coach', autocomplete: 'off', style: 'max-width:240px' });
+    const err = h('span', { class: 'bad small' });
+    const goCoach = async () => {
+      const r = await window.fire.coach.unlock(inp.value);
+      if (r && r.ok) { S.coachState = r; render(); } else { err.textContent = 'Code coach incorrect.'; inp.select(); }
+    };
+    inp.addEventListener('keydown', (e) => { err.textContent = ''; if (e.key === 'Enter') goCoach(); });
+    return h('details', { class: 'coach-access' }, h('summary', null, 'Je suis le coach'),
+      h('div', { class: 'row' }, inp, h('button', { class: 'btn-ghost', onclick: goCoach }, 'Activer le mode coach'), err));
+  }
+
+  function settingsCard() {
+    const st = S.coachState;
+    const a = h('input', { class: 'inp', type: 'password', autocomplete: 'off', placeholder: st.claude ? 'Clé enregistrée ✓ (laisse vide pour la garder)' : 'sk-ant-…' });
+    const g = h('input', { class: 'inp', type: 'password', autocomplete: 'off', placeholder: st.github ? 'Jeton enregistré ✓ (laisse vide pour le garder)' : 'github_pat_…' });
+    const btn = h('button', { class: 'btn-ghost', onclick: async () => {
+      if (!a.value && !g.value) return;
+      btn.disabled = true; btn.textContent = 'Vérification…';
+      const r = await window.fire.coach.save({ anthropic: a.value, github: g.value });
+      S.coachState = { coach: r.coach, claude: r.claude, github: r.github };
+      S.settingsMsg = (r.messages || []).join(' ') || r.error || '';
+      render();
+    } }, 'Enregistrer');
+    return h('details', { class: 'card settings', open: !(st.claude && st.github) ? true : null },
+      h('summary', null, `⚙️ Réglages coach · Claude ${st.claude ? '✓' : '✗'} · GitHub ${st.github ? '✓' : '✗'}`),
+      h('p', { class: 'muted small' }, "Ces clés restent sur cet ordinateur, chiffrées par Windows. Elles ne sont jamais envoyées aux joueurs."),
+      h('label', { class: 'fld' }, h('span', null, "Clé de l'API Claude (pour les fiches avec recherche)"), a),
+      h('label', { class: 'fld' }, h('span', null, 'Jeton GitHub (pour publier les fiches)'), g),
+      h('div', { class: 'row' }, btn, S.settingsMsg ? h('span', { class: 'small' }, S.settingsMsg) : null),
+      h('details', { class: 'help' }, h('summary', null, 'Comment obtenir ces clés ?'),
+        h('ol', { class: 'small' },
+          h('li', null, 'Clé Claude : sur ', h('a', { href: 'https://console.anthropic.com/settings/keys', target: '_blank' }, 'console.anthropic.com'), ', crée un compte, ajoute du crédit (Billing), puis « Create Key ». Chaque fiche générée est facturée sur ce compte.'),
+          h('li', null, 'Jeton GitHub : sur ', h('a', { href: 'https://github.com/settings/personal-access-tokens/new', target: '_blank' }, 'github.com → Fine-grained token'), ', choisis « Only select repositories » → Toka120/fire-team-lol, puis Permissions → Contents : « Read and write ». Le propriétaire du dépôt (Toka120) doit le créer ou donner accès au coach.'))));
+  }
+
+  function composerCard() {
+    const d = ensureDraft();
+    const seg = (m, l) => h('button', { class: 'seg', 'aria-pressed': String(d.mode === m), disabled: d.busy ? true : null, onclick: () => { d.mode = m; d.fiche = null; d.err = ''; render(); } }, l);
+    const sujet = h('textarea', { id: 'sujet', class: 'inp', rows: d.mode === 'message' ? 6 : 3, disabled: d.busy ? true : null,
+      placeholder: d.mode === 'message' ? 'Ton message pour l\'équipe (ex. : scrim demain à 20 h, soyez là 10 min avant).' : 'Ex. : comment gérer sa wave en top quand on est en retard ; ou : explique le tempo jungle avec Jarvan IV.' });
+    sujet.value = d.sujet;
+    sujet.addEventListener('input', () => { d.sujet = sujet.value; });
+    const titre = h('input', { class: 'inp', placeholder: 'Titre (facultatif)', disabled: d.busy ? true : null });
+    titre.value = d.titre;
+    titre.addEventListener('input', () => { d.titre = titre.value; });
+    const sel = (opts, val, set) => { const s = h('select', { disabled: d.busy ? true : null }, opts.map(([v, l]) => h('option', { value: v }, l))); s.value = val; s.addEventListener('change', () => set(s.value)); return s; };
+    const cible = sel(CIBLES.map((c) => [c, c]), d.cible, (v) => { d.cible = v; });
+    const rub = sel([['', 'Parole du coach seulement'], ...(S.guides || []).map((t) => [t.id, `${t.ico} ${t.titre}`])], d.rubrique, (v) => { d.rubrique = v; if (d.fiche) d.fiche.rubrique = v; });
+    const main = h('button', { class: 'btn-fire small-btn', disabled: d.busy ? true : null, onclick: () => generate(false) }, d.mode === 'fiche' ? (d.fiche ? '🔄 Refaire la fiche' : '🔎 Générer la fiche') : '👀 Voir l\'aperçu');
+    const box = h('div', { class: 'card composer' },
+      h('h2', null, '✍️ Écrire pour l\'équipe'),
+      h('div', { class: 'segs' }, seg('fiche', '🔎 Fiche avec recherche et schémas'), seg('message', '💬 Message simple')),
+      d.mode === 'fiche' ? h('p', { class: 'muted small' }, "Écris ton sujet : l'application cherche sur le web (guides, vidéos), rédige une fiche claire et dessine des schémas. Tu relis l'aperçu avant de publier.") : h('p', { class: 'muted small' }, 'Ton message est publié tel quel. Tu peux utiliser **gras** et des listes avec « - ».'),
+      d.mode === 'message' ? titre : null,
+      sujet,
+      h('div', { class: 'row' }, h('label', { class: 'fld-inline' }, 'Pour ', cible), h('label', { class: 'fld-inline' }, 'Ranger dans ', rub)),
+      h('div', { class: 'row' }, main, d.mode === 'fiche' && !S.coachState.claude ? h('span', { class: 'bad small' }, "Ajoute la clé de l'API Claude dans les réglages coach.") : null));
+    if (d.busy) box.append(h('p', { class: 'busy' }, h('span', { class: 'spin' }), h('span', { id: 'busy-t' }, busyText())));
+    if (d.err) box.append(h('p', { class: 'bad' }, '⚠ ' + d.err));
+    if (d.fiche) {
+      const modif = h('textarea', { class: 'inp', rows: 2, disabled: d.busy ? true : null, placeholder: 'Demander une modification (ex. : plus court, ajoute un exemple avec Renekton, schéma plus simple…)' });
+      modif.value = d.modif;
+      modif.addEventListener('input', () => { d.modif = modif.value; });
+      const pub = h('button', { class: 'btn-fire small-btn', disabled: d.busy || !S.coachState.github ? true : null, onclick: publishDraft }, "📣 Publier pour l'équipe");
+      box.append(h('div', { class: 'preview' },
+        h('div', { class: 'preview-label' }, 'Aperçu : voilà ce que verront les joueurs' + (d.info ? ' · ' + d.info : '')),
+        h('h1', { class: 'title' }, (d.fiche.type === 'message' ? '💬 ' : '📘 ') + d.fiche.titre),
+        ...docNodes(d.fiche)),
+        d.mode === 'fiche' ? h('div', { class: 'row' }, modif, h('button', { class: 'btn-ghost', disabled: d.busy ? true : null, onclick: () => { if (d.modif.trim()) generate(true); } }, '✏️ Modifier')) : null,
+        h('div', { class: 'row' }, pub, h('button', { class: 'btn-ghost', disabled: d.busy ? true : null, onclick: () => { S.draft = newDraft(); render(); } }, 'Tout effacer'),
+          !S.coachState.github ? h('span', { class: 'bad small' }, 'Ajoute le jeton GitHub dans les réglages coach pour publier.') : null));
+    }
+    return box;
+  }
+
+  function busyText() {
+    const d = S.draft;
+    if (!d || !d.busy) return '';
+    const sec = Math.round((Date.now() - d.t0) / 1000);
+    if (d.pub) return `Publication en cours… ${sec} s`;
+    return d.mode === 'fiche' ? `Recherche sur le web et rédaction de la fiche… ${sec} s (compte 1 à 3 minutes)` : 'Préparation…';
+  }
+  function startBusy() {
+    clearInterval(busyTimer);
+    busyTimer = setInterval(() => { const el = $('busy-t'); if (el) el.textContent = busyText(); if (!S.draft || !S.draft.busy) clearInterval(busyTimer); }, 1000);
+  }
+
+  async function generate(modif) {
+    const d = ensureDraft();
+    if (d.busy) return;
+    if (!d.sujet.trim()) { d.err = d.mode === 'message' ? 'Écris ton message.' : 'Écris un sujet.'; render(); return; }
+    d.err = ''; d.busy = true; d.t0 = Date.now();
+    render(); startBusy();
+    let r;
+    try {
+      r = d.mode === 'message'
+        ? await window.fire.coach.message({ titre: d.titre, texte: d.sujet, cible: d.cible })
+        : await window.fire.coach.generate({ sujet: d.sujet, cible: d.cible, precedent: modif ? d.fiche : null, modif: modif ? d.modif : '' });
+    } catch (e) { r = { ok: false, error: String(e) }; }
+    d.busy = false;
+    if (r && r.ok) { d.fiche = { ...r.fiche, rubrique: d.rubrique }; if (modif) d.modif = ''; d.info = r.recherches ? `${r.recherches} recherche${r.recherches > 1 ? 's' : ''} sur le web` : ''; }
+    else d.err = (r && r.error) || 'erreur inconnue';
+    if (S.section === 'coach') render();
+  }
+
+  async function publishDraft() {
+    const d = S.draft;
+    if (!d || !d.fiche || d.busy) return;
+    d.busy = true; d.pub = true; d.err = ''; d.t0 = Date.now();
+    render(); startBusy();
+    let r;
+    try { r = await window.fire.coach.publish({ ...d.fiche, rubrique: d.rubrique }); } catch (e) { r = { ok: false, error: String(e) }; }
+    d.busy = false; d.pub = false;
+    if (r && r.ok) {
+      S.draft = newDraft();
+      markSeen(r.id);
+      S.flash = "Publié ✓ Les joueurs le verront à leur prochaine ouverture de l'application (ou dans 10 minutes au plus).";
+      await loadFiches();
+    } else d.err = (r && r.error) || 'erreur inconnue';
+    render();
   }
 
   start();

@@ -178,3 +178,100 @@ table.t tbody tr.click:hover td { background: var(--panel2); }
 .objbox.big .prog { height: 14px; }
 .prog > i { display: block; height: 100%; background: linear-gradient(90deg, var(--fire3), var(--fire2), var(--fire1)); border-radius: 999px; }
 .prog.done > i { background: var(--ok); }
+
+/* ---------- Navigation entre les rubriques ---------- */
+.topbar { flex-wrap: wrap; }
+.mainnav { display: flex; gap: 4px; flex-wrap: wrap; }
+.navbtn { position: relative; background: none; border: 1px solid transparent; color: var(--muted); border-radius: 999px; padding: 7px 14px; cursor: pointer; font: inherit; font-weight: 600; }
+.navbtn:hover { color: var(--fg); border-color: var(--line); }
+.navbtn[aria-current=page] { color: var(--fg); background: var(--panel2); border-color: var(--fire2); }
+.nbadge { display: inline-block; margin-left: 6px; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--fire2); color: #fff; font-size: 12px; line-height: 20px; text-align: center; }
+.updatebar { padding: 8px 24px; font-size: 13px; background: rgba(255, 179, 71, .12); border-bottom: 1px solid var(--line); }
+.updatebar a, .lock-update a { color: var(--fire1); font-weight: 700; }
+.lock-update { margin: 0; font-size: 13px; }
+
+/* ---------- Bandeau « nouveau du coach » ---------- */
+.news { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; color: var(--fg); cursor: pointer;
+  background: linear-gradient(90deg, rgba(255, 94, 58, .18), rgba(255, 179, 71, .08)); border: 1px solid var(--fire2); border-radius: 14px; padding: 12px 16px; }
+.news:hover { filter: brightness(1.1); }
+.news-ico { font-size: 22px; }
+.news-txt { flex: 1; }
+.news-go { color: var(--fire1); font-weight: 700; white-space: nowrap; }
+
+/* ---------- Lanes et principes ---------- */
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.tcard, .fcard { text-align: left; font: inherit; color: var(--fg); cursor: pointer; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px;
+  display: flex; flex-direction: column; gap: 8px; transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.tcard:hover, .fcard:hover, .tcard:focus-visible, .fcard:focus-visible { transform: translateY(-3px); border-color: var(--fire2); box-shadow: 0 10px 30px rgba(255, 94, 58, .15); outline: none; }
+.tcard p, .fcard p { margin: 0; }
+.tico { font-size: 34px; line-height: 1; }
+.tname, .fname { font-size: 18px; font-weight: 700; }
+.tfoot { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pill-new { font-size: 12px; padding: 1px 10px; border-radius: 999px; background: var(--fire2); color: #fff; font-weight: 700; }
+.doc-head { display: flex; flex-direction: column; gap: 8px; }
+.doc-head p { margin: 0; }
+.doc-lead { font-size: 17px; }
+.doc-sec { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px 22px; }
+.doc-sec.with-fig { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: start; }
+.doc-sec.with-fig h2 { grid-column: 1 / -1; }
+@media (max-width: 1050px) { .doc-sec.with-fig { grid-template-columns: minmax(0, 1fr); } }
+.md { line-height: 1.6; }
+.md p { margin: 0 0 10px; }
+.md ul { margin: 0 0 10px; padding-left: 22px; }
+.md li { margin: 3px 0; }
+.md b { color: #fff; }
+figure.schema { margin: 0; }
+figure.schema img { width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); cursor: zoom-in; }
+figure.schema figcaption { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.doc-retenir { border-color: rgba(76, 195, 138, .5); }
+.checks { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.checks li::before { content: '✓'; color: var(--ok); font-weight: 700; margin-right: 8px; }
+.doc-exo { border-color: rgba(255, 179, 71, .5); }
+.doc-exo p { margin: 6px 0 0; line-height: 1.55; }
+.videos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 10px; }
+.video { text-decoration: none; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.video:hover { border-color: var(--fire2); }
+.video img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+.video-ph { aspect-ratio: 16 / 9; display: grid; place-items: center; font-size: 34px; background: var(--panel2); }
+.video-t { padding: 8px 10px 2px; font-weight: 600; font-size: 14px; }
+.video .muted { padding: 0 10px 8px; }
+.sources { margin: 0; line-height: 1.7; }
+.zoom { position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, .85); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 30px; cursor: zoom-out; }
+.zoom img { max-width: 96vw; max-height: 82vh; border-radius: 14px; }
+.zoom p { color: var(--fg); margin: 0; max-width: 900px; text-align: center; }
+.zoom-x { color: var(--muted); font-size: 13px; }
+
+/* ---------- Parole du coach ---------- */
+.fgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 8px; }
+.fmeta { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.flash { display: flex; justify-content: space-between; gap: 10px; align-items: center; background: rgba(76, 195, 138, .12); border: 1px solid rgba(76, 195, 138, .5); border-radius: 12px; padding: 10px 14px; }
+.flash-x { background: none; border: 0; color: var(--muted); cursor: pointer; font: inherit; }
+.composer { display: flex; flex-direction: column; gap: 10px; border-color: var(--fire2); }
+.composer p { margin: 0; }
+.segs { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg { background: var(--bg); border: 1px solid var(--line); color: var(--muted); border-radius: 999px; padding: 7px 14px; cursor: pointer; font: inherit; }
+.seg[aria-pressed=true] { color: var(--fg); border-color: var(--fire2); background: var(--panel2); }
+.inp { width: 100%; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: inherit; resize: vertical; outline: none; }
+.inp:focus { border-color: var(--fire2); }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.row .inp { flex: 1 1 320px; width: auto; }
+.fld { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); margin: 6px 0; }
+.fld-inline { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.btn-fire.small-btn { width: auto; padding: 10px 18px; font-size: 15px; }
+.btn-fire:disabled, .btn-ghost:disabled, .seg:disabled { opacity: .5; cursor: default; filter: none; }
+.btn-danger { background: var(--bad); border: 0; color: #fff; border-radius: 999px; padding: 7px 16px; cursor: pointer; font: inherit; font-weight: 700; }
+.linkbtn { background: none; border: 0; color: var(--fire1); cursor: pointer; font: inherit; text-decoration: underline; padding: 0; }
+.busy { display: flex; align-items: center; gap: 10px; color: var(--fire1); }
+.spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--fire1); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.preview { border: 1px dashed var(--fire1); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 14px; background: var(--bg); }
+.preview-label { color: var(--fire1); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.settings summary, .help summary, .coach-access summary { cursor: pointer; }
+.settings summary { font-weight: 700; }
+.help { margin-top: 8px; }
+.help ol { color: var(--muted); line-height: 1.6; }
+.help a { color: var(--fire1); }
+.coach-access { margin-top: 10px; color: var(--muted); font-size: 13px; }
+.coach-access .row { margin-top: 8px; }
+.coach-zone { border-color: var(--line); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.coach-zone p { margin: 0; }
