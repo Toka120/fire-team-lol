@@ -93,61 +93,141 @@
     }
    ],
    "diapo": {
-    "titre": "Le top en 13 slides",
-    "resume": "L'essentiel de la lane top, avec les skins. Le détail de chaque point est dans les thèmes juste en dessous.",
-    "base": "https://toka120.github.io/fire-team-lol/diapos/top/",
+    "titre": "Le carnet du top · lebrésilien",
+    "resume": "Les notes du coach pour lebrésilien : les vagues, les trades, le farm et le mental, en mode quête.",
+    "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-top/",
     "slides": [
      {
-      "img": "slide-01.jpg?v=2",
-      "titre": "Le TOP"
+      "img": "slide-01.jpg?v=1",
+      "titre": "Le carnet du top"
      },
      {
-      "img": "slide-02.jpg?v=2",
-      "titre": "Sommaire"
+      "img": "slide-02.jpg?v=1",
+      "titre": "Ta carte de quête"
      },
      {
-      "img": "slide-03.jpg?v=2",
-      "titre": "Seul sur son île"
+      "img": "slide-03.jpg?v=1",
+      "titre": "Le top"
      },
      {
-      "img": "slide-04.jpg?v=2",
-      "titre": "Trois façons de jouer"
+      "img": "slide-04.jpg?v=1",
+      "titre": "La wave est un outil"
      },
      {
-      "img": "slide-05.jpg?v=2",
-      "titre": "Le freeze est ton arme"
+      "img": "slide-05.jpg?v=1",
+      "titre": "Le freeze"
      },
      {
-      "img": "slide-06.jpg?v=2",
-      "titre": "Ta TP change le fight"
+      "img": "slide-06.jpg?v=1",
+      "titre": "Comment freeze devant la tour ?"
      },
      {
-      "img": "slide-07.jpg?v=2",
-      "titre": "Crash, back, TP"
+      "img": "slide-07.jpg?v=1",
+      "titre": "Quand éviter de freeze ?"
      },
      {
-      "img": "slide-08.jpg?v=2",
-      "titre": "Voir avant d’avancer"
+      "img": "slide-08.jpg?v=1",
+      "titre": "Le slow push"
      },
      {
-      "img": "slide-09.jpg?v=2",
-      "titre": "Lâcher pour rester en vie"
+      "img": "slide-09.jpg?v=1",
+      "titre": "Le fast push"
      },
      {
-      "img": "slide-10.jpg?v=2",
-      "titre": "Cinq réflexes à prendre"
+      "img": "slide-10.jpg?v=1",
+      "titre": "Fast push SEULEMENT si tu peux crash la wave. Sinon : back instant pour acheter des items !"
      },
      {
-      "img": "slide-11.jpg?v=2",
-      "titre": "Freeze. Trade. Téléporte."
+      "img": "slide-11.jpg?v=1",
+      "titre": "Le bounce"
      },
      {
-      "img": "slide-12.jpg?v=2",
-      "titre": "Le détail est dans FIRE LoL"
+      "img": "slide-12.jpg?v=1",
+      "titre": "Le reset"
      },
      {
-      "img": "slide-13.jpg?v=2",
-      "titre": "Merci !"
+      "img": "slide-13.jpg?v=1",
+      "titre": "Quiz : Tu as mieux farmé, mais il passe niveau 3 avant toi. Pourquoi ?"
+     },
+     {
+      "img": "slide-14.jpg?v=1",
+      "titre": "Réponse : Ta wave a bounce : tu l’avais trop crash"
+     },
+     {
+      "img": "slide-15.jpg?v=1",
+      "titre": "Garder la main sur sa wave"
+     },
+     {
+      "img": "slide-16.jpg?v=1",
+      "titre": "Farmer sous ta tour"
+     },
+     {
+      "img": "slide-17.jpg?v=1",
+      "titre": "Défi CS"
+     },
+     {
+      "img": "slide-18.jpg?v=1",
+      "titre": "Court trade ou long trade"
+     },
+     {
+      "img": "slide-19.jpg?v=1",
+      "titre": "Quand trade ? Les 5 repères"
+     },
+     {
+      "img": "slide-20.jpg?v=1",
+      "titre": "Trader en farmant"
+     },
+     {
+      "img": "slide-21.jpg?v=1",
+      "titre": "Jamais de face check"
+     },
+     {
+      "img": "slide-22.jpg?v=1",
+      "titre": "Il y a toujours une réponse."
+     },
+     {
+      "img": "slide-23.jpg?v=1",
+      "titre": "Back au bon moment"
+     },
+     {
+      "img": "slide-24.jpg?v=1",
+      "titre": "Toujours disponible"
+     },
+     {
+      "img": "slide-25.jpg?v=1",
+      "titre": "Savoir fog"
+     },
+     {
+      "img": "slide-26.jpg?v=1",
+      "titre": "Check avant chaque fight"
+     },
+     {
+      "img": "slide-27.jpg?v=1",
+      "titre": "Jouer front to back"
+     },
+     {
+      "img": "slide-28.jpg?v=1",
+      "titre": "Placé avant l’objectif"
+     },
+     {
+      "img": "slide-29.jpg?v=1",
+      "titre": "Solo queue : mode 1v9"
+     },
+     {
+      "img": "slide-30.jpg?v=1",
+      "titre": "En équipe : on joue ensemble"
+     },
+     {
+      "img": "slide-31.jpg?v=1",
+      "titre": "Avant chaque game"
+     },
+     {
+      "img": "slide-32.jpg?v=1",
+      "titre": "Crée-toi des scénarios"
+     },
+     {
+      "img": "slide-33.jpg?v=1",
+      "titre": "Boss final : ta checklist"
      }
     ]
    }
@@ -236,61 +316,137 @@
     }
    ],
    "diapo": {
-    "titre": "La jungle en 13 slides",
-    "resume": "L'essentiel du rôle de jungler, avec les skins. Le détail de chaque point est dans les thèmes juste en dessous.",
-    "base": "https://toka120.github.io/fire-team-lol/diapos/jungle/",
+    "titre": "Le carnet du jungler · Toks42o · Kayn Effect",
+    "resume": "Les notes du coach pour Toks42o et Kayn Effect : ta classe, ton départ, le carapateur, les ganks, en mode quête.",
+    "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-jungle/",
     "slides": [
      {
-      "img": "slide-01.jpg?v=2",
-      "titre": "La JUNGLE"
+      "img": "slide-01.jpg?v=1",
+      "titre": "Le carnet du jungler"
      },
      {
-      "img": "slide-02.jpg?v=2",
-      "titre": "Sommaire"
+      "img": "slide-02.jpg?v=1",
+      "titre": "Ta carte de quête"
      },
      {
-      "img": "slide-03.jpg?v=2",
-      "titre": "Le rythme de la game"
+      "img": "slide-03.jpg?v=1",
+      "titre": "Le jungler"
      },
      {
-      "img": "slide-04.jpg?v=2",
-      "titre": "Trois façons de jouer"
+      "img": "slide-04.jpg?v=1",
+      "titre": "Choisis ta classe"
      },
      {
-      "img": "slide-05.jpg?v=2",
-      "titre": "Ganke au bon moment"
+      "img": "slide-05.jpg?v=1",
+      "titre": "Quiz : Ton champion est fort en early et a un CC. Tu es…"
      },
      {
-      "img": "slide-06.jpg?v=2",
-      "titre": "Engage, ou reste au Smite"
+      "img": "slide-06.jpg?v=1",
+      "titre": "Réponse : Ganker"
      },
      {
-      "img": "slide-07.jpg?v=2",
-      "titre": "Back avec les timers"
+      "img": "slide-07.jpg?v=1",
+      "titre": "Monocible : start Blue"
      },
      {
-      "img": "slide-08.jpg?v=2",
-      "titre": "Voir avant d’avancer"
+      "img": "slide-08.jpg?v=1",
+      "titre": "Ganker AOE : start Red"
      },
      {
-      "img": "slide-09.jpg?v=2",
-      "titre": "Échanger plutôt que perdre"
+      "img": "slide-09.jpg?v=1",
+      "titre": "Combien de camps ?"
      },
      {
-      "img": "slide-10.jpg?v=2",
-      "titre": "Cinq réflexes à prendre"
+      "img": "slide-10.jpg?v=1",
+      "titre": "Quiz : Tu joues un monocible. Tu commences où ?"
      },
      {
-      "img": "slide-11.jpg?v=2",
-      "titre": "Farmer. Ganker. Sécuriser."
+      "img": "slide-11.jpg?v=1",
+      "titre": "Réponse : Au Blue"
      },
      {
-      "img": "slide-12.jpg?v=2",
-      "titre": "Le détail est dans FIRE LoL"
+      "img": "slide-12.jpg?v=1",
+      "titre": "La course au carapateur"
      },
      {
-      "img": "slide-13.jpg?v=2",
-      "titre": "Merci !"
+      "img": "slide-13.jpg?v=1",
+      "titre": "Les 2 voyants avant le carapateur"
+     },
+     {
+      "img": "slide-14.jpg?v=1",
+      "titre": "Quiz : Carapateur bot : tu regardes quelles prios ?"
+     },
+     {
+      "img": "slide-15.jpg?v=1",
+      "titre": "Réponse : Mid + bot"
+     },
+     {
+      "img": "slide-16.jpg?v=1",
+      "titre": "Rapproche-toi toujours de tes alliés."
+     },
+     {
+      "img": "slide-17.jpg?v=1",
+      "titre": "Ganker : choisis ta cible"
+     },
+     {
+      "img": "slide-18.jpg?v=1",
+      "titre": "Farmeur : gank seulement si…"
+     },
+     {
+      "img": "slide-19.jpg?v=1",
+      "titre": "Quiz : Toutes les lanes sont gankables. Tu choisis…"
+     },
+     {
+      "img": "slide-20.jpg?v=1",
+      "titre": "Réponse : La plus feed, ou la plus facile à kill"
+     },
+     {
+      "img": "slide-21.jpg?v=1",
+      "titre": "Red, Blue, familier"
+     },
+     {
+      "img": "slide-22.jpg?v=1",
+      "titre": "Les vagues en 5 mots"
+     },
+     {
+      "img": "slide-23.jpg?v=1",
+      "titre": "Pourquoi ça te concerne"
+     },
+     {
+      "img": "slide-24.jpg?v=1",
+      "titre": "Il y a toujours une réponse."
+     },
+     {
+      "img": "slide-25.jpg?v=1",
+      "titre": "Laisser les ressources"
+     },
+     {
+      "img": "slide-26.jpg?v=1",
+      "titre": "Jamais de face check"
+     },
+     {
+      "img": "slide-27.jpg?v=1",
+      "titre": "Check avant chaque fight"
+     },
+     {
+      "img": "slide-28.jpg?v=1",
+      "titre": "Solo queue : mode 1v9"
+     },
+     {
+      "img": "slide-29.jpg?v=1",
+      "titre": "En équipe : on joue ensemble"
+     },
+     {
+      "img": "slide-30.jpg?v=1",
+      "titre": "Avant chaque game"
+     },
+     {
+      "img": "slide-31.jpg?v=1",
+      "titre": "Crée-toi des scénarios"
+     },
+     {
+      "img": "slide-32.jpg?v=1",
+      "titre": "Boss final : ta checklist"
      }
     ]
    }
@@ -379,61 +535,141 @@
     }
    ],
    "diapo": {
-    "titre": "Le mid en 13 slides",
-    "resume": "L'essentiel de la lane mid, avec les skins. Le détail de chaque point est dans les thèmes juste en dessous.",
-    "base": "https://toka120.github.io/fire-team-lol/diapos/mid/",
+    "titre": "Le carnet du mid · xena",
+    "resume": "Les notes du coach pour xena : les vagues, les trades, le farm et le mental, en mode quête.",
+    "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-mid/",
     "slides": [
      {
-      "img": "slide-01.jpg?v=2",
-      "titre": "Le MID"
+      "img": "slide-01.jpg?v=1",
+      "titre": "Le carnet du mid"
      },
      {
-      "img": "slide-02.jpg?v=2",
-      "titre": "Sommaire"
+      "img": "slide-02.jpg?v=1",
+      "titre": "Ta carte de quête"
      },
      {
-      "img": "slide-03.jpg?v=2",
-      "titre": "Au centre de tout"
+      "img": "slide-03.jpg?v=1",
+      "titre": "Le mid"
      },
      {
-      "img": "slide-04.jpg?v=2",
-      "titre": "Trois façons de jouer"
+      "img": "slide-04.jpg?v=1",
+      "titre": "La wave est un outil"
      },
      {
-      "img": "slide-05.jpg?v=2",
-      "titre": "Pousse pour bouger en premier"
+      "img": "slide-05.jpg?v=1",
+      "titre": "Le freeze"
      },
      {
-      "img": "slide-06.jpg?v=2",
-      "titre": "Le bon sort sur la bonne cible"
+      "img": "slide-06.jpg?v=1",
+      "titre": "Comment freeze devant la tour ?"
      },
      {
-      "img": "slide-07.jpg?v=2",
-      "titre": "Back avec ton jungler"
+      "img": "slide-07.jpg?v=1",
+      "titre": "Quand éviter de freeze ?"
      },
      {
-      "img": "slide-08.jpg?v=2",
-      "titre": "Voir avant d’avancer"
+      "img": "slide-08.jpg?v=1",
+      "titre": "Le slow push"
      },
      {
-      "img": "slide-09.jpg?v=2",
-      "titre": "Ne conteste pas seul"
+      "img": "slide-09.jpg?v=1",
+      "titre": "Le fast push"
      },
      {
-      "img": "slide-10.jpg?v=2",
-      "titre": "Cinq réflexes à prendre"
+      "img": "slide-10.jpg?v=1",
+      "titre": "Fast push SEULEMENT si tu peux crash la wave. Sinon : back instant pour acheter des items !"
      },
      {
-      "img": "slide-11.jpg?v=2",
-      "titre": "Pousser. Bouger. Punir."
+      "img": "slide-11.jpg?v=1",
+      "titre": "Le bounce"
      },
      {
-      "img": "slide-12.jpg?v=2",
-      "titre": "Le détail est dans FIRE LoL"
+      "img": "slide-12.jpg?v=1",
+      "titre": "Le reset"
      },
      {
-      "img": "slide-13.jpg?v=2",
-      "titre": "Merci !"
+      "img": "slide-13.jpg?v=1",
+      "titre": "Quiz : Tu as mieux farmé, mais il passe niveau 3 avant toi. Pourquoi ?"
+     },
+     {
+      "img": "slide-14.jpg?v=1",
+      "titre": "Réponse : Ta wave a bounce : tu l’avais trop crash"
+     },
+     {
+      "img": "slide-15.jpg?v=1",
+      "titre": "Garder la main sur sa wave"
+     },
+     {
+      "img": "slide-16.jpg?v=1",
+      "titre": "Farmer sous ta tour"
+     },
+     {
+      "img": "slide-17.jpg?v=1",
+      "titre": "Défi CS"
+     },
+     {
+      "img": "slide-18.jpg?v=1",
+      "titre": "Court trade ou long trade"
+     },
+     {
+      "img": "slide-19.jpg?v=1",
+      "titre": "Quand trade ? Les 5 repères"
+     },
+     {
+      "img": "slide-20.jpg?v=1",
+      "titre": "Trader en farmant"
+     },
+     {
+      "img": "slide-21.jpg?v=1",
+      "titre": "Jamais de face check"
+     },
+     {
+      "img": "slide-22.jpg?v=1",
+      "titre": "Il y a toujours une réponse."
+     },
+     {
+      "img": "slide-23.jpg?v=1",
+      "titre": "Back au bon moment"
+     },
+     {
+      "img": "slide-24.jpg?v=1",
+      "titre": "Toujours disponible"
+     },
+     {
+      "img": "slide-25.jpg?v=1",
+      "titre": "Savoir fog"
+     },
+     {
+      "img": "slide-26.jpg?v=1",
+      "titre": "Check avant chaque fight"
+     },
+     {
+      "img": "slide-27.jpg?v=1",
+      "titre": "Jouer front to back"
+     },
+     {
+      "img": "slide-28.jpg?v=1",
+      "titre": "Placé avant l’objectif"
+     },
+     {
+      "img": "slide-29.jpg?v=1",
+      "titre": "Solo queue : mode 1v9"
+     },
+     {
+      "img": "slide-30.jpg?v=1",
+      "titre": "En équipe : on joue ensemble"
+     },
+     {
+      "img": "slide-31.jpg?v=1",
+      "titre": "Avant chaque game"
+     },
+     {
+      "img": "slide-32.jpg?v=1",
+      "titre": "Crée-toi des scénarios"
+     },
+     {
+      "img": "slide-33.jpg?v=1",
+      "titre": "Boss final : ta checklist"
      }
     ]
    }
@@ -446,61 +682,237 @@
     "adc"
    ],
    "diapo": {
-    "titre": "L’ADC en 13 slides",
-    "resume": "L'essentiel du rôle d'ADC, avec les skins. Le détail de chaque point est dans les thèmes juste en dessous.",
-    "base": "https://toka120.github.io/fire-team-lol/diapos/adc/",
+    "titre": "Le carnet de l’ADC · The World",
+    "resume": "Les notes du coach pour The World : les fondamentaux, les vagues, la botlane et le mental, en mode quête.",
+    "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-adc/",
     "slides": [
      {
-      "img": "slide-01.jpg?v=3",
+      "img": "slide-01.jpg?v=1",
+      "titre": "Le carnet de l’ADC"
+     },
+     {
+      "img": "slide-02.jpg?v=1",
+      "titre": "Ta carte de quête"
+     },
+     {
+      "img": "slide-03.jpg?v=1",
       "titre": "L’ADC"
      },
      {
-      "img": "slide-02.jpg?v=3",
-      "titre": "Sommaire"
+      "img": "slide-04.jpg?v=1",
+      "titre": "Les 4 catégories d’ADC"
      },
      {
-      "img": "slide-03.jpg?v=3",
-      "titre": "Les dégâts de l’équipe"
+      "img": "slide-05.jpg?v=1",
+      "titre": "1 · Savoir farmer"
      },
      {
-      "img": "slide-04.jpg?v=3",
-      "titre": "Trois façons de jouer"
+      "img": "slide-06.jpg?v=1",
+      "titre": "2 · Identifier les menaces"
      },
      {
-      "img": "slide-05.jpg?v=3",
-      "titre": "Farmer avant tout"
+      "img": "slide-07.jpg?v=1",
+      "titre": "3 · Anticiper, être parano"
      },
      {
-      "img": "slide-06.jpg?v=3",
-      "titre": "Vivant, l’ADC gagne le fight"
+      "img": "slide-08.jpg?v=1",
+      "titre": "4 · Être patient"
      },
      {
-      "img": "slide-07.jpg?v=3",
+      "img": "slide-09.jpg?v=1",
+      "titre": "Quiz : Tu prends la R d’Amumu et tu meurs. La faute de qui ?"
+     },
+     {
+      "img": "slide-10.jpg?v=1",
+      "titre": "Réponse : Toi"
+     },
+     {
+      "img": "slide-11.jpg?v=1",
+      "titre": "5 · Matchups et responsabilités"
+     },
+     {
+      "img": "slide-12.jpg?v=1",
+      "titre": "Défi CS"
+     },
+     {
+      "img": "slide-13.jpg?v=1",
+      "titre": "Se placer selon les menaces"
+     },
+     {
+      "img": "slide-14.jpg?v=1",
+      "titre": "Trop loin : zéro dégât. Trop près : mort."
+     },
+     {
+      "img": "slide-15.jpg?v=1",
+      "titre": "Quiz : Fiddlesticks a été vu au top. Tu es au mid. Tu joues…"
+     },
+     {
+      "img": "slide-16.jpg?v=1",
+      "titre": "Réponse : Vers le bas de la lane"
+     },
+     {
+      "img": "slide-17.jpg?v=1",
+      "titre": "Jamais de face check"
+     },
+     {
+      "img": "slide-18.jpg?v=1",
+      "titre": "Placé avant l’objectif"
+     },
+     {
+      "img": "slide-19.jpg?v=1",
+      "titre": "Farmer sous ta tour"
+     },
+     {
+      "img": "slide-20.jpg?v=1",
+      "titre": "Lane ratée ? Pas grave"
+     },
+     {
+      "img": "slide-21.jpg?v=1",
+      "titre": "Court trade ou long trade"
+     },
+     {
+      "img": "slide-22.jpg?v=1",
+      "titre": "Quand trade ? Les 5 repères"
+     },
+     {
+      "img": "slide-23.jpg?v=1",
+      "titre": "Trader en farmant"
+     },
+     {
+      "img": "slide-24.jpg?v=1",
+      "titre": "La wave est un outil"
+     },
+     {
+      "img": "slide-25.jpg?v=1",
+      "titre": "Le freeze"
+     },
+     {
+      "img": "slide-26.jpg?v=1",
+      "titre": "Comment freeze devant la tour ?"
+     },
+     {
+      "img": "slide-27.jpg?v=1",
+      "titre": "Quand éviter de freeze ?"
+     },
+     {
+      "img": "slide-28.jpg?v=1",
+      "titre": "Le slow push"
+     },
+     {
+      "img": "slide-29.jpg?v=1",
+      "titre": "Le fast push"
+     },
+     {
+      "img": "slide-30.jpg?v=1",
+      "titre": "Fast push SEULEMENT si tu peux crash la wave. Sinon : back instant pour acheter des items !"
+     },
+     {
+      "img": "slide-31.jpg?v=1",
+      "titre": "Le bounce"
+     },
+     {
+      "img": "slide-32.jpg?v=1",
+      "titre": "Le reset"
+     },
+     {
+      "img": "slide-33.jpg?v=1",
+      "titre": "Quiz : Tu as mieux farmé, mais il passe niveau 3 avant toi. Pourquoi ?"
+     },
+     {
+      "img": "slide-34.jpg?v=1",
+      "titre": "Réponse : Ta wave a bounce : tu l’avais trop crash"
+     },
+     {
+      "img": "slide-35.jpg?v=1",
+      "titre": "Garder la main sur sa wave"
+     },
+     {
+      "img": "slide-36.jpg?v=1",
+      "titre": "Le triangle de la botlane"
+     },
+     {
+      "img": "slide-37.jpg?v=1",
+      "titre": "Identifier le type de botlane"
+     },
+     {
+      "img": "slide-38.jpg?v=1",
+      "titre": "Botlane all-in"
+     },
+     {
+      "img": "slide-39.jpg?v=1",
+      "titre": "Botlane poke"
+     },
+     {
+      "img": "slide-40.jpg?v=1",
+      "titre": "Botlane sustain"
+     },
+     {
+      "img": "slide-41.jpg?v=1",
+      "titre": "Quiz : Shaco + Caitlyn : c’est une botlane poke ?"
+     },
+     {
+      "img": "slide-42.jpg?v=1",
+      "titre": "Réponse : Non : à première vue poke, mais c’est un bait pour recevoir"
+     },
+     {
+      "img": "slide-43.jpg?v=1",
+      "titre": "Les règles du duo"
+     },
+     {
+      "img": "slide-44.jpg?v=1",
       "titre": "Back au bon moment"
      },
      {
-      "img": "slide-08.jpg?v=3",
-      "titre": "Voir avant d’avancer"
+      "img": "slide-45.jpg?v=1",
+      "titre": "Quiz : Tu veux back. Tu fais quoi de ta wave ?"
      },
      {
-      "img": "slide-09.jpg?v=3",
-      "titre": "Une botlane mieux protégée"
+      "img": "slide-46.jpg?v=1",
+      "titre": "Réponse : Tu la crash, sur une wave canon si possible"
      },
      {
-      "img": "slide-10.jpg?v=3",
-      "titre": "Cinq réflexes à prendre"
+      "img": "slide-47.jpg?v=1",
+      "titre": "Toujours disponible"
      },
      {
-      "img": "slide-11.jpg?v=3",
-      "titre": "Farmer. Survivre. Frapper."
+      "img": "slide-48.jpg?v=1",
+      "titre": "Savoir fog"
      },
      {
-      "img": "slide-12.jpg?v=3",
-      "titre": "Le détail est dans FIRE LoL"
+      "img": "slide-49.jpg?v=1",
+      "titre": "Il y a toujours une réponse."
      },
      {
-      "img": "slide-13.jpg?v=3",
-      "titre": "Merci !"
+      "img": "slide-50.jpg?v=1",
+      "titre": "Check avant chaque fight"
+     },
+     {
+      "img": "slide-51.jpg?v=1",
+      "titre": "Jouer front to back"
+     },
+     {
+      "img": "slide-52.jpg?v=1",
+      "titre": "Le call vient de toi"
+     },
+     {
+      "img": "slide-53.jpg?v=1",
+      "titre": "Solo queue : mode 1v9"
+     },
+     {
+      "img": "slide-54.jpg?v=1",
+      "titre": "En équipe : on joue ensemble"
+     },
+     {
+      "img": "slide-55.jpg?v=1",
+      "titre": "Avant chaque game"
+     },
+     {
+      "img": "slide-56.jpg?v=1",
+      "titre": "Crée-toi des scénarios"
+     },
+     {
+      "img": "slide-57.jpg?v=1",
+      "titre": "Boss final : ta checklist"
      }
     ]
    },
@@ -665,61 +1077,121 @@
     }
    ],
    "diapo": {
-    "titre": "Le support en 13 slides",
-    "resume": "L'essentiel du rôle de support, avec les skins. Le détail de chaque point est dans les thèmes juste en dessous.",
-    "base": "https://toka120.github.io/fire-team-lol/diapos/support/",
+    "titre": "Le carnet du support · TheM3talDrakonar",
+    "resume": "Les notes du coach pour TheM3talDrakonar : protéger ton ADC, la botlane, les trades et le mental, en mode quête.",
+    "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-support/",
     "slides": [
      {
-      "img": "slide-01.jpg?v=2",
-      "titre": "Le SUPPORT"
+      "img": "slide-01.jpg?v=1",
+      "titre": "Le carnet du support"
      },
      {
-      "img": "slide-02.jpg?v=2",
-      "titre": "Sommaire"
+      "img": "slide-02.jpg?v=1",
+      "titre": "Ta carte de quête"
      },
      {
-      "img": "slide-03.jpg?v=2",
-      "titre": "Tout préparer pour l'équipe"
+      "img": "slide-03.jpg?v=1",
+      "titre": "Le support"
      },
      {
-      "img": "slide-04.jpg?v=2",
-      "titre": "Trois façons de jouer"
+      "img": "slide-04.jpg?v=1",
+      "titre": "Le triangle de la botlane"
      },
      {
-      "img": "slide-05.jpg?v=2",
-      "titre": "Gagne la course au niveau 2"
+      "img": "slide-05.jpg?v=1",
+      "titre": "Identifier le type de botlane"
      },
      {
-      "img": "slide-06.jpg?v=2",
-      "titre": "Engage, ou protège"
+      "img": "slide-06.jpg?v=1",
+      "titre": "Botlane all-in"
      },
      {
-      "img": "slide-07.jpg?v=2",
-      "titre": "Back avec ton ADC"
+      "img": "slide-07.jpg?v=1",
+      "titre": "Botlane poke"
      },
      {
-      "img": "slide-08.jpg?v=2",
-      "titre": "Voir avant d’avancer"
+      "img": "slide-08.jpg?v=1",
+      "titre": "Botlane sustain"
      },
      {
-      "img": "slide-09.jpg?v=2",
-      "titre": "Pas de fight perdu d'avance"
+      "img": "slide-09.jpg?v=1",
+      "titre": "Quiz : Shaco + Caitlyn : c’est une botlane poke ?"
      },
      {
-      "img": "slide-10.jpg?v=2",
-      "titre": "Cinq réflexes à prendre"
+      "img": "slide-10.jpg?v=1",
+      "titre": "Réponse : Non : à première vue poke, mais c’est un bait pour recevoir"
      },
      {
-      "img": "slide-11.jpg?v=2",
-      "titre": "Voir. Engager. Protéger."
+      "img": "slide-11.jpg?v=1",
+      "titre": "Les règles du duo"
      },
      {
-      "img": "slide-12.jpg?v=2",
-      "titre": "Le détail est dans FIRE LoL"
+      "img": "slide-12.jpg?v=1",
+      "titre": "Court trade ou long trade"
      },
      {
-      "img": "slide-13.jpg?v=2",
-      "titre": "Merci !"
+      "img": "slide-13.jpg?v=1",
+      "titre": "Quand trade ? Les 5 repères"
+     },
+     {
+      "img": "slide-14.jpg?v=1",
+      "titre": "Trader en farmant"
+     },
+     {
+      "img": "slide-15.jpg?v=1",
+      "titre": "Les vagues en 5 mots"
+     },
+     {
+      "img": "slide-16.jpg?v=1",
+      "titre": "Ce qui te concerne"
+     },
+     {
+      "img": "slide-17.jpg?v=1",
+      "titre": "Jamais de face check"
+     },
+     {
+      "img": "slide-18.jpg?v=1",
+      "titre": "Il y a toujours une réponse."
+     },
+     {
+      "img": "slide-19.jpg?v=1",
+      "titre": "Les timings de wave canon"
+     },
+     {
+      "img": "slide-20.jpg?v=1",
+      "titre": "Savoir fog"
+     },
+     {
+      "img": "slide-21.jpg?v=1",
+      "titre": "Check avant chaque fight"
+     },
+     {
+      "img": "slide-22.jpg?v=1",
+      "titre": "Jouer front to back"
+     },
+     {
+      "img": "slide-23.jpg?v=1",
+      "titre": "Placé avant l’objectif"
+     },
+     {
+      "img": "slide-24.jpg?v=1",
+      "titre": "Solo queue : mode 1v9"
+     },
+     {
+      "img": "slide-25.jpg?v=1",
+      "titre": "En équipe : on joue ensemble"
+     },
+     {
+      "img": "slide-26.jpg?v=1",
+      "titre": "Avant chaque game"
+     },
+     {
+      "img": "slide-27.jpg?v=1",
+      "titre": "Crée-toi des scénarios"
+     },
+     {
+      "img": "slide-28.jpg?v=1",
+      "titre": "Boss final : ta checklist"
      }
     ]
    }
