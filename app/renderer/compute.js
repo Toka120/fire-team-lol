@@ -151,6 +151,65 @@
       hors_pool: rows.length - done, total: rows.length, per, ...(() => { const st = stats(poolRows); return { wins: st.wins, losses: st.losses, wr: st.wr }; })() };
   }
 
+  // ---------- Tierlists des pools (rubrique POOL) ----------
+  const TIERS = ['S', 'A', 'B', 'C'];
+  const poolIds = (tiers) => TIERS.flatMap((t) => (tiers && tiers[t]) || []);
+
+  function verdict(st) {
+    if (!st.games) return { kind: 'neutre', txt: 'Pas encore joué' };
+    if (st.games < 3) return { kind: 'neutre', txt: 'Peu de games' };
+    if (st.wr >= 55) return { kind: 'good', txt: 'Solide' };
+    if (st.wr < 45) return { kind: 'bad', txt: 'À travailler' };
+    return { kind: 'neutre', txt: 'Correct' };
+  }
+
+  // Analyse d'un pool sur une période : stats par champion, champions hors pool, remarques (toujours vraies).
+  function poolAnalysis(player, matches, champs, tiers, start, end) {
+    const ids = tiers ? poolIds(tiers) : (player.pool_ids || []);
+    const tierOf = (id) => (tiers ? TIERS.find((t) => (tiers[t] || []).includes(id)) || null : null);
+    const rows = toRows({ ...player, pool_ids: ids }, matches, start, end);
+    const per = ids.map((id) => {
+      const st = stats(rows.filter((r) => r.champ_id === id));
+      const sp = (champs || []).find((c) => c.id === id);
+      return { id, champion: champName(id), tier: tierOf(id), ...st, verdict: verdict(st),
+        split: sp && sp.games ? { games: sp.games, wins: sp.wins, wr: r1((sp.wins / sp.games) * 100), kda: sp.kda == null ? null : r1(sp.kda, 2) } : null };
+    });
+    const poolRows = rows.filter((r) => r.pool);
+    const hors = byChamp(rows.filter((r) => !r.pool)).map((c) => ({ id: c.id, champion: c.champion, games: c.games, wins: c.wins, wr: c.wr }));
+    const total = stats(poolRows);
+    const notes = [];
+    const pctW = (x) => `${fr(x.wr)} %`;
+    for (const c of per) {
+      if (c.tier === 'S' && c.games >= 4 && c.wr < 45) notes.push({ kind: 'bad', text: `${c.champion} est classé S mais gagne ${pctW(c)} de ses ${c.games} games : à revoir avec le coach.` });
+      if ((c.tier === 'B' || c.tier === 'C') && c.games >= 4 && c.wr >= 60) notes.push({ kind: 'good', text: `${c.champion} (tier ${c.tier}) gagne ${pctW(c)} de ses ${c.games} games : il mérite peut-être de monter.` });
+      if (c.games >= 5 && c.wr < 40 && c.tier !== 'S') notes.push({ kind: 'bad', text: `${c.champion} : ${c.wins} victoire${c.wins > 1 ? 's' : ''} sur ${c.games} games. À travailler, ou à remplacer dans le pool.` });
+    }
+    const best = per.filter((c) => c.games >= 3).sort((a, b) => b.wr - a.wr || b.games - a.games)[0];
+    if (best && best.wr >= 55) notes.push({ kind: 'good', text: `Meilleur champion du pool sur la période : ${best.champion}, ${pctW(best)} sur ${best.games} games.` });
+    if (tiers && total.games >= 5) {
+      const sGames = poolRows.filter((r) => (tiers.S || []).includes(r.champ_id)).length;
+      notes.push({ kind: 'neutre', text: `${Math.round((sGames / total.games) * 100)} % de ses games de pool sont sur ses champions S.` });
+    }
+    const jamais = per.filter((c) => !c.games).map((c) => c.champion);
+    if (jamais.length && rows.length) notes.push({ kind: 'neutre', text: `Pas encore joué sur la période : ${jamais.join(', ')}.` });
+    if (hors.length) notes.push({ kind: hors.reduce((s, c) => s + c.games, 0) > total.games ? 'bad' : 'neutre', text: `${pl(hors.reduce((s, c) => s + c.games, 0), 'game', 'games')} hors pool : ${hors.slice(0, 4).map((c) => `${c.champion} (${c.games})`).join(', ')}.` });
+    const cand = (champs || []).filter((c) => !ids.includes(c.id) && c.games >= 8 && c.wins / c.games >= 0.55).sort((a, b) => b.games - a.games).slice(0, 2);
+    cand.forEach((c) => notes.push({ kind: 'good', text: `Candidat possible pour le pool : ${champName(c.id)}, ${fr((c.wins / c.games) * 100)} % de victoires sur ${c.games} games ce split.` }));
+    return { per, hors, total, notes, rows: rows.length };
+  }
+
+  // Changements d'une semaine à l'autre : champions ajoutés, retirés, changés de tier.
+  function poolChanges(prev, cur) {
+    if (!prev || !cur) return null;
+    const tp = (t, id) => TIERS.find((k) => (t[k] || []).includes(id));
+    const a = poolIds(cur), b = poolIds(prev);
+    return {
+      ajoutes: a.filter((id) => !b.includes(id)).map((id) => ({ id, champion: champName(id), tier: tp(cur, id) })),
+      retires: b.filter((id) => !a.includes(id)).map((id) => ({ id, champion: champName(id), tier: tp(prev, id) })),
+      deplaces: a.filter((id) => b.includes(id) && tp(cur, id) !== tp(prev, id)).map((id) => ({ id, champion: champName(id), de: tp(prev, id), vers: tp(cur, id) }))
+    };
+  }
+
   // ---------- Formats ----------
   const fr = (n, d = 0) => (n == null || isNaN(n) ? '—' : Number(n).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d }));
   const sg = (n, d = 0) => (n == null || isNaN(n) ? '—' : (n > 0 ? '+' : n < 0 ? '−' : '') + fr(Math.abs(n), d));
@@ -239,7 +298,7 @@
     return b;
   }
 
-  const api = { NAMES, champName, ROLES, LANE, reperes, toRows, stats, byDay, byChamp, poolSplit, splitTotals, objectif, insights, lead, badges, fr, sg, pl, ymd };
+  const api = { TIERS, poolIds, poolAnalysis, poolChanges, verdict, NAMES, champName, ROLES, LANE, reperes, toRows, stats, byDay, byChamp, poolSplit, splitTotals, objectif, insights, lead, badges, fr, sg, pl, ymd };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.FC = api;
 })(typeof window !== 'undefined' ? window : globalThis);

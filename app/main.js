@@ -82,6 +82,9 @@ ipcMain.handle('coach:message', (e, m) => coach.message(m || {}));
 ipcMain.handle('coach:publish', (e, fiche) => coach.publish(fiche));
 ipcMain.handle('coach:unpublish', (e, id) => coach.unpublish(id));
 ipcMain.handle('fiches', () => coach.list());
+ipcMain.handle('pools', () => coach.pools());
+ipcMain.handle('coach:savePools', (e, action) => coach.savePools(action || {}));
+ipcMain.handle('champions', () => coach.champions());
 
 ipcMain.handle('hash', (e, text) => crypto.createHash('sha256').update(String(text)).digest('hex'));
 ipcMain.handle('version', () => app.getVersion());

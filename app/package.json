@@ -1,7 +1,7 @@
 {
   "name": "fire-lol",
   "productName": "FIRE LoL",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "FIRE LoL - les stats de l'équipe, à jour depuis dpm.lol",
   "main": "main.js",
   "author": "Toka120",

@@ -396,7 +396,7 @@ async function list() {
   if (offline) {
     // Hors ligne : on affiche les fiches déjà téléchargées.
     let ids = [];
-    try { ids = fs.readdirSync(path.join(dir(), 'fiches')).filter((n) => n.endsWith('.json')).map((n) => n.slice(0, -5)); } catch (e) { /* aucune */ }
+    try { ids = fs.readdirSync(path.join(dir(), 'fiches')).filter((n) => n.endsWith('.json') && n !== 'pools.json').map((n) => n.slice(0, -5)); } catch (e) { /* aucune */ }
     idx = { fiches: ids.map((id) => ({ id })) };
   }
   const out = [];
@@ -413,10 +413,85 @@ async function list() {
   return { ok: true, fiches: out, offline };
 }
 
+// ---------- Tierlists des champion pools (une par semaine), chiffrées comme les fiches ----------
+
+const TIERS = ['S', 'A', 'B', 'C'];
+const POOLS = 'coach/pools.json';
+
+function cleanWeek(w) {
+  const debut = /^\d{4}-\d{2}-\d{2}$/.test(String(w && w.debut)) ? w.debut : null;
+  if (!debut) throw new Error('date de début invalide');
+  const joueurs = {};
+  for (const [slug, t] of Object.entries((w && w.joueurs) || {})) {
+    if (typeof slug !== 'string' || slug.length > 80) continue;
+    const seen = new Set();
+    const tiers = {};
+    for (const k of TIERS) {
+      tiers[k] = (Array.isArray(t && t[k]) ? t[k] : []).map((x) => String(x).replace(/[^A-Za-z0-9]/g, '').slice(0, 30)).filter((x) => x && !seen.has(x) && seen.add(x)).slice(0, 12);
+    }
+    joueurs[slug] = tiers;
+  }
+  return {
+    id: typeof w.id === 'string' && /^[a-z0-9-]{4,40}$/.test(w.id) ? w.id : Date.now().toString(36) + '-' + crypto.randomBytes(3).toString('hex'),
+    debut, objectif: Math.max(0, Math.min(200, parseInt(w.objectif, 10) || 0)), note: str(w.note, 600), joueurs, at: Date.now()
+  };
+}
+
+async function pools() {
+  if (!teamKey()) return { ok: false, error: "entre à nouveau le code d'équipe pour lire les pools" };
+  let box = null, offline = false;
+  try { box = await readPublic(POOLS); if (box) saveCache('pools', box); } catch (e) { offline = true; box = loadCache('pools'); }
+  if (!box) return { ok: true, semaines: [], offline };
+  try {
+    const d = open(box);
+    return { ok: true, semaines: (d.semaines || []).sort((a, b) => a.debut.localeCompare(b.debut)), offline };
+  } catch (e) { return { ok: false, error: 'pools illisibles avec ce code' }; }
+}
+
+// action : { type: 'save', semaine } ou { type: 'delete', id }
+async function savePools(action) {
+  const c = readSecret('coach.bin') || {};
+  if (!coachState().coach) return { ok: false, error: 'mode coach non activé' };
+  if (!c.github) return { ok: false, error: "ajoute d'abord le jeton GitHub dans les réglages coach" };
+  try {
+    for (let i = 0; i < 3; i++) {
+      const cur = await ghGet(c.github, POOLS);
+      let semaines = [];
+      if (cur && cur.json) semaines = open(cur.json).semaines || [];
+      if (action.type === 'delete') semaines = semaines.filter((w) => w.id !== action.id);
+      else {
+        const w = cleanWeek(action.semaine || {});
+        semaines = semaines.filter((x) => x.id !== w.id && x.debut !== w.debut).concat([w]);
+      }
+      semaines.sort((a, b) => a.debut.localeCompare(b.debut));
+      const box = seal({ semaines }, 'pools');
+      const r = await ghPut(c.github, POOLS, box, cur && cur.sha, 'Pools : tierlists de la semaine');
+      if (r.ok) { saveCache('pools', box); return { ok: true, semaines }; }
+    }
+    throw new Error('les pools ont changé pendant l\'envoi, réessaie');
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+}
+
+// Liste des champions (Data Dragon de Riot), gardée en cache pour le mode hors ligne.
+async function champions() {
+  try {
+    const v = (await (await http('https://ddragon.leagueoflegends.com/api/versions.json', {}, 15000)).json())[0];
+    const j = await (await http(`https://ddragon.leagueoflegends.com/cdn/${v}/data/fr_FR/champion.json`, {}, 20000)).json();
+    const list = Object.values(j.data || {}).map((x) => ({ id: x.id, name: x.name })).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+    const out = { ok: true, version: v, list };
+    try { fs.writeFileSync(path.join(dir(), 'champions.json'), JSON.stringify(out)); } catch (e) { /* cache facultatif */ }
+    return out;
+  } catch (e) {
+    try { return JSON.parse(fs.readFileSync(path.join(dir(), 'champions.json'), 'utf8')); } catch (e2) { return { ok: false, list: [], version: null }; }
+  }
+}
+
 function message(m) {
   const texte = str(m.texte, 6000);
   if (!texte) return { ok: false, error: 'écris ton message' };
   return { ok: true, fiche: { type: 'message', titre: str(m.titre, 140) || 'Message du coach', accroche: '', sections: [{ titre: '', texte, schema: null }], a_retenir: [], exercice: '', videos: [], sources: [], sujet: '', cible: str(m.cible, 40) || "Toute l'équipe" } };
 }
 
-module.exports = { init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { pools, savePools, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

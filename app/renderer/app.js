@@ -16,7 +16,8 @@
     refreshing: false, lastRefresh: null, timer: null,
     section: 'stats', version: '0', guides: null, theme: null,
     fiches: null, fichesErr: '', fichesLoading: false, ficheId: null, seen: new Set(load('fire.vus', [])),
-    coachState: { coach: false, claude: false, github: false }, draft: null, flash: '', settingsMsg: '', confirm: null
+    coachState: { coach: false, claude: false, github: false }, draft: null, flash: '', settingsMsg: '', confirm: null,
+    pools: null, poolsErr: '', poolWeek: null, poolEdit: null, champList: null, cfgObj: null
   };
 
   // ---------- Petits outils ----------
@@ -81,6 +82,7 @@
     try { S.version = await window.fire.version(); } catch (e) { /* inconnue */ }
     S.players = (S.cfg && S.cfg.joueurs) || [];
     S.obj = (S.cfg && S.cfg.objectif && S.cfg.objectif.debut) ? S.cfg.objectif : null;
+    S.cfgObj = S.obj;
     if (S.obj) S.period = 'obj';
     let ok;
     if (S.cfg && S.cfg.code_scrypt) ok = await window.fire.unlocked();
@@ -151,6 +153,8 @@
     loadGuides();
     window.fire.coach.state().then((c) => { S.coachState = c; if (S.section === 'coach' && !typing()) render(); }).catch(() => {});
     loadFiches();
+    loadPools();
+    loadChampions();
     refreshAll();
     S.timer = setInterval(refreshContent, REFRESH_EVERY);
   }
@@ -201,15 +205,14 @@
       if (c && Array.isArray(c.joueurs) && c.joueurs.length) {
         S.cfg = c;
         S.players = c.joueurs;
-        const o = (c.objectif && c.objectif.debut) ? c.objectif : null;
-        S.obj = o;
-        const opt = $('period').querySelector('option[value=obj]');
-        if (opt && o) opt.textContent = `Objectif (depuis le ${dateFr(o.debut)})`;
+        S.cfgObj = (c.objectif && c.objectif.debut) ? c.objectif : null;
+        applyWeek();
         renderUpdate();
       }
     } catch (e) { /* hors ligne : on garde la configuration actuelle */ }
     loadGuides();
     loadFiches();
+    loadPools();
     refreshAll();
     if (window.fire.update) window.fire.update.check().catch(() => {});
   }
@@ -404,9 +407,10 @@
     renderNav();
     $('period-box').hidden = S.section !== 'stats';
     const back = $('back');
-    back.hidden = S.section === 'settings' || !(S.section === 'stats' ? S.view === 'player' : S.section === 'guides' ? !!S.theme : !!S.ficheId);
+    back.hidden = S.section === 'settings' || S.section === 'pool' || !(S.section === 'stats' ? S.view === 'player' : S.section === 'guides' ? !!S.theme : !!S.ficheId);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? '← Lanes et principes' : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
+    else if (S.section === 'pool') renderPool();
     else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
     else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
     else if (S.view === 'player') renderPlayer();
@@ -800,7 +804,7 @@
     const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = (u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version)) ? '1' : null;
-    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('settings', '⚙️ Paramètres', upd));
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('settings', '⚙️ Paramètres', upd));
   }
 
   function newsBanner() {
@@ -1114,6 +1118,270 @@
       await loadFiches();
     } else d.err = (r && r.error) || 'erreur inconnue';
     render();
+  }
+
+  // ================= Rubrique POOL : tierlists de la semaine et analyse =================
+  const TIERS = FC.TIERS;
+  const todayYmd = () => FC.ymd(new Date());
+  const addDays = (ymd, n) => { const d = new Date(ymd + 'T00:00:00'); d.setDate(d.getDate() + n); return FC.ymd(d); };
+  const weekLabel = (w) => `Semaine du ${dateFr(w.debut)}`;
+  const nextWeekOf = (w) => (S.pools || []).find((x) => x.debut > w.debut) || null;
+
+  function currentWeek() {
+    const t = todayYmd();
+    const past = (S.pools || []).filter((w) => w.debut <= t);
+    return past.length ? past[past.length - 1] : null;
+  }
+
+  // Les stats et l'objectif suivent le pool de la semaine en cours (sinon celui de la configuration).
+  function applyWeek() {
+    const w = currentWeek();
+    for (const p of S.players) {
+      if (!p._cfg) p._cfg = { pool_ids: p.pool_ids || [], pool: p.pool || '' };
+      const t = w && w.joueurs && w.joueurs[p.slug];
+      const ids = t ? FC.poolIds(t) : [];
+      if (ids.length) { p.pool_ids = ids; p.pool = ids.map(FC.champName).join(' · '); p._tiers = t; }
+      else { p.pool_ids = p._cfg.pool_ids; p.pool = p._cfg.pool; p._tiers = null; }
+    }
+    S.obj = w && w.objectif ? { debut: w.debut, games: w.objectif, description: w.note || '' } : S.cfgObj;
+    const sel = $('period');
+    let opt = sel.querySelector('option[value=obj]');
+    if (S.obj && !opt) { opt = document.createElement('option'); opt.value = 'obj'; sel.insertBefore(opt, sel.firstChild); }
+    if (opt) { if (S.obj) opt.textContent = `Objectif (depuis le ${dateFr(S.obj.debut)})`; else opt.remove(); }
+  }
+
+  async function loadPools() {
+    let r;
+    try { r = await window.fire.pools(); } catch (e) { r = { ok: false, error: String(e) }; }
+    if (r && r.ok) { S.pools = r.semaines || []; S.poolsErr = r.offline ? 'Hors ligne : derniers pools enregistrés.' : ''; }
+    else { S.pools = S.pools || []; S.poolsErr = (r && r.error) || 'pools indisponibles'; }
+    applyWeek();
+    if (typing()) return;
+    if (S.section === 'pool' || S.section === 'stats') render();
+  }
+
+  async function loadChampions() {
+    try { const r = await window.fire.champions(); if (r && r.list) S.champList = r; } catch (e) { /* icônes facultatives */ }
+    if (S.section === 'pool' && !typing()) render();
+  }
+
+  function champIcon(id, size) {
+    const sz = size || 28;
+    const letter = h('span', { class: 'cico-l', style: `width:${sz}px;height:${sz}px` }, (FC.champName(id) || '?').charAt(0));
+    if (!S.champList || !S.champList.version) return letter;
+    const img = h('img', { class: 'cico', width: sz, height: sz, alt: '', src: `https://ddragon.leagueoflegends.com/cdn/${S.champList.version}/img/champion/${id}.png` });
+    img.addEventListener('error', () => img.replaceWith(letter));
+    return img;
+  }
+
+  function champIdFromName(txt) {
+    const n = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+    const t = n(txt);
+    if (!t) return null;
+    const list = (S.champList && S.champList.list) || [];
+    const hit = list.find((c) => n(c.name) === t || n(c.id) === t) || list.find((c) => n(c.name).startsWith(t));
+    if (hit) return hit.id;
+    const known = Object.entries(FC.NAMES).find(([id, name]) => n(name) === t || n(id) === t);
+    return known ? known[0] : String(txt).replace(/[^A-Za-z0-9]/g, '');
+  }
+
+  function weekRange(w) {
+    if (!w) return { start: S.cfgObj ? new Date(S.cfgObj.debut + 'T00:00:00').getTime() : Date.now() - 7 * 86400000, end: null, fin: null };
+    const nx = nextWeekOf(w);
+    return { start: new Date(w.debut + 'T00:00:00').getTime(), end: nx ? new Date(nx.debut + 'T00:00:00').getTime() : null, fin: nx ? addDays(nx.debut, -1) : null };
+  }
+
+  function renderPool() {
+    const view = $('view');
+    const weeks = S.pools || [];
+    if (S.poolEdit) { renderPoolEditor(view); return; }
+    const cur = currentWeek();
+    let wid = S.poolWeek;
+    if (!wid || (wid !== 'config' && !weeks.some((w) => w.id === wid))) wid = cur ? cur.id : (weeks.length ? weeks[weeks.length - 1].id : 'config');
+    const w = wid === 'config' ? null : weeks.find((x) => x.id === wid);
+    const prev = w ? weeks.filter((x) => x.debut < w.debut).pop() : null;
+    const rng = weekRange(w);
+    const coach = S.coachState.coach;
+
+    const nodes = [h('div', null, h('h1', { class: 'title' }, '🧙 POOL'),
+      h('p', { class: 'muted' }, "Les champion pools de chaque joueur, semaine par semaine, classés en tiers par le coach. Les stats viennent de dpm.lol (classé Solo/Duo) et l'analyse se met à jour toute seule."))];
+    if (S.flash) nodes.push(h('div', { class: 'flash' }, S.flash, h('button', { class: 'flash-x', onclick: () => { S.flash = ''; render(); } }, '✕')));
+    if (S.poolsErr) nodes.push(h('p', { class: 'muted small' }, '⚠ ' + S.poolsErr));
+
+    const chips = weeks.slice().reverse().map((x) => h('button', { class: 'chip', 'aria-pressed': String(x.id === wid), onclick: () => { S.poolWeek = x.id; S.confirm = null; render(); } },
+      weekLabel(x) + (cur && x.id === cur.id ? ' · en cours' : x.debut > todayYmd() ? ' · à venir' : '')));
+    if (!weeks.length) chips.push(h('button', { class: 'chip', 'aria-pressed': 'true' }, 'Pool actuel'));
+    const tools = [];
+    if (coach) {
+      tools.push(h('button', { class: 'btn-fire small-btn', onclick: () => startPoolEdit(null) }, '➕ Nouvelle semaine'));
+      if (w) {
+        tools.push(h('button', { class: 'btn-ghost', onclick: () => startPoolEdit(w) }, '✏️ Modifier cette semaine'));
+        const c = S.confirm === 'delpool:' + w.id;
+        tools.push(h('button', { class: c ? 'btn-danger' : 'btn-ghost', onclick: async () => {
+          if (!c) { S.confirm = 'delpool:' + w.id; render(); return; }
+          S.confirm = null;
+          const r = await window.fire.coach.savePools({ type: 'delete', id: w.id });
+          S.flash = r.ok ? 'Semaine supprimée.' : 'Suppression impossible : ' + r.error;
+          if (r.ok) { S.pools = r.semaines; S.poolWeek = null; applyWeek(); }
+          render();
+        } }, c ? 'Confirmer la suppression' : 'Supprimer'));
+      }
+      if (S.coachState.claude) tools.push(h('button', { class: 'btn-ghost', onclick: () => prepareAnalysis(w, rng) }, '🧠 Préparer une analyse avec Claude'));
+    }
+    nodes.push(h('div', { class: 'chips' }, chips), tools.length ? h('div', { class: 'row' }, tools) : null);
+
+    const obj = w ? (w.objectif ? { debut: w.debut, games: w.objectif, fin: rng.fin } : null) : (S.cfgObj ? { ...S.cfgObj } : null);
+    nodes.push(h('div', { class: 'card pool-week' },
+      h('h2', null, w ? `${weekLabel(w)}${rng.fin ? ' au ' + dateFr(rng.fin) : ''}` : 'Pool actuel (fixé dans la configuration)'),
+      obj && obj.games ? h('p', null, `🎯 Objectif : ${obj.games} games sur le pool${w ? '' : ' depuis le ' + dateFr(obj.debut)}, réparties comme chacun veut.`) : null,
+      w && w.note ? h('div', { class: 'md' }, md(w.note)) : null,
+      !w ? h('p', { class: 'muted small' }, coach ? 'Aucune tierlist publiée : crée la première semaine avec « Nouvelle semaine ».' : "Le coach n'a pas encore publié de tierlist : voici le pool fixé au départ, avec son analyse.") : null));
+
+    for (const p of S.players.filter((x) => x.slug)) nodes.push(poolCard(p, w, prev, rng, obj));
+    view.replaceChildren(...nodes.filter(Boolean));
+  }
+
+  function tierBadge(t) { return h('span', { class: 'tier t' + (t || 'X') }, t || '—'); }
+
+  function poolCard(p, w, prev, rng, obj) {
+    const R = roleOf(p);
+    const tiers = w ? (w.joueurs || {})[p.slug] : null;
+    const cfgIds = (p._cfg && p._cfg.pool_ids) || p.pool_ids || [];
+    const d = S.data[p.slug];
+    const head = h('div', { class: 'pool-head' }, roleLine(p, R), h('div', { class: 'pname' }, p.pseudo));
+    if (w && !tiers) return h('article', { class: 'card pool-card' }, head, h('p', { class: 'muted' }, 'Pas de tierlist pour ce joueur cette semaine.'));
+    const A = d ? FC.poolAnalysis({ ...p, pool_ids: cfgIds }, d.matches, d.champs, tiers, rng.start, rng.end) : null;
+    const per = A ? A.per : (tiers ? FC.poolIds(tiers) : cfgIds).map((id) => ({ id, champion: FC.champName(id), tier: tiers ? TIERS.find((t) => tiers[t].includes(id)) : null, games: 0 }));
+    const statOf = (id) => per.find((c) => c.id === id);
+    const chip = (id) => {
+      const c = statOf(id) || { games: 0 };
+      return h('span', { class: 'pchip' + (c.verdict ? ' v-' + c.verdict.kind : '') }, champIcon(id, 30),
+        h('span', null, h('b', null, FC.champName(id)), h('span', { class: 'muted small' }, c.games ? ` ${c.games} g · ${fr(c.wr)} %` : ' pas joué')));
+    };
+    const rows = tiers
+      ? TIERS.filter((t) => tiers[t].length).map((t) => h('div', { class: 'tier-row' }, tierBadge(t), h('div', { class: 'tier-chips' }, tiers[t].map(chip))))
+      : [h('div', { class: 'tier-row' }, h('span', { class: 'tier tX' }, 'Pool'), h('div', { class: 'tier-chips' }, cfgIds.map(chip)))];
+
+    const ch = w && prev ? FC.poolChanges((prev.joueurs || {})[p.slug], tiers) : null;
+    const changes = ch && (ch.ajoutes.length || ch.retires.length || ch.deplaces.length)
+      ? h('div', { class: 'changes' }, h('span', { class: 'muted small' }, 'Depuis la semaine d’avant : '),
+        ch.ajoutes.map((c) => h('span', { class: 'chg add' }, `+ ${c.champion} (${c.tier})`)),
+        ch.retires.map((c) => h('span', { class: 'chg del' }, `− ${c.champion}`)),
+        ch.deplaces.map((c) => h('span', { class: 'chg mov' }, `${c.champion} ${c.de} → ${c.vers}`)))
+      : (w && prev ? h('p', { class: 'muted small' }, 'Même pool que la semaine d’avant.') : null);
+
+    const sup = p.role_id === 'support';
+    const table = A ? h('div', { class: 'scroll' }, h('table', { class: 't' },
+      h('thead', null, h('tr', null, h('th', { class: 'l' }, 'Champion'), ['Tier', 'Games', 'V – D', 'Win rate %', 'KDA', sup ? 'Vision' : 'CS/min', 'Golds @15', 'Ce split', 'Verdict'].map((x) => h('th', null, x)))),
+      h('tbody', null, A.per.map((c) => h('tr', null,
+        h('td', { class: 'l' }, h('span', { class: 'tcell' }, champIcon(c.id, 22), c.champion)),
+        h('td', null, c.tier ? tierBadge(c.tier) : '—'), h('td', null, c.games), h('td', null, c.games ? `${c.wins} – ${c.losses}` : '—'),
+        h('td', { class: c.wr == null ? '' : c.wr >= 50 ? 'good' : 'bad' }, fr(c.wr, 1)), h('td', null, fr(c.kda, 2)),
+        h('td', null, sup ? fr(c.vision, 1) : fr(c.cs_min, 1)), h('td', { class: c.gold15 > 0 ? 'good' : c.gold15 < 0 ? 'bad' : '' }, sg(c.gold15)),
+        h('td', null, c.split ? `${c.split.games} g · ${fr(c.split.wr)} %` : '—'),
+        h('td', null, h('span', { class: 'verdict v-' + c.verdict.kind }, c.verdict.txt))))))) : null;
+
+    const o = d && obj ? FC.objectif({ ...p, pool_ids: tiers ? FC.poolIds(tiers) : cfgIds }, d.matches, obj) : null;
+    return h('article', { class: 'card pool-card' }, head, changes, h('div', { class: 'tiers' }, rows),
+      o ? progress(o, false) : null,
+      table || h('p', { class: 'muted small' }, 'Lecture des stats sur dpm.lol…'),
+      A && A.notes.length ? h('ul', { class: 'pool-notes' }, A.notes.map((n) => h('li', { class: 'pn-' + n.kind }, n.text))) : null);
+  }
+
+  // ----- Éditeur de la tierlist (coach) -----
+  function startPoolEdit(w) {
+    const weeks = S.pools || [];
+    const base = w || weeks[weeks.length - 1] || null;
+    const joueurs = {};
+    for (const p of S.players.filter((x) => x.slug)) {
+      const t = base && base.joueurs && base.joueurs[p.slug];
+      joueurs[p.slug] = t ? { S: [...t.S], A: [...t.A], B: [...t.B], C: [...t.C] } : { S: [], A: [...((p._cfg && p._cfg.pool_ids) || p.pool_ids || [])], B: [], C: [] };
+    }
+    const debut = w ? w.debut : (base ? addDays(base.debut, 7) : todayYmd());
+    S.poolEdit = { id: w ? w.id : null, debut, objectif: (w || base || {}).objectif || (S.cfgObj && S.cfgObj.games) || 20, note: w ? (w.note || '') : '', joueurs, err: '', busy: false };
+    if (!S.champList) loadChampions();
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  function renderPoolEditor(view) {
+    const e = S.poolEdit;
+    const dl = h('datalist', { id: 'champ-list' }, ((S.champList && S.champList.list) || []).map((c) => h('option', { value: c.name })));
+    const debut = h('input', { type: 'date', value: e.debut });
+    debut.addEventListener('change', () => { e.debut = debut.value; });
+    const obj = h('input', { type: 'number', class: 'inp num', min: 0, max: 200, value: e.objectif });
+    obj.addEventListener('input', () => { e.objectif = obj.value; });
+    const note = h('textarea', { class: 'inp', rows: 2, placeholder: 'Consigne de la semaine (facultatif), ex. : priorité aux champions S, 3 games minimum sur chaque champion.' });
+    note.value = e.note;
+    note.addEventListener('input', () => { e.note = note.value; });
+
+    const blocks = S.players.filter((x) => x.slug).map((p) => {
+      const t = e.joueurs[p.slug];
+      const move = (id, to) => { for (const k of TIERS) t[k] = t[k].filter((x) => x !== id); if (to !== 'X') t[to].push(id); render(); };
+      const rows = TIERS.map((k) => h('div', { class: 'tier-row' }, tierBadge(k), h('div', { class: 'tier-chips' },
+        t[k].length ? t[k].map((id) => {
+          const sel = h('select', { class: 'tsel', 'aria-label': 'Tier de ' + FC.champName(id) }, [...TIERS.map((x) => h('option', { value: x }, 'Tier ' + x)), h('option', { value: 'X' }, 'Retirer')]);
+          sel.value = k;
+          sel.addEventListener('change', () => move(id, sel.value));
+          return h('span', { class: 'pchip edit' }, champIcon(id, 28), h('b', null, FC.champName(id)), sel);
+        }) : h('span', { class: 'muted small' }, 'vide'))));
+      const inp = h('input', { class: 'inp', list: 'champ-list', placeholder: 'Ajouter un champion…' });
+      const tsel = h('select', null, TIERS.map((x) => h('option', { value: x }, 'Tier ' + x)));
+      tsel.value = 'A';
+      const add = () => {
+        const id = champIdFromName(inp.value);
+        if (!id) return;
+        for (const k of TIERS) t[k] = t[k].filter((x) => x !== id);
+        t[tsel.value].push(id);
+        render();
+        setTimeout(() => { const x = document.querySelector(`[data-add="${p.slug}"]`); if (x) x.focus(); }, 30);
+      };
+      inp.setAttribute('data-add', p.slug);
+      inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') add(); });
+      return h('div', { class: 'card pool-card' }, h('div', { class: 'pool-head' }, roleLine(p, roleOf(p)), h('div', { class: 'pname' }, p.pseudo)),
+        h('div', { class: 'tiers' }, rows), h('div', { class: 'row' }, inp, tsel, h('button', { class: 'btn-ghost', onclick: add }, 'Ajouter')));
+    });
+
+    const save = h('button', { class: 'btn-fire small-btn', disabled: e.busy || !S.coachState.github ? true : null, onclick: async () => {
+      e.busy = true; e.err = ''; render();
+      const r = await window.fire.coach.savePools({ type: 'save', semaine: { id: e.id, debut: e.debut, objectif: e.objectif, note: e.note, joueurs: e.joueurs } });
+      e.busy = false;
+      if (r.ok) { S.pools = r.semaines; const w = r.semaines.find((x) => x.debut === e.debut); S.poolWeek = w ? w.id : null; S.poolEdit = null; S.flash = 'Tierlist publiée ✓ Les joueurs la verront à leur prochaine ouverture (ou dans 10 minutes au plus).'; applyWeek(); }
+      else e.err = r.error;
+      render();
+    } }, e.busy ? 'Publication…' : "📣 Publier pour l'équipe");
+    view.replaceChildren(dl,
+      h('div', null, h('h1', { class: 'title' }, e.id ? '✏️ Modifier la semaine' : '➕ Nouvelle semaine'),
+        h('p', { class: 'muted' }, "Classe le pool de chaque joueur en tiers : S (à jouer en priorité), A, B, C. Le pool de la semaine remplace l'ancien dans les stats et l'objectif dès sa date de début.")),
+      h('div', { class: 'card composer' },
+        h('div', { class: 'row' }, h('label', { class: 'fld-inline' }, 'Début de la semaine ', debut), h('label', { class: 'fld-inline' }, 'Objectif : ', obj, ' games sur le pool')),
+        note),
+      ...blocks,
+      h('div', { class: 'row' }, save, h('button', { class: 'btn-ghost', onclick: () => { S.poolEdit = null; render(); } }, 'Annuler'),
+        !S.coachState.github ? h('span', { class: 'bad small' }, 'Ajoute le jeton GitHub dans les réglages coach (📣 Parole du coach) pour publier.') : null,
+        e.err ? h('span', { class: 'bad small' }, '⚠ ' + e.err) : null));
+  }
+
+  // Prépare une fiche d'analyse des pools pour le générateur (Parole du coach).
+  function prepareAnalysis(w, rng) {
+    const lines = [];
+    for (const p of S.players.filter((x) => x.slug)) {
+      const d = S.data[p.slug];
+      const tiers = w ? (w.joueurs || {})[p.slug] : null;
+      if (!d) continue;
+      const A = FC.poolAnalysis(p, d.matches, d.champs, tiers, rng.start, rng.end);
+      lines.push(`${p.role} ${p.pseudo} : ` + A.per.map((c) => `${c.champion}${c.tier ? ' (tier ' + c.tier + ')' : ''} ${c.games} games ${c.games ? fr(c.wr) + ' % WR, KDA ' + fr(c.kda, 2) : ''}`).join(' ; ')
+        + (A.hors.length ? ` ; hors pool : ${A.hors.map((c) => c.champion + ' ' + c.games).join(', ')}` : ''));
+    }
+    const d = ensureDraft();
+    d.mode = 'fiche';
+    d.fiche = null;
+    d.cible = "Toute l'équipe";
+    d.sujet = `Analyse les champion pools de l'équipe ${w ? 'pour la ' + weekLabel(w).toLowerCase() : ''} : pour chaque joueur, ce qui marche, ce qu'il faut travailler, et des conseils concrets sur les champions de son pool (matchups, erreurs fréquentes, quand les choisir). Données classé Solo/Duo :\n` + lines.join('\n');
+    S.section = 'coach';
+    S.ficheId = null;
+    render();
+    window.scrollTo(0, 0);
   }
 
   start();

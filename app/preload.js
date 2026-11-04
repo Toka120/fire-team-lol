@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('fire', {
   unlock: call('unlock'),
   unlocked: call('unlocked'),
   fiches: call('fiches'),
+  pools: call('pools'),
+  champions: call('champions'),
   update: {
     state: call('update:state'),
     install: call('update:install'),
@@ -25,6 +27,7 @@ contextBridge.exposeInMainWorld('fire', {
     generate: call('coach:generate'),
     message: call('coach:message'),
     publish: call('coach:publish'),
-    unpublish: call('coach:unpublish')
+    unpublish: call('coach:unpublish'),
+    savePools: call('coach:savePools')
   }
 });
