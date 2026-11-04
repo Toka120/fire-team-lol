@@ -491,3 +491,30 @@ details.acc[open] > summary::after { transform: rotate(180deg); }
 .lb-tips { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
 .lb-tip { display: flex; gap: 8px; align-items: flex-start; background: rgba(15, 13, 12, .55); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
 .lb-dot { color: var(--fire1); font-weight: 800; }
+
+/* ---------- Diaporama d'une catégorie ---------- */
+.diapo-tag { align-self: flex-start; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: rgba(212, 171, 79, .18); color: #e6c372; border: 1px solid rgba(212, 171, 79, .5); }
+.diapo-card { display: flex; gap: 20px; align-items: stretch; text-align: left; font: inherit; color: var(--fg); cursor: pointer; padding: 16px; border-radius: 18px;
+  border: 1px solid rgba(212, 171, 79, .55); background: linear-gradient(135deg, rgba(212, 171, 79, .14), var(--panel) 55%); transition: transform .15s ease, box-shadow .15s ease; }
+.diapo-card:hover, .diapo-card:focus-visible { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(212, 171, 79, .18); outline: none; }
+.diapo-thumb { width: 420px; max-width: 45%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); background: #0c1018; }
+.diapo-info { display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1; }
+.diapo-info p { margin: 0; }
+.diapo-kick { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #e6c372; }
+.diapo-t { font-size: 22px; font-weight: 800; }
+.diapo-strip { display: flex; gap: 6px; overflow: hidden; }
+.diapo-strip img { width: 104px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); }
+.diapo-go { margin-top: auto; align-self: flex-start; font-weight: 800; color: #0c1018; background: #d4ab4f; border-radius: 999px; padding: 7px 16px; }
+.dv { position: fixed; inset: 0; z-index: 120; background: rgba(6, 8, 12, .94); display: flex; flex-direction: column; gap: 10px; padding: 16px 24px; animation: rise .25s ease both; }
+.dv-top { display: flex; align-items: center; gap: 14px; }
+.dv-name { font-weight: 800; color: #e6c372; }
+.dv-title { flex: 1; color: var(--muted); }
+.dv-count { font-variant-numeric: tabular-nums; font-weight: 700; }
+.dv-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 12px; }
+.dv-img { max-width: calc(100% - 120px); max-height: 100%; aspect-ratio: 16 / 9; object-fit: contain; border-radius: 12px; box-shadow: 0 20px 60px rgba(0, 0, 0, .6); cursor: pointer; background: #0c1018; }
+.dv-nav { width: 48px; height: 96px; border-radius: 14px; border: 1px solid var(--line); background: rgba(26, 22, 20, .8); color: var(--fg); font-size: 40px; cursor: pointer; flex: 0 0 48px; }
+.dv-nav:hover { border-color: #d4ab4f; color: #e6c372; }
+.dv-thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px; justify-content: center; }
+.dv-thumbs img { width: 112px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; border: 2px solid transparent; opacity: .55; cursor: pointer; flex: 0 0 auto; }
+.dv-thumbs img.on, .dv-thumbs img:hover { border-color: #d4ab4f; opacity: 1; }
+.dv-help { text-align: center; }

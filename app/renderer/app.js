@@ -1003,6 +1003,7 @@
         const mine = role && (c.roles || []).includes(role);
         return h('button', { class: 'catcard' + (mine ? ' mine' : ''), onclick: () => { S.guideCat = c.id; S.theme = null; render(); window.scrollTo(0, 0); } },
           mine ? h('span', { class: 'me-tag' }, 'Ta lane') : null,
+          c.diapo ? h('span', { class: 'diapo-tag' }, `🎞️ diaporama · ${c.diapo.slides.length} slides`) : null,
           h('div', { class: 'cat-ico' }, c.ico),
           h('div', { class: 'cat-t' }, c.titre),
           h('p', { class: 'muted small' }, c.intro),
@@ -1016,6 +1017,7 @@
     if (!c) { S.guideCat = null; renderCategories(); return; }
     view.replaceChildren(
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, c.ico), h('div', null, h('h1', { class: 'title' }, c.titre), h('p', { class: 'muted' }, c.intro))),
+      diapoCard(c),
       h('div', { class: 'cat-list' }, c.themes.map((x, i) => {
         const t = themeOf(x.id);
         if (!t) return null;
@@ -1028,6 +1030,58 @@
             h('span', { class: 'muted small' }, `${(t.sections || []).length} principes`), extra ? h('span', { class: 'pill-new' }, `+${extra} du coach`) : null),
           h('span', { class: 'ci-go' }, '→'));
       })));
+  }
+
+  // ----- Diaporama d'une catégorie (ex. ADC) : carte d'accès et visionneuse plein écran -----
+  const slideUrl = (d, sl) => (/^https:\/\//.test(sl.img) ? sl.img : (d.base || '') + sl.img);
+
+  function diapoCard(c) {
+    const d = c && c.diapo;
+    if (!d || !d.slides || !d.slides.length) return null;
+    return h('button', { class: 'diapo-card', onclick: () => openDiapo(d, 0) },
+      h('img', { class: 'diapo-thumb', src: slideUrl(d, d.slides[0]), alt: '' }),
+      h('div', { class: 'diapo-info' },
+        h('div', { class: 'diapo-kick' }, '🎞️ Diaporama'),
+        h('div', { class: 'diapo-t' }, d.titre),
+        h('p', { class: 'muted small' }, d.resume || ''),
+        h('div', { class: 'diapo-strip' }, d.slides.slice(1, 6).map((sl) => h('img', { src: slideUrl(d, sl), alt: '' }))),
+        h('span', { class: 'diapo-go' }, `▶ Voir les ${d.slides.length} slides`)));
+  }
+
+  function openDiapo(d, start) {
+    let i = start || 0;
+    const img = h('img', { class: 'dv-img', alt: '' });
+    const count = h('span', { class: 'dv-count' });
+    const title = h('span', { class: 'dv-title' });
+    const thumbs = h('div', { class: 'dv-thumbs' }, d.slides.map((sl, k) => h('img', { src: slideUrl(d, sl), alt: sl.titre || '', onclick: (e) => { e.stopPropagation(); show(k); } })));
+    const show = (k) => {
+      i = Math.max(0, Math.min(d.slides.length - 1, k));
+      img.src = slideUrl(d, d.slides[i]);
+      img.alt = d.slides[i].titre || '';
+      count.textContent = `${i + 1} / ${d.slides.length}`;
+      title.textContent = d.slides[i].titre || '';
+      [...thumbs.children].forEach((t, k2) => t.classList.toggle('on', k2 === i));
+      const cur = thumbs.children[i];
+      if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
+    };
+    const close = () => { box.remove(); document.removeEventListener('keydown', key); };
+    const key = (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(i + 1); }
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+      else if (e.key === 'Escape') close();
+    };
+    const box = h('div', { class: 'dv', onclick: (e) => { if (e.target === box) close(); } },
+      h('div', { class: 'dv-top' }, h('span', { class: 'dv-name' }, '🎞️ ' + d.titre), title, count, h('button', { class: 'btn-ghost', onclick: close }, '✕ Fermer')),
+      h('div', { class: 'dv-stage' },
+        h('button', { class: 'dv-nav', 'aria-label': 'Slide précédente', onclick: () => show(i - 1) }, '‹'),
+        img,
+        h('button', { class: 'dv-nav', 'aria-label': 'Slide suivante', onclick: () => show(i + 1) }, '›')),
+      thumbs,
+      h('div', { class: 'dv-help muted small' }, '← → pour changer de slide · Échap pour fermer'));
+    img.addEventListener('click', () => show(i + 1));
+    document.body.append(box);
+    document.addEventListener('keydown', key);
+    show(i);
   }
 
   function renderAllThemes() {
