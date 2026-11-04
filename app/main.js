@@ -6,6 +6,8 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const coach = require('./coach');
+let autoUpdater = null;
+try { ({ autoUpdater } = require('electron-updater')); } catch (e) { /* module absent (développement) */ }
 
 const CONFIG_URL = 'https://toka120.github.io/fire-team-lol/joueurs.json';
 const GUIDES_URL = 'https://toka120.github.io/fire-team-lol/guides.json';
@@ -177,6 +179,48 @@ async function fetchPlayer(player, days) {
 
 ipcMain.handle('dpm:fetch', (e, player, days) => fetchPlayer(player, days || 31));
 
+// ---------- Mise à jour automatique de l'application ----------
+// La version installée (FIRE-LoL-Setup.exe) vérifie les Releases GitHub au lancement puis toutes les 30 minutes,
+// télécharge la nouvelle version en arrière-plan et l'installe en redémarrant. La version portable ne peut pas
+// se mettre à jour seule : elle affiche un lien de téléchargement.
+
+const portable = !!process.env.PORTABLE_EXECUTABLE_DIR;
+const canAutoUpdate = () => !!autoUpdater && app.isPackaged && !portable;
+let updateState = { state: 'idle' };
+function sendUpdate(m) {
+  updateState = { ...updateState, ...m };
+  if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('update', updateState);
+}
+function setupUpdater() {
+  if (!canAutoUpdate()) return;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on('checking-for-update', () => sendUpdate({ state: 'checking' }));
+  autoUpdater.on('update-not-available', () => sendUpdate({ state: 'none' }));
+  autoUpdater.on('update-available', (i) => sendUpdate({ state: 'available', version: i.version, percent: 0 }));
+  autoUpdater.on('download-progress', (p) => sendUpdate({ state: 'progress', percent: Math.round(p.percent || 0) }));
+  autoUpdater.on('update-downloaded', (i) => sendUpdate({ state: 'ready', version: i.version }));
+  autoUpdater.on('error', (e) => sendUpdate({ state: 'error', error: String((e && e.message) || e).slice(0, 200) }));
+  const check = () => { if (updateState.state !== 'ready') autoUpdater.checkForUpdates().catch(() => { /* hors ligne */ }); };
+  setTimeout(check, 1500);
+  setInterval(check, 30 * 60 * 1000);
+}
+// Pour la version portable : on lit le numéro de la dernière version publiée, pour proposer le téléchargement.
+async function latestTag() {
+  try {
+    const r = await fetch('https://api.github.com/repos/Toka120/fire-team-lol/releases/latest', { headers: { 'User-Agent': 'FIRE-LoL', Accept: 'application/vnd.github+json' } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return String(j.tag_name || '').replace(/^v/, '') || null;
+  } catch (e) { return null; }
+}
+ipcMain.handle('update:state', async () => ({ ...updateState, auto: canAutoUpdate(), portable, latest: canAutoUpdate() ? null : await latestTag() }));
+ipcMain.handle('update:install', () => {
+  if (canAutoUpdate() && updateState.state === 'ready') { setImmediate(() => autoUpdater.quitAndInstall(true, true)); return true; }
+  return false;
+});
+ipcMain.handle('update:check', () => { if (canAutoUpdate()) autoUpdater.checkForUpdates().catch(() => {}); return canAutoUpdate(); });
+
 // ---------- Démarrage ----------
 
 const single = app.requestSingleInstanceLock();
@@ -186,6 +230,6 @@ if (!single) {
   app.on('second-instance', () => {
     if (mainWin) { if (mainWin.isMinimized()) mainWin.restore(); mainWin.focus(); }
   });
-  app.whenReady().then(createMainWindow);
+  app.whenReady().then(() => { createMainWindow(); setupUpdater(); });
   app.on('window-all-closed', () => app.quit());
 }

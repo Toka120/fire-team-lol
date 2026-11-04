@@ -11,6 +11,12 @@ contextBridge.exposeInMainWorld('fire', {
   unlock: call('unlock'),
   unlocked: call('unlocked'),
   fiches: call('fiches'),
+  update: {
+    state: call('update:state'),
+    install: call('update:install'),
+    check: call('update:check'),
+    on: (cb) => ipcRenderer.on('update', (e, m) => cb(m))
+  },
   coach: {
     state: call('coach:state'),
     unlock: call('coach:unlock'),

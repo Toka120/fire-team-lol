@@ -24,10 +24,19 @@ jobs:
       - run: npm run dist
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Vérifier les fichiers de mise à jour automatique
+        shell: bash
+        run: |
+          ls -la dist
+          test -f dist/latest.yml
+          test -f dist/FIRE-LoL-Setup.exe.blockmap
+          cat dist/latest.yml
       - uses: actions/upload-artifact@v4
         with:
           name: FIRE-LoL-Windows
-          path: app/dist/*.exe
+          path: |
+            app/dist/*.exe
+            app/dist/latest.yml
       - id: version
         shell: bash
         run: echo "v=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
@@ -39,4 +48,6 @@ jobs:
           make_latest: true
           files: |
             app/dist/FIRE-LoL-Setup.exe
+            app/dist/FIRE-LoL-Setup.exe.blockmap
+            app/dist/latest.yml
             app/dist/FIRE-LoL-Portable.exe

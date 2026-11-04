@@ -96,9 +96,12 @@
   };
   const SETUP_URL = 'https://github.com/Toka120/fire-team-lol/releases/latest/download/FIRE-LoL-Setup.exe';
   function updateNode() {
-    const v = S.cfg && S.cfg.derniere_version;
+    const u = S.upd || {};
+    let v = S.cfg && S.cfg.derniere_version;
+    if (u.latest && (!v || newer(u.latest, v))) v = u.latest;
     if (!v || !newer(v, S.version)) return null;
-    return h('span', null, `🔥 Nouvelle version ${v} disponible (tu as la ${S.version}). `, h('a', { href: SETUP_URL, target: '_blank' }, 'Télécharger la mise à jour'));
+    return h('span', null, `🔥 Nouvelle version ${v} disponible (tu as la ${S.version}). `, h('a', { href: SETUP_URL, target: '_blank' }, 'Télécharger et installer'),
+      u.portable ? ' · La version portable ne se met pas à jour toute seule : installe plutôt FIRE-LoL-Setup.exe, qui se mettra à jour automatiquement.' : '');
   }
 
   function showLock() {
@@ -133,14 +136,18 @@
   function showApp() {
     $('app').hidden = false;
     wire();
-    const up = updateNode();
-    if (up) { $('update').hidden = false; $('update').replaceChildren(up); }
+    S.upd = { state: 'idle' };
+    if (window.fire.update) {
+      window.fire.update.on((m) => { S.upd = { ...S.upd, ...m }; renderUpdate(); });
+      window.fire.update.state().then((m) => { S.upd = { ...m, ...S.upd, auto: m.auto, portable: m.portable }; renderUpdate(); }).catch(() => {});
+    }
+    renderUpdate();
     render();
-    window.fire.guides().then((g) => { S.guides = (g && g.themes) || []; if (S.section !== 'stats' && !typing()) render(); }).catch(() => { S.guides = []; });
+    loadGuides();
     window.fire.coach.state().then((c) => { S.coachState = c; if (S.section === 'coach' && !typing()) render(); }).catch(() => {});
     loadFiches();
     refreshAll();
-    S.timer = setInterval(() => { refreshAll(); loadFiches(); }, REFRESH_EVERY);
+    S.timer = setInterval(refreshContent, REFRESH_EVERY);
   }
 
   function wire() {
@@ -164,7 +171,7 @@
       render();
     };
     since.onchange = () => { if (since.value && since.validity.valid) { S.since = since.value; S.jour = 'tous'; render(); } };
-    $('refresh').onclick = () => { refreshAll(); loadFiches(); };
+    $('refresh').onclick = () => refreshContent();
     $('back').onclick = () => {
       if (S.section === 'stats') { S.view = 'hub'; S.player = null; } else if (S.section === 'guides') S.theme = null; else S.ficheId = null;
       render();
@@ -172,6 +179,67 @@
     };
     let t = null;
     window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { if (S.section === 'stats') render(); }, 200); });
+  }
+
+  // ---------- Contenu toujours à jour ----------
+  // Au lancement puis toutes les 10 minutes : liste des joueurs et objectif, thèmes, fiches du coach, stats dpm.lol.
+  function loadGuides() {
+    return window.fire.guides().then((g) => {
+      S.guides = (g && g.themes) || [];
+      if (S.section === 'guides' && !typing()) render();
+    }).catch(() => { S.guides = S.guides || []; });
+  }
+
+  async function refreshContent() {
+    try {
+      const c = await window.fire.config();
+      if (c && Array.isArray(c.joueurs) && c.joueurs.length) {
+        S.cfg = c;
+        S.players = c.joueurs;
+        const o = (c.objectif && c.objectif.debut) ? c.objectif : null;
+        S.obj = o;
+        const opt = $('period').querySelector('option[value=obj]');
+        if (opt && o) opt.textContent = `Objectif (depuis le ${dateFr(o.debut)})`;
+        renderUpdate();
+      }
+    } catch (e) { /* hors ligne : on garde la configuration actuelle */ }
+    loadGuides();
+    loadFiches();
+    refreshAll();
+    if (window.fire.update) window.fire.update.check().catch(() => {});
+  }
+
+  // ---------- Mise à jour de l'application ----------
+  let countdown = null;
+  function stopCountdown() { clearInterval(countdown); countdown = null; }
+  function installNow() { stopCountdown(); window.fire.update.install(); }
+  function startCountdown() {
+    if (countdown) return;
+    S.updLeft = 15;
+    countdown = setInterval(() => {
+      if (typing() || (S.draft && S.draft.busy)) { renderUpdate(); return; } // on n'interrompt pas quelqu'un qui écrit
+      S.updLeft--;
+      if (S.updLeft <= 0) installNow(); else renderUpdate();
+    }, 1000);
+  }
+  function renderUpdate() {
+    const box = $('update');
+    const u = S.upd || {};
+    let node = null;
+    if (u.auto && (u.state === 'available' || u.state === 'progress')) {
+      node = h('span', null, `⬇ Nouvelle version ${u.version || ''} : téléchargement en cours… ${u.percent || 0} %`);
+    } else if (u.auto && u.state === 'ready') {
+      const now = h('button', { class: 'linkbtn', onclick: installNow }, 'Redémarrer maintenant');
+      if (S.updLater) node = h('span', null, `✓ La version ${u.version} s'installera à la fermeture de FIRE LoL. `, now);
+      else {
+        startCountdown();
+        const paused = typing() || (S.draft && S.draft.busy);
+        node = h('span', null, `✓ Version ${u.version} prête : FIRE LoL redémarre ${paused ? 'dès que tu as fini d\'écrire' : `dans ${S.updLeft} s`} pour l'installer. `, now, ' · ',
+          h('button', { class: 'linkbtn', onclick: () => { S.updLater = true; stopCountdown(); renderUpdate(); } }, 'Plus tard'));
+      }
+    } else if (!u.auto) node = updateNode();
+    box.hidden = !node;
+    box.replaceChildren(...(node ? [node] : []));
   }
 
   // ---------- Lecture dpm.lol ----------
@@ -262,14 +330,14 @@
   function renderHub() {
     const start = periodStart();
     const view = $('view');
-    view.replaceChildren(
+    view.replaceChildren(...[
       newsBanner(),
       h('div', null,
         h('h1', { class: 'title' }, "L'équipe"),
         h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · clique sur un joueur pour voir tout le détail.`),
         S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif du coach : ${S.obj.games} games sur le pool imposé depuis le ${dateFr(S.obj.debut)}, réparties comme chacun veut sur ses champions.`) : null),
       h('div', { class: 'hub-grid' }, S.players.map((p) => hubCard(p, start)))
-    );
+    ].filter(Boolean));
   }
 
   function roleLine(p, R) {
@@ -757,13 +825,13 @@
     const view = $('view');
     if (!t) { S.theme = null; renderGuides(); return; }
     const extra = (S.fiches || []).filter((f) => f.rubrique === t.id);
-    view.replaceChildren(
+    view.replaceChildren(...[
       h('header', { class: 'doc-head' }, h('div', { class: 'tags' }, tag(pourLabel(t.pour)), tag('Saison 2026')), h('h1', { class: 'title' }, `${t.ico || ''} ${t.titre}`)),
       ...docNodes(t),
       extra.length || S.coachState.coach ? h('div', { class: 'card' },
         h('h2', null, '📣 Ajouts du coach'),
         extra.length ? h('div', { class: 'fgrid' }, extra.map(ficheCard)) : h('p', { class: 'muted' }, 'Pas encore d\'ajout du coach dans ce thème.'),
-        S.coachState.coach ? h('button', { class: 'btn-ghost', onclick: () => { ensureDraft().rubrique = t.id; S.section = 'coach'; S.ficheId = null; render(); window.scrollTo(0, 0); setTimeout(() => { const x = $('sujet'); if (x) x.focus(); }, 50); } }, '✍️ Écrire un ajout pour ce thème') : null) : null);
+        S.coachState.coach ? h('button', { class: 'btn-ghost', onclick: () => { ensureDraft().rubrique = t.id; S.section = 'coach'; S.ficheId = null; render(); window.scrollTo(0, 0); setTimeout(() => { const x = $('sujet'); if (x) x.focus(); }, 50); } }, '✍️ Écrire un ajout pour ce thème') : null) : null].filter(Boolean));
   }
 
   // ----- Parole du coach -----
