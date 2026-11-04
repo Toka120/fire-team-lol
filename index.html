@@ -6,6 +6,8 @@
 <meta name="robots" content="noindex">
 <title>FIRE LoL — Télécharger l'application</title>
 <link rel="icon" href="fire.ico">
+<link rel="apple-touch-icon" href="logo.png">
+<meta property="og:image" content="https://toka120.github.io/fire-team-lol/logo.png">
 <style>
   :root {
     --bg: #0f0d0c;
@@ -30,8 +32,8 @@
     font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   }
   .wrap { width: 100%; max-width: 560px; padding: 48px 24px; text-align: center; }
-  .logo { width: 96px; height: 96px; animation: flamme 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
-  @keyframes flamme { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.05) rotate(-2deg); } }
+  .logo { width: 200px; height: 200px; border-radius: 28px; box-shadow: 0 16px 50px rgba(255, 94, 58, .25); animation: flamme 3s ease-in-out infinite; }
+  @keyframes flamme { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
   @media (prefers-reduced-motion: reduce) { .logo { animation: none; } }
   h1 {
     margin: 12px 0 6px;
@@ -94,17 +96,7 @@
 </head>
 <body>
 <div class="wrap">
-  <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
-    <defs>
-      <linearGradient id="f" x1="0" y1="1" x2="0" y2="0">
-        <stop offset="0" stop-color="#c81d25"/>
-        <stop offset=".55" stop-color="#ff5e3a"/>
-        <stop offset="1" stop-color="#ffb347"/>
-      </linearGradient>
-    </defs>
-    <path fill="url(#f)" d="M32 4c4 10 14 15 14 30a14 14 0 0 1-28 0c0-7 3-11 6-14 0 5 2 8 5 9-2-9 1-17 3-25z"/>
-    <path fill="#ffe2a8" d="M32 30c3 5 7 7 7 13a7 7 0 0 1-14 0c0-3 2-6 4-7 0 3 1 4 2 5 0-4 0-7 1-11z"/>
-  </svg>
+  <img class="logo" src="logo.png" alt="Logo FIRE">
   <h1>FIRE LoL</h1>
   <p class="tagline">L'application de l'équipe.<br>Les stats se consultent uniquement dans l'application, avec le code d'équipe.</p>
 
@@ -114,7 +106,7 @@
   <ol class="etapes">
     <li>Lance le fichier téléchargé. Si Windows affiche « Windows a protégé votre ordinateur », clique sur <b>Informations complémentaires</b> puis <b>Exécuter quand même</b>.</li>
     <li>Au premier lancement, <b>entre le code</b> donné par le coach.</li>
-    <li>C'est tout : les stats se mettent à jour depuis dpm.lol à chaque ouverture.</li>
+    <li>C'est tout : les stats, les fiches du coach et les nouveautés se mettent à jour à chaque ouverture, et l'application installe toute seule ses nouvelles versions.</li>
   </ol>
 
   <footer>FIRE LoL · Windows 10 et 11</footer>
