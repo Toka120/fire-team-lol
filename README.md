@@ -14,7 +14,7 @@ Page de l'équipe : **https://toka120.github.io/fire-team-lol/**
 - Page joueur : résumé avec repères, points forts et points à travailler, jour par jour avec chaque game en détail, champions et objectif, lexique.
 - Windows peut afficher « Windows a protégé votre ordinateur » (application non signée) : clique sur **Informations complémentaires** puis **Exécuter quand même**.
 
-L'application est compilée automatiquement par GitHub Actions à chaque tag `v*` (dossier `app/`).
+L'application est compilée automatiquement par GitHub Actions à chaque modification du dossier `app/`, et publiée dans les Releases sous la version indiquée dans `app/package.json`.
 
 ### Changer les joueurs, l'objectif ou le code
 
