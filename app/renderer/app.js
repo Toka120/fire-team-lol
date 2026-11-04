@@ -18,7 +18,7 @@
     fiches: null, fichesErr: '', fichesLoading: false, ficheId: null, seen: new Set(load('fire.vus', [])),
     coachState: { coach: false, claude: false, github: false }, draft: null, flash: '', settingsMsg: '', confirm: null,
     pools: null, poolsErr: '', poolWeek: null, poolEdit: null, cardEdit: null, champList: null, cfgObj: null,
-    teamGames: {}, teamState: '', teamErr: '', teamAt: null, teamTab: 'bilan'
+    teamGames: {}, teamState: '', teamErr: '', teamAt: null, teamTab: 'bilan', teamQ: 0
   };
 
   // ---------- Petits outils ----------
@@ -523,9 +523,12 @@
     if (S.section === 'stats' && S.view !== 'player' && !typing()) render();
   }
 
-  function teamAnalysis() {
-    return FT.analyze(Object.values(S.teamGames || {}), teamRoster());
+  // q : 0 = tout, 440 = Flex, 710 = 5c5 du week-end (classé 5v5 en équipe)
+  function teamAnalysis(q) {
+    return FT.analyze(Object.values(S.teamGames || {}), teamRoster(), q === undefined ? S.teamQ : q);
   }
+  const TEAM_MODES = [[0, 'Tout'], [440, '🔁 Flex'], [710, '🏆 5c5 du week-end']];
+  const modeText = (q) => (q === 440 ? 'Flex' : q === 710 ? '5c5 du week-end' : 'Flex et 5c5 du week-end');
 
   function openTeam() {
     S.view = 'team';
@@ -534,18 +537,20 @@
   }
 
   function teamCard() {
-    const A = teamAnalysis();
+    const A = teamAnalysis(0);
+    const F = teamAnalysis(440), T5 = teamAnalysis(710);
     const n = A.all.n;
     const box = h('div', { class: 'ring' });
     const last = A.games.slice(0, 10).reverse();
     const card = h('article', { class: 'team-card', tabindex: '0', onclick: openTeam, onkeydown: (e) => { if (e.key === 'Enter') openTeam(); } },
       h('div', { class: 'team-card-txt' },
         h('div', { class: 'team-kick' }, '👥 Stats de l’équipe'),
-        h('div', { class: 'team-big' }, n ? `${A.all.w} V – ${A.all.l} D en flex ensemble` : 'Aucune flex jouée ensemble pour l’instant'),
+        h('div', { class: 'team-big' }, n ? `${A.all.w} V – ${A.all.l} D en équipe` : 'Aucune game jouée ensemble pour l’instant'),
+        n ? h('div', { class: 'team-split' }, h('span', { class: 'tsplit' }, `🔁 Flex : ${F.all.n ? `${F.all.w} V – ${F.all.l} D (${F.all.wr} %)` : 'aucune'}`), h('span', { class: 'tsplit' }, `🏆 5c5 du week-end : ${T5.all.n ? `${T5.all.w} V – ${T5.all.l} D (${T5.all.wr} %)` : 'aucune'}`)) : null,
         h('p', { class: 'muted small' }, n
-          ? `${pl(n, 'game', 'games')} classées Flex avec au moins 2 joueurs de FIRE · winrates, bonnes et mauvaises actions, stratégie, points forts`
-          : (S.teamState === 'loading' ? 'Recherche des flex jouées ensemble sur dpm.lol…' : 'Jouez une flex à 2 ou plus : elle apparaîtra ici avec l’analyse de l’équipe.')),
-        last.length ? h('div', { class: 'team-dots' }, last.map((g) => h('span', { class: 'tdot ' + (g.win ? 'w' : 'l'), title: `${new Date(g.t).toLocaleDateString('fr-FR')} · ${g.win ? 'Victoire' : 'Défaite'} à ${g.size}` }, g.win ? 'V' : 'D'))) : null,
+          ? `${pl(n, 'game', 'games')} en Flex et en 5c5 du week-end avec au moins 2 joueurs de FIRE · winrates, bonnes et mauvaises actions, stratégie, points forts`
+          : (S.teamState === 'loading' ? 'Recherche des games jouées ensemble sur dpm.lol…' : 'Jouez une flex ou un 5c5 à 2 ou plus : la game apparaîtra ici avec l’analyse de l’équipe.')),
+        last.length ? h('div', { class: 'team-dots' }, last.map((g) => h('span', { class: 'tdot ' + (g.win ? 'w' : 'l'), title: `${FT.QLABEL[g.q] || ''} · ${new Date(g.t).toLocaleDateString('fr-FR')} · ${g.win ? 'Victoire' : 'Défaite'} à ${g.size}` }, g.win ? 'V' : 'D'))) : null,
         A.bad[0] ? h('div', { class: 'hp bad' }, '⚠️ ' + A.bad[0].titre) : null),
       n ? box : null,
       h('span', { class: 'team-go' }, n ? 'Voir l’analyse →' : ''));
@@ -568,13 +573,14 @@
     const n = A.all.n;
     const since = n ? new Date(A.games[n - 1].t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
     const ringBox = h('div', { class: 'ring' });
-    const state = S.teamState === 'loading' ? '⟳ Lecture des nouvelles flex sur dpm.lol…' : S.teamState === 'error' ? `⚠ dpm.lol n'a pas répondu (${S.teamErr}) : parties déjà connues affichées` : S.teamAt ? `✓ À jour à ${hm(S.teamAt)}` : '';
+    const state = S.teamState === 'loading' ? '⟳ Lecture des nouvelles games sur dpm.lol…' : S.teamState === 'error' ? `⚠ dpm.lol n'a pas répondu (${S.teamErr}) : parties déjà connues affichées` : S.teamAt ? `✓ À jour à ${hm(S.teamAt)}` : '';
     view.replaceChildren(h('header', { class: 'hero' },
       h('div', { class: 'hero-txt' },
-        h('div', { class: 'tags' }, tag('👥 Équipe'), tag('Classé Flex'), tag('au moins 2 joueurs de FIRE')),
+        h('div', { class: 'tags' }, tag('👥 Équipe'), tag(modeText(S.teamQ)), tag('au moins 2 joueurs de FIRE')),
         h('h1', { class: 'title' }, 'Stats de l’équipe'),
-        h('p', { class: 'muted small' }, n ? `${pl(n, 'flex', 'flex')} jouées ensemble depuis le ${since} · ${state}` : state),
-        n ? h('p', { class: 'lead' }, A.plan[0] || '') : h('p', { class: 'lead' }, 'Aucune flex jouée à 2 ou plus n’a encore été trouvée dans l’historique des joueurs. Elles apparaîtront ici dès la prochaine mise à jour.')),
+        h('div', { class: 'chips team-modes' }, TEAM_MODES.map(([q, l]) => h('button', { class: 'chip', 'aria-pressed': String(S.teamQ === q), onclick: () => { S.teamQ = q; render(); } }, l))),
+        h('p', { class: 'muted small' }, n ? `${pl(n, 'game', 'games')} (${modeText(S.teamQ)}) jouées ensemble depuis le ${since} · ${state}` : state),
+        n ? h('p', { class: 'lead' }, A.plan[0] || '') : h('p', { class: 'lead' }, `Aucune game (${modeText(S.teamQ)}) jouée à 2 ou plus n’a encore été trouvée dans l’historique des joueurs. Elles apparaîtront ici dès la prochaine mise à jour.`)),
       n ? ringBox : null));
     if (!n) return;
     later(() => ring(ringBox, { games: n, wr: A.all.wr, wins: A.all.w, losses: A.all.l }, 170));
@@ -599,7 +605,7 @@
         page.append(h('h2', { class: 'team-h' }, '💪 Vos points forts'));
         page.append(h('div', { class: 'team-forts' }, A.forts.map((f) => h('div', { class: 'card team-fort' }, h('div', { class: 'tf-ico' }, f.ico), h('div', null, h('div', { class: 'ta-t' }, f.titre), h('p', { class: 'muted small' }, f.detail))))));
       }
-      page.append(h('p', { class: 'muted small' }, `Analyse calculée sur ${pl(n, 'flex', 'flex')}. Une conclusion demande au moins 3 à 4 games ; plus vous jouez ensemble, plus elle est fiable.`));
+      page.append(h('p', { class: 'muted small' }, `Analyse calculée sur ${pl(n, 'game', 'games')} (${modeText(S.teamQ)}). Une conclusion demande au moins 3 à 4 games ; plus vous jouez ensemble, plus elle est fiable.`));
     } else if (S.teamTab === 'chiffres') {
       const vs = (ico, label, a, b, unit, better) => {
         const good = better === 'up' ? a >= b : a <= b;
@@ -627,24 +633,27 @@
           h('div', { class: 'wr-g' }, '⏱️ Golds à 15 min'), teamBar('Devant (+1 000 ou plus)', S2.ahead), teamBar('À peu près égal', S2.even), teamBar('Derrière (−1 000 ou plus)', S2.behind),
           h('div', { class: 'wr-g' }, '🩸 Premier sang'), teamBar('Pour vous', S2.fb), teamBar('Pour eux', S2.noFb),
           h('div', { class: 'wr-g' }, '⌛ Durée'), teamBar('Moins de 25 min', S2.short), teamBar('25 à 32 min', S2.mid), teamBar('Plus de 32 min', S2.long),
-          h('div', { class: 'wr-g' }, '📈 En ce moment'), teamBar('Les 10 dernières flex', S2.recent))));
+          h('div', { class: 'wr-g' }, '📈 En ce moment'), teamBar('Les 10 dernières games', S2.recent))));
     } else if (S.teamTab === 'joueurs') {
       page.append(h('div', { class: 'card' }, h('h2', null, '👥 Selon le nombre de joueurs de FIRE'),
         h('div', { class: 'twrs' }, A.bySize.map((x) => teamBar(`À ${x.size}`, x)))));
-      page.append(h('div', { class: 'card' }, h('h2', null, '🤝 Les duos'), h('p', { class: 'muted small' }, 'Winrate quand ces deux joueurs sont dans la même flex.'),
+      page.append(h('div', { class: 'card' }, h('h2', null, '🤝 Les duos'), h('p', { class: 'muted small' }, 'Winrate quand ces deux joueurs jouent ensemble.'),
         h('div', { class: 'twrs' }, A.pairs.map((x) => teamBar(x.label, x)))));
-      page.append(h('div', { class: 'card' }, h('h2', null, '🙋 Chaque joueur en flex d’équipe'),
+      page.append(h('div', { class: 'card' }, h('h2', null, '🙋 Chaque joueur en équipe'),
         h('table', { class: 'tbl' }, h('thead', null, h('tr', null, ['Joueur', 'Games', 'Winrate', 'KDA', 'Morts', 'Participation aux kills', 'Golds à 15 min'].map((x) => h('th', null, x)))),
           h('tbody', null, A.byMember.map((m) => h('tr', null, h('td', null, shortName(m.pseudo)), h('td', null, String(m.n)), h('td', { class: m.wr >= 50 ? 'ok-t' : 'bad-t' }, `${m.wr} %`),
             h('td', null, fr(m.kda, 2)), h('td', null, fr(m.deaths, 1)), h('td', null, `${Math.round(m.kp)} %`), h('td', null, sg(Math.round(m.g15)))))))));
-      if (A.champs.length) page.append(h('div', { class: 'card' }, h('h2', null, '⭐ Champions joués en flex (2 games ou plus)'),
+      if (A.subs && A.subs.length) page.append(h('div', { class: 'card' }, h('h2', null, '🧩 Les joueurs qui complètent l’équipe'),
+        h('p', { class: 'muted small' }, 'Joueurs hors FIRE vus au moins 2 fois dans votre équipe (souvent le 5e en 5c5).'),
+        h('div', { class: 'twrs' }, A.subs.map((x) => teamBar(`${x.name ? shortName(x.name) : 'Joueur inconnu'} · ${x.champs.map(FC.champName).join(', ')}`, x)))));
+      if (A.champs.length) page.append(h('div', { class: 'card' }, h('h2', null, '⭐ Champions joués en équipe (2 games ou plus)'),
         h('div', { class: 'twrs' }, A.champs.slice(0, 14).map((x) => teamBar(`${x.who} · ${FC.champName(x.c)}`, x)))));
     } else {
       page.append(h('div', { class: 'team-games' }, A.games.map((g) => {
         const dt = new Date(g.t);
         const m = Math.round(g.dur / 60);
         return h('div', { class: 'card tgame ' + (g.win ? 'w' : 'l') },
-          h('div', { class: 'tg-head' }, h('span', { class: 'tg-res' }, g.win ? 'Victoire' : 'Défaite'),
+          h('div', { class: 'tg-head' }, h('span', { class: 'tg-q q' + g.q }, g.q === 710 ? '🏆 5c5' : '🔁 Flex'), h('span', { class: 'tg-res' }, g.win ? 'Victoire' : 'Défaite'),
             h('span', { class: 'muted small' }, `${dt.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} à ${hm(g.t)} · ${m} min · ${g.size} joueurs de FIRE`)),
           h('div', { class: 'tg-mem' }, g.members.map((x) => h('span', { class: 'tg-p' }, `${shortName(x.pseudo)} · ${FC.champName(x.c)} `, h('b', null, `${x.k}/${x.d}/${x.a}`)))),
           h('div', { class: 'tg-obj' },

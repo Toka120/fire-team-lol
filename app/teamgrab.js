@@ -32,7 +32,7 @@ async function teamGrab(puuid, ids, platform) {
         id, t: m.gameCreation, d: m.gameDuration, q: m.queueId,
         s100: side(100), s200: side(200),
         p: ps.map((p) => ({
-          id: p.puuid, side: p.teamId, c: p.championName, lane: p.lane || p.role || '',
+          id: p.puuid, nm: p.gameName ? `${p.gameName}#${p.tagLine || ''}` : '', side: p.teamId, c: p.championName, lane: p.lane || p.role || '',
           k: n(p.kills), d: n(p.deaths), a: n(p.assists), kp: n(p.killParticipation),
           g15: n(p.goldDiffAt15), cs15: n(p.csDiffAt15), vpm: n(p.visionScorePerMinute), cw: n(p.controlWardsPlaced),
           dmg: n(p.totalDamageDealtToChampions), dpm: n(p.dpmScore), fb: !!p.firstBlood, solo: n(p.soloKills)

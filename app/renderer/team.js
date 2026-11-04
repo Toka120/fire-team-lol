@@ -2,6 +2,9 @@
 // Entrée : le résumé de chaque partie lu sur dpm.lol (les 10 joueurs, objectifs des deux équipes), voir app/teamgrab.js.
 (function (root) {
   const FLEX = 440;
+  const TEAM5 = 710;           // classé 5v5 en équipe (les 5c5 du week-end)
+  const QUEUES = [FLEX, TEAM5];
+  const QLABEL = { 440: 'Flex', 710: '5c5' };
   const LEAD = 1000;     // avance (ou retard) d'or à 15 min qu'on considère comme nette
   const MIN_N = 4;       // nombre de games minimum pour tirer une conclusion
   const LONG = 32 * 60;  // game longue
@@ -21,8 +24,8 @@
     for (const p of players) {
       if (!p.slug || !p.puuid) continue;
       for (const m of (data[p.slug] && data[p.slug].matches) || []) {
-        if (m.q !== FLEX || !m.id) continue;
-        const g = (by[m.id] = by[m.id] || { id: String(m.id), t: m.t, who: [] });
+        if (!QUEUES.includes(m.q) || !m.id) continue;
+        const g = (by[m.id] = by[m.id] || { id: String(m.id), t: m.t, q: m.q, who: [] });
         if (!g.who.includes(p.puuid)) g.who.push(p.puuid);
       }
     }
@@ -39,7 +42,7 @@
     const us = side === 100 ? g.s100 : g.s200;
     const them = side === 100 ? g.s200 : g.s100;
     return {
-      id: g.id, t: g.t, dur: g.d, win: us.win, size: mine.length, us, them,
+      id: g.id, t: g.t, q: g.q, dur: g.d, win: us.win, size: mine.length, us, them,
       members: mine.map((x) => ({ ...x, slug: byPuuid.get(x.id).slug, pseudo: byPuuid.get(x.id).pseudo })),
       allies: g.p.filter((x) => x.side === side), enemies: g.p.filter((x) => x.side !== side),
       gd15: us.gd15
@@ -51,8 +54,9 @@
     return { n: list.length, w, l: list.length - w, wr: pct(w, list.length) };
   }
 
-  function analyze(rawGames, roster) {
-    const games = rawGames.map((g) => view(g, roster)).filter(Boolean).sort((a, b) => b.t - a.t);
+  // q : 440 (Flex), 710 (5c5 du week-end) ou rien pour tout prendre.
+  function analyze(rawGames, roster, q) {
+    const games = rawGames.filter((g) => g && !g.err && QUEUES.includes(g.q) && (!q || g.q === q)).map((g) => view(g, roster)).filter(Boolean).sort((a, b) => b.t - a.t);
     const all = wr(games);
     const res = { games, all, good: [], bad: [], forts: [], plan: [] };
     if (!games.length) return res;
@@ -101,6 +105,15 @@
       const ms = g.members.map((m) => m.slug).sort();
       for (let i = 0; i < ms.length; i++) for (let j = i + 1; j < ms.length; j++) (pairs[ms[i] + '|' + ms[j]] = pairs[ms[i] + '|' + ms[j]] || []).push(g);
     }
+    const subs = {};
+    for (const g of games) for (const x of g.allies) {
+      if (roster.some((p) => p.puuid === x.id)) continue;
+      const e = (subs[x.id] = subs[x.id] || { id: x.id, name: x.nm || '', gs: [], champs: {} });
+      if (x.nm) e.name = x.nm;
+      e.gs.push(g); e.champs[x.c] = (e.champs[x.c] || 0) + 1;
+    }
+    res.subs = Object.values(subs).filter((e) => e.gs.length >= 2).map((e) => ({ id: e.id, name: e.name, champs: Object.entries(e.champs).sort((a, b) => b[1] - a[1]).map(([c]) => c).slice(0, 3), ...wr(e.gs) }))
+      .sort((a, b) => b.n - a.n).slice(0, 6);
     const name = (slug) => (roster.find((p) => p.slug === slug) || {}).pseudo || slug;
     const short = (slug) => name(slug).split('#')[0];
     res.pairs = Object.entries(pairs).map(([k2, gs]) => ({ a: k2.split('|')[0], b: k2.split('|')[1], label: k2.split('|').map(short).join(' + '), ...wr(gs) }))
@@ -121,7 +134,7 @@
         ['Après un avantage : on se regroupe et on prend un objectif (dragon, larves, tour), pas un kill de plus.',
           'Plus de poursuites dans la jungle adverse sans vision : on recule dès que 2 adversaires disparaissent.',
           'Avant le Baron : wards et pinks autour de la fosse, et les lanes de côté poussées.',
-          'Un seul appel à la fois : celui qui shotcall dit « on fait X », les autres suivent.'], 3 + res.throws.length);
+          'Un seul appel à la fois : celui qui shotcall dit « on fait X », les autres suivent.'], 2 + 0.15 * res.throws.length);
     }
     if (n >= MIN_N && (k.gd15 <= -500 || (S.behind.n >= Math.max(2, n * 0.4)))) {
       bad('Début de partie difficile',
@@ -131,7 +144,8 @@
           'Le jungler commence du côté de la lane la plus forte et y fait son premier gank.',
           'On échange : s\'ils prennent un objectif, on prend autre chose de l\'autre côté.'], 2.5);
     }
-    if (n >= MIN_N && k.dragThem - k.dragUs >= 0.6) {
+    const dragDecide = S.moreDrag.n >= 3 && S.lessDrag.n >= 3 && S.moreDrag.wr - S.lessDrag.wr >= 30;
+    if (n >= MIN_N && k.dragThem - k.dragUs >= 0.6 && !dragDecide) {
       bad('Les dragons partent chez l\'adversaire',
         `${fr1(k.dragUs)} dragon par game pour vous contre ${fr1(k.dragThem)} pour eux. Quand ils ont plus de dragons, vous gagnez ${S.lessDrag.wr} % du temps.`,
         ['1 minute avant le dragon : bot et mid poussent leur wave.',
@@ -185,13 +199,13 @@
     if (n >= MIN_N && k.dragUs - k.dragThem >= 0.6) good('Vous contrôlez les dragons', `${fr1(k.dragUs)} dragons par game pour vous contre ${fr1(k.dragThem)} pour eux ; victoire dans ${S.moreDrag.wr} % des games où vous en avez plus.`, 'Gardez le même rituel avant chaque dragon : waves poussées, vision, Smite.');
     if (n >= MIN_N && k.grubsUs - k.grubsThem >= 1.5) good('Les larves sont pour vous', `${fr1(k.grubsUs)} larves par game contre ${fr1(k.grubsThem)} pour eux.`, 'Utilisez les larves pour prendre les tours du haut tôt.');
     if (n >= MIN_N && k.visUs - k.visThem >= 0.25) good('Vous voyez mieux que l\'adversaire', `Vision de l\'équipe : ${fr1(k.visUs)} par minute contre ${fr1(k.visThem)}.`, 'Servez-vous de cette vision pour attraper des adversaires isolés.');
-    if (n >= MIN_N && k.fb >= 55 && S.fb.wr >= all.wr + 5) good('Vous prenez le premier sang', `Premier sang dans ${k.fb} % des games (victoire dans ${S.fb.wr} % de ces games).`, 'Transformez ce premier avantage en objectif : dragon ou larves juste après.');
+    if (n >= MIN_N && k.fb >= 55 && S.fb.wr >= 50 && S.fb.wr >= all.wr + 5) good('Vous prenez le premier sang', `Premier sang dans ${k.fb} % des games (victoire dans ${S.fb.wr} % de ces games).`, 'Transformez ce premier avantage en objectif : dragon ou larves juste après.');
     if (n >= MIN_N && k.gd15 >= 500) good('Bon début de partie', `En moyenne ${signed(k.gd15)} golds à 15 min pour l'équipe.`, 'Accélérez : plus vite vous prenez les objectifs, moins l\'adversaire peut revenir.');
     if (S.short.n >= 3 && S.short.wr >= 65) good('Vous gagnez les games rapides', `Victoire dans ${S.short.wr} % des games de moins de ${SHORT / 60} min.`, 'Jouez pour finir tôt : Héraut, tours, puis Baron dès qu\'il apparaît.');
     if (S.long.n >= 3 && S.long.wr >= 60) good('Vous êtes forts en fin de game', `Victoire dans ${S.long.wr} % des games de plus de ${LONG / 60} min.`, 'Pas besoin de forcer tôt : farmez, gardez la vision, et attendez vos power spikes.');
     if (n >= MIN_N && L.length >= 2 && W.length >= 2 && k.deathsW <= 15) good('Peu de morts quand vous gagnez', `${Math.round(k.deathsW)} morts en moyenne dans vos victoires.`, 'C\'est la clé : quand personne ne meurt pour rien, vous gagnez.');
     // Ce qui décide vos games : on compare le winrate selon qui prend l'objectif.
-    if (S.moreDrag.n >= 3 && S.lessDrag.n >= 3 && S.moreDrag.wr - S.lessDrag.wr >= 30) {
+    if (dragDecide) {
       const t = `Victoire dans ${S.moreDrag.wr} % des games où vous avez plus de dragons, ${S.lessDrag.wr} % quand ils en ont plus (${S.lessDrag.n} games).`;
       if (k.dragThem >= k.dragUs) bad('Les dragons décident vos games, et ils en prennent plus', t,
         ['1 minute avant chaque dragon : bot et mid poussent, wards et pink autour de la fosse.',
@@ -221,7 +235,7 @@
     }
     if (S.recent.n >= 6 && S.recent.wr <= 30) {
       bad('Mauvaise série en ce moment',
-        `${S.recent.w} victoire${S.recent.w > 1 ? 's' : ''} sur vos ${S.recent.n} dernières flex ensemble.`,
+        `${S.recent.w} victoire${S.recent.w > 1 ? 's' : ''} sur vos ${S.recent.n} dernières games ensemble.`,
         ['Pause de 10 minutes après 2 défaites de suite, et on relance à tête reposée.',
           'Revoir ensemble 2 minutes de replay sur un moment clé de la dernière défaite.',
           'Une seule consigne d\'équipe pour la prochaine session (par exemple : jouer chaque dragon).'], 2.0);
@@ -236,11 +250,11 @@
     const worstSize = res.bySize.filter((x) => x.n >= 4).sort((a, b) => a.wr - b.wr)[0];
     res.worstSize = worstSize && worstSize.wr <= 35 ? worstSize : null;
     const bestChamp = res.champs.filter((x) => x.n >= 3 && x.wr >= 60)[0] || res.champs.filter((x) => x.n >= 2 && x.wr >= 60)[0];
-    if (bestChamp) res.forts.push({ ico: '⭐', titre: `${bestChamp.who} sur ${bestChamp.c}`, detail: `${bestChamp.wr} % de victoires en flex (${bestChamp.w} sur ${bestChamp.n}).` });
+    if (bestChamp) res.forts.push({ ico: '⭐', titre: `${bestChamp.who} sur ${bestChamp.c}`, detail: `${bestChamp.wr} % de victoires en équipe (${bestChamp.w} sur ${bestChamp.n}).` });
     const kpTop = res.byMember.filter((x) => x.n >= 3).sort((a, b) => b.kp - a.kp)[0];
-    if (kpTop && kpTop.kp >= 55) res.forts.push({ ico: '⚔️', titre: `${kpTop.pseudo.split('#')[0]} est dans tous les fights`, detail: `${Math.round(kpTop.kp)} % de participation aux kills en flex.` });
+    if (kpTop && kpTop.kp >= 55) res.forts.push({ ico: '⚔️', titre: `${kpTop.pseudo.split('#')[0]} est dans tous les fights`, detail: `${Math.round(kpTop.kp)} % de participation aux kills en équipe.` });
     const safe = res.byMember.filter((x) => x.n >= 3).sort((a, b) => a.deaths - b.deaths)[0];
-    if (safe) res.forts.push({ ico: '🛡️', titre: `${safe.pseudo.split('#')[0]} meurt le moins`, detail: `${fr1(safe.deaths)} morts par game en flex.` });
+    if (safe) res.forts.push({ ico: '🛡️', titre: `${safe.pseudo.split('#')[0]} meurt le moins`, detail: `${fr1(safe.deaths)} morts par game en équipe.` });
     if (k.dragUs > k.dragThem + 0.3) res.forts.push({ ico: '🐉', titre: 'Les dragons', detail: `${fr1(k.dragUs)} par game contre ${fr1(k.dragThem)}.` });
     if (k.towersUs > k.towersThem + 1) res.forts.push({ ico: '🏰', titre: 'La pression sur les tours', detail: `${fr1(k.towersUs)} tours prises par game contre ${fr1(k.towersThem)}.` });
 
@@ -251,12 +265,12 @@
     else if (late && !early) res.plan.push('Vous êtes une équipe de fin de partie : pas de fight forcé avant vos objets, gardez la vision, et jouez les objectifs à partir de 20 min.');
     else res.plan.push('Pas de profil clair début ou fin de partie : jouez autour du prochain objectif, chaque fois avec waves poussées et vision.');
     if (res.bad[0]) res.plan.push(`Priorité de la semaine : ${res.bad[0].titre.toLowerCase()}. ${res.bad[0].strat[0]}`);
-    if (res.worstSize && bestSize && bestSize.size !== res.worstSize.size) res.plan.push(`À ${res.worstSize.size} joueurs de FIRE vous gagnez peu (${res.worstSize.wr} %) : visez plutôt des flex à ${bestSize.size}.`);
-    if (bestPair && bestPair.wr >= 55) res.plan.push(`Faites des flex avec ${bestPair.label} le plus souvent possible.`);
+    if (res.worstSize && bestSize && bestSize.size !== res.worstSize.size) res.plan.push(`À ${res.worstSize.size} joueurs de FIRE vous gagnez peu (${res.worstSize.wr} %) : visez plutôt des games à ${bestSize.size}.`);
+    if (bestPair && bestPair.wr >= 55) res.plan.push(`Jouez ensemble avec ${bestPair.label} le plus souvent possible.`);
     return res;
   }
 
-  const api = { FLEX, LEAD, candidates, analyze, view };
+  const api = { FLEX, TEAM5, QUEUES, QLABEL, LEAD, candidates, analyze, view };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.FT = api;
 })(typeof window !== 'undefined' ? window : globalThis);

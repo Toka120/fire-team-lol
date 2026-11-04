@@ -573,3 +573,9 @@ details.acc[open] > summary::after { transform: rotate(180deg); }
 .tg-mem{display:flex;gap:8px;flex-wrap:wrap}
 .tg-p{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px}
 .tg-obj{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+
+.team-split{display:flex;gap:8px;flex-wrap:wrap}
+.tsplit{font-size:13px;font-weight:600;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.team-modes{margin:6px 0 2px}
+.tg-q{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.tg-q.q710{color:var(--fire1);border-color:rgba(255,179,71,.5)}
