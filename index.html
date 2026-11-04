@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FIRE LoL — tableaux de bord de l'équipe</title>
+<meta name="robots" content="noindex">
+<title>FIRE LoL — Télécharger l'application</title>
 <link rel="icon" href="fire.ico">
 <style>
   :root {
@@ -15,164 +16,108 @@
     --fire1: #ffb347;
     --fire2: #ff5e3a;
     --fire3: #c81d25;
-    --ok: #4cc38a;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     min-height: 100vh;
+    display: grid;
+    place-items: center;
     background:
-      radial-gradient(1200px 500px at 50% -10%, rgba(255, 94, 58, .22), transparent 70%),
+      radial-gradient(1000px 520px at 50% -10%, rgba(255, 94, 58, .25), transparent 70%),
       var(--bg);
     color: var(--fg);
     font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 48px 24px 64px; }
-  header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-  .logo { width: 64px; height: 64px; }
+  .wrap { width: 100%; max-width: 560px; padding: 48px 24px; text-align: center; }
+  .logo { width: 96px; height: 96px; animation: flamme 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+  @keyframes flamme { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.05) rotate(-2deg); } }
+  @media (prefers-reduced-motion: reduce) { .logo { animation: none; } }
   h1 {
-    margin: 0;
-    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    margin: 12px 0 6px;
+    font-size: clamp(2.6rem, 8vw, 3.6rem);
     letter-spacing: .04em;
     background: linear-gradient(90deg, var(--fire1), var(--fire2) 55%, var(--fire3));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
-  .tagline { color: var(--muted); margin: 6px 0 0; }
-  .grid {
-    margin-top: 36px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
+  .tagline { color: var(--muted); margin: 0 0 32px; line-height: 1.5; }
+  a.btn {
+    display: block;
+    text-decoration: none;
+    padding: 16px 20px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    background: linear-gradient(90deg, var(--fire2), var(--fire3));
+    color: #fff;
+    box-shadow: 0 10px 30px rgba(255, 94, 58, .25);
+    transition: transform .15s ease, filter .15s ease;
   }
-  .card {
-    position: relative;
+  a.btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+  a.sec {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--fg);
+    text-decoration: none;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: .95rem;
+  }
+  a.sec:hover { border-color: var(--muted); }
+  .etapes {
+    margin: 32px 0 0;
+    padding: 18px 20px;
+    list-style: none;
     background: var(--panel);
     border: 1px solid var(--line);
     border-radius: 14px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    min-height: 220px;
-    overflow: hidden;
-    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    text-align: left;
+    color: var(--muted);
+    font-size: .92rem;
+    line-height: 1.55;
+    counter-reset: e;
   }
-  .card.actif:hover {
-    transform: translateY(-3px);
-    border-color: var(--fire2);
-    box-shadow: 0 10px 30px rgba(255, 94, 58, .18);
+  .etapes li { counter-increment: e; padding-left: 34px; position: relative; margin: 8px 0; }
+  .etapes li::before {
+    content: counter(e);
+    position: absolute; left: 0; top: 0;
+    width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--line); color: var(--fg); font-weight: 700; font-size: .8rem;
   }
-  .role { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; }
-  .role .ico { font-size: 1.4rem; }
-  .pseudo { font-size: 1.3rem; font-weight: 600; word-break: break-word; }
-  .pool { color: var(--muted); font-size: .85rem; }
-  .vide { color: var(--muted); font-style: italic; }
-  .actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
-  a.btn {
-    display: block;
-    text-align: center;
-    text-decoration: none;
-    padding: 10px 12px;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: .95rem;
-  }
-  a.btn.main { background: linear-gradient(90deg, var(--fire2), var(--fire3)); color: #fff; }
-  a.btn.main:hover { filter: brightness(1.1); }
-  a.btn.sec { border: 1px solid var(--line); color: var(--fg); }
-  a.btn.sec:hover { border-color: var(--muted); }
-  .bientot { margin-top: auto; text-align: center; padding: 10px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: .9rem; }
-  .dl { margin-top: 28px; display: flex; flex-direction: column; gap: 8px; max-width: 760px; }
-  a.btn.big { font-size: 1.05rem; padding: 14px 18px; }
-  .dl-note { color: var(--muted); font-size: .88rem; margin: 0; line-height: 1.5; }
-  footer { margin-top: 40px; color: var(--muted); font-size: .85rem; line-height: 1.5; }
-  footer code { background: var(--panel); padding: 1px 6px; border-radius: 6px; }
+  .etapes b { color: var(--fg); }
+  footer { margin-top: 28px; color: var(--muted); font-size: .8rem; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
-      <defs>
-        <linearGradient id="f" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0" stop-color="#c81d25"/>
-          <stop offset=".55" stop-color="#ff5e3a"/>
-          <stop offset="1" stop-color="#ffb347"/>
-        </linearGradient>
-      </defs>
-      <path fill="url(#f)" d="M32 4c4 10 14 15 14 30a14 14 0 0 1-28 0c0-7 3-11 6-14 0 5 2 8 5 9-2-9 1-17 3-25z"/>
-      <path fill="#ffe2a8" d="M32 30c3 5 7 7 7 13a7 7 0 0 1-14 0c0-3 2-6 4-7 0 3 1 4 2 5 0-4 0-7 1-11z"/>
-    </svg>
-    <div>
-      <h1>FIRE LoL</h1>
-      <p class="tagline">Les tableaux de bord de l'équipe, un clic par joueur. <span id="maj"></span></p>
-    </div>
-  </header>
+  <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+    <defs>
+      <linearGradient id="f" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#c81d25"/>
+        <stop offset=".55" stop-color="#ff5e3a"/>
+        <stop offset="1" stop-color="#ffb347"/>
+      </linearGradient>
+    </defs>
+    <path fill="url(#f)" d="M32 4c4 10 14 15 14 30a14 14 0 0 1-28 0c0-7 3-11 6-14 0 5 2 8 5 9-2-9 1-17 3-25z"/>
+    <path fill="#ffe2a8" d="M32 30c3 5 7 7 7 13a7 7 0 0 1-14 0c0-3 2-6 4-7 0 3 1 4 2 5 0-4 0-7 1-11z"/>
+  </svg>
+  <h1>FIRE LoL</h1>
+  <p class="tagline">L'application de l'équipe.<br>Les stats se consultent uniquement dans l'application, avec le code d'équipe.</p>
 
-  <section class="dl">
-    <a class="btn main big" href="https://github.com/Toka120/fire-team-lol/releases/latest/download/FIRE-LoL-Setup.exe">⬇ Télécharger l'application FIRE LoL (Windows)</a>
-    <p class="dl-note">Installe FIRE LoL et crée un raccourci sur le Bureau. Au premier lancement, entre le code donné par le coach : les stats de toute l'équipe se mettent à jour depuis dpm.lol à chaque ouverture.
-    Sans installation : <a href="https://github.com/Toka120/fire-team-lol/releases/latest/download/FIRE-LoL-Portable.exe">version portable</a>.</p>
-  </section>
+  <a class="btn" href="https://github.com/Toka120/fire-team-lol/releases/latest/download/FIRE-LoL-Setup.exe">⬇ Télécharger FIRE LoL pour Windows</a>
+  <a class="sec" href="https://github.com/Toka120/fire-team-lol/releases/latest/download/FIRE-LoL-Portable.exe">Version portable (sans installation)</a>
 
-  <main class="grid" id="grille" aria-live="polite"></main>
+  <ol class="etapes">
+    <li>Lance le fichier téléchargé. Si Windows affiche « Windows a protégé votre ordinateur », clique sur <b>Informations complémentaires</b> puis <b>Exécuter quand même</b>.</li>
+    <li>Au premier lancement, <b>entre le code</b> donné par le coach.</li>
+    <li>C'est tout : les stats se mettent à jour depuis dpm.lol à chaque ouverture.</li>
+  </ol>
 
-  <footer>
-    L'application FIRE LoL affiche les stats de tous les joueurs, à jour depuis dpm.lol. Les tableaux de bord Claude sont des copies figées du 4 novembre.<br>
-    Ce lanceur vient du dépôt GitHub <a href="https://github.com/Toka120/fire-team-lol" style="color:inherit">Toka120/fire-team-lol</a>.
-  </footer>
+  <footer>FIRE LoL · Windows 10 et 11</footer>
 </div>
-
-<script>
-  const ICONES = { Top: "🛡️", Jungle: "🌲", Mid: "✨", ADC: "🏹", Support: "💞" };
-
-  function el(tag, cls, text) {
-    const e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (text !== undefined) e.textContent = text;
-    return e;
-  }
-
-  function lien(href, cls, text) {
-    const a = el("a", "btn " + cls, text);
-    a.href = href;
-    a.target = "_blank";
-    a.rel = "noopener";
-    return a;
-  }
-
-  function carte(j) {
-    const actif = Boolean(j.pseudo);
-    const c = el("article", "card" + (actif ? " actif" : ""));
-    const r = el("div", "role");
-    r.append(el("span", "ico", ICONES[j.role] || "🎮"), el("span", "", j.role));
-    c.append(r);
-    if (actif) {
-      c.append(el("div", "pseudo", j.pseudo));
-      if (j.pool) c.append(el("div", "pool", "Pool : " + j.pool));
-      const act = el("div", "actions");
-      if (j.tableau) act.append(lien(j.tableau, "main", "🔥 Tableau de bord (Claude)"));
-      if (j.dpm) act.append(lien(j.dpm, "sec", "Profil dpm.lol"));
-      c.append(act);
-    } else {
-      c.append(el("div", "pseudo vide", j.pseudo || "Joueur à venir"));
-      c.append(el("div", "bientot", "Tableau de bord bientôt disponible"));
-    }
-    return c;
-  }
-
-  fetch("joueurs.json", { cache: "no-store" })
-    .then((r) => r.json())
-    .then((data) => {
-      if (data.mise_a_jour) document.getElementById("maj").textContent = "Mis à jour le " + data.mise_a_jour + ".";
-      const g = document.getElementById("grille");
-      data.joueurs.forEach((j) => g.append(carte(j)));
-    })
-    .catch(() => {
-      document.getElementById("grille").append(el("p", "vide", "Impossible de charger la liste des joueurs. Réessaie dans un instant."));
-    });
-</script>
 </body>
 </html>
