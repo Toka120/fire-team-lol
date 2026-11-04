@@ -117,8 +117,14 @@ async function grab(puuid, cutoff) {
     'turretPlatesTaken', 'dragon', 'horde', 'dpmScore'];
   const matches = [];
   for (let page = 1; page <= 14; page++) {
-    const r = await fetch(`/v1/players/${puuid}/match-history?size=15&page=${page}&_=${Date.now()}`, { cache: 'no-store' });
-    if (!r.ok) throw new Error('historique indisponible (' + r.status + ')');
+    // Pas de paramètre en plus dans l'URL : dpm.lol refuse toute propriété inconnue (erreur 422).
+    // cache: 'no-store' suffit pour avoir les dernières games.
+    const r = await fetch(`/v1/players/${puuid}/match-history?size=15&page=${page}`, { cache: 'no-store' });
+    if (!r.ok) {
+      let why = '';
+      try { const e = await r.json(); why = [].concat(e.message || []).join(', '); } catch (x) { /* corps vide */ }
+      throw new Error('historique indisponible (' + r.status + (why ? ' : ' + why : '') + ')');
+    }
     const j = await r.json();
     if (!j.matches || !j.matches.length) break;
     for (const m of j.matches) {
