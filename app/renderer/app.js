@@ -18,7 +18,8 @@
     fiches: null, fichesErr: '', fichesLoading: false, ficheId: null, seen: new Set(load('fire.vus', [])),
     coachState: { coach: false, claude: false, github: false }, draft: null, flash: '', settingsMsg: '', confirm: null,
     pools: null, poolsErr: '', poolWeek: null, poolEdit: null, cardEdit: null, champList: null, cfgObj: null,
-    teamGames: {}, teamState: '', teamErr: '', teamAt: null, teamTab: 'bilan', teamQ: 440
+    teamGames: {}, teamState: '', teamErr: '', teamAt: null, teamTab: 'bilan', teamQ: 440,
+    plan: { jours: {}, reponses: {} }, planErr: '', planWrite: false, planWeek: null, planEdit: null
   };
 
   // ---------- Petits outils ----------
@@ -160,6 +161,7 @@
     window.fire.coach.state().then((c) => { S.coachState = c; if (S.section === 'coach' && !typing()) render(); }).catch(() => {});
     loadFiches();
     loadPools();
+    loadPlanning();
     loadChampions();
     window.fire.team([]).then((r) => { if (r && r.games) { S.teamGames = r.games; if (S.section === 'stats' && !typing()) render(); } }).catch(() => {});
     refreshAll();
@@ -230,6 +232,7 @@
     loadGuides();
     loadFiches();
     loadPools();
+    loadPlanning();
     refreshAll();
     if (window.fire.update) window.fire.update.check().catch(() => {});
   }
@@ -427,11 +430,12 @@
     renderNav();
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'settings' || S.section === 'pool' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
     else if (S.section === 'pool') renderPool();
+    else if (S.section === 'planning') renderPlanning();
     else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
     else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
     else if (S.view === 'player') renderPlayer();
@@ -1032,6 +1036,7 @@
     if (sec === 'guides') { S.theme = null; S.guideCat = null; }
     if (sec === 'coach') S.ficheId = null;
     if (sec === 'stats') { S.view = 'hub'; S.player = null; }
+    if (sec === 'planning') { S.planEdit = null; loadPlanning(); }
     render();
     window.scrollTo(0, 0);
   }
@@ -1041,7 +1046,7 @@
     const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = (u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version)) ? '1' : null;
-    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('settings', '⚙️ Paramètres', upd));
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('settings', '⚙️ Paramètres', upd));
   }
 
   function newsBanner() {
@@ -1400,7 +1405,7 @@
       if (!a.value && !g.value && !eq.value) return;
       btn.disabled = true; btn.textContent = 'Vérification…';
       const r = await window.fire.coach.save({ anthropic: a.value, github: g.value, equipe: eq.value });
-      if (eq.value) loadPools();
+      if (eq.value) { loadPools(); loadPlanning(); }
       S.coachState = { coach: r.coach, claude: r.claude, github: r.github };
       S.settingsMsg = (r.messages || []).join(' ') || r.error || '';
       render();
@@ -1539,6 +1544,188 @@
     let opt = sel.querySelector('option[value=obj]');
     if (S.obj && !opt) { opt = document.createElement('option'); opt.value = 'obj'; sel.insertBefore(opt, sel.firstChild); }
     if (opt) { if (S.obj) opt.textContent = `Objectif (depuis le ${dateFr(S.obj.debut)})`; else opt.remove(); }
+  }
+
+  // ----- Planning : le coach coche les jours / heures, les joueurs répondent -----
+  const PLAN_ST = { present: { ico: '✅', txt: 'Présent', cls: 'st-ok' }, incertain: { ico: '❔', txt: 'Incertain', cls: 'st-warn' }, absent: { ico: '❌', txt: 'Absent', cls: 'st-bad' } };
+  const PLAN_TYPES = [['flex', '🔁 Flex'], ['5c5', '🏆 5c5'], ['scrim', '⚔️ Scrim'], ['review', '🎥 Review'], ['autre', '📌 Autre']];
+  const PLAN_HOURS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
+  const ymdL = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const dOf = (ymd) => { const [y, m, d] = ymd.split('-').map(Number); return new Date(y, m - 1, d, 12); };
+  const mondayOf = (ymd) => { const d = dOf(ymd); return addDays(ymd, -((d.getDay() + 6) % 7)); };
+  const weekDays = (mon) => [0, 1, 2, 3, 4, 5, 6].map((k) => addDays(mon, k));
+  const dayFr = (ymd, o) => dOf(ymd).toLocaleDateString('fr-FR', o || { weekday: 'long', day: 'numeric', month: 'long' });
+  const planCanWrite = () => S.planWrite || (S.coachState.coach && S.coachState.github);
+
+  // Heures cochées → plages lisibles : [20,21,22] → « 20h – 23h ».
+  function hourBlocks(hs) {
+    const out = [];
+    for (const x of (hs || []).slice().sort((a, b) => a - b)) {
+      const last = out[out.length - 1];
+      if (last && last[1] === x) last[1] = x + 1; else out.push([x, x + 1]);
+    }
+    return out.map(([a, b]) => `${a}h – ${b === 24 ? '0h' : b + 'h'}`).join(' · ');
+  }
+
+  async function loadPlanning() {
+    let r;
+    try { r = await window.fire.planning(); } catch (e) { r = { ok: false, error: String(e) }; }
+    if (r && r.ok) { S.plan = { jours: r.jours || {}, reponses: r.reponses || {} }; S.planErr = r.offline ? 'Hors ligne : dernier planning enregistré.' : ''; }
+    else { S.plan = S.plan || { jours: {}, reponses: {} }; S.planErr = (r && r.error) || 'planning indisponible'; }
+    S.planWrite = !!(r && r.peutEcrire);
+    renderNav();
+    if (typing() || S.planEdit) return;
+    if (S.section === 'planning') render();
+  }
+
+  // Jours à venir (14 jours) où je n'ai pas encore répondu : pastille dans le menu.
+  function planTodo() {
+    if (!S.moi || !S.plan) return 0;
+    const t = todayYmd(), lim = addDays(t, 14);
+    return Object.keys(S.plan.jours).filter((d) => d >= t && d <= lim && !((S.plan.reponses[d] || {})[S.moi])).length;
+  }
+
+  async function answer(date, slug, statut) {
+    const rep = (S.plan.reponses[date] = S.plan.reponses[date] || {});
+    const before = rep[slug];
+    if (statut) rep[slug] = { statut, at: Date.now() }; else delete rep[slug];
+    render();
+    const r = await window.fire.savePlanning({ type: 'reponse', date, slug, statut });
+    if (r && r.ok) S.plan = { jours: r.jours, reponses: r.reponses };
+    else { if (before) rep[slug] = before; else delete rep[slug]; S.flash = 'Réponse non enregistrée : ' + ((r && r.error) || 'erreur'); }
+    if (!S.planEdit && S.section === 'planning') render(); else renderNav();
+  }
+
+  function renderPlanning() {
+    const view = $('view');
+    if (S.planEdit) { renderPlanEditor(view); return; }
+    const t = todayYmd();
+    const mon = S.planWeek || mondayOf(t);
+    S.planWeek = mon;
+    const days = weekDays(mon);
+    const coach = S.coachState.coach;
+    const roster = S.players.filter((x) => x.slug);
+    const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🗓️'),
+      h('div', null, h('h1', { class: 'title' }, 'Planning'),
+        h('p', { class: 'muted' }, coach ? 'Coche les jours et heures de jeu, puis regarde qui sera là.' : 'Dis au coach si tu seras là : ✅ présent · ❔ incertain · ❌ absent.')))];
+    if (S.flash) nodes.push(h('div', { class: 'flash' }, S.flash, h('button', { class: 'flash-x', onclick: () => { S.flash = ''; render(); } }, '✕')));
+    if (S.planErr) nodes.push(h('p', { class: 'muted small' }, '⚠ ' + S.planErr));
+
+    nodes.push(h('div', { class: 'row me-row' }, h('label', { class: 'fld-inline' }, '👤 Je suis ', meSelect()),
+      !S.moi ? h('span', { class: 'muted small' }, '← choisis ton pseudo pour répondre') : null,
+      S.moi && !planCanWrite() ? h('span', { class: 'muted small' }, "Les réponses s'ouvriront dès que le coach aura activé le jeton d'équipe.") : null));
+
+    const nav = h('div', { class: 'row plan-nav' },
+      h('button', { class: 'btn-ghost', onclick: () => { S.planWeek = addDays(mon, -7); render(); } }, '←'),
+      h('b', { class: 'plan-week' }, `Semaine du ${dayFr(days[0], { day: 'numeric', month: 'long' })} au ${dayFr(days[6], { day: 'numeric', month: 'long' })}`),
+      h('button', { class: 'btn-ghost', onclick: () => { S.planWeek = addDays(mon, 7); render(); } }, '→'),
+      mon !== mondayOf(t) ? h('button', { class: 'chip', onclick: () => { S.planWeek = mondayOf(t); render(); } }, "Aujourd'hui") : null,
+      coach ? h('button', { class: 'btn-fire small-btn', disabled: planCanWrite() ? null : true, onclick: () => startPlanEdit(mon) }, '✏️ Cocher les jours et heures') : null,
+      coach && !planCanWrite() ? h('span', { class: 'bad small' }, 'Ajoute le jeton GitHub (ou le jeton d\'équipe) dans les réglages coach.') : null);
+    nodes.push(nav);
+
+    const planned = days.filter((d) => S.plan && S.plan.jours[d]);
+    if (!planned.length) {
+      nodes.push(h('div', { class: 'card plan-empty' }, h('p', { class: 'muted' }, coach ? 'Rien de prévu cette semaine. Clique sur « Cocher les jours et heures » pour créer le planning.' : 'Le coach n\'a encore rien prévu cette semaine.')));
+    }
+    for (const d of planned) {
+      const j = S.plan.jours[d];
+      const rep = S.plan.reponses[d] || {};
+      const past = d < t;
+      const cnt = { present: 0, incertain: 0, absent: 0, none: 0 };
+      roster.forEach((p) => { const r = rep[p.slug]; cnt[r ? r.statut : 'none']++; });
+      const mine = S.moi ? rep[S.moi] : null;
+      const type = PLAN_TYPES.find((x) => x[0] === j.type) || PLAN_TYPES[0];
+      const full = cnt.present >= 5;
+      const btns = S.moi && !past ? h('div', { class: 'plan-me' }, h('span', { class: 'muted small' }, 'Moi : '),
+        Object.entries(PLAN_ST).map(([k, v]) => h('button', { class: 'plan-btn ' + v.cls, 'aria-pressed': String(!!(mine && mine.statut === k)), disabled: planCanWrite() ? null : true,
+          onclick: () => answer(d, S.moi, mine && mine.statut === k ? null : k) }, v.ico + ' ' + v.txt))) : null;
+      const people = h('div', { class: 'plan-people' }, roster.map((p) => {
+        const r = rep[p.slug];
+        const st = r ? PLAN_ST[r.statut] : null;
+        const cycle = coach && planCanWrite() && !past ? () => { const order = [null, 'present', 'incertain', 'absent']; answer(d, p.slug, order[(order.indexOf(r ? r.statut : null) + 1) % 4]); } : null;
+        return h(cycle ? 'button' : 'span', { class: 'plan-p ' + (st ? st.cls : 'st-none'), onclick: cycle, title: cycle ? 'Clique pour changer sa réponse' : null },
+          h('span', null, st ? st.ico : '⏳'), ' ', roleOf(p).ico, ' ', p.pseudo);
+      }));
+      nodes.push(h('div', { class: 'card plan-day' + (past ? ' past' : '') + (d === t ? ' today' : '') },
+        h('div', { class: 'plan-head' },
+          h('div', null, h('div', { class: 'plan-date' }, cap(dayFr(d)), d === t ? h('span', { class: 'plan-tag' }, "aujourd'hui") : null),
+            h('div', { class: 'plan-hours' }, '🕒 ', hourBlocks(j.heures), h('span', { class: 'plan-type' }, type[1])),
+            j.note ? h('div', { class: 'muted small' }, '📝 ' + j.note) : null),
+          h('div', { class: 'plan-count' },
+            h('span', { class: 'st-ok' }, `✅ ${cnt.present}`), h('span', { class: 'st-warn' }, `❔ ${cnt.incertain}`), h('span', { class: 'st-bad' }, `❌ ${cnt.absent}`),
+            cnt.none ? h('span', { class: 'muted' }, `⏳ ${cnt.none}`) : null,
+            h('span', { class: full ? 'plan-five ok' : 'plan-five' }, full ? '5 joueurs ✓' : `${cnt.present}/5`))),
+        btns, people));
+    }
+    view.replaceChildren(...nodes);
+  }
+
+  function startPlanEdit(mon) {
+    const jours = {};
+    for (const d of weekDays(mon)) {
+      const j = S.plan && S.plan.jours[d];
+      jours[d] = { heures: j ? j.heures.slice() : [], type: j ? j.type : 'flex', note: j ? j.note || '' : '' };
+    }
+    S.planEdit = { mon, jours, busy: false, err: '' };
+    render();
+  }
+
+  function renderPlanEditor(view) {
+    const e = S.planEdit;
+    const days = weekDays(e.mon);
+    const t = todayYmd();
+    let paint = null;
+    const stop = () => { paint = null; };
+    window.addEventListener('mouseup', stop, { once: true });
+    const setCell = (cell, d, hr, on) => {
+      const hs = e.jours[d].heures;
+      const i = hs.indexOf(hr);
+      if (on && i < 0) hs.push(hr); else if (!on && i >= 0) hs.splice(i, 1);
+      cell.classList.toggle('on', on);
+      const lab = view.querySelector(`[data-sum="${d}"]`);
+      if (lab) lab.textContent = hs.length ? hourBlocks(hs) : '—';
+    };
+    const grid = h('table', { class: 'plan-grid' },
+      h('thead', null, h('tr', null, h('th', null, ''), days.map((d) => h('th', { class: d === t ? 'today' : null },
+        h('div', null, cap(dayFr(d, { weekday: 'short' }))), h('div', { class: 'muted small' }, dayFr(d, { day: 'numeric', month: 'short' })))))),
+      h('tbody', null, PLAN_HOURS.map((hr) => h('tr', null, h('th', { class: 'plan-hr' }, hr + 'h'), days.map((d) => {
+        const cell = h('td', { class: 'plan-cell' + (e.jours[d].heures.includes(hr) ? ' on' : '') + (d < t ? ' past' : '') });
+        cell.addEventListener('mousedown', (ev) => { ev.preventDefault(); paint = !cell.classList.contains('on'); setCell(cell, d, hr, paint); window.addEventListener('mouseup', stop, { once: true }); });
+        cell.addEventListener('mouseenter', () => { if (paint !== null) setCell(cell, d, hr, paint); });
+        return cell;
+      })))));
+    const quick = (d, a, b) => () => { e.jours[d].heures = []; for (let x = a; x < b; x++) e.jours[d].heures.push(x); render(); };
+    const rows = days.map((d) => {
+      const j = e.jours[d];
+      const type = h('select', null, PLAN_TYPES.map(([k, v]) => h('option', { value: k }, v)));
+      type.value = j.type;
+      type.addEventListener('change', () => { j.type = type.value; });
+      const note = h('input', { class: 'inp', placeholder: 'Note (facultatif)', maxlength: 200, value: j.note });
+      note.addEventListener('input', () => { j.note = note.value; });
+      return h('div', { class: 'plan-erow' },
+        h('b', { class: 'plan-eday' }, cap(dayFr(d, { weekday: 'long', day: 'numeric' }))),
+        h('span', { class: 'plan-esum', 'data-sum': d }, j.heures.length ? hourBlocks(j.heures) : '—'),
+        h('button', { class: 'chip', onclick: quick(d, 20, 23) }, '20h–23h'),
+        h('button', { class: 'chip', onclick: quick(d, 14, 18) }, '14h–18h'),
+        h('button', { class: 'chip', onclick: quick(d, 0, 0) }, 'Vider'),
+        type, note);
+    });
+    const save = h('button', { class: 'btn-fire small-btn', disabled: e.busy ? true : null, onclick: async () => {
+      e.busy = true; e.err = ''; render();
+      const r = await window.fire.savePlanning({ type: 'semaine', debut: e.mon, jours: e.jours });
+      e.busy = false;
+      if (r && r.ok) { S.plan = { jours: r.jours, reponses: r.reponses }; S.planWeek = e.mon; S.planEdit = null; S.flash = 'Planning publié ✓ Les joueurs peuvent répondre.'; }
+      else e.err = (r && r.error) || 'erreur';
+      render();
+    } }, e.busy ? 'Publication…' : "📣 Publier le planning");
+    view.replaceChildren(
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '✏️'), h('div', null, h('h1', { class: 'title' }, 'Jours et heures de jeu'),
+        h('p', { class: 'muted' }, `Semaine du ${dayFr(days[0], { day: 'numeric', month: 'long' })}. Clique (ou glisse) sur les cases pour cocher les heures où l'équipe joue.`))),
+      h('div', { class: 'card plan-gridwrap' }, grid),
+      h('div', { class: 'card plan-edays' }, rows),
+      h('div', { class: 'row' }, save, h('button', { class: 'btn-ghost', onclick: () => { S.planEdit = null; render(); } }, 'Annuler'),
+        e.err ? h('span', { class: 'bad small' }, '⚠ ' + e.err) : null));
   }
 
   async function loadPools() {

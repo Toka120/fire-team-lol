@@ -538,6 +538,89 @@ async function savePools(action) {
   }
 }
 
+// ---------- Planning : le coach coche les jours et heures de jeu, chaque joueur répond présent / absent / incertain ----------
+// Même stockage que les pools : planning.json dans le dépôt de données (jeton d'équipe), sinon coach/planning.json (jeton du coach).
+const PLANNING = 'coach/planning.json';
+const isYmd = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ''));
+const STATUTS = ['present', 'absent', 'incertain'];
+
+function cleanJour(j) {
+  const heures = [...new Set((Array.isArray(j && j.heures) ? j.heures : []).map((x) => parseInt(x, 10)).filter((x) => x >= 0 && x <= 23))].sort((a, b) => a - b);
+  const type = ['flex', '5c5', 'scrim', 'review', 'autre'].includes(j && j.type) ? j.type : 'flex';
+  return { heures, type, note: str(j && j.note, 200), maj: Date.now() };
+}
+
+function prunePlanning(d) {
+  const lim = new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10);
+  const jours = {}, reponses = {};
+  for (const [k, v] of Object.entries(d.jours || {})) if (isYmd(k) && k >= lim && v && v.heures && v.heures.length) jours[k] = v;
+  for (const [k, v] of Object.entries(d.reponses || {})) if (isYmd(k) && k >= lim && v) reponses[k] = v;
+  return { jours, reponses };
+}
+
+async function planning() {
+  if (!teamKey()) return { ok: false, error: "entre à nouveau le code d'équipe pour lire le planning" };
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  let box = null, offline = false;
+  try {
+    if (dr) box = await readPublic('planning.json', dr, tok);
+    if (!box) box = await readPublic(PLANNING);
+    if (box) saveCache('planning', box);
+  } catch (e) { offline = true; box = loadCache('planning'); }
+  const base = { peutEcrire: !!(dr && tok), depot: dr, offline };
+  if (!box) return { ok: true, jours: {}, reponses: {}, ...base };
+  try { return { ok: true, ...prunePlanning(open(box)), ...base }; }
+  catch (e) { return { ok: false, error: 'planning illisible avec ce code', ...base }; }
+}
+
+// action : { type: 'semaine', debut, jours: { 'AAAA-MM-JJ': { heures, type, note } } } (coach : remplace les 7 jours à partir de debut)
+//          { type: 'reponse', date, slug, statut, note } (joueur ou coach)
+async function savePlanning(action) {
+  const dr = getConfig().data_repo || null;
+  const isCoach = coachState().coach;
+  const c = readSecret('coach.bin') || {};
+  const tok = dr ? await teamToken() : null;
+  let repo, token, file;
+  if (dr && tok) { repo = dr; token = tok; file = 'planning.json'; }
+  else if (isCoach && c.github) { repo = REPO; token = c.github; file = PLANNING; }
+  else return { ok: false, error: dr ? "le coach n'a pas encore activé les réponses des joueurs (jeton d'équipe)" : 'réservé au coach' };
+  if (action.type !== 'reponse' && !isCoach) return { ok: false, error: 'réservé au coach' };
+  try {
+    for (let i = 0; i < 4; i++) {
+      const cur = await ghGet(token, file, repo);
+      let d = { jours: {}, reponses: {} };
+      if (cur && cur.json) d = open(cur.json);
+      else if (repo !== REPO) { try { const old = await readPublic(PLANNING); if (old) d = open(old); } catch (e) { /* rien à reprendre */ } }
+      d.jours = d.jours || {}; d.reponses = d.reponses || {};
+      if (action.type === 'semaine') {
+        if (!isYmd(action.debut)) throw new Error('semaine invalide');
+        const t0 = new Date(action.debut + 'T12:00:00Z').getTime();
+        for (let k = 0; k < 7; k++) {
+          const day = new Date(t0 + k * 864e5).toISOString().slice(0, 10);
+          const j = action.jours && action.jours[day];
+          const cj = j ? cleanJour(j) : null;
+          if (cj && cj.heures.length) d.jours[day] = cj; else delete d.jours[day];
+        }
+      } else if (action.type === 'reponse') {
+        const slug = String(action.slug || '').slice(0, 80);
+        if (!slug || !isYmd(action.date)) throw new Error('réponse invalide');
+        if (!d.jours[action.date]) throw new Error("ce jour n'est plus au planning");
+        d.reponses[action.date] = d.reponses[action.date] || {};
+        if (STATUTS.includes(action.statut)) d.reponses[action.date][slug] = { statut: action.statut, note: str(action.note, 120), at: Date.now() };
+        else delete d.reponses[action.date][slug];
+      } else throw new Error('action inconnue');
+      d = prunePlanning(d);
+      const box = seal(d, 'planning');
+      const r = await ghPut(token, file, box, cur && cur.sha, action.type === 'reponse' ? 'Planning : réponse' : 'Planning : semaine', repo);
+      if (r.ok) { saveCache('planning', box); return { ok: true, ...d }; }
+    }
+    throw new Error("le planning a changé pendant l'envoi, réessaie");
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+}
+
 // Liste des champions (Data Dragon de Riot), gardée en cache pour le mode hors ligne.
 async function champions() {
   try {
@@ -558,4 +641,4 @@ function message(m) {
   return { ok: true, fiche: { type: 'message', titre: str(m.titre, 140) || 'Message du coach', accroche: '', sections: [{ titre: '', texte, schema: null }], a_retenir: [], exercice: '', videos: [], sources: [], sujet: '', cible: str(m.cible, 40) || "Toute l'équipe" } };
 }
 
-module.exports = { pools, savePools, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

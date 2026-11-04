@@ -85,6 +85,8 @@ ipcMain.handle('coach:unpublish', (e, id) => coach.unpublish(id));
 ipcMain.handle('fiches', () => coach.list());
 ipcMain.handle('pools', () => coach.pools());
 ipcMain.handle('coach:savePools', (e, action) => coach.savePools(action || {}));
+ipcMain.handle('planning', () => coach.planning());
+ipcMain.handle('planning:save', (e, action) => coach.savePlanning(action || {}));
 ipcMain.handle('champions', () => coach.champions());
 
 ipcMain.handle('hash', (e, text) => crypto.createHash('sha256').update(String(text)).digest('hex'));

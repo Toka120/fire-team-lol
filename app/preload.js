@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('fire', {
   unlocked: call('unlocked'),
   fiches: call('fiches'),
   pools: call('pools'),
+  planning: call('planning'),
+  savePlanning: call('planning:save'),
   champions: call('champions'),
   update: {
     state: call('update:state'),
