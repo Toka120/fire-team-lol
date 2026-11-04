@@ -64,6 +64,7 @@
 
   // ---------- Période ----------
   function periodStart() {
+    if (S.period === 'debut' && S.debut) return new Date(S.debut + 'T00:00:00').getTime();
     if (S.period === 'obj' && S.obj) return new Date(S.obj.debut + 'T00:00:00').getTime();
     if (S.period === 'since' && S.since) return new Date(S.since + 'T00:00:00').getTime();
     if (S.period === '1') { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }
@@ -71,6 +72,7 @@
     return Date.now() - n * 86400000;
   }
   function periodLabel() {
+    if (S.period === 'debut' && S.debut) return `depuis le ${dateFr(S.debut)}`;
     if (S.period === 'obj' && S.obj) return `depuis le ${dateFr(S.obj.debut)}`;
     if (S.period === 'since' && S.since) { const d = new Date(S.since + 'T00:00:00'); return `depuis le ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`; }
     if (S.period === '1') return "aujourd'hui";
@@ -84,7 +86,10 @@
     S.players = (S.cfg && S.cfg.joueurs) || [];
     S.obj = (S.cfg && S.cfg.objectif && S.cfg.objectif.debut) ? S.cfg.objectif : null;
     S.cfgObj = S.obj;
+    // Début de la saison de l'équipe (joueurs.json → debut_equipe) : période par défaut de toutes les stats.
+    S.debut = (S.cfg && S.cfg.debut_equipe) || null;
     if (S.obj) S.period = 'obj';
+    if (S.debut) S.period = 'debut';
     let ok;
     if (S.cfg && S.cfg.code_scrypt) ok = await window.fire.unlocked();
     else { const need = S.cfg && S.cfg.code_sha256; ok = !need || load('fire.unlock', null) === need; }
@@ -173,6 +178,13 @@
       o.textContent = `Objectif (depuis le ${dateFr(S.obj.debut)})`;
       sel.insertBefore(o, sel.firstChild);
       sel.value = 'obj';
+    }
+    if (S.debut) {
+      const o = document.createElement('option');
+      o.value = 'debut';
+      o.textContent = `Depuis le ${dateFr(S.debut)} (début)`;
+      sel.insertBefore(o, sel.firstChild);
+      sel.value = 'debut';
     }
     since.min = FC.ymd(min);
     sel.onchange = () => {
@@ -336,6 +348,7 @@
   function fetchDays() {
     let n = FETCH_DAYS;
     if (S.obj) n = Math.max(n, Math.ceil((Date.now() - new Date(S.obj.debut + 'T00:00:00').getTime()) / 86400000) + 1);
+    if (S.debut) n = Math.max(n, Math.ceil((Date.now() - new Date(S.debut + 'T00:00:00').getTime()) / 86400000) + 1);
     return Math.min(n, 120);
   }
 
@@ -758,6 +771,7 @@
   }
 
   function pageJours(page, p, R, rows, s, days) {
+    days = days.slice().sort((a, b) => (a.jour < b.jour ? -1 : a.jour > b.jour ? 1 : 0));
     if (!rows.length) { page.append(h('div', { class: 'empty-state' }, 'Aucune game classée Solo/Duo sur cette période.')); return; }
     page.append(h('div', { class: 'chips' },
       h('button', { class: 'chip', 'aria-pressed': String(S.jour === 'tous'), onclick: () => { S.jour = 'tous'; render(); } }, 'Tous les jours'),
