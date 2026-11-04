@@ -17,7 +17,7 @@
     section: 'stats', version: '0', guides: null, theme: null,
     fiches: null, fichesErr: '', fichesLoading: false, ficheId: null, seen: new Set(load('fire.vus', [])),
     coachState: { coach: false, claude: false, github: false }, draft: null, flash: '', settingsMsg: '', confirm: null,
-    pools: null, poolsErr: '', poolWeek: null, poolEdit: null, champList: null, cfgObj: null
+    pools: null, poolsErr: '', poolWeek: null, poolEdit: null, cardEdit: null, champList: null, cfgObj: null
   };
 
   // ---------- Petits outils ----------
@@ -44,7 +44,7 @@
     if (!o || !o.target) return null;
     const bar = h('div', { class: 'prog' + (o.done >= o.target ? ' done' : '') }, h('i', { style: `width:${o.pct}%` }));
     return h('div', { class: 'objbox' + (big ? ' big' : '') },
-      h('div', { class: 'objline' }, h('span', null, `🎯 Objectif : ${o.done} / ${o.target} games sur le pool`), h('span', { class: 'muted small' }, o.done >= o.target ? 'atteint ✓' : `reste ${o.reste}`)),
+      h('div', { class: 'objline' }, h('span', null, `🎯 Objectif : ${o.done} / ${o.target} games obligatoires`), h('span', { class: 'muted small' }, o.done >= o.target ? 'atteint ✓' : `reste ${o.reste}`)),
       bar);
   }
   const roleOf = (p) => FC.ROLES[p.role_id] || FC.ROLES.mid;
@@ -297,7 +297,8 @@
 
     const st = S.coachState || {};
     view.replaceChildren(
-      h('div', null, h('h1', { class: 'title' }, '⚙️ Paramètres')),
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '⚙️'), h('div', null, h('h1', { class: 'title' }, 'Paramètres'), h('p', { class: 'muted' }, 'Version, mises à jour, accès et profil.'))),
+      h('div', { class: 'card settings-card' }, h('h2', null, '👤 Mon profil'), h('p', { class: 'muted small' }, 'Choisis qui tu es : tu pourras modifier ta propre tierlist dans 🧙 POOL.'), h('div', { class: 'row' }, meSelect())),
       h('div', { class: 'card settings-card' },
         h('h2', null, "🔄 Version de l'application"),
         row('Version installée', 'v' + S.version),
@@ -429,10 +430,10 @@
     const view = $('view');
     view.replaceChildren(...[
       newsBanner(),
-      h('div', null,
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🔥'), h('div', null,
         h('h1', { class: 'title' }, "L'équipe"),
         h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · clique sur un joueur pour voir tout le détail.`),
-        S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif du coach : ${S.obj.games} games sur le pool imposé depuis le ${dateFr(S.obj.debut)}, réparties comme chacun veut sur ses champions.`) : null),
+        S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif : ${S.obj.games} games sur les champions obligatoires depuis le ${dateFr(S.obj.debut)}, réparties comme chacun veut.`) : null)),
       h('div', { class: 'hub-grid' }, S.players.map((p) => hubCard(p, start)))
     ].filter(Boolean));
   }
@@ -449,7 +450,8 @@
     const d = S.data[p.slug];
     const st = S.status[p.slug];
     const card = h('article', { class: 'pcard', tabindex: '0', onclick: () => openPlayer(p.slug), onkeydown: (e) => { if (e.key === 'Enter') openPlayer(p.slug); } },
-      roleLine(p, R), h('div', { class: 'pname' }, p.pseudo), p.pool ? h('div', { class: 'muted small' }, 'Pool : ' + p.pool) : null);
+      roleLine(p, R), h('div', { class: 'pname' }, p.pseudo), p.pool ? h('div', { class: 'muted small' }, '🎯 ' + p.pool) : null,
+      (p.maitrise_ids || []).length ? h('div', { class: 'muted small' }, '⭐ ' + p.maitrise_ids.map(FC.champName).join(' · ')) : null);
     if (d) {
       const s = FC.stats(FC.toRows(p, d.matches, start));
       const box = h('div');
@@ -458,12 +460,34 @@
         h('div', { class: 'muted small' }, s.games ? `KDA ${fr(s.kda, 2)} · ${fr(s.morts_moy, 1)} morts/game` : periodLabel()),
         d.rank ? h('div', { class: 'muted small' }, d.rank) : null)));
       later(() => ring(box, s, 84));
-      card.append(progress(FC.objectif(p, d.matches, S.obj)));
+      const o = FC.objectif(p, d.matches, S.obj);
+      card.append(progress(o));
+      const cb = s.games ? catBar({ oblig: s.oblig, maitrise: s.maitrise_g, autres: s.autres }) : null;
+      if (cb) { cb.classList.add('compact'); card.append(cb); }
+      const pills = hubPills(p, FC.toRows(p, d.matches, start), s, o);
+      if (pills.length) card.append(h('div', { class: 'hpills' }, pills));
     }
     const lg = lastGame(d);
     if (lg) card.append(h('div', { class: 'muted small' }, lg));
     card.append(h('div', { class: 'pstatus ' + ((st && st.state) || '') }, statusText(st, d)));
     return card;
+  }
+
+  // Alertes visuelles courtes sur la carte d'un joueur (série, objectif, hors pool, morts).
+  function hubPills(p, rows, s, o) {
+    const out = [];
+    if (rows.length >= 3) {
+      const last = rows[rows.length - 1].win;
+      let n = 0;
+      for (let i = rows.length - 1; i >= 0 && rows[i].win === last; i--) n++;
+      if (n >= 3) out.push(h('span', { class: 'hp ' + (last ? 'good' : 'bad') }, last ? `🔥 ${n} victoires de suite` : `🥶 ${n} défaites de suite`));
+    }
+    if (o && o.target) out.push(o.done >= o.target ? h('span', { class: 'hp good' }, '🎯 Objectif atteint') : null);
+    if (s.games >= 4 && s.autres / s.games >= 0.25) out.push(h('span', { class: 'hp bad' }, `❔ ${s.autres} games hors pool`));
+    const rep = FC.reperes(p.role_id);
+    if (s.games >= 3 && s.morts_moy > rep.morts_moy.v) out.push(h('span', { class: 'hp bad' }, `💀 ${fr(s.morts_moy, 1)} morts/game`));
+    else if (s.games >= 3 && s.kda >= rep.kda.v) out.push(h('span', { class: 'hp good' }, `⚔️ KDA ${fr(s.kda, 2)}`));
+    return out.filter(Boolean).slice(0, 3);
   }
 
   // ----- Page joueur -----
@@ -489,12 +513,13 @@
     const ringBox = h('div', { class: 'ring' });
     view.replaceChildren(h('header', { class: 'hero' },
       h('div', { class: 'hero-txt' },
-        h('div', { class: 'tags' }, tag(`${R.ico} ${p.role || R.label}`), tag('Classé Solo/Duo'), p.pool ? tag('Pool : ' + p.pool) : null, d.rank ? tag(d.rank) : null),
+        h('div', { class: 'tags' }, tag(`${R.ico} ${p.role || R.label}`), tag('Classé Solo/Duo'), p.pool ? tag('🎯 ' + p.pool) : null, (p.maitrise_ids || []).length ? tag('⭐ ' + p.maitrise_ids.map(FC.champName).join(' · ')) : null, d.rank ? tag(d.rank) : null),
         h('h1', { class: 'title' }, p.pseudo),
         h('p', { class: 'muted small' }, `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · stats dpm.lol de ${hm(d.at)} · ${lastGame(d) || 'aucune game Solo/Duo'} · `,
           h('a', { href: 'https://dpm.lol/' + p.slug, target: '_blank' }, 'voir sur dpm.lol')),
         h('p', { class: 'lead' }, FC.lead(p, s)),
-        progress(obj, true)),
+        progress(obj, true),
+        s.games ? catBar({ oblig: s.oblig, maitrise: s.maitrise_g, autres: s.autres }) : null),
       ringBox));
     later(() => ring(ringBox, s, 170));
 
@@ -532,10 +557,18 @@
       return h('div', { class: 'card tile' }, h('div', { class: 'tile-h' }, `${ico} ${label}`), h('div', { class: 'num' }, val), m, h('p', { class: 'muted small' }, expl));
     })));
 
+    const ins = FC.insights(p, rows, s, d.champs, obj);
+    const acard = (x) => h('div', { class: 'acard k-' + x.kind },
+      h('div', { class: 'acard-ico' }, x.ico),
+      h('div', { class: 'acard-body' }, h('div', { class: 'acard-t' }, x.title, x.chip ? h('span', { class: 'acard-chip' }, x.chip) : null), h('p', null, x.text)));
+    const col = (title, cls, list) => h('div', { class: 'acol ' + cls }, h('h3', null, title, h('span', { class: 'acount' }, list.length)), list.length ? list.map(acard) : h('p', { class: 'muted small' }, 'Rien à signaler.'));
     page.append(h('div', { class: 'card' },
-      h('h2', null, '🎯 Points forts et points à travailler'),
-      h('p', { class: 'muted small' }, 'Calculés automatiquement à partir des chiffres de la période, à confirmer au replay.'),
-      h('div', { class: 'alerts' }, FC.insights(p, rows, s, d.champs, obj).map((x) => h('div', { class: 'alert ' + x.kind }, h('div', { class: 'alert-h' }, `${x.ico} ${x.title}`), h('p', null, x.text))))));
+      h('h2', null, '🎯 Le bilan en un coup d\'œil'),
+      h('p', { class: 'muted small' }, 'Calculé automatiquement à partir des chiffres de la période, à confirmer au replay.'),
+      h('div', { class: 'acols' },
+        col('💪 Points forts', 'good', ins.filter((x) => x.kind === 'plus')),
+        col('⚠️ À travailler', 'bad', ins.filter((x) => x.kind === 'warn'))),
+      ins.some((x) => x.kind === 'info') ? h('div', { class: 'ainfo' }, ins.filter((x) => x.kind === 'info').map(acard)) : null));
 
     if (days.length) {
       const c = h('div', { class: 'chart' });
@@ -591,6 +624,7 @@
     const b = FC.badges(p, g);
     return h('article', { class: 'match ' + (g.win ? 'win' : 'loss'), id: 'match-' + g.id },
       h('div', { class: 'mhead' }, h('span', { class: 'champ' }, g.champion), h('span', { class: 'pill ' + (g.win ? 'good' : 'bad') }, g.win ? 'Victoire' : 'Défaite')),
+      h('div', null, h('span', { class: 'catpill c-' + g.cat }, g.cat === 'oblig' ? (g.maitrise ? '🎯⭐ Obligatoire et maîtrisé' : '🎯 Obligatoire') : g.cat === 'maitrise' ? '⭐ Maîtrisé' : '❔ Hors pool')),
       h('div', { class: 'muted small' }, `contre ${g.adversaire} · ${g.heure} · ${g.duree}${g.lane && g.lane !== R.lane ? ' · en ' + g.lane : ''}`),
       h('div', { class: 'kda' }, h('span', { class: 'k' }, `${g.kills} / ${g.morts} / ${g.assists}`), h('span', { class: 'muted small' }, `KDA ${fr(g.kda, 2)}`)),
       h('div', { class: 'mstats' },
@@ -616,29 +650,36 @@
     if (obj && obj.target) {
       const chart = h('div', { class: 'chart', style: 'min-height:0' });
       page.append(h('div', { class: 'card' },
-        h('h2', null, `🎯 Objectif du coach : ${obj.target} games sur le pool`),
-        h('p', { class: 'muted small' }, `Compté en Solo/Duo depuis le ${dateFr(obj.debut)}, uniquement sur les champions du pool imposé${p.pool ? ' (' + p.pool + ')' : ''}, répartis comme il veut. Les games hors pool ne comptent pas.`),
+        h('h2', null, `🎯 Objectif : ${obj.target} games sur les champions obligatoires`),
+        h('p', { class: 'muted small' }, `Compté en Solo/Duo depuis le ${dateFr(obj.debut)}, uniquement sur les champions 🎯 obligatoires${p.pool ? ' (' + p.pool + ')' : ''}, répartis comme il veut. Les champions ⭐ maîtrisés et les autres ne comptent pas.`),
         progress(obj, true),
-        h('p', { class: 'small' }, `${obj.wins} V – ${obj.losses} D sur ces games de pool${obj.wr != null ? ` (${fr(obj.wr, 1)} %)` : ''}. ${obj.hors_pool ? `${pl(obj.hors_pool, 'game hors pool', 'games hors pool')} en plus, non comptée${obj.hors_pool > 1 ? 's' : ''}.` : 'Aucune game hors pool.'}`),
+        h('p', { class: 'small' }, `${obj.wins} V – ${obj.losses} D sur ces games obligatoires${obj.wr != null ? ` (${fr(obj.wr, 1)} %)` : ''}. ${obj.hors_pool ? `${pl(obj.hors_pool, 'game', 'games')} sur des champions non obligatoires (⭐ maîtrisés ou ❔ autres), non comptée${obj.hors_pool > 1 ? 's' : ''}.` : 'Toutes ses games sont sur ses champions obligatoires.'}`),
         chart,
         h('div', { class: 'scroll' }, h('table', { class: 't' },
-          h('thead', null, h('tr', null, h('th', { class: 'l' }, 'Champion du pool'), ['Games', 'V', 'D', 'Win rate %', 'KDA', 'Morts', p.role_id === 'support' ? 'Vision' : 'CS/min', 'Golds @15'].map((x) => h('th', null, x)))),
+          h('thead', null, h('tr', null, h('th', { class: 'l' }, 'Champion obligatoire'), ['Games', 'V', 'D', 'Win rate %', 'KDA', 'Morts', p.role_id === 'support' ? 'Vision' : 'CS/min', 'Golds @15'].map((x) => h('th', null, x)))),
           h('tbody', null, obj.per.map((c) => h('tr', null, h('td', { class: 'l' }, c.champion), h('td', null, c.games), h('td', null, c.wins), h('td', null, c.losses),
             h('td', { class: c.wr == null ? '' : c.wr >= 50 ? 'good' : 'bad' }, fr(c.wr, 1)), h('td', null, fr(c.kda, 2)), h('td', null, fr(c.morts_moy, 1)),
             h('td', null, p.role_id === 'support' ? fr(c.vision, 1) : fr(c.cs_min, 1)), h('td', { class: c.gold15 > 0 ? 'good' : c.gold15 < 0 ? 'bad' : '' }, sg(c.gold15)))))))));
       later(() => objChart(chart, obj));
     }
-    const grid = h('div', { class: 'champs' });
-    champs.forEach((c) => {
+    const grid = h('div', { class: 'champs-groups' });
+    const groups = [['oblig', '🎯 Obligatoires', 'comptent pour l\'objectif'], ['maitrise', '⭐ Maîtrisés', 'ses champions sûrs'], ['autre', '❔ Autres champions', 'ni obligatoires ni maîtrisés']];
+    for (const [cat, title, sub] of groups) {
+      const list = champs.filter((c) => c.cat === cat);
+      if (!list.length) continue;
+      const g = h('div', { class: 'champs' });
+      grid.append(h('div', { class: 'cgroup cat-' + cat }, h('h3', null, title, h('span', { class: 'muted small' }, ` · ${sub} · ${list.reduce((a, c) => a + c.games, 0)} games`)), g));
+      list.forEach((c) => {
       const box = h('div');
-      grid.append(h('div', { class: 'card cc' }, box, h('div', null, h('div', { class: 'n' }, c.champion), h('div', { class: 'm' },
-        h('span', null, c.pool ? '✅ Pool imposé' : '⚠️ Hors pool'),
+      g.append(h('div', { class: 'card cc cat-' + cat }, box, h('div', null, h('div', { class: 'n' }, c.champion), h('div', { class: 'm' },
+        h('span', null, c.cat === 'oblig' ? (c.maitrise ? '🎯⭐ Obligatoire et maîtrisé' : '🎯 Obligatoire') : c.cat === 'maitrise' ? '⭐ Maîtrisé' : '❔ Hors pool'),
         h('span', null, `${pl(c.games, 'game', 'games')} · ${c.wins} V – ${c.losses} D`),
         h('span', null, `KDA ${fr(c.kda, 2)} · ${fr(c.morts_moy, 1)} morts/game`),
         h('span', null, p.role_id === 'support' ? `Vision ${fr(c.vision, 1)} · golds @15 ${sg(c.gold15)}` : `${fr(c.cs_min, 1)} CS/min · golds @15 ${sg(c.gold15)}`)))));
       later(() => ring(box, c, 84));
-    });
-    page.append(h('div', { class: 'card' }, h('h2', null, `Tous ses champions ${periodLabel()}`), h('p', { class: 'muted small' }, 'Le cercle montre le win rate. Moyennes par game. Les champions hors pool apparaissent aussi ici.'),
+      });
+    }
+    page.append(h('div', { class: 'card' }, h('h2', null, `Tous ses champions ${periodLabel()}`), h('p', { class: 'muted small' }, 'Le cercle montre le win rate. Moyennes par game. Classés en 🎯 obligatoires, ⭐ maîtrisés et ❔ autres.'),
       champs.length ? grid : h('p', { class: 'muted' }, 'Aucune game sur la période.')));
   }
 
@@ -656,7 +697,9 @@
       ['👁️ Vision, wards et pinks', `Le score de vision mesure ce qu'il a éclairé et déniché sur la carte. Les wards sont les balises gratuites, les pinks (balises de contrôle) coûtent des golds et révèlent les wards adverses.${rep.vision ? ` Repère vision : ${repText(rep.vision)} par game.` : ''} Repère pinks : ${repText(rep.pinks_moy)} par game.`],
       jg ? ['🦀 Crabes, drakes, larves', 'Les objectifs neutres pris : crabes de la rivière, dragons et larves du Néant.'] : ['⚔️ Solo kills et plates', 'Les solo kills sont les kills faits seul contre un adversaire. Les plates sont les plaques de tourelle arrachées avant 14 minutes, qui rapportent des golds.'],
       ['⭐ Score DPM', 'La note de performance calculée par dpm.lol pour chaque game (plus c\'est haut, mieux c\'est).'],
-      ['🧙 Pool imposé', `Les champions que le coach lui demande de jouer${p.pool ? ' : ' + p.pool : ''}.`]
+      ['🎯 Obligatoires', `Les champions de la première ligne de sa tierlist : ce sont eux qui comptent pour l'objectif de la semaine${p.pool ? ' (' + p.pool + ')' : ''}.`],
+      ['⭐ Maîtrisés', `Les champions qu'il maîtrise (deuxième ligne de sa tierlist)${(p.maitrise_ids || []).length ? ' : ' + p.maitrise_ids.map(FC.champName).join(' · ') : ''}. Un champion peut être à la fois obligatoire et maîtrisé.`],
+      ['❔ Autres', 'Les champions joués qui ne sont ni obligatoires ni maîtrisés.']
     ];
     page.append(h('p', { class: 'muted small' }, 'Les mots de FIRE LoL, expliqués simplement. Les repères sont indicatifs (choisis pour FIRE LoL), pas des règles officielles.'),
       h('dl', { class: 'lex' }, items.map(([t, d]) => h('div', null, h('dt', null, t), h('dd', null, d)))));
@@ -905,11 +948,30 @@
     return nodes;
   }
 
+  // Page d'un thème : « En bref » en tuiles, puis chaque principe dans un bloc qui se déplie.
+  function themeNodes(t) {
+    const nodes = [];
+    if (t.accroche) nodes.push(h('p', { class: 'lead doc-lead' }, t.accroche));
+    if (t.a_retenir && t.a_retenir.length) nodes.push(h('div', { class: 'bref' }, t.a_retenir.map((x, i) => h('div', { class: 'bref-tile' }, h('span', { class: 'bref-n' }, String(i + 1)), h('span', null, x)))));
+    (t.sections || []).forEach((sec, i) => {
+      let fig = null;
+      if (sec.schema && sec.schema.svg) {
+        const src = svgSrc(sec.schema.svg);
+        fig = h('figure', { class: 'schema' }, h('img', { src, alt: sec.schema.legende || 'schéma', onclick: () => zoom(src, sec.schema.legende) }), h('figcaption', null, sec.schema.legende || ''));
+      }
+      nodes.push(h('details', { class: 'acc', open: i < 2 ? true : null },
+        h('summary', null, h('span', { class: 'acc-n' }, String(i + 1)), h('span', { class: 'acc-t' }, sec.titre), fig ? h('span', { class: 'acc-tag' }, '🖼️ schéma') : null),
+        h('div', { class: 'acc-body' + (fig ? ' with-fig' : '') }, h('div', { class: 'md' }, md(sec.texte)), fig)));
+    });
+    if (t.exercice) nodes.push(h('div', { class: 'quest' }, h('div', { class: 'quest-ico' }, '🎮'), h('div', null, h('div', { class: 'quest-t' }, 'Quête pour ta prochaine game'), h('p', null, t.exercice))));
+    return nodes;
+  }
+
   // ----- Lanes et principes -----
   function renderGuides() {
     const view = $('view');
-    const head = h('div', null, h('h1', { class: 'title' }, '📚 Lanes et principes'),
-      h('p', { class: 'muted' }, 'Tous les principes de LoL, expliqués simplement, avec des schémas. Clique sur un thème. À jour pour la saison 2026.'));
+    const head = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📚'), h('div', null, h('h1', { class: 'title' }, 'Lanes et principes'),
+      h('p', { class: 'muted' }, 'Tous les principes de LoL, expliqués simplement, avec des schémas. Clique sur un thème. Saison 2026.')));
     if (!S.guides) { view.replaceChildren(head, h('div', { class: 'empty-state' }, 'Chargement des thèmes…')); return; }
     view.replaceChildren(head, h('div', { class: 'theme-grid' }, S.guides.map((t) => {
       const extra = (S.fiches || []).filter((f) => f.rubrique === t.id).length;
@@ -928,7 +990,7 @@
     const extra = (S.fiches || []).filter((f) => f.rubrique === t.id);
     view.replaceChildren(...[
       h('header', { class: 'doc-head' }, h('div', { class: 'tags' }, tag(pourLabel(t.pour)), tag('Saison 2026')), h('h1', { class: 'title' }, `${t.ico || ''} ${t.titre}`)),
-      ...docNodes(t),
+      ...themeNodes(t),
       extra.length || S.coachState.coach ? h('div', { class: 'card' },
         h('h2', null, '📣 Ajouts du coach'),
         extra.length ? h('div', { class: 'fgrid' }, extra.map(ficheCard)) : h('p', { class: 'muted' }, 'Pas encore d\'ajout du coach dans ce thème.'),
@@ -977,8 +1039,8 @@
 
   function renderCoach() {
     const view = $('view');
-    const nodes = [h('div', null, h('h1', { class: 'title' }, '📣 Parole du coach'),
-      h('p', { class: 'muted' }, "Les fiches et les messages du coach pour l'équipe. Les nouvelles fiches arrivent toutes seules à l'ouverture de l'application.")) ];
+    const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📣'), h('div', null, h('h1', { class: 'title' }, 'Parole du coach'),
+      h('p', { class: 'muted' }, "Les fiches et les messages du coach pour l'équipe. Les nouvelles arrivent toutes seules à l'ouverture de l'application."))) ];
     if (S.flash) nodes.push(h('div', { class: 'flash' }, S.flash, h('button', { class: 'flash-x', onclick: () => { S.flash = ''; render(); } }, '✕')));
     if (S.coachState.coach) nodes.push(composerCard(), settingsCard());
     if (S.fichesErr) nodes.push(h('p', { class: 'muted small' }, '⚠ ' + S.fichesErr));
@@ -1013,10 +1075,12 @@
     const st = S.coachState;
     const a = h('input', { class: 'inp', type: 'password', autocomplete: 'off', placeholder: st.claude ? 'Clé enregistrée ✓ (laisse vide pour la garder)' : 'sk-ant-…' });
     const g = h('input', { class: 'inp', type: 'password', autocomplete: 'off', placeholder: st.github ? 'Jeton enregistré ✓ (laisse vide pour le garder)' : 'github_pat_…' });
+    const eq = h('input', { class: 'inp', type: 'password', autocomplete: 'off', placeholder: S.poolWrite ? 'Jeton d\'équipe actif ✓ (laisse vide pour le garder)' : 'github_pat_… (dépôt fire-lol-data)' });
     const btn = h('button', { class: 'btn-ghost', onclick: async () => {
-      if (!a.value && !g.value) return;
+      if (!a.value && !g.value && !eq.value) return;
       btn.disabled = true; btn.textContent = 'Vérification…';
-      const r = await window.fire.coach.save({ anthropic: a.value, github: g.value });
+      const r = await window.fire.coach.save({ anthropic: a.value, github: g.value, equipe: eq.value });
+      if (eq.value) loadPools();
       S.coachState = { coach: r.coach, claude: r.claude, github: r.github };
       S.settingsMsg = (r.messages || []).join(' ') || r.error || '';
       render();
@@ -1026,11 +1090,13 @@
       h('p', { class: 'muted small' }, "Ces clés restent sur cet ordinateur, chiffrées par Windows. Elles ne sont jamais envoyées aux joueurs."),
       h('label', { class: 'fld' }, h('span', null, "Clé de l'API Claude (pour les fiches avec recherche)"), a),
       h('label', { class: 'fld' }, h('span', null, 'Jeton GitHub (pour publier les fiches)'), g),
+      h('label', { class: 'fld' }, h('span', null, `Jeton d'équipe (pour que chaque joueur puisse modifier sa tierlist) ${S.poolWrite ? '· actif ✓' : '· pas encore activé'}`), eq),
       h('div', { class: 'row' }, btn, S.settingsMsg ? h('span', { class: 'small' }, S.settingsMsg) : null),
       h('details', { class: 'help' }, h('summary', null, 'Comment obtenir ces clés ?'),
         h('ol', { class: 'small' },
           h('li', null, 'Clé Claude : sur ', h('a', { href: 'https://console.anthropic.com/settings/keys', target: '_blank' }, 'console.anthropic.com'), ', crée un compte, ajoute du crédit (Billing), puis « Create Key ». Chaque fiche générée est facturée sur ce compte.'),
-          h('li', null, 'Jeton GitHub : sur ', h('a', { href: 'https://github.com/settings/personal-access-tokens/new', target: '_blank' }, 'github.com → Fine-grained token'), ', choisis « Only select repositories » → Toka120/fire-team-lol, puis Permissions → Contents : « Read and write ». Le propriétaire du dépôt (Toka120) doit le créer ou donner accès au coach.'))));
+          h('li', null, 'Jeton GitHub : sur ', h('a', { href: 'https://github.com/settings/personal-access-tokens/new', target: '_blank' }, 'github.com → Fine-grained token'), ', choisis « Only select repositories » → Toka120/fire-team-lol, puis Permissions → Contents : « Read and write ». Le propriétaire du dépôt (Toka120) doit le créer ou donner accès au coach.'),
+          h('li', null, "Jeton d'équipe : crée d'abord le dépôt ", h('b', null, 'Toka120/fire-lol-data'), ' (public, avec un README), puis un « Fine-grained token » limité à ce dépôt seulement, avec Contents : « Read and write ». Il est envoyé chiffré aux joueurs et ne donne aucun accès au code de l\'application.'))));
   }
 
   function composerCard() {
@@ -1121,11 +1187,15 @@
   }
 
   // ================= Rubrique POOL : tierlists de la semaine et analyse =================
+  // Ligne 1 : OBLIGATOIRE (compte pour l'objectif). Ligne 2 : MAÎTRISÉS. Un champion peut être dans les deux.
   const TIERS = FC.TIERS;
+  const TI = FC.TIER_INFO;
   const todayYmd = () => FC.ymd(new Date());
   const addDays = (ymd, n) => { const d = new Date(ymd + 'T00:00:00'); d.setDate(d.getDate() + n); return FC.ymd(d); };
   const weekLabel = (w) => `Semaine du ${dateFr(w.debut)}`;
   const nextWeekOf = (w) => (S.pools || []).find((x) => x.debut > w.debut) || null;
+  S.moi = load('fire.moi', null);
+  S.poolWrite = false;
 
   function currentWeek() {
     const t = todayYmd();
@@ -1133,15 +1203,16 @@
     return past.length ? past[past.length - 1] : null;
   }
 
-  // Les stats et l'objectif suivent le pool de la semaine en cours (sinon celui de la configuration).
+  // Les stats et l'objectif suivent la tierlist de la semaine en cours (sinon le pool de la configuration).
   function applyWeek() {
     const w = currentWeek();
     for (const p of S.players) {
-      if (!p._cfg) p._cfg = { pool_ids: p.pool_ids || [], pool: p.pool || '' };
-      const t = w && w.joueurs && w.joueurs[p.slug];
-      const ids = t ? FC.poolIds(t) : [];
-      if (ids.length) { p.pool_ids = ids; p.pool = ids.map(FC.champName).join(' · '); p._tiers = t; }
-      else { p.pool_ids = p._cfg.pool_ids; p.pool = p._cfg.pool; p._tiers = null; }
+      if (!p._cfg) p._cfg = { pool_ids: p.pool_ids || [], pool: p.pool || '', maitrise_ids: p.maitrise_ids || [] };
+      const t = FC.normTiers(w && w.joueurs && w.joueurs[p.slug]);
+      if (t && (t.O.length || t.M.length)) {
+        p.pool_ids = t.O; p.maitrise_ids = t.M; p._tiers = t;
+        p.pool = t.O.map(FC.champName).join(' · ');
+      } else { p.pool_ids = p._cfg.pool_ids; p.maitrise_ids = p._cfg.maitrise_ids; p.pool = p._cfg.pool; p._tiers = null; }
     }
     S.obj = w && w.objectif ? { debut: w.debut, games: w.objectif, description: w.note || '' } : S.cfgObj;
     const sel = $('period');
@@ -1155,6 +1226,7 @@
     try { r = await window.fire.pools(); } catch (e) { r = { ok: false, error: String(e) }; }
     if (r && r.ok) { S.pools = r.semaines || []; S.poolsErr = r.offline ? 'Hors ligne : derniers pools enregistrés.' : ''; }
     else { S.pools = S.pools || []; S.poolsErr = (r && r.error) || 'pools indisponibles'; }
+    S.poolWrite = !!(r && r.peutEcrire);
     applyWeek();
     if (typing()) return;
     if (S.section === 'pool' || S.section === 'stats') render();
@@ -1167,7 +1239,7 @@
 
   function champIcon(id, size) {
     const sz = size || 28;
-    const letter = h('span', { class: 'cico-l', style: `width:${sz}px;height:${sz}px` }, (FC.champName(id) || '?').charAt(0));
+    const letter = h('span', { class: 'cico-l', style: `width:${sz}px;height:${sz}px;font-size:${Math.round(sz / 2.3)}px` }, (FC.champName(id) || '?').charAt(0));
     if (!S.champList || !S.champList.version) return letter;
     const img = h('img', { class: 'cico', width: sz, height: sz, alt: '', src: `https://ddragon.leagueoflegends.com/cdn/${S.champList.version}/img/champion/${id}.png` });
     img.addEventListener('error', () => img.replaceWith(letter));
@@ -1175,7 +1247,7 @@
   }
 
   function champIdFromName(txt) {
-    const n = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+    const n = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
     const t = n(txt);
     if (!t) return null;
     const list = (S.champList && S.champList.list) || [];
@@ -1191,6 +1263,15 @@
     return { start: new Date(w.debut + 'T00:00:00').getTime(), end: nx ? new Date(nx.debut + 'T00:00:00').getTime() : null, fin: nx ? addDays(nx.debut, -1) : null };
   }
 
+  const canEdit = (slug) => S.coachState.coach ? (S.poolWrite || S.coachState.github) : (S.poolWrite && S.moi === slug);
+
+  function meSelect() {
+    const sel = h('select', { 'aria-label': 'Qui es-tu ?' }, h('option', { value: '' }, '— choisis —'), S.players.filter((x) => x.slug).map((p) => h('option', { value: p.slug }, `${roleOf(p).ico} ${p.pseudo}`)));
+    sel.value = S.moi || '';
+    sel.addEventListener('change', () => { S.moi = sel.value || null; save('fire.moi', S.moi); render(); });
+    return sel;
+  }
+
   function renderPool() {
     const view = $('view');
     const weeks = S.pools || [];
@@ -1203,19 +1284,25 @@
     const rng = weekRange(w);
     const coach = S.coachState.coach;
 
-    const nodes = [h('div', null, h('h1', { class: 'title' }, '🧙 POOL'),
-      h('p', { class: 'muted' }, "Les champion pools de chaque joueur, semaine par semaine, classés en tiers par le coach. Les stats viennent de dpm.lol (classé Solo/Duo) et l'analyse se met à jour toute seule."))];
+    const nodes = [h('header', { class: 'sec-hero pool-hero' },
+      h('div', { class: 'sec-ico' }, '🧙'),
+      h('div', null, h('h1', { class: 'title' }, 'POOL'),
+        h('p', { class: 'muted' }, '🎯 Obligatoires : comptent pour l\'objectif · ⭐ Maîtrisés : ses champions sûrs · ❔ Autres : le reste')))];
     if (S.flash) nodes.push(h('div', { class: 'flash' }, S.flash, h('button', { class: 'flash-x', onclick: () => { S.flash = ''; render(); } }, '✕')));
     if (S.poolsErr) nodes.push(h('p', { class: 'muted small' }, '⚠ ' + S.poolsErr));
 
-    const chips = weeks.slice().reverse().map((x) => h('button', { class: 'chip', 'aria-pressed': String(x.id === wid), onclick: () => { S.poolWeek = x.id; S.confirm = null; render(); } },
+    nodes.push(h('div', { class: 'row me-row' }, h('label', { class: 'fld-inline' }, '👤 Je suis ', meSelect()),
+      !coach && S.moi && !S.poolWrite ? h('span', { class: 'muted small' }, "Le coach n'a pas encore ouvert l'écriture des tierlists aux joueurs.") : null,
+      !coach && S.moi && S.poolWrite ? h('span', { class: 'good small' }, '✓ Tu peux modifier ta tierlist (bouton ✏️ sur ta carte).') : null));
+
+    const chips = weeks.slice().reverse().map((x) => h('button', { class: 'chip', 'aria-pressed': String(x.id === wid), onclick: () => { S.poolWeek = x.id; S.confirm = null; S.cardEdit = null; render(); } },
       weekLabel(x) + (cur && x.id === cur.id ? ' · en cours' : x.debut > todayYmd() ? ' · à venir' : '')));
     if (!weeks.length) chips.push(h('button', { class: 'chip', 'aria-pressed': 'true' }, 'Pool actuel'));
     const tools = [];
     if (coach) {
       tools.push(h('button', { class: 'btn-fire small-btn', onclick: () => startPoolEdit(null) }, '➕ Nouvelle semaine'));
       if (w) {
-        tools.push(h('button', { class: 'btn-ghost', onclick: () => startPoolEdit(w) }, '✏️ Modifier cette semaine'));
+        tools.push(h('button', { class: 'btn-ghost', onclick: () => startPoolEdit(w) }, '✏️ Modifier la semaine'));
         const c = S.confirm === 'delpool:' + w.id;
         tools.push(h('button', { class: c ? 'btn-danger' : 'btn-ghost', onclick: async () => {
           if (!c) { S.confirm = 'delpool:' + w.id; render(); return; }
@@ -1226,76 +1313,159 @@
           render();
         } }, c ? 'Confirmer la suppression' : 'Supprimer'));
       }
-      if (S.coachState.claude) tools.push(h('button', { class: 'btn-ghost', onclick: () => prepareAnalysis(w, rng) }, '🧠 Préparer une analyse avec Claude'));
+      if (S.coachState.claude) tools.push(h('button', { class: 'btn-ghost', onclick: () => prepareAnalysis(w, rng) }, '🧠 Analyse avec Claude'));
     }
     nodes.push(h('div', { class: 'chips' }, chips), tools.length ? h('div', { class: 'row' }, tools) : null);
 
     const obj = w ? (w.objectif ? { debut: w.debut, games: w.objectif, fin: rng.fin } : null) : (S.cfgObj ? { ...S.cfgObj } : null);
-    nodes.push(h('div', { class: 'card pool-week' },
-      h('h2', null, w ? `${weekLabel(w)}${rng.fin ? ' au ' + dateFr(rng.fin) : ''}` : 'Pool actuel (fixé dans la configuration)'),
-      obj && obj.games ? h('p', null, `🎯 Objectif : ${obj.games} games sur le pool${w ? '' : ' depuis le ' + dateFr(obj.debut)}, réparties comme chacun veut.`) : null,
-      w && w.note ? h('div', { class: 'md' }, md(w.note)) : null,
-      !w ? h('p', { class: 'muted small' }, coach ? 'Aucune tierlist publiée : crée la première semaine avec « Nouvelle semaine ».' : "Le coach n'a pas encore publié de tierlist : voici le pool fixé au départ, avec son analyse.") : null));
+    nodes.push(h('div', { class: 'card week-banner' },
+      h('div', { class: 'wb-main' },
+        h('div', { class: 'wb-big' }, obj && obj.games ? String(obj.games) : '—'),
+        h('div', null, h('div', { class: 'wb-t' }, w ? `${weekLabel(w)}${rng.fin ? ' → ' + dateFr(rng.fin) : ''}` : `Depuis le ${obj ? dateFr(obj.debut) : '—'}`),
+          h('div', { class: 'muted small' }, obj && obj.games ? 'games à jouer sur les champions 🎯 obligatoires, réparties comme chacun veut' : 'pas d\'objectif de games'))),
+      w && w.note ? h('div', { class: 'wb-note md' }, md(w.note)) : null,
+      !w ? h('p', { class: 'muted small' }, coach ? 'Aucune tierlist publiée : crée la première semaine avec « Nouvelle semaine ».' : 'Pas encore de tierlist publiée : voici le pool de départ et son analyse.') : null));
 
     for (const p of S.players.filter((x) => x.slug)) nodes.push(poolCard(p, w, prev, rng, obj));
     view.replaceChildren(...nodes.filter(Boolean));
   }
 
-  function tierBadge(t) { return h('span', { class: 'tier t' + (t || 'X') }, t || '—'); }
+  function tierLabel(k) {
+    return h('div', { class: 'tier tl' + k }, h('span', { class: 'tier-ico' }, TI[k].ico), h('span', null, TI[k].label), k === 'O' ? h('small', null, "compte pour l'objectif") : h('small', null, 'ses champions sûrs'));
+  }
+
+  function wrBar(c) {
+    const pct = c.games ? Math.max(4, Math.min(100, c.wr)) : 0;
+    return h('div', { class: 'wrbar' }, h('i', { class: c.games ? (c.wr >= 50 ? 'ok' : 'ko') : '', style: `width:${pct}%` }), h('span', { class: 'wr50' }));
+  }
+
+  function champCard(c, small) {
+    const v = c.verdict || FC.verdict(c);
+    return h('div', { class: `ccard v-${v.kind}${small ? ' small' : ''}` },
+      h('div', { class: 'cc-top' }, champIcon(c.id, small ? 36 : 46),
+        h('div', { class: 'cc-name' }, h('b', null, c.champion, c.oblig && c.maitrise ? h('span', { class: 'mini-tag', title: 'Obligatoire et maîtrisé' }, ' 🎯⭐') : null),
+          h('span', { class: 'verdict v-' + v.kind }, `${v.ico} ${v.txt}`))),
+      c.games ? h('div', { class: 'cc-wr' }, h('span', { class: 'cc-pct ' + (c.wr >= 50 ? 'good' : 'bad') }, `${fr(c.wr)} %`), h('span', { class: 'muted small' }, `${c.wins} V – ${c.losses} D`)) : h('div', { class: 'cc-wr muted small' }, 'Pas joué sur la période'),
+      wrBar(c),
+      c.games && !small ? h('div', { class: 'cc-stats' },
+        h('span', null, h('small', null, 'KDA'), h('b', null, fr(c.kda, 2))),
+        h('span', null, h('small', null, 'CS/min'), h('b', null, fr(c.cs_min, 1))),
+        h('span', null, h('small', null, 'Golds @15'), h('b', { class: c.gold15 > 0 ? 'good' : c.gold15 < 0 ? 'bad' : '' }, sg(c.gold15)))) : null,
+      c.split && !small ? h('div', { class: 'muted small' }, `Ce split : ${c.split.games} games · ${fr(c.split.wr)} %`) : null);
+  }
+
+  function catBar(t) {
+    const tot = t.oblig + t.maitrise + t.autres;
+    if (!tot) return null;
+    const seg = (n, cls, lab) => n ? h('i', { class: cls, style: `flex:${n}`, title: `${lab} : ${n}` }, n) : null;
+    return h('div', { class: 'catbar-wrap' },
+      h('div', { class: 'catbar' }, seg(t.oblig, 'c-o', 'Obligatoires'), seg(t.maitrise, 'c-m', 'Maîtrisés'), seg(t.autres, 'c-a', 'Autres')),
+      h('div', { class: 'catleg' }, h('span', null, h('i', { class: 'c-o' }), `🎯 ${t.oblig} obligatoire${t.oblig > 1 ? 's' : ''}`), h('span', null, h('i', { class: 'c-m' }), `⭐ ${t.maitrise} maîtrisé${t.maitrise > 1 ? 's' : ''}`), h('span', null, h('i', { class: 'c-a' }), `❔ ${t.autres} autre${t.autres > 1 ? 's' : ''}`)));
+  }
+
+  function alertPills(notes) {
+    if (!notes || !notes.length) return null;
+    return h('div', { class: 'apills' }, notes.map((n) => h('div', { class: 'apill k-' + n.kind }, h('span', { class: 'apill-ico' }, n.ico || '•'), h('span', null, n.text))));
+  }
 
   function poolCard(p, w, prev, rng, obj) {
     const R = roleOf(p);
-    const tiers = w ? (w.joueurs || {})[p.slug] : null;
-    const cfgIds = (p._cfg && p._cfg.pool_ids) || p.pool_ids || [];
+    const raw = w ? (w.joueurs || {})[p.slug] : null;
+    const cfgT = { O: [...((p._cfg && p._cfg.pool_ids) || p.pool_ids || [])], M: [...((p._cfg && p._cfg.maitrise_ids) || [])] };
+    const tiers = (w && FC.normTiers(raw)) || cfgT;
+    const fallback = !!w && !raw;
     const d = S.data[p.slug];
-    const head = h('div', { class: 'pool-head' }, roleLine(p, R), h('div', { class: 'pname' }, p.pseudo));
-    if (w && !tiers) return h('article', { class: 'card pool-card' }, head, h('p', { class: 'muted' }, 'Pas de tierlist pour ce joueur cette semaine.'));
-    const A = d ? FC.poolAnalysis({ ...p, pool_ids: cfgIds }, d.matches, d.champs, tiers, rng.start, rng.end) : null;
-    const per = A ? A.per : (tiers ? FC.poolIds(tiers) : cfgIds).map((id) => ({ id, champion: FC.champName(id), tier: tiers ? TIERS.find((t) => tiers[t].includes(id)) : null, games: 0 }));
-    const statOf = (id) => per.find((c) => c.id === id);
-    const chip = (id) => {
-      const c = statOf(id) || { games: 0 };
-      return h('span', { class: 'pchip' + (c.verdict ? ' v-' + c.verdict.kind : '') }, champIcon(id, 30),
-        h('span', null, h('b', null, FC.champName(id)), h('span', { class: 'muted small' }, c.games ? ` ${c.games} g · ${fr(c.wr)} %` : ' pas joué')));
+    const editing = S.cardEdit && S.cardEdit.slug === p.slug;
+    const mine = S.moi === p.slug;
+    const head = h('div', { class: 'pc-head' },
+      h('div', { class: 'pc-who' }, h('span', { class: 'pc-ico' }, R.ico), h('div', null, h('div', { class: 'pname' }, p.pseudo, mine ? h('span', { class: 'me-tag' }, "C'est toi") : null), h('div', { class: 'muted small' }, p.role || R.label))),
+      raw && raw.par === 'joueur' ? h('span', { class: 'tag' }, `✍️ faite par le joueur${raw.maj ? ' · ' + new Date(raw.maj).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : ''}`) : null,
+      !editing && canEdit(p.slug) ? h('button', { class: 'btn-ghost', onclick: () => { S.cardEdit = { slug: p.slug, O: [...(tiers ? tiers.O : [])], M: [...(tiers ? tiers.M : [])] }; render(); } }, mine && !S.coachState.coach ? '✏️ Modifier ma tierlist' : '✏️ Modifier') : null);
+    if (editing) return h('article', { class: 'card pool-card editing' }, head, cardEditor(p, w));
+
+    const ch = w && prev ? FC.poolChanges((prev.joueurs || {})[p.slug], raw) : null;
+    const changes = ch && ch.length ? h('div', { class: 'changes' }, h('span', { class: 'muted small' }, 'Depuis la semaine d’avant :'),
+      ch.map((c) => h('span', { class: 'chg ' + (c.type === 'add' ? 'add' : 'del') }, `${c.type === 'add' ? '+' : '−'} ${c.champion} ${TI[c.k].ico}`))) : null;
+
+    const A = d ? FC.poolAnalysis(p, d.matches, d.champs, tiers, rng.start, rng.end) : null;
+    const chipOf = (id, k) => {
+      const c = A ? (k === 'O' ? A.oblig : A.maitrise).find((x) => x.id === id) : null;
+      return h('span', { class: 'pchip' + (c && c.verdict ? ' v-' + c.verdict.kind : '') }, champIcon(id, 34),
+        h('span', null, h('b', null, FC.champName(id)), h('span', { class: 'muted small' }, c && c.games ? ` ${c.games} g · ${fr(c.wr)} %` : ' pas joué')));
     };
-    const rows = tiers
-      ? TIERS.filter((t) => tiers[t].length).map((t) => h('div', { class: 'tier-row' }, tierBadge(t), h('div', { class: 'tier-chips' }, tiers[t].map(chip))))
-      : [h('div', { class: 'tier-row' }, h('span', { class: 'tier tX' }, 'Pool'), h('div', { class: 'tier-chips' }, cfgIds.map(chip)))];
-
-    const ch = w && prev ? FC.poolChanges((prev.joueurs || {})[p.slug], tiers) : null;
-    const changes = ch && (ch.ajoutes.length || ch.retires.length || ch.deplaces.length)
-      ? h('div', { class: 'changes' }, h('span', { class: 'muted small' }, 'Depuis la semaine d’avant : '),
-        ch.ajoutes.map((c) => h('span', { class: 'chg add' }, `+ ${c.champion} (${c.tier})`)),
-        ch.retires.map((c) => h('span', { class: 'chg del' }, `− ${c.champion}`)),
-        ch.deplaces.map((c) => h('span', { class: 'chg mov' }, `${c.champion} ${c.de} → ${c.vers}`)))
-      : (w && prev ? h('p', { class: 'muted small' }, 'Même pool que la semaine d’avant.') : null);
-
+    const tierRows = h('div', { class: 'tiers' }, TIERS.map((k) => h('div', { class: 'tier-row r' + k }, tierLabel(k),
+      h('div', { class: 'tier-chips' }, (tiers[k] || []).length ? tiers[k].map((id) => chipOf(id, k)) : h('span', { class: 'muted small' }, k === 'O' ? 'aucun champion obligatoire' : 'aucun champion maîtrisé')))));
+    const o = d && obj ? FC.objectif({ ...p, pool_ids: tiers.O }, d.matches, obj) : null;
     const sup = p.role_id === 'support';
-    const table = A ? h('div', { class: 'scroll' }, h('table', { class: 't' },
-      h('thead', null, h('tr', null, h('th', { class: 'l' }, 'Champion'), ['Tier', 'Games', 'V – D', 'Win rate %', 'KDA', sup ? 'Vision' : 'CS/min', 'Golds @15', 'Ce split', 'Verdict'].map((x) => h('th', null, x)))),
-      h('tbody', null, A.per.map((c) => h('tr', null,
-        h('td', { class: 'l' }, h('span', { class: 'tcell' }, champIcon(c.id, 22), c.champion)),
-        h('td', null, c.tier ? tierBadge(c.tier) : '—'), h('td', null, c.games), h('td', null, c.games ? `${c.wins} – ${c.losses}` : '—'),
-        h('td', { class: c.wr == null ? '' : c.wr >= 50 ? 'good' : 'bad' }, fr(c.wr, 1)), h('td', null, fr(c.kda, 2)),
-        h('td', null, sup ? fr(c.vision, 1) : fr(c.cs_min, 1)), h('td', { class: c.gold15 > 0 ? 'good' : c.gold15 < 0 ? 'bad' : '' }, sg(c.gold15)),
-        h('td', null, c.split ? `${c.split.games} g · ${fr(c.split.wr)} %` : '—'),
-        h('td', null, h('span', { class: 'verdict v-' + c.verdict.kind }, c.verdict.txt))))))) : null;
-
-    const o = d && obj ? FC.objectif({ ...p, pool_ids: tiers ? FC.poolIds(tiers) : cfgIds }, d.matches, obj) : null;
-    return h('article', { class: 'card pool-card' }, head, changes, h('div', { class: 'tiers' }, rows),
-      o ? progress(o, false) : null,
-      table || h('p', { class: 'muted small' }, 'Lecture des stats sur dpm.lol…'),
-      A && A.notes.length ? h('ul', { class: 'pool-notes' }, A.notes.map((n) => h('li', { class: 'pn-' + n.kind }, n.text))) : null);
+    const group = (title, list, small, empty) => h('div', { class: 'cgroup' }, h('h3', null, title), list.length ? h('div', { class: 'cgrid' + (small ? ' small' : '') }, list.map((c) => champCard(c, small))) : h('p', { class: 'muted small' }, empty));
+    const body = A ? [
+      o ? progress(o, true) : null,
+      catBar({ oblig: A.tot.oblig.games, maitrise: A.tot.maitrise.games, autres: A.tot.autres.games }),
+      alertPills(A.notes),
+      group('🎯 Obligatoires', A.oblig, false, 'Aucun champion obligatoire.'),
+      group('⭐ Maîtrisés', A.maitrise, false, 'Aucun champion maîtrisé.'),
+      A.autres.length ? group('❔ Autres champions joués', A.autres, true, '') : null,
+      h('details', { class: 'more' }, h('summary', null, 'Tableau détaillé'), h('div', { class: 'scroll' }, h('table', { class: 't' },
+        h('thead', null, h('tr', null, h('th', { class: 'l' }, 'Champion'), ['Ligne', 'Games', 'V – D', 'Win rate %', 'KDA', sup ? 'Vision' : 'CS/min', 'Golds @15', 'Ce split'].map((x) => h('th', null, x)))),
+        h('tbody', null, [...A.oblig.map((c) => ['🎯', c]), ...A.maitrise.map((c) => ['⭐', c]), ...A.autres.map((c) => ['❔', c])].map(([k, c]) => h('tr', null,
+          h('td', { class: 'l' }, h('span', { class: 'tcell' }, champIcon(c.id, 22), c.champion)), h('td', null, k), h('td', null, c.games), h('td', null, c.games ? `${c.wins} – ${c.losses}` : '—'),
+          h('td', { class: c.wr == null ? '' : c.wr >= 50 ? 'good' : 'bad' }, fr(c.wr, 1)), h('td', null, fr(c.kda, 2)), h('td', null, sup ? fr(c.vision, 1) : fr(c.cs_min, 1)),
+          h('td', { class: c.gold15 > 0 ? 'good' : c.gold15 < 0 ? 'bad' : '' }, sg(c.gold15)), h('td', null, c.split ? `${c.split.games} g · ${fr(c.split.wr)} %` : '—')))))))
+    ] : [h('p', { class: 'muted small' }, 'Lecture des stats sur dpm.lol…')];
+    return h('article', { class: 'card pool-card' }, head, changes,
+      fallback ? h('p', { class: 'muted small' }, 'Pas encore de tierlist pour cette semaine : voici son pool de départ.' + (canEdit(p.slug) ? ' Clique sur ✏️ pour la créer.' : '')) : null,
+      tierRows, ...body.filter(Boolean));
   }
 
-  // ----- Éditeur de la tierlist (coach) -----
+  // ----- Édition d'une tierlist (joueur pour la sienne, coach pour tout le monde) -----
+  function tierEditor(t, onChange) {
+    const rows = TIERS.map((k) => h('div', { class: 'tier-row r' + k }, tierLabel(k), h('div', { class: 'tier-chips' },
+      t[k].length ? t[k].map((id) => {
+        const other = k === 'O' ? 'M' : 'O';
+        const both = t[other].includes(id);
+        return h('span', { class: 'pchip edit' }, champIcon(id, 30), h('b', null, FC.champName(id)),
+          h('button', { class: 'ibtn' + (both ? ' on' : ''), title: both ? `Retirer de ${TI[other].label}` : `Ajouter aussi en ${TI[other].label}`, onclick: () => { if (both) t[other] = t[other].filter((x) => x !== id); else t[other].push(id); onChange(); } }, TI[other].ico),
+          h('button', { class: 'ibtn', title: 'Retirer', onclick: () => { t[k] = t[k].filter((x) => x !== id); onChange(); } }, '✕'));
+      }) : h('span', { class: 'muted small' }, 'vide'))));
+    const inp = h('input', { class: 'inp', list: 'champ-list', placeholder: 'Ajouter un champion…' });
+    const where = h('select', null, h('option', { value: 'O' }, '🎯 Obligatoire'), h('option', { value: 'M' }, '⭐ Maîtrisé'), h('option', { value: 'OM' }, '🎯⭐ Les deux'));
+    const add = () => {
+      const id = champIdFromName(inp.value);
+      if (!id) return;
+      for (const k of where.value.split('')) if (!t[k].includes(id)) t[k].push(id);
+      onChange();
+    };
+    inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') add(); });
+    return h('div', { class: 'tier-editor' }, h('datalist', { id: 'champ-list' }, ((S.champList && S.champList.list) || []).map((c) => h('option', { value: c.name }))),
+      h('div', { class: 'tiers' }, rows), h('div', { class: 'row' }, inp, where, h('button', { class: 'btn-ghost', onclick: add }, 'Ajouter')));
+  }
+
+  function cardEditor(p, w) {
+    const e = S.cardEdit;
+    const debut = w ? w.debut : (currentWeek() ? currentWeek().debut : (S.cfgObj ? S.cfgObj.debut : todayYmd()));
+    return h('div', { class: 'card-editor' },
+      h('p', { class: 'muted small' }, `Tierlist de ${p.pseudo} pour la semaine du ${dateFr(debut)}. Un champion peut être à la fois 🎯 obligatoire et ⭐ maîtrisé.`),
+      tierEditor(e, render),
+      h('div', { class: 'row' },
+        h('button', { class: 'btn-fire small-btn', disabled: e.busy ? true : null, onclick: async () => {
+          e.busy = true; e.err = ''; render();
+          const r = await window.fire.coach.savePools({ type: 'joueur', slug: p.slug, debut, objectif: (w && w.objectif) || (S.cfgObj && S.cfgObj.games) || 20, tiers: { O: e.O, M: e.M }, par: S.coachState.coach && S.moi !== p.slug ? 'coach' : 'joueur' });
+          e.busy = false;
+          if (r.ok) { S.pools = r.semaines; S.cardEdit = null; const nw = r.semaines.find((x) => x.debut === debut); if (nw) S.poolWeek = nw.id; S.flash = `Tierlist de ${p.pseudo} enregistrée ✓ Toute l'équipe la verra à sa prochaine ouverture.`; applyWeek(); }
+          else e.err = r.error;
+          render();
+        } }, e.busy ? 'Enregistrement…' : '💾 Enregistrer'),
+        h('button', { class: 'btn-ghost', onclick: () => { S.cardEdit = null; render(); } }, 'Annuler'),
+        e.err ? h('span', { class: 'bad small' }, '⚠ ' + e.err) : null));
+  }
+
   function startPoolEdit(w) {
     const weeks = S.pools || [];
     const base = w || weeks[weeks.length - 1] || null;
     const joueurs = {};
     for (const p of S.players.filter((x) => x.slug)) {
-      const t = base && base.joueurs && base.joueurs[p.slug];
-      joueurs[p.slug] = t ? { S: [...t.S], A: [...t.A], B: [...t.B], C: [...t.C] } : { S: [], A: [...((p._cfg && p._cfg.pool_ids) || p.pool_ids || [])], B: [], C: [] };
+      const t = FC.normTiers(base && base.joueurs && base.joueurs[p.slug]);
+      joueurs[p.slug] = t ? { O: [...t.O], M: [...t.M], par: (base.joueurs[p.slug] || {}).par, maj: (base.joueurs[p.slug] || {}).maj } : { O: [...((p._cfg && p._cfg.pool_ids) || p.pool_ids || [])], M: [...((p._cfg && p._cfg.maitrise_ids) || [])] };
     }
     const debut = w ? w.debut : (base ? addDays(base.debut, 7) : todayYmd());
     S.poolEdit = { id: w ? w.id : null, debut, objectif: (w || base || {}).objectif || (S.cfgObj && S.cfgObj.games) || 20, note: w ? (w.note || '') : '', joueurs, err: '', busy: false };
@@ -1306,59 +1476,34 @@
 
   function renderPoolEditor(view) {
     const e = S.poolEdit;
-    const dl = h('datalist', { id: 'champ-list' }, ((S.champList && S.champList.list) || []).map((c) => h('option', { value: c.name })));
     const debut = h('input', { type: 'date', value: e.debut });
     debut.addEventListener('change', () => { e.debut = debut.value; });
     const obj = h('input', { type: 'number', class: 'inp num', min: 0, max: 200, value: e.objectif });
     obj.addEventListener('input', () => { e.objectif = obj.value; });
-    const note = h('textarea', { class: 'inp', rows: 2, placeholder: 'Consigne de la semaine (facultatif), ex. : priorité aux champions S, 3 games minimum sur chaque champion.' });
+    const note = h('textarea', { class: 'inp', rows: 2, placeholder: 'Consigne de la semaine (facultatif), ex. : 3 games minimum sur chaque champion obligatoire.' });
     note.value = e.note;
     note.addEventListener('input', () => { e.note = note.value; });
-
     const blocks = S.players.filter((x) => x.slug).map((p) => {
       const t = e.joueurs[p.slug];
-      const move = (id, to) => { for (const k of TIERS) t[k] = t[k].filter((x) => x !== id); if (to !== 'X') t[to].push(id); render(); };
-      const rows = TIERS.map((k) => h('div', { class: 'tier-row' }, tierBadge(k), h('div', { class: 'tier-chips' },
-        t[k].length ? t[k].map((id) => {
-          const sel = h('select', { class: 'tsel', 'aria-label': 'Tier de ' + FC.champName(id) }, [...TIERS.map((x) => h('option', { value: x }, 'Tier ' + x)), h('option', { value: 'X' }, 'Retirer')]);
-          sel.value = k;
-          sel.addEventListener('change', () => move(id, sel.value));
-          return h('span', { class: 'pchip edit' }, champIcon(id, 28), h('b', null, FC.champName(id)), sel);
-        }) : h('span', { class: 'muted small' }, 'vide'))));
-      const inp = h('input', { class: 'inp', list: 'champ-list', placeholder: 'Ajouter un champion…' });
-      const tsel = h('select', null, TIERS.map((x) => h('option', { value: x }, 'Tier ' + x)));
-      tsel.value = 'A';
-      const add = () => {
-        const id = champIdFromName(inp.value);
-        if (!id) return;
-        for (const k of TIERS) t[k] = t[k].filter((x) => x !== id);
-        t[tsel.value].push(id);
-        render();
-        setTimeout(() => { const x = document.querySelector(`[data-add="${p.slug}"]`); if (x) x.focus(); }, 30);
-      };
-      inp.setAttribute('data-add', p.slug);
-      inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') add(); });
-      return h('div', { class: 'card pool-card' }, h('div', { class: 'pool-head' }, roleLine(p, roleOf(p)), h('div', { class: 'pname' }, p.pseudo)),
-        h('div', { class: 'tiers' }, rows), h('div', { class: 'row' }, inp, tsel, h('button', { class: 'btn-ghost', onclick: add }, 'Ajouter')));
+      return h('div', { class: 'card pool-card' }, h('div', { class: 'pc-who' }, h('span', { class: 'pc-ico' }, roleOf(p).ico), h('div', { class: 'pname' }, p.pseudo)),
+        tierEditor(t, () => { t.par = 'coach'; t.maj = Date.now(); render(); }));
     });
-
-    const save = h('button', { class: 'btn-fire small-btn', disabled: e.busy || !S.coachState.github ? true : null, onclick: async () => {
+    const save = h('button', { class: 'btn-fire small-btn', disabled: e.busy || !(S.poolWrite || S.coachState.github) ? true : null, onclick: async () => {
       e.busy = true; e.err = ''; render();
       const r = await window.fire.coach.savePools({ type: 'save', semaine: { id: e.id, debut: e.debut, objectif: e.objectif, note: e.note, joueurs: e.joueurs } });
       e.busy = false;
-      if (r.ok) { S.pools = r.semaines; const w = r.semaines.find((x) => x.debut === e.debut); S.poolWeek = w ? w.id : null; S.poolEdit = null; S.flash = 'Tierlist publiée ✓ Les joueurs la verront à leur prochaine ouverture (ou dans 10 minutes au plus).'; applyWeek(); }
+      if (r.ok) { S.pools = r.semaines; const w = r.semaines.find((x) => x.debut === e.debut); S.poolWeek = w ? w.id : null; S.poolEdit = null; S.flash = 'Semaine publiée ✓ Les joueurs la verront à leur prochaine ouverture.'; applyWeek(); }
       else e.err = r.error;
       render();
     } }, e.busy ? 'Publication…' : "📣 Publier pour l'équipe");
-    view.replaceChildren(dl,
-      h('div', null, h('h1', { class: 'title' }, e.id ? '✏️ Modifier la semaine' : '➕ Nouvelle semaine'),
-        h('p', { class: 'muted' }, "Classe le pool de chaque joueur en tiers : S (à jouer en priorité), A, B, C. Le pool de la semaine remplace l'ancien dans les stats et l'objectif dès sa date de début.")),
+    view.replaceChildren(
+      h('header', { class: 'sec-hero pool-hero' }, h('div', { class: 'sec-ico' }, e.id ? '✏️' : '➕'), h('div', null, h('h1', { class: 'title' }, e.id ? 'Modifier la semaine' : 'Nouvelle semaine'),
+        h('p', { class: 'muted' }, "🎯 La ligne OBLIGATOIRE compte pour l'objectif. ⭐ MAÎTRISÉS : les champions sûrs du joueur. Un champion peut être dans les deux."))),
       h('div', { class: 'card composer' },
-        h('div', { class: 'row' }, h('label', { class: 'fld-inline' }, 'Début de la semaine ', debut), h('label', { class: 'fld-inline' }, 'Objectif : ', obj, ' games sur le pool')),
+        h('div', { class: 'row' }, h('label', { class: 'fld-inline' }, 'Début ', debut), h('label', { class: 'fld-inline' }, 'Objectif ', obj, ' games obligatoires')),
         note),
       ...blocks,
       h('div', { class: 'row' }, save, h('button', { class: 'btn-ghost', onclick: () => { S.poolEdit = null; render(); } }, 'Annuler'),
-        !S.coachState.github ? h('span', { class: 'bad small' }, 'Ajoute le jeton GitHub dans les réglages coach (📣 Parole du coach) pour publier.') : null,
         e.err ? h('span', { class: 'bad small' }, '⚠ ' + e.err) : null));
   }
 
@@ -1367,17 +1512,17 @@
     const lines = [];
     for (const p of S.players.filter((x) => x.slug)) {
       const d = S.data[p.slug];
-      const tiers = w ? (w.joueurs || {})[p.slug] : null;
       if (!d) continue;
-      const A = FC.poolAnalysis(p, d.matches, d.champs, tiers, rng.start, rng.end);
-      lines.push(`${p.role} ${p.pseudo} : ` + A.per.map((c) => `${c.champion}${c.tier ? ' (tier ' + c.tier + ')' : ''} ${c.games} games ${c.games ? fr(c.wr) + ' % WR, KDA ' + fr(c.kda, 2) : ''}`).join(' ; ')
-        + (A.hors.length ? ` ; hors pool : ${A.hors.map((c) => c.champion + ' ' + c.games).join(', ')}` : ''));
+      const t = w ? FC.normTiers((w.joueurs || {})[p.slug]) : null;
+      const A = FC.poolAnalysis(p, d.matches, d.champs, t, rng.start, rng.end);
+      const fmt = (c) => `${c.champion} ${c.games} games${c.games ? ' ' + fr(c.wr) + ' % WR, KDA ' + fr(c.kda, 2) : ''}`;
+      lines.push(`${p.role} ${p.pseudo} : obligatoires [${A.oblig.map(fmt).join(' ; ')}] ; maîtrisés [${A.maitrise.map(fmt).join(' ; ')}]` + (A.autres.length ? ` ; autres [${A.autres.map(fmt).join(' ; ')}]` : ''));
     }
     const d = ensureDraft();
     d.mode = 'fiche';
     d.fiche = null;
     d.cible = "Toute l'équipe";
-    d.sujet = `Analyse les champion pools de l'équipe ${w ? 'pour la ' + weekLabel(w).toLowerCase() : ''} : pour chaque joueur, ce qui marche, ce qu'il faut travailler, et des conseils concrets sur les champions de son pool (matchups, erreurs fréquentes, quand les choisir). Données classé Solo/Duo :\n` + lines.join('\n');
+    d.sujet = `Analyse les champion pools de l'équipe ${w ? 'pour la ' + weekLabel(w).toLowerCase() : ''} : pour chaque joueur, ce qui marche, ce qu'il faut travailler, et des conseils concrets sur ses champions obligatoires et maîtrisés (matchups, erreurs fréquentes, quand les choisir). Données classé Solo/Duo :\n` + lines.join('\n');
     S.section = 'coach';
     S.ficheId = null;
     render();

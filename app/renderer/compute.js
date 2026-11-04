@@ -44,6 +44,7 @@
 
   function toRows(player, matches, start, end) {
     const pool = new Set(player.pool_ids || []);
+    const maitrise = new Set(player.maitrise_ids || []);
     return (matches || [])
       .filter((m) => m.q === 420 && m.t >= start && (!end || m.t < end))
       .sort((a, b) => a.t - b.t)
@@ -56,6 +57,8 @@
           id: 'EUW1_' + m.id, t: m.t, jour: ymd(dt), jour_label: dayLabel(dt), jour_court: dayShort(dt),
           heure: `${pad(dt.getHours())}:${pad(dt.getMinutes())}`,
           champion: champName(m.championName), champ_id: m.championName, pool: pool.has(m.championName), lane,
+          maitrise: maitrise.has(m.championName),
+          cat: pool.has(m.championName) ? 'oblig' : maitrise.has(m.championName) ? 'maitrise' : 'autre',
           adversaire: m.opponentChampionName ? champName(m.opponentChampionName) : '—',
           win: !!m.win, duree: `${Math.floor(m.d / 60)}:${pad(m.d % 60)}`,
           kills: num(m.kills) || 0, morts: num(m.deaths) || 0, assists: num(m.assists) || 0,
@@ -93,7 +96,10 @@
       gold15_neg: rows.filter((r) => r.gold15 != null && r.gold15 < 0).length,
       degats_min: avg('degats_min', 0), kp: avg('kp'), vision: avg('vision'),
       pinks: sum('pinks'), pinks_moy: avg('pinks'),
-      hors_pool: rows.filter((r) => !r.pool).length
+      hors_pool: rows.filter((r) => !r.pool).length,
+      oblig: rows.filter((r) => r.cat === 'oblig').length,
+      maitrise_g: rows.filter((r) => r.cat === 'maitrise').length,
+      autres: rows.filter((r) => r.cat === 'autre').length
     };
   }
 
@@ -111,7 +117,7 @@
 
   function byChamp(rows) {
     return [...group(rows, 'champ_id').entries()]
-      .map(([id, rs]) => ({ id, champion: rs[0].champion, pool: rs[0].pool, rows: rs, ...stats(rs) }))
+      .map(([id, rs]) => ({ id, champion: rs[0].champion, pool: rs[0].pool, maitrise: rs[0].maitrise, cat: rs[0].cat, rows: rs, ...stats(rs) }))
       .sort((a, b) => b.games - a.games || b.wins - a.wins);
   }
 
@@ -152,62 +158,72 @@
   }
 
   // ---------- Tierlists des pools (rubrique POOL) ----------
-  const TIERS = ['S', 'A', 'B', 'C'];
-  const poolIds = (tiers) => TIERS.flatMap((t) => (tiers && tiers[t]) || []);
+  // Ligne 1 : OBLIGATOIRE (comptée pour l'objectif de la semaine). Ligne 2 : MAÎTRISÉS. Un champion peut être dans les deux.
+  const TIERS = ['O', 'M'];
+  const TIER_INFO = { O: { label: 'OBLIGATOIRE', ico: '🎯', court: 'Obligatoire' }, M: { label: 'MAÎTRISÉS', ico: '⭐', court: 'Maîtrisé' } };
+  const normTiers = (t) => {
+    if (!t) return null;
+    if (Array.isArray(t.O) || Array.isArray(t.M)) return { O: [...(t.O || [])], M: [...(t.M || [])], par: t.par, maj: t.maj };
+    return { O: ['S', 'A', 'B', 'C'].flatMap((k) => t[k] || []), M: [] }; // ancien format S/A/B/C
+  };
+  const poolIds = (t) => { const n = normTiers(t); return n ? n.O : []; };
+  const maitriseIds = (t) => { const n = normTiers(t); return n ? n.M : []; };
 
   function verdict(st) {
-    if (!st.games) return { kind: 'neutre', txt: 'Pas encore joué' };
-    if (st.games < 3) return { kind: 'neutre', txt: 'Peu de games' };
-    if (st.wr >= 55) return { kind: 'good', txt: 'Solide' };
-    if (st.wr < 45) return { kind: 'bad', txt: 'À travailler' };
-    return { kind: 'neutre', txt: 'Correct' };
+    if (!st.games) return { kind: 'neutre', txt: 'Pas encore joué', ico: '💤' };
+    if (st.games < 3) return { kind: 'neutre', txt: 'Peu de games', ico: '🔎' };
+    if (st.wr >= 55) return { kind: 'good', txt: 'Solide', ico: '💪' };
+    if (st.wr < 45) return { kind: 'bad', txt: 'À travailler', ico: '⚠️' };
+    return { kind: 'neutre', txt: 'Correct', ico: '👌' };
   }
 
-  // Analyse d'un pool sur une période : stats par champion, champions hors pool, remarques (toujours vraies).
+  // Analyse d'un pool sur une période : obligatoires, maîtrisés et autres champions joués, avec des remarques (toujours vraies).
   function poolAnalysis(player, matches, champs, tiers, start, end) {
-    const ids = tiers ? poolIds(tiers) : (player.pool_ids || []);
-    const tierOf = (id) => (tiers ? TIERS.find((t) => (tiers[t] || []).includes(id)) || null : null);
-    const rows = toRows({ ...player, pool_ids: ids }, matches, start, end);
-    const per = ids.map((id) => {
+    const t = normTiers(tiers) || { O: player.pool_ids || [], M: player.maitrise_ids || [] };
+    const rows = toRows({ ...player, pool_ids: t.O, maitrise_ids: t.M }, matches, start, end);
+    const card = (id) => {
       const st = stats(rows.filter((r) => r.champ_id === id));
       const sp = (champs || []).find((c) => c.id === id);
-      return { id, champion: champName(id), tier: tierOf(id), ...st, verdict: verdict(st),
+      return { id, champion: champName(id), oblig: t.O.includes(id), maitrise: t.M.includes(id), ...st, verdict: verdict(st),
         split: sp && sp.games ? { games: sp.games, wins: sp.wins, wr: r1((sp.wins / sp.games) * 100), kda: sp.kda == null ? null : r1(sp.kda, 2) } : null };
-    });
-    const poolRows = rows.filter((r) => r.pool);
-    const hors = byChamp(rows.filter((r) => !r.pool)).map((c) => ({ id: c.id, champion: c.champion, games: c.games, wins: c.wins, wr: c.wr }));
-    const total = stats(poolRows);
+    };
+    const oblig = t.O.map(card);
+    const maitrise = t.M.map(card);
+    const autres = byChamp(rows.filter((r) => r.cat === 'autre')).map((c) => ({ id: c.id, champion: c.champion, ...stats(c.rows), verdict: verdict(stats(c.rows)) }));
+    const tot = { oblig: stats(rows.filter((r) => r.cat === 'oblig')), maitrise: stats(rows.filter((r) => r.cat === 'maitrise')), autres: stats(rows.filter((r) => r.cat === 'autre')), all: stats(rows) };
     const notes = [];
     const pctW = (x) => `${fr(x.wr)} %`;
-    for (const c of per) {
-      if (c.tier === 'S' && c.games >= 4 && c.wr < 45) notes.push({ kind: 'bad', text: `${c.champion} est classé S mais gagne ${pctW(c)} de ses ${c.games} games : à revoir avec le coach.` });
-      if ((c.tier === 'B' || c.tier === 'C') && c.games >= 4 && c.wr >= 60) notes.push({ kind: 'good', text: `${c.champion} (tier ${c.tier}) gagne ${pctW(c)} de ses ${c.games} games : il mérite peut-être de monter.` });
-      if (c.games >= 5 && c.wr < 40 && c.tier !== 'S') notes.push({ kind: 'bad', text: `${c.champion} : ${c.wins} victoire${c.wins > 1 ? 's' : ''} sur ${c.games} games. À travailler, ou à remplacer dans le pool.` });
+    for (const c of oblig) {
+      if (c.games >= 4 && c.wr < 40) notes.push({ kind: 'bad', ico: '⚠️', text: `${c.champion} (obligatoire) : ${c.wins} V – ${c.losses} D. À travailler en priorité.` });
+      if (c.games >= 3 && c.wr >= 60) notes.push({ kind: 'good', ico: '🔥', text: `${c.champion} (obligatoire) marche très bien : ${pctW(c)} sur ${c.games} games.` });
     }
-    const best = per.filter((c) => c.games >= 3).sort((a, b) => b.wr - a.wr || b.games - a.games)[0];
-    if (best && best.wr >= 55) notes.push({ kind: 'good', text: `Meilleur champion du pool sur la période : ${best.champion}, ${pctW(best)} sur ${best.games} games.` });
-    if (tiers && total.games >= 5) {
-      const sGames = poolRows.filter((r) => (tiers.S || []).includes(r.champ_id)).length;
-      notes.push({ kind: 'neutre', text: `${Math.round((sGames / total.games) * 100)} % de ses games de pool sont sur ses champions S.` });
+    for (const c of maitrise) {
+      if (!c.oblig && c.games >= 3 && c.wr < 40) notes.push({ kind: 'bad', ico: '⚠️', text: `${c.champion} est noté maîtrisé mais gagne ${pctW(c)} de ses ${c.games} games.` });
+      if (!c.oblig && c.games >= 3 && c.wr >= 60) notes.push({ kind: 'good', ico: '⭐', text: `${c.champion} confirme sa maîtrise : ${pctW(c)} sur ${c.games} games.` });
     }
-    const jamais = per.filter((c) => !c.games).map((c) => c.champion);
-    if (jamais.length && rows.length) notes.push({ kind: 'neutre', text: `Pas encore joué sur la période : ${jamais.join(', ')}.` });
-    if (hors.length) notes.push({ kind: hors.reduce((s, c) => s + c.games, 0) > total.games ? 'bad' : 'neutre', text: `${pl(hors.reduce((s, c) => s + c.games, 0), 'game', 'games')} hors pool : ${hors.slice(0, 4).map((c) => `${c.champion} (${c.games})`).join(', ')}.` });
+    const jamais = oblig.filter((c) => !c.games).map((c) => c.champion);
+    if (jamais.length && rows.length) notes.push({ kind: 'warn', ico: '💤', text: `Obligatoire${jamais.length > 1 ? 's' : ''} pas encore joué${jamais.length > 1 ? 's' : ''} : ${jamais.join(', ')}.` });
+    if (tot.autres.games) {
+      const part = Math.round((tot.autres.games / Math.max(1, rows.length)) * 100);
+      notes.push({ kind: part >= 30 ? 'bad' : 'warn', ico: '❔', text: `${pl(tot.autres.games, 'game', 'games')} sur d'autres champions (${part} %) : ${autres.slice(0, 4).map((c) => `${c.champion} ${c.games}`).join(', ')}.` });
+    }
+    if (rows.length && !tot.autres.games) notes.push({ kind: 'good', ico: '✅', text: 'Aucune game en dehors de ses champions obligatoires et maîtrisés.' });
+    const ids = [...t.O, ...t.M];
     const cand = (champs || []).filter((c) => !ids.includes(c.id) && c.games >= 8 && c.wins / c.games >= 0.55).sort((a, b) => b.games - a.games).slice(0, 2);
-    cand.forEach((c) => notes.push({ kind: 'good', text: `Candidat possible pour le pool : ${champName(c.id)}, ${fr((c.wins / c.games) * 100)} % de victoires sur ${c.games} games ce split.` }));
-    return { per, hors, total, notes, rows: rows.length };
+    cand.forEach((c) => notes.push({ kind: 'good', ico: '💡', text: `Candidat aux maîtrisés : ${champName(c.id)}, ${fr((c.wins / c.games) * 100)} % de victoires sur ${c.games} games ce split.` }));
+    return { oblig, maitrise, autres, tot, notes, rows: rows.length };
   }
 
-  // Changements d'une semaine à l'autre : champions ajoutés, retirés, changés de tier.
+  // Changements d'une semaine à l'autre, ligne par ligne.
   function poolChanges(prev, cur) {
-    if (!prev || !cur) return null;
-    const tp = (t, id) => TIERS.find((k) => (t[k] || []).includes(id));
-    const a = poolIds(cur), b = poolIds(prev);
-    return {
-      ajoutes: a.filter((id) => !b.includes(id)).map((id) => ({ id, champion: champName(id), tier: tp(cur, id) })),
-      retires: b.filter((id) => !a.includes(id)).map((id) => ({ id, champion: champName(id), tier: tp(prev, id) })),
-      deplaces: a.filter((id) => b.includes(id) && tp(cur, id) !== tp(prev, id)).map((id) => ({ id, champion: champName(id), de: tp(prev, id), vers: tp(cur, id) }))
-    };
+    const a = normTiers(cur), b = normTiers(prev);
+    if (!a || !b) return null;
+    const out = [];
+    for (const k of TIERS) {
+      a[k].filter((id) => !b[k].includes(id)).forEach((id) => out.push({ type: 'add', k, id, champion: champName(id) }));
+      b[k].filter((id) => !a[k].includes(id)).forEach((id) => out.push({ type: 'del', k, id, champion: champName(id) }));
+    }
+    return out;
   }
 
   // ---------- Formats ----------
@@ -224,41 +240,42 @@
     if (obj && obj.target) {
       const d = new Date(obj.start);
       const depuis = `${d.getDate() === 1 ? '1er' : d.getDate()} ${MOIS[d.getMonth()]}`;
-      if (obj.done >= obj.target) out.push({ kind: 'plus', ico: '🎯', title: 'Objectif atteint', text: `${obj.done} games sur son pool depuis le ${depuis} (objectif : ${obj.target}).` });
-      else out.push({ kind: obj.done >= obj.target / 2 ? 'info' : 'warn', ico: '🎯', title: `Objectif : ${obj.done} / ${obj.target}`, text: `${obj.done} ${obj.done > 1 ? 'games' : 'game'} sur son pool depuis le ${depuis} : il en reste ${obj.reste} à jouer.` });
+      if (obj.done >= obj.target) out.push({ kind: 'plus', ico: '🎯', title: 'Objectif atteint', chip: `${obj.done} / ${obj.target}`, text: `${obj.done} games sur ses champions obligatoires depuis le ${depuis} (objectif : ${obj.target}).` });
+      else out.push({ kind: obj.done >= obj.target / 2 ? 'info' : 'warn', ico: '🎯', title: 'Objectif de la semaine', chip: `${obj.done} / ${obj.target}`, text: `${obj.done} ${obj.done > 1 ? 'games' : 'game'} sur ses champions obligatoires depuis le ${depuis} : il en reste ${obj.reste} à jouer.` });
     }
     if (!s.games) return out.concat([{ kind: 'info', ico: '😴', title: 'Pas de game', text: 'Aucune game classée Solo/Duo sur cette période.' }]);
 
-    if (s.morts_moy > rep.morts_moy.v) out.push({ kind: 'warn', ico: '💀', title: 'Il meurt trop', text: `${fr(s.morts_moy, 1)} morts par game en moyenne, pour un KDA de ${fr(s.kda, 2)}.` });
-    else out.push({ kind: 'plus', ico: '🛡️', title: 'Point fort : il meurt peu', text: `${fr(s.morts_moy, 1)} morts par game en moyenne, pour un KDA de ${fr(s.kda, 2)}.` });
+    if (s.morts_moy > rep.morts_moy.v) out.push({ kind: 'warn', ico: '💀', title: 'Il meurt trop', chip: `${fr(s.morts_moy, 1)} morts/game`, text: `${fr(s.morts_moy, 1)} morts par game en moyenne, pour un KDA de ${fr(s.kda, 2)}.` });
+    else out.push({ kind: 'plus', ico: '🛡️', title: 'Il meurt peu', chip: `${fr(s.morts_moy, 1)} morts/game`, text: `${fr(s.morts_moy, 1)} morts par game en moyenne, pour un KDA de ${fr(s.kda, 2)}.` });
 
     if (s.gold15 != null) {
       if (s.gold15 < 0) {
         let t = `En retard de golds à 15 min dans ${s.gold15_neg} ${s.gold15_neg > 1 ? 'games' : 'game'} sur ${s.games} (${sg(s.gold15)} en moyenne ${R.face}).`;
         if (role !== 'support' && s.cs15 != null) t += s.cs15 >= 0 ? ` Il a pourtant ${sg(s.cs15, 1)} CS d'écart à 15 min : le retard vient des fights et des morts, pas du farm.` : ` Il perd aussi au farm (${sg(s.cs15, 1)} CS à 15 min).`;
-        out.push({ kind: 'warn', ico: '⏱️', title: 'Début de partie', text: t });
+        out.push({ kind: 'warn', ico: '⏱️', title: 'Début de partie', chip: `${sg(s.gold15)} golds @15`, text: t });
       } else {
-        out.push({ kind: 'plus', ico: '✅', title: role === 'jungle' ? 'Point fort : son début de partie' : 'Point fort : sa lane', text: `En moyenne ${sg(s.gold15)} golds${role !== 'support' && s.cs15 != null ? ` et ${sg(s.cs15, 1)} CS` : ''} d'écart ${R.sur} à 15 min.` });
+        out.push({ kind: 'plus', ico: '✅', title: role === 'jungle' ? 'Son début de partie' : 'Sa lane', chip: `${sg(s.gold15)} golds @15`, text: `En moyenne ${sg(s.gold15)} golds${role !== 'support' && s.cs15 != null ? ` et ${sg(s.cs15, 1)} CS` : ''} d'écart ${R.sur} à 15 min.` });
       }
     }
 
     if (role === 'support') {
-      if (s.pinks_moy < rep.pinks_moy.v || s.vision < rep.vision.v) out.push({ kind: 'warn', ico: '👁️', title: 'Vision', text: `${pl(s.pinks, 'pink posée', 'pinks posées')} en ${s.games} games (${fr(s.pinks_moy, 1)} par game) et ${fr(s.vision, 1)} de score de vision par game.` });
-      else out.push({ kind: 'plus', ico: '✅', title: 'Point fort : la vision', text: `${pl(s.pinks, 'pink posée', 'pinks posées')} en ${s.games} games (${fr(s.pinks_moy, 1)} par game) et ${fr(s.vision, 1)} de score de vision par game.` });
+      if (s.pinks_moy < rep.pinks_moy.v || s.vision < rep.vision.v) out.push({ kind: 'warn', ico: '👁️', title: 'Vision', chip: `${fr(s.vision, 1)} vision/game`, text: `${pl(s.pinks, 'pink posée', 'pinks posées')} en ${s.games} games (${fr(s.pinks_moy, 1)} par game) et ${fr(s.vision, 1)} de score de vision par game.` });
+      else out.push({ kind: 'plus', ico: '✅', title: 'La vision', chip: `${fr(s.vision, 1)} vision/game`, text: `${pl(s.pinks, 'pink posée', 'pinks posées')} en ${s.games} games (${fr(s.pinks_moy, 1)} par game) et ${fr(s.vision, 1)} de score de vision par game.` });
     } else {
-      if (s.pinks_moy < rep.pinks_moy.v) out.push({ kind: 'warn', ico: '👁️', title: 'Vision', text: `${pl(s.pinks, 'pink posée', 'pinks posées')} en ${s.games} games.` });
-      if (R.cs && s.cs_min != null && s.cs_min < R.cs) out.push({ kind: 'warn', ico: '🌾', title: 'Farm', text: `${fr(s.cs_min, 1)} CS par minute en moyenne (repère ≥ ${R.cs}).` });
+      if (s.pinks_moy < rep.pinks_moy.v) out.push({ kind: 'warn', ico: '👁️', title: 'Vision', chip: `${fr(s.pinks_moy, 1)} pink/game`, text: `${pl(s.pinks, 'pink posée', 'pinks posées')} en ${s.games} games.` });
+      if (R.cs && s.cs_min != null && s.cs_min < R.cs) out.push({ kind: 'warn', ico: '🌾', title: 'Farm', chip: `${fr(s.cs_min, 1)} CS/min`, text: `${fr(s.cs_min, 1)} CS par minute en moyenne (repère ≥ ${R.cs}).` });
     }
 
     const pc = byChamp(rows);
     const missing = (player.pool_ids || []).filter((id) => !rows.some((r) => r.champ_id === id)).map(champName);
-    if (s.hors_pool > 0) {
-      const off = pc.filter((c) => !c.pool).map((c) => `${c.champion} ${c.games}`).join(', ');
-      out.push({ kind: 'warn', ico: '🧙', title: 'Champion pool', text: `${s.hors_pool} ${s.hors_pool > 1 ? 'games' : 'game'} sur ${s.games} hors de son pool (${off}).${missing.length ? ` Pas joué : ${missing.join(', ')}.` : ''}` });
+    const split = `🎯 ${s.oblig} obligatoire${s.oblig > 1 ? 's' : ''} · ⭐ ${s.maitrise_g} maîtrisé${s.maitrise_g > 1 ? 's' : ''} · ❔ ${s.autres} autre${s.autres > 1 ? 's' : ''}`;
+    if (s.autres > 0) {
+      const off = pc.filter((c) => c.cat === 'autre').map((c) => `${c.champion} ${c.games}`).join(', ');
+      out.push({ kind: 'warn', ico: '🧙', title: 'Champions hors pool', chip: split, text: `${s.autres} ${s.autres > 1 ? 'games' : 'game'} sur des champions ni obligatoires ni maîtrisés (${off}).${missing.length ? ` Obligatoires pas joués : ${missing.join(', ')}.` : ''}` });
     } else {
-      out.push({ kind: 'plus', ico: '✅', title: 'Il joue son pool', text: `Toutes ses games sont sur son pool imposé.${missing.length ? ` Pas joué : ${missing.join(', ')}.` : ''}` });
+      out.push({ kind: 'plus', ico: '✅', title: 'Il joue son pool', chip: split, text: `Toutes ses games sont sur ses champions obligatoires ou maîtrisés.${missing.length ? ` Obligatoires pas joués : ${missing.join(', ')}.` : ''}` });
     }
-    pc.filter((c) => c.pool && c.games >= 3 && c.wr < 35).forEach((c) => out.push({ kind: 'warn', ico: '⚠️', title: c.champion, text: `${c.wins} V – ${c.losses} D sur la période avec ce champion du pool.` }));
+    pc.filter((c) => c.pool && c.games >= 3 && c.wr < 35).forEach((c) => out.push({ kind: 'warn', ico: '⚠️', title: c.champion, text: `${c.wins} V – ${c.losses} D sur la période avec ce champion obligatoire.` }));
 
     const off = rows.filter((r) => r.lane && r.lane !== R.lane);
     if (off.length) {
@@ -274,7 +291,7 @@
     const parts = [`${pl(s.wins, 'victoire', 'victoires')}, ${pl(s.losses, 'défaite', 'défaites')} (${fr(s.wr, 1)} %), KDA ${fr(s.kda, 2)}.`];
     const R = ROLES[player.role_id];
     if (s.gold15 != null) parts.push(s.gold15 < 0 ? `En moyenne ${sg(s.gold15)} golds à 15 min ${R.face}.` : `En moyenne ${sg(s.gold15)} golds d'avance à 15 min ${R.sur}.`);
-    if (s.hors_pool) parts.push(`${s.hors_pool} ${s.hors_pool > 1 ? 'games' : 'game'} hors de son pool.`);
+    if (s.autres) parts.push(`${s.autres} ${s.autres > 1 ? 'games' : 'game'} hors de ses champions obligatoires et maîtrisés.`);
     return parts.join(' ');
   }
 
@@ -298,7 +315,7 @@
     return b;
   }
 
-  const api = { TIERS, poolIds, poolAnalysis, poolChanges, verdict, NAMES, champName, ROLES, LANE, reperes, toRows, stats, byDay, byChamp, poolSplit, splitTotals, objectif, insights, lead, badges, fr, sg, pl, ymd };
+  const api = { TIERS, TIER_INFO, normTiers, poolIds, maitriseIds, poolAnalysis, poolChanges, verdict, NAMES, champName, ROLES, LANE, reperes, toRows, stats, byDay, byChamp, poolSplit, splitTotals, objectif, insights, lead, badges, fr, sg, pl, ymd };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.FC = api;
 })(typeof window !== 'undefined' ? window : globalThis);

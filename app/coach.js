@@ -179,6 +179,26 @@ async function coachSave(keys) {
     if (r.ok && !push) push = true;
     if (r.ok && push) { c.github = t; out.messages.push('Jeton GitHub enregistré ✓'); } else { out.ok = false; out.messages.push(`Jeton GitHub refusé (erreur ${r.status}). Il doit donner accès en écriture (Contents) au dépôt ${REPO}.`); }
   }
+  if (keys.equipe) {
+    const dr = getConfig().data_repo;
+    const t = String(keys.equipe).trim();
+    if (!dr) { out.ok = false; out.messages.push("Aucun dépôt de données n'est configuré (data_repo)."); }
+    else if (!c.github) { out.ok = false; out.messages.push("Enregistre d'abord ton jeton GitHub (il sert à publier le jeton d'équipe)."); }
+    else {
+      const r = await http('https://api.github.com/repos/' + dr, { headers: ghHeaders(t) });
+      if (!r.ok) { out.ok = false; out.messages.push(`Jeton d'équipe refusé (erreur ${r.status}) : il doit donner accès en écriture (Contents) au dépôt ${dr}.`); }
+      else {
+        try {
+          const cur = await ghGet(c.github, 'coach/acces.json');
+          const w = await ghPut(c.github, 'coach/acces.json', seal({ token: t }, 'acces'), cur && cur.sha, "Accès d'écriture des joueurs aux tierlists");
+          if (!w.ok) throw new Error('conflit, réessaie');
+          teamTok = t;
+          writeSecret('acces.bin', { token: t });
+          out.messages.push("Jeton d'équipe publié ✓ Les joueurs peuvent maintenant modifier leur tierlist.");
+        } catch (e) { out.ok = false; out.messages.push("Publication du jeton d'équipe impossible : " + ((e && e.message) || e)); }
+      }
+    }
+  }
   writeSecret('coach.bin', c);
   return { ...out, ...coachState() };
 }
@@ -305,17 +325,18 @@ async function generate(req) {
 
 // ---------- Publication et lecture des fiches (dépôt GitHub, dossier coach/) ----------
 
-async function ghGet(token, p) {
-  const r = await http(GH_API + p + '?ref=main', { headers: ghHeaders(token) });
+const apiOf = (repo) => 'https://api.github.com/repos/' + (repo || REPO) + '/contents/';
+async function ghGet(token, p, repo) {
+  const r = await http(apiOf(repo) + p + '?ref=main', { headers: ghHeaders(token) });
   if (r.status === 404) return null;
   if (!r.ok) throw new Error(`GitHub a refusé la lecture (${r.status})`);
   const j = await r.json();
   return { sha: j.sha, json: j.content ? JSON.parse(Buffer.from(j.content, 'base64').toString('utf8')) : null };
 }
-async function ghPut(token, p, obj, sha, message) {
+async function ghPut(token, p, obj, sha, message, repo) {
   const body = { message, content: Buffer.from(JSON.stringify(obj, null, 1), 'utf8').toString('base64'), branch: 'main' };
   if (sha) body.sha = sha;
-  const r = await http(GH_API + p, { method: 'PUT', headers: { ...ghHeaders(token), 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const r = await http(apiOf(repo) + p, { method: 'PUT', headers: { ...ghHeaders(token), 'content-type': 'application/json' }, body: JSON.stringify(body) });
   if (r.status === 409 || r.status === 422) return { conflict: true };
   if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? 'jeton GitHub refusé : vérifie-le dans les réglages coach' : `GitHub a refusé l'envoi (${r.status})`);
   return { ok: true };
@@ -375,14 +396,17 @@ function saveCache(id, box) {
 }
 function loadCache(id) { try { return JSON.parse(fs.readFileSync(cachePath(id), 'utf8')); } catch (e) { return null; } }
 
-async function readPublic(p) {
+async function readPublic(p, repo, token) {
   // API GitHub (toujours à jour), puis copie « raw » si la limite de l'API est atteinte.
   try {
-    const r = await http(GH_API + p + '?ref=main', { headers: { Accept: 'application/vnd.github.raw+json', 'User-Agent': 'FIRE-LoL' } });
-    if (r.status === 404) return null;
+    const headers = { Accept: 'application/vnd.github.raw+json', 'User-Agent': 'FIRE-LoL' };
+    if (token) headers.Authorization = 'Bearer ' + token;
+    const r = await http(apiOf(repo) + p + '?ref=main', { headers });
+    if (r.status === 404 && !token) return null;
     if (r.ok) return JSON.parse(await r.text());
+    if (r.status === 404) return null;
   } catch (e) { /* on tente la copie raw */ }
-  const r = await http(RAW + p + '?t=' + Date.now());
+  const r = await http('https://raw.githubusercontent.com/' + (repo || REPO) + '/main/' + p + '?t=' + Date.now());
   if (r.status === 404) return null;
   if (!r.ok) throw new Error('fiches du coach injoignables (' + r.status + ')');
   return JSON.parse(await r.text());
@@ -414,9 +438,18 @@ async function list() {
 }
 
 // ---------- Tierlists des champion pools (une par semaine), chiffrées comme les fiches ----------
+// Ligne O : OBLIGATOIRE (comptée pour l'objectif). Ligne M : MAÎTRISÉS. Un champion peut être dans les deux.
+// Les tierlists vont dans un dépôt de données à part (joueurs.json → data_repo), où les joueurs peuvent écrire
+// avec le jeton d'équipe (chiffré avec le code d'équipe). Ce jeton ne donne aucun accès au code de l'application.
 
-const TIERS = ['S', 'A', 'B', 'C'];
 const POOLS = 'coach/pools.json';
+const cleanIds = (a) => { const seen = new Set(); return (Array.isArray(a) ? a : []).map((x) => String(x).replace(/[^A-Za-z0-9]/g, '').slice(0, 30)).filter((x) => x && !seen.has(x) && seen.add(x)).slice(0, 15); };
+
+function cleanTiers(t, par) {
+  t = t || {};
+  const legacy = ['S', 'A', 'B', 'C'].flatMap((k) => (Array.isArray(t[k]) ? t[k] : []));
+  return { O: cleanIds(Array.isArray(t.O) ? t.O : legacy), M: cleanIds(t.M), par: par || (t.par === 'joueur' ? 'joueur' : 'coach'), maj: Number(t.maj) || Date.now() };
+}
 
 function cleanWeek(w) {
   const debut = /^\d{4}-\d{2}-\d{2}$/.test(String(w && w.debut)) ? w.debut : null;
@@ -424,12 +457,7 @@ function cleanWeek(w) {
   const joueurs = {};
   for (const [slug, t] of Object.entries((w && w.joueurs) || {})) {
     if (typeof slug !== 'string' || slug.length > 80) continue;
-    const seen = new Set();
-    const tiers = {};
-    for (const k of TIERS) {
-      tiers[k] = (Array.isArray(t && t[k]) ? t[k] : []).map((x) => String(x).replace(/[^A-Za-z0-9]/g, '').slice(0, 30)).filter((x) => x && !seen.has(x) && seen.add(x)).slice(0, 12);
-    }
-    joueurs[slug] = tiers;
+    joueurs[slug] = cleanTiers(t);
   }
   return {
     id: typeof w.id === 'string' && /^[a-z0-9-]{4,40}$/.test(w.id) ? w.id : Date.now().toString(36) + '-' + crypto.randomBytes(3).toString('hex'),
@@ -437,35 +465,71 @@ function cleanWeek(w) {
   };
 }
 
-async function pools() {
-  if (!teamKey()) return { ok: false, error: "entre à nouveau le code d'équipe pour lire les pools" };
-  let box = null, offline = false;
-  try { box = await readPublic(POOLS); if (box) saveCache('pools', box); } catch (e) { offline = true; box = loadCache('pools'); }
-  if (!box) return { ok: true, semaines: [], offline };
+// Jeton d'écriture de l'équipe : publié chiffré par le coach dans coach/acces.json.
+let teamTok = null;
+async function teamToken() {
   try {
-    const d = open(box);
-    return { ok: true, semaines: (d.semaines || []).sort((a, b) => a.debut.localeCompare(b.debut)), offline };
-  } catch (e) { return { ok: false, error: 'pools illisibles avec ce code' }; }
+    const box = await readPublic('coach/acces.json');
+    if (box) { const d = open(box); teamTok = d.token || null; if (teamTok) writeSecret('acces.bin', { token: teamTok }); }
+    else { teamTok = null; removeFile('acces.bin'); }
+  } catch (e) {
+    if (!teamTok) { const c = readSecret('acces.bin'); teamTok = (c && c.token) || null; } // hors ligne
+  }
+  return teamTok;
 }
 
-// action : { type: 'save', semaine } ou { type: 'delete', id }
-async function savePools(action) {
-  const c = readSecret('coach.bin') || {};
-  if (!coachState().coach) return { ok: false, error: 'mode coach non activé' };
-  if (!c.github) return { ok: false, error: "ajoute d'abord le jeton GitHub dans les réglages coach" };
+async function pools() {
+  if (!teamKey()) return { ok: false, error: "entre à nouveau le code d'équipe pour lire les pools" };
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  let box = null, offline = false;
   try {
-    for (let i = 0; i < 3; i++) {
-      const cur = await ghGet(c.github, POOLS);
+    if (dr) box = await readPublic('pools.json', dr, tok);
+    if (!box) box = await readPublic(POOLS);
+    if (box) saveCache('pools', box);
+  } catch (e) { offline = true; box = loadCache('pools'); }
+  const base = { peutEcrire: !!(dr && tok), depot: dr, offline };
+  if (!box) return { ok: true, semaines: [], ...base };
+  try {
+    const d = open(box);
+    return { ok: true, semaines: (d.semaines || []).sort((a, b) => a.debut.localeCompare(b.debut)), ...base };
+  } catch (e) { return { ok: false, error: 'pools illisibles avec ce code', ...base }; }
+}
+
+// action : { type: 'save', semaine } ou { type: 'delete', id } (coach), { type: 'joueur', slug, debut, objectif, tiers } (joueur ou coach)
+async function savePools(action) {
+  const cfg = getConfig();
+  const dr = cfg.data_repo || null;
+  const isCoach = coachState().coach;
+  const c = readSecret('coach.bin') || {};
+  const tok = dr ? await teamToken() : null;
+  let repo, token, file;
+  if (dr && tok) { repo = dr; token = tok; file = 'pools.json'; }
+  else if (isCoach && c.github) { repo = REPO; token = c.github; file = POOLS; }
+  else return { ok: false, error: dr ? "le coach n'a pas encore activé l'écriture des tierlists pour les joueurs" : 'réservé au coach' };
+  if (action.type !== 'joueur' && !isCoach) return { ok: false, error: 'réservé au coach' };
+  try {
+    for (let i = 0; i < 4; i++) {
+      const cur = await ghGet(token, file, repo);
       let semaines = [];
       if (cur && cur.json) semaines = open(cur.json).semaines || [];
+      else if (repo !== REPO) { try { const old = await readPublic(POOLS); if (old) semaines = open(old).semaines || []; } catch (e) { /* rien à reprendre */ } }
       if (action.type === 'delete') semaines = semaines.filter((w) => w.id !== action.id);
-      else {
+      else if (action.type === 'joueur') {
+        const slug = String(action.slug || '').slice(0, 80);
+        if (!slug) throw new Error('joueur inconnu');
+        let w = semaines.find((x) => x.debut === action.debut);
+        if (!w) { w = cleanWeek({ debut: action.debut, objectif: action.objectif || (cfg.objectif && cfg.objectif.games) || 20, joueurs: {} }); semaines.push(w); }
+        w.joueurs = w.joueurs || {};
+        w.joueurs[slug] = cleanTiers(action.tiers, isCoach && action.par !== 'joueur' ? 'coach' : 'joueur');
+        w.joueurs[slug].maj = Date.now();
+      } else {
         const w = cleanWeek(action.semaine || {});
         semaines = semaines.filter((x) => x.id !== w.id && x.debut !== w.debut).concat([w]);
       }
       semaines.sort((a, b) => a.debut.localeCompare(b.debut));
       const box = seal({ semaines }, 'pools');
-      const r = await ghPut(c.github, POOLS, box, cur && cur.sha, 'Pools : tierlists de la semaine');
+      const r = await ghPut(token, file, box, cur && cur.sha, 'Pools : tierlists de la semaine', repo);
       if (r.ok) { saveCache('pools', box); return { ok: true, semaines }; }
     }
     throw new Error('les pools ont changé pendant l\'envoi, réessaie');
