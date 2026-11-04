@@ -527,7 +527,9 @@ details.acc[open] > summary::after { transform: rotate(180deg); }
 .lv-sub{color:#a8988c;font-size:12px}
 
 /* ===== Stats de l'équipe (flex jouées ensemble) ===== */
-.team-card{position:relative;display:flex;align-items:center;gap:18px;margin:4px 0 18px;padding:18px 20px;border-radius:var(--r);cursor:pointer;
+.team-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px;margin:4px 0 18px}
+.team-card.t5{background:linear-gradient(135deg,rgba(255,94,58,.14),rgba(120,60,200,.12));border-color:rgba(255,94,58,.45)}
+.team-card{position:relative;display:flex;align-items:center;gap:18px;margin:0;padding:18px 20px;border-radius:var(--r);cursor:pointer;
   background:linear-gradient(135deg,rgba(255,179,71,.13),rgba(200,29,37,.10));border:1px solid rgba(255,179,71,.40);transition:transform .12s,border-color .12s}
 .team-card:hover,.team-card:focus{transform:translateY(-1px);border-color:var(--fire1);outline:none}
 .team-card-txt{flex:1;display:flex;flex-direction:column;gap:6px}

@@ -264,7 +264,7 @@
     if (early && !late) res.plan.push('Vous êtes une équipe de début de partie : jouez les larves, le Héraut et les premiers dragons, et cherchez à finir avant 30 min.');
     else if (late && !early) res.plan.push('Vous êtes une équipe de fin de partie : pas de fight forcé avant vos objets, gardez la vision, et jouez les objectifs à partir de 20 min.');
     else res.plan.push('Pas de profil clair début ou fin de partie : jouez autour du prochain objectif, chaque fois avec waves poussées et vision.');
-    if (res.bad[0]) res.plan.push(`Priorité de la semaine : ${res.bad[0].titre.toLowerCase()}. ${res.bad[0].strat[0]}`);
+    if (res.bad[0]) res.plan.push(`Priorité de la semaine : ${res.bad[0].titre.charAt(0).toLowerCase() + res.bad[0].titre.slice(1)}. ${res.bad[0].strat[0]}`);
     if (res.worstSize && bestSize && bestSize.size !== res.worstSize.size) res.plan.push(`À ${res.worstSize.size} joueurs de FIRE vous gagnez peu (${res.worstSize.wr} %) : visez plutôt des games à ${bestSize.size}.`);
     if (bestPair && bestPair.wr >= 55) res.plan.push(`Jouez ensemble avec ${bestPair.label} le plus souvent possible.`);
     return res;

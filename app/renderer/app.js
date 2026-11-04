@@ -18,7 +18,7 @@
     fiches: null, fichesErr: '', fichesLoading: false, ficheId: null, seen: new Set(load('fire.vus', [])),
     coachState: { coach: false, claude: false, github: false }, draft: null, flash: '', settingsMsg: '', confirm: null,
     pools: null, poolsErr: '', poolWeek: null, poolEdit: null, cardEdit: null, champList: null, cfgObj: null,
-    teamGames: {}, teamState: '', teamErr: '', teamAt: null, teamTab: 'bilan', teamQ: 0
+    teamGames: {}, teamState: '', teamErr: '', teamAt: null, teamTab: 'bilan', teamQ: 440
   };
 
   // ---------- Petits outils ----------
@@ -441,7 +441,7 @@
         h('h1', { class: 'title' }, "L'équipe"),
         h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · clique sur un joueur pour voir tout le détail.`),
         S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif : ${S.obj.games} games sur les champions obligatoires depuis le ${dateFr(S.obj.debut)}, réparties comme chacun veut.`) : null)),
-      teamCard(),
+      teamCards(),
       h('div', { class: 'hub-grid' }, S.players.map((p) => hubCard(p, start)))
     ].filter(Boolean));
   }
@@ -523,38 +523,43 @@
     if (S.section === 'stats' && S.view !== 'player' && !typing()) render();
   }
 
-  // q : 0 = tout, 440 = Flex, 710 = 5c5 du week-end (classé 5v5 en équipe)
+  // q : 440 = Flex, 710 = 5c5 du week-end (classé 5v5 en équipe). Jamais les deux ensemble.
   function teamAnalysis(q) {
-    return FT.analyze(Object.values(S.teamGames || {}), teamRoster(), q === undefined ? S.teamQ : q);
+    return FT.analyze(Object.values(S.teamGames || {}), teamRoster(), q || S.teamQ || 440);
   }
-  const TEAM_MODES = [[0, 'Tout'], [440, '🔁 Flex'], [710, '🏆 5c5 du week-end']];
-  const modeText = (q) => (q === 440 ? 'Flex' : q === 710 ? '5c5 du week-end' : 'Flex et 5c5 du week-end');
+  const TEAM_MODES = [[440, '🔁 Flex'], [710, '🏆 5c5 du week-end']];
+  const modeText = (q) => (q === 710 ? '5c5 du week-end' : 'Flex');
 
-  function openTeam() {
+  function openTeam(q) {
     S.view = 'team';
+    S.teamQ = q;
     render();
     window.scrollTo(0, 0);
   }
 
-  function teamCard() {
-    const A = teamAnalysis(0);
-    const F = teamAnalysis(440), T5 = teamAnalysis(710);
+  // Une carte par mode : la Flex et les 5c5 du week-end ne sont jamais mélangés.
+  function teamCards() {
+    return h('div', { class: 'team-cards' }, teamCard(440), teamCard(710));
+  }
+
+  function teamCard(q) {
+    const A = teamAnalysis(q);
     const n = A.all.n;
     const box = h('div', { class: 'ring' });
     const last = A.games.slice(0, 10).reverse();
-    const card = h('article', { class: 'team-card', tabindex: '0', onclick: openTeam, onkeydown: (e) => { if (e.key === 'Enter') openTeam(); } },
+    const ico = q === 710 ? '🏆' : '🔁';
+    const card = h('article', { class: 'team-card' + (q === 710 ? ' t5' : ''), tabindex: '0', onclick: () => openTeam(q), onkeydown: (e) => { if (e.key === 'Enter') openTeam(q); } },
       h('div', { class: 'team-card-txt' },
-        h('div', { class: 'team-kick' }, '👥 Stats de l’équipe'),
-        h('div', { class: 'team-big' }, n ? `${A.all.w} V – ${A.all.l} D en équipe` : 'Aucune game jouée ensemble pour l’instant'),
-        n ? h('div', { class: 'team-split' }, h('span', { class: 'tsplit' }, `🔁 Flex : ${F.all.n ? `${F.all.w} V – ${F.all.l} D (${F.all.wr} %)` : 'aucune'}`), h('span', { class: 'tsplit' }, `🏆 5c5 du week-end : ${T5.all.n ? `${T5.all.w} V – ${T5.all.l} D (${T5.all.wr} %)` : 'aucune'}`)) : null,
+        h('div', { class: 'team-kick' }, `${ico} Stats de l’équipe · ${modeText(q)}`),
+        h('div', { class: 'team-big' }, n ? `${A.all.w} V – ${A.all.l} D` : (q === 710 ? 'Aucun 5c5 joué ensemble pour l’instant' : 'Aucune flex jouée ensemble pour l’instant')),
         h('p', { class: 'muted small' }, n
-          ? `${pl(n, 'game', 'games')} en Flex et en 5c5 du week-end avec au moins 2 joueurs de FIRE · winrates, bonnes et mauvaises actions, stratégie, points forts`
-          : (S.teamState === 'loading' ? 'Recherche des games jouées ensemble sur dpm.lol…' : 'Jouez une flex ou un 5c5 à 2 ou plus : la game apparaîtra ici avec l’analyse de l’équipe.')),
-        last.length ? h('div', { class: 'team-dots' }, last.map((g) => h('span', { class: 'tdot ' + (g.win ? 'w' : 'l'), title: `${FT.QLABEL[g.q] || ''} · ${new Date(g.t).toLocaleDateString('fr-FR')} · ${g.win ? 'Victoire' : 'Défaite'} à ${g.size}` }, g.win ? 'V' : 'D'))) : null,
+          ? `${pl(n, 'game', 'games')} avec au moins 2 joueurs de FIRE · bonnes et mauvaises actions, stratégie, points forts`
+          : (S.teamState === 'loading' ? 'Recherche sur dpm.lol…' : (q === 710 ? 'Jouez un 5c5 classé à 2 ou plus : il apparaîtra ici.' : 'Jouez une flex à 2 ou plus : elle apparaîtra ici.'))),
+        last.length ? h('div', { class: 'team-dots' }, last.map((g) => h('span', { class: 'tdot ' + (g.win ? 'w' : 'l'), title: `${new Date(g.t).toLocaleDateString('fr-FR')} · ${g.win ? 'Victoire' : 'Défaite'} à ${g.size}` }, g.win ? 'V' : 'D'))) : null,
         A.bad[0] ? h('div', { class: 'hp bad' }, '⚠️ ' + A.bad[0].titre) : null),
       n ? box : null,
       h('span', { class: 'team-go' }, n ? 'Voir l’analyse →' : ''));
-    if (n) later(() => ring(box, { games: n, wr: A.all.wr, wins: A.all.w, losses: A.all.l }, 110));
+    if (n) later(() => ring(box, { games: n, wr: A.all.wr, wins: A.all.w, losses: A.all.l }, 96));
     return card;
   }
 
@@ -577,7 +582,7 @@
     view.replaceChildren(h('header', { class: 'hero' },
       h('div', { class: 'hero-txt' },
         h('div', { class: 'tags' }, tag('👥 Équipe'), tag(modeText(S.teamQ)), tag('au moins 2 joueurs de FIRE')),
-        h('h1', { class: 'title' }, 'Stats de l’équipe'),
+        h('h1', { class: 'title' }, `Stats de l’équipe · ${modeText(S.teamQ)}`),
         h('div', { class: 'chips team-modes' }, TEAM_MODES.map(([q, l]) => h('button', { class: 'chip', 'aria-pressed': String(S.teamQ === q), onclick: () => { S.teamQ = q; render(); } }, l))),
         h('p', { class: 'muted small' }, n ? `${pl(n, 'game', 'games')} (${modeText(S.teamQ)}) jouées ensemble depuis le ${since} · ${state}` : state),
         n ? h('p', { class: 'lead' }, A.plan[0] || '') : h('p', { class: 'lead' }, `Aucune game (${modeText(S.teamQ)}) jouée à 2 ou plus n’a encore été trouvée dans l’historique des joueurs. Elles apparaîtront ici dès la prochaine mise à jour.`)),
