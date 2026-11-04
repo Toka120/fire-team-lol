@@ -454,3 +454,4 @@ details.acc[open] > summary::after { transform: rotate(180deg); }
 .quest p { margin: 4px 0 0; }
 .cc-name { gap: 4px; align-items: flex-start; }
 .cc-name b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.acc-tag.anim { color: var(--fire1); border-color: rgba(255, 179, 71, .5); }

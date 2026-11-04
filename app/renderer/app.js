@@ -960,7 +960,7 @@
         fig = h('figure', { class: 'schema' }, h('img', { src, alt: sec.schema.legende || 'schéma', onclick: () => zoom(src, sec.schema.legende) }), h('figcaption', null, sec.schema.legende || ''));
       }
       nodes.push(h('details', { class: 'acc', open: i < 2 ? true : null },
-        h('summary', null, h('span', { class: 'acc-n' }, String(i + 1)), h('span', { class: 'acc-t' }, sec.titre), fig ? h('span', { class: 'acc-tag' }, '🖼️ schéma') : null),
+        h('summary', null, h('span', { class: 'acc-n' }, String(i + 1)), h('span', { class: 'acc-t' }, sec.titre), fig ? h('span', { class: 'acc-tag' + (sec.schema.anime ? ' anim' : '') }, sec.schema.anime ? '🎬 animé' : '🖼️ schéma') : null),
         h('div', { class: 'acc-body' + (fig ? ' with-fig' : '') }, h('div', { class: 'md' }, md(sec.texte)), fig)));
     });
     if (t.exercice) nodes.push(h('div', { class: 'quest' }, h('div', { class: 'quest-ico' }, '🎮'), h('div', null, h('div', { class: 'quest-t' }, 'Quête pour ta prochaine game'), h('p', null, t.exercice))));
