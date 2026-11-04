@@ -59,15 +59,6 @@
     overflow: hidden;
     transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
   }
-  .card::before {
-    content: "";
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--fire1), var(--fire2), var(--fire3));
-    opacity: .35;
-  }
-  .card.actif::before { opacity: 1; }
   .card.actif:hover {
     transform: translateY(-3px);
     border-color: var(--fire2);
