@@ -1,0 +1,98 @@
+{
+  "equipe": "FIRE LoL",
+  "mise_a_jour": "4 novembre 2026",
+  "code_sha256": "c1af5c9ab8216b70fdcdc82f8e779c63fc12c4ad92f4d35a4825b92c1261960d",
+  "objectif": {
+    "debut": "2026-10-31",
+    "games": 20,
+    "description": "20 games sur le pool imposé, réparties comme chacun veut"
+  },
+  "joueurs": [
+    {
+      "role": "Top",
+      "role_id": "top",
+      "pseudo": "",
+      "slug": "",
+      "pool_ids": [],
+      "pool": "",
+      "tableau": "",
+      "dpm": ""
+    },
+    {
+      "role": "Jungle",
+      "role_id": "jungle",
+      "pseudo": "Toks42o#TTV",
+      "slug": "Toks42o%20-TTV",
+      "puuid": "GhpR7hdvhsYJ_NSLrm89S3uGz4KJRiyF937Zy4xOWpQN3w-Qcc3FEGANUkVkghsyZZ9sqp3-VBcbMQ",
+      "pool_ids": [
+        "JarvanIV",
+        "Zyra",
+        "LeeSin"
+      ],
+      "pool": "Jarvan IV · Zyra · Lee Sin",
+      "tableau": "https://claude.ai/artifact/BMVhYwiXEJhNWvtqwjFJ3H",
+      "dpm": "https://dpm.lol/Toks42o%20-TTV"
+    },
+    {
+      "role": "Jungle (suppléant)",
+      "role_id": "jungle",
+      "pseudo": "Kayn Effect#NuhUh",
+      "slug": "Kayn%20Effect-NuhUh",
+      "puuid": "1pXWvrFlOQJmF1_1Nqy9NJdihHWA6Im5WGWVV1GMWwuddKe4dzYVNsrtwwuPqBCk7cmtEB7g57Bjhw",
+      "pool_ids": [
+        "DrMundo",
+        "Pantheon",
+        "Poppy",
+        "Amumu"
+      ],
+      "pool": "Dr. Mundo · Pantheon · Poppy · Amumu",
+      "tableau": "https://claude.ai/artifact/VrcMRtvwkwUyayahfqqWNe",
+      "dpm": "https://dpm.lol/Kayn%20Effect-NuhUh"
+    },
+    {
+      "role": "Mid",
+      "role_id": "mid",
+      "pseudo": "xena#6814",
+      "slug": "xena%20-6814",
+      "puuid": "LjJDUJ7uA5ldpvZJCsHwlHRpfaxtKxSTgi0IKlW7TyLYkOMCBPnd6ME2JZ-XjjqfQ0d3u5lhuA7RkA",
+      "pool_ids": [
+        "Hwei",
+        "Orianna",
+        "Syndra"
+      ],
+      "pool": "Hwei · Orianna · Syndra",
+      "tableau": "https://claude.ai/artifact/XivkXHsysFaGjMgkRMnbiW",
+      "dpm": "https://dpm.lol/xena%20-6814"
+    },
+    {
+      "role": "ADC",
+      "role_id": "adc",
+      "pseudo": "The World#1065",
+      "slug": "The%20World-1065",
+      "puuid": "rHgXrrDtnUD37INBKy855MtHCG_CN4xMDWfGGGqeRNB0jxEia70cADX88s-7bu8ForvLjIhlCtFNkA",
+      "pool_ids": [
+        "Zeri",
+        "MissFortune",
+        "Xayah"
+      ],
+      "pool": "Zeri · Miss Fortune · Xayah",
+      "tableau": "",
+      "dpm": "https://dpm.lol/The%20World-1065"
+    },
+    {
+      "role": "Support",
+      "role_id": "support",
+      "pseudo": "TheM3talDrakonar#EUW",
+      "slug": "TheM3talDrakonar-EUW",
+      "puuid": "n6-IXRcisIHXyUALc5CvX2eGiVI0ltloK8tSpUgybakW5LXItyowIbXz_RkOftx9bXPiJ4t5EcHUGQ",
+      "pool_ids": [
+        "Velkoz",
+        "Pyke",
+        "Nautilus"
+      ],
+      "pool": "Vel'Koz · Pyke · Nautilus",
+      "tableau": "https://claude.ai/artifact/9HJf1RfQVZUcL4oBFhh8hV",
+      "dpm": "https://dpm.lol/TheM3talDrakonar-EUW"
+    }
+  ]
+}

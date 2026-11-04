@@ -4,7 +4,28 @@ Le lanceur des tableaux de bord de l'équipe FIRE LoL. Il ajoute un raccourci **
 
 Page de l'équipe : **https://toka120.github.io/fire-team-lol/**
 
-## Installer (Windows)
+## L'application FIRE LoL (Windows)
+
+**[⬇ Télécharger FIRE LoL](https://github.com/Toka120/fire-team-lol/releases/latest/download/FIRE-LoL-Setup.exe)** (installation + raccourci sur le Bureau), ou la **[version portable](https://github.com/Toka120/fire-team-lol/releases/latest/download/FIRE-LoL-Portable.exe)** (sans installation).
+
+- Au premier lancement, l'écran **ENTRER LE CODE** demande le code d'équipe donné par le coach. Il n'est demandé qu'une fois par ordinateur.
+- À chaque ouverture, puis toutes les 10 minutes, l'application relit les stats de chaque joueur sur dpm.lol (classé Solo/Duo).
+- Accueil : une carte par joueur avec son win rate et sa progression vers l'objectif du coach (games sur le pool imposé).
+- Page joueur : résumé avec repères, points forts et points à travailler, jour par jour avec chaque game en détail, champions et objectif, lexique.
+- Windows peut afficher « Windows a protégé votre ordinateur » (application non signée) : clique sur **Informations complémentaires** puis **Exécuter quand même**.
+
+L'application est compilée automatiquement par GitHub Actions à chaque tag `v*` (dossier `app/`).
+
+### Changer les joueurs, l'objectif ou le code
+
+Tout est dans [`joueurs.json`](joueurs.json), relu par l'application à chaque lancement : pas besoin de réinstaller.
+- `objectif` : date de début (`debut`) et nombre de games (`games`) sur le pool.
+- `joueurs` : rôle, pseudo, lien dpm.lol (`slug`) et champions du pool (`pool_ids`, noms dpm.lol sans espace, ex. `MissFortune`).
+- `code_sha256` : l'empreinte du code d'accès (le code lui-même n'est jamais stocké ici). Changer cette valeur redemande le code à tout le monde.
+
+## Ancien lanceur (raccourci vers la page web)
+
+### Installer (Windows)
 
 **Méthode 1 : en téléchargeant le dossier**
 

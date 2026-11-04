@@ -84,6 +84,9 @@
   a.btn.sec { border: 1px solid var(--line); color: var(--fg); }
   a.btn.sec:hover { border-color: var(--muted); }
   .bientot { margin-top: auto; text-align: center; padding: 10px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: .9rem; }
+  .dl { margin-top: 28px; display: flex; flex-direction: column; gap: 8px; max-width: 760px; }
+  a.btn.big { font-size: 1.05rem; padding: 14px 18px; }
+  .dl-note { color: var(--muted); font-size: .88rem; margin: 0; line-height: 1.5; }
   footer { margin-top: 40px; color: var(--muted); font-size: .85rem; line-height: 1.5; }
   footer code { background: var(--panel); padding: 1px 6px; border-radius: 6px; }
 </style>
@@ -108,11 +111,16 @@
     </div>
   </header>
 
+  <section class="dl">
+    <a class="btn main big" href="https://github.com/Toka120/fire-team-lol/releases/latest/download/FIRE-LoL-Setup.exe">⬇ Télécharger l'application FIRE LoL (Windows)</a>
+    <p class="dl-note">Installe FIRE LoL et crée un raccourci sur le Bureau. Au premier lancement, entre le code donné par le coach : les stats de toute l'équipe se mettent à jour depuis dpm.lol à chaque ouverture.
+    Sans installation : <a href="https://github.com/Toka120/fire-team-lol/releases/latest/download/FIRE-LoL-Portable.exe">version portable</a>.</p>
+  </section>
+
   <main class="grid" id="grille" aria-live="polite"></main>
 
   <footer>
-    Clique sur « Ouvrir mon tableau de bord » pour voir tes stats détaillées (relevées sur dpm.lol).
-    Si la page te demande de te connecter, utilise le compte Claude avec lequel le tableau de bord t'a été partagé.<br>
+    L'application FIRE LoL affiche les stats de tous les joueurs, à jour depuis dpm.lol. Les tableaux de bord Claude sont des copies figées du 4 novembre.<br>
     Ce lanceur vient du dépôt GitHub <a href="https://github.com/Toka120/fire-team-lol" style="color:inherit">Toka120/fire-team-lol</a>.
   </footer>
 </div>
@@ -136,7 +144,7 @@
   }
 
   function carte(j) {
-    const actif = Boolean(j.pseudo && j.tableau);
+    const actif = Boolean(j.pseudo);
     const c = el("article", "card" + (actif ? " actif" : ""));
     const r = el("div", "role");
     r.append(el("span", "ico", ICONES[j.role] || "🎮"), el("span", "", j.role));
@@ -145,7 +153,7 @@
       c.append(el("div", "pseudo", j.pseudo));
       if (j.pool) c.append(el("div", "pool", "Pool : " + j.pool));
       const act = el("div", "actions");
-      act.append(lien(j.tableau, "main", "🔥 Ouvrir mon tableau de bord"));
+      if (j.tableau) act.append(lien(j.tableau, "main", "🔥 Tableau de bord (Claude)"));
       if (j.dpm) act.append(lien(j.dpm, "sec", "Profil dpm.lol"));
       c.append(act);
     } else {

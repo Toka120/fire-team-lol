@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>FIRE LoL</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section id="lock" class="lock" hidden>
+  <div class="lock-box">
+    <img src="../assets/fire.png" class="lock-logo" alt="">
+    <h1 class="brand">FIRE LoL</h1>
+    <p class="lock-title">ENTRER LE CODE</p>
+    <input id="code" class="code-input" type="text" autocomplete="off" spellcheck="false" placeholder="FIRE-XXXX-XXXX" maxlength="40" aria-label="Code d'accès">
+    <button id="code-ok" class="btn-fire">Entrer</button>
+    <p id="code-err" class="code-err" hidden>Code incorrect. Demande-le à ton coach.</p>
+    <p class="lock-note">Le code n'est demandé qu'une seule fois sur cet ordinateur.</p>
+  </div>
+</section>
+
+<section id="app" class="shell" hidden>
+  <header class="topbar">
+    <button id="back" class="btn-ghost" hidden>← Équipe</button>
+    <div class="brand-sm"><img src="../assets/fire.png" alt=""><span>FIRE LoL</span></div>
+    <div class="spacer"></div>
+    <label class="period">Période
+      <select id="period">
+        <option value="1">Aujourd'hui</option>
+        <option value="7" selected>7 derniers jours</option>
+        <option value="14">14 derniers jours</option>
+        <option value="30">30 derniers jours</option>
+        <option value="since">Depuis le…</option>
+      </select>
+      <input id="since" type="date" hidden>
+    </label>
+    <button id="refresh" class="btn-ghost">⟳ Mettre à jour</button>
+  </header>
+  <div id="status" class="statusbar"></div>
+  <main id="view" class="view"></main>
+</section>
+
+<div id="tip" class="tip" hidden></div>
+
+<script src="vendor/d3.min.js"></script>
+<script src="compute.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
