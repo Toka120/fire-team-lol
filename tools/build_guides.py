@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from contenu import THEMES, CATEGORIES
 from schemas import ALL
 from scenes import SCENES
+import lolvalue as LV
 
 out = []
 for t in THEMES:
@@ -12,11 +13,19 @@ for t in THEMES:
     for i, sec in enumerate(t['sections']):
         d = {'titre': sec['titre'], 'texte': sec['texte'], 'schema': None}
         leg = sec['schema'][1] if sec.get('schema') else ''
+        fn, name = None, None
         if (t['id'], i) in SCENES:
-            d['schema'] = {'svg': SCENES[(t['id'], i)](), 'legende': leg, 'anime': True}
+            fn = SCENES[(t['id'], i)]
+            d['schema'] = {'svg': fn(), 'legende': leg, 'anime': True}
         elif sec.get('schema'):
             name, leg = sec['schema']
-            d['schema'] = {'svg': ALL[name](), 'legende': leg}
+            fn = ALL[name]
+            d['schema'] = {'svg': fn(), 'legende': leg}
+        # Le même exemple en étapes sur LoLValue Map Planner (lien qui contient tout le plan)
+        if fn:
+            frames = LV.MANUAL[name]() if name in LV.MANUAL else LV.record(fn)[1]
+            if frames:
+                d['schema']['lolvalue'] = LV.plan_link(frames)
         secs.append(d)
     th['sections'] = secs
     out.append(th)
@@ -38,4 +47,4 @@ root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 txt = json.dumps(data, ensure_ascii=False, indent=1) + '\n'
 for p in ['guides.json', 'app/renderer/guides.default.json']:
     open(os.path.join(root, p), 'w', encoding='utf-8').write(txt)
-print(sum(1 for t in out for s in t['sections'] if s['schema'] and 'rift:map' in s['schema']['svg']), 'sur la vraie carte ·', len(out), 'thèmes,', sum(len(t['sections']) for t in out), 'principes,', sum(1 for t in out for s in t['sections'] if s['schema']), 'visuels dont', sum(1 for t in out for s in t['sections'] if s['schema'] and s['schema'].get('anime')), 'animés,', len(txt) // 1024, 'Ko')
+print(sum(1 for t in out for s in t['sections'] if s['schema'] and 'rift:map' in s['schema']['svg']), 'sur la vraie carte ·', sum(1 for t in out for s in t['sections'] if s['schema'] and s['schema'].get('lolvalue')), 'liens LoLValue ·', len(out), 'thèmes,', sum(len(t['sections']) for t in out), 'principes,', sum(1 for t in out for s in t['sections'] if s['schema']), 'visuels dont', sum(1 for t in out for s in t['sections'] if s['schema'] and s['schema'].get('anime')), 'animés,', len(txt) // 1024, 'Ko')

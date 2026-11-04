@@ -518,3 +518,10 @@ details.acc[open] > summary::after { transform: rotate(180deg); }
 .dv-thumbs img { width: 112px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; border: 2px solid transparent; opacity: .55; cursor: pointer; flex: 0 0 auto; }
 .dv-thumbs img.on, .dv-thumbs img:hover { border-color: #d4ab4f; opacity: 1; }
 .dv-help { text-align: center; }
+
+/* Lien vers le même exemple sur LoLValue Map Planner */
+.lv-link{display:flex;flex-direction:column;gap:2px;margin-top:10px;padding:10px 14px;border-radius:12px;text-decoration:none;
+  background:linear-gradient(135deg,rgba(255,179,71,.14),rgba(255,94,58,.10));border:1px solid rgba(255,179,71,.45);transition:transform .12s, border-color .12s}
+.lv-link:hover{transform:translateY(-1px);border-color:#ffb347}
+.lv-go{color:#ffb347;font-weight:700;font-size:14px}
+.lv-sub{color:#a8988c;font-size:12px}

@@ -963,6 +963,14 @@
       h('div', { class: 'lb-tips' }, x.conseils.map((tip) => h('div', { class: 'lb-tip' }, h('span', { class: 'lb-dot' }, '➜'), h('span', null, tip)))));
   }
 
+  // Le même exemple sur LoLValue Map Planner : le lien contient tout le plan, étape par étape, et chacun peut le modifier.
+  function lvLink(url) {
+    if (!url || !/^https:\/\/lolvalue\.com\/lol-map#plan=/.test(url)) return null;
+    return h('a', { class: 'lv-link', href: url, target: '_blank', title: 'Ouvre le plan dans ton navigateur' },
+      h('span', { class: 'lv-go' }, '▶ Voir en étapes sur LoLValue'),
+      h('span', { class: 'lv-sub' }, 'les champions de l’équipe, étape par étape · tu peux le modifier'));
+  }
+
   // Page d'un thème : « En bref » en tuiles, puis chaque principe dans un bloc qui se déplie.
   function themeNodes(t) {
     const nodes = [];
@@ -972,7 +980,8 @@
       let fig = null;
       if (sec.schema && sec.schema.svg) {
         const src = svgSrc(sec.schema.svg);
-        fig = h('figure', { class: 'schema' }, h('img', { src, alt: sec.schema.legende || 'schéma', onclick: () => zoom(src, sec.schema.legende) }), h('figcaption', null, sec.schema.legende || ''));
+        fig = h('figure', { class: 'schema' }, h('img', { src, alt: sec.schema.legende || 'schéma', onclick: () => zoom(src, sec.schema.legende) }), h('figcaption', null, sec.schema.legende || ''),
+          lvLink(sec.schema.lolvalue));
       }
       nodes.push(h('details', { class: 'acc', open: i < 2 ? true : null },
         h('summary', null, h('span', { class: 'acc-n' }, String(i + 1)), h('span', { class: 'acc-t' }, sec.titre), fig ? h('span', { class: 'acc-tag' + (sec.schema.anime ? ' anim' : '') }, sec.schema.anime ? '🎬 animé' : '🖼️ schéma') : null),
