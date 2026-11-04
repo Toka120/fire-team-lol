@@ -8,6 +8,11 @@ OK = '#4cc38a'
 LANE = '#2a2320'
 RIVER = '#1d3a52'
 GOLD = '#ffb347'
+TOKEN_A = '#2f7fe0'  # pions façon RiftKit
+TOKEN_E = '#e0452b'
+RIFT = 'rift:map'
+RIFT_LANE = 'rift:lane'  # la mid lane, même principe
+RIFT_ARENA = 'rift:arena'  # rivière et fosse du Dragon, pour les fights  # remplacé dans l'app par la vraie carte (guides.json → assets.rift)
 
 
 def esc(t):
@@ -19,6 +24,7 @@ class Svg:
         self.w, self.h = w, h
         self.parts = []
         self.markers = set()
+        self.defs = []
 
     def add(self, s):
         self.parts.append(s)
@@ -63,7 +69,8 @@ class Svg:
     def text(self, x, y, t, size=16, color=FG, anchor='middle', weight='normal', italic=False):
         it = " font-style='italic'" if italic else ''
         w = f" font-weight='{weight}'" if weight != 'normal' else ''
-        return self.add(f"<text x='{x}' y='{y}' font-size='{size}' fill='{color}' text-anchor='{anchor}'{w}{it}>{esc(t)}</text>")
+        return self.add(f"<text x='{x}' y='{y}' font-size='{size}' fill='{color}' text-anchor='{anchor}'{w}{it}"
+                        f" stroke='#0b0907' stroke-width='3' stroke-linejoin='round' paint-order='stroke'>{esc(t)}</text>")
 
     def lines(self, x, y, rows, size=16, color=FG, anchor='start', gap=None, weight='normal'):
         gap = gap or size * 1.35
@@ -103,12 +110,14 @@ class Svg:
 
     def champ(self, x, y, team, letter, r=18, label=None, ring=None):
         col = ALLY if team == 'a' else ENEMY
-        self.circle(x, y, r, '#1a1614', col, 3)
-        self.text(x, y + 6, letter, 17, col, 'middle', 'bold')
+        fill = TOKEN_A if team == 'a' else TOKEN_E
+        self.circle(x, y, r, fill, '#0b0907', 2.5)
+        self.circle(x, y, r - 2.5, 'none', '#ffffff', 1.2, 0.35)
+        self.add(f"<text x='{x}' y='{y + r * 0.34:.1f}' font-size='{round(r * 0.95)}' fill='#ffffff' text-anchor='middle' font-weight='bold'>{esc(letter)}</text>")
         if ring:
             self.circle(x, y, r + 6, 'none', ring, 2)
         if label:
-            self.text(x, y + r + 20, label, 14, MUTED)
+            self.text(x, y + r + 20, label, 14, FG)
         return self
 
     def ward(self, x, y, team='a', pink=False):
@@ -123,11 +132,24 @@ class Svg:
             self.text(x + w / 2, y + 22, label, 15, lcolor or color, 'middle', 'bold')
         return self
 
+    def arena(self, x, y, w, h, rx=16, dark=0.45):
+        """Fond réel (rivière près de la fosse du Dragon) pour les scènes de fight ou de buisson."""
+        self.rect(x, y, w, h, '#1b1714', rx, '#2e2622', 2)
+        cid = f'ac{len(self.defs)}'
+        self.defs.append(f"<clipPath id='{cid}'><rect x='{x}' y='{y}' width='{w}' height='{h}' rx='{rx}'/></clipPath>")
+        self.add(f"<image href='{RIFT_ARENA}' xlink:href='{RIFT_ARENA}' x='{x}' y='{y}' width='{w}' height='{h}' preserveAspectRatio='xMidYMid slice' clip-path='url(#{cid})'/>")
+        return self.rect(x, y, w, h, '#0b0907', rx, '#2e2622', 2, op=dark)
+
     def hlane(self, y, x1=40, x2=760, h=86, river=True):
         self.rect(x1, y - h / 2, x2 - x1, h, LANE, 10)
+        # Vraie mid lane de la Faille (découpée dans la carte de map.riftkit.net), assombrie pour garder les pions lisibles.
+        cid = f'lc{len(self.defs)}'
+        self.defs.append(f"<clipPath id='{cid}'><rect x='{x1}' y='{y - h / 2}' width='{x2 - x1}' height='{h}' rx='10'/></clipPath>")
+        self.add(f"<image href='{RIFT_LANE}' xlink:href='{RIFT_LANE}' x='{x1}' y='{y - h / 2}' width='{x2 - x1}' height='{h}' preserveAspectRatio='none' clip-path='url(#{cid})'/>")
+        self.rect(x1, y - h / 2, x2 - x1, h, '#0b0907', 10, op=0.38)
         if river:
             mx = (x1 + x2) / 2
-            self.rect(mx - 18, y - h / 2, 36, h, RIVER, 0, op=0.8)
+            self.rect(mx - 18, y - h / 2, 36, h, RIVER, 0, op=0.55)
         return self
 
     def legend(self, items, x=24, y=430):
@@ -164,9 +186,14 @@ class Svg:
         rx, ry = P(0.92, 0.08)
         self.circle(bx, by, s * 0.06, ALLY, op=0.85)
         self.circle(rx, ry, s * 0.06, ENEMY, op=0.85)
-        self.pit = {'baron': P(0.33, 0.33), 'drake': P(0.67, 0.67)}
+        self.pit = {'baron': P(0.337, 0.296), 'drake': P(0.663, 0.703)}  # vraies fosses
         for k, (px, py) in self.pit.items():
             self.circle(px, py, s * 0.045, '#14110f', '#8a7a6e', 2)
+        # Vraie carte (vue de dessus de la Faille, comme sur map.riftkit.net). Si l'image manque, la carte dessinée reste visible.
+        cid = f'rc{len(self.defs)}'
+        self.defs.append(f"<clipPath id='{cid}'><rect x='{x0}' y='{y0}' width='{s}' height='{s}' rx='18'/></clipPath>")
+        self.add(f"<image href='{RIFT}' xlink:href='{RIFT}' x='{x0}' y='{y0}' width='{s}' height='{s}' preserveAspectRatio='none' clip-path='url(#{cid})'/>")
+        self.add(f"<rect x='{x0}' y='{y0}' width='{s}' height='{s}' rx='18' fill='#000' fill-opacity='0.08' stroke='#2e2622' stroke-width='2'/>")
         if labels:
             self.text(P(0.04, 0.5)[0] - 4, P(0.04, 0.5)[1], 'TOP', 13, MUTED, 'middle', 'bold')
             self.text(P(0.5, 0.97)[0], P(0.5, 0.97)[1] + 4, 'BOT', 13, MUTED, 'middle', 'bold')
@@ -177,5 +204,6 @@ class Svg:
         defs = ''.join(
             f"<marker id='{mid}' viewBox='0 0 10 10' refX='7' refY='5' markerWidth='5' markerHeight='5' orient='auto-start-reverse'><path d='M0,0 L10,5 L0,10 z' fill='{col}'/></marker>"
             for mid, col in sorted(self.markers))
-        return (f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {self.w} {self.h}' font-family='Segoe UI, system-ui, sans-serif'>"
+        defs += ''.join(self.defs)
+        return (f"<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 {self.w} {self.h}' font-family='Segoe UI, system-ui, sans-serif'>"
                 f"<defs>{defs}</defs><rect width='{self.w}' height='{self.h}' rx='16' fill='{BG}'/>" + ''.join(self.parts) + '</svg>')

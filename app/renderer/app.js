@@ -195,6 +195,7 @@
   function loadGuides() {
     return window.fire.guides().then((g) => {
       S.guides = (g && g.themes) || [];
+      S.assets = (g && g.assets) || S.assets || {}; // vraie carte de la Faille, partagée par les visuels
       S.guideCats = (g && g.categories) || [];
       if (S.section === 'guides' && !typing()) render();
     }).catch(() => { S.guides = S.guides || []; });
@@ -914,7 +915,9 @@
     return out;
   }
 
-  const svgSrc = (svg) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  // Les visuels font référence à la carte par « rift:map », « rift:lane », « rift:arena » : on y met les images de guides.json.
+  const withRift = (svg) => String(svg).replace(/rift:(map|lane|arena)/g, (m, k) => (S.assets && S.assets[k === 'map' ? 'rift' : k]) || m);
+  const svgSrc = (svg) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(withRift(svg));
   const ytId = (u) => { const m = String(u).match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/); return m ? m[1] : null; };
 
   function zoom(src, cap) {

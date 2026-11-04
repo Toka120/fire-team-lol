@@ -106,8 +106,8 @@ def chemin_jungle():
     s = Svg().title('Choisir son chemin', 'Exemple : commencer en haut, finir en bas pour le drake ou un gank bot')
     s.map(40, 70, 360, labels=True)
     P = s.P
-    camps = [(0.23, 0.45), (0.17, 0.35), (0.27, 0.59), (0.41, 0.68), (0.53, 0.75), (0.44, 0.83)]
-    s.arrow([P(u, v) for u, v in camps] + [P(0.60, 0.80)], GOLD, 3)
+    camps = [(0.256, 0.469), (0.141, 0.435), (0.256, 0.563), (0.464, 0.637), (0.518, 0.731), (0.565, 0.818)]
+    s.arrow([P(u, v) for u, v in camps] + [P(0.64, 0.80)], GOLD, 3)
     for i, (u, v) in enumerate(camps):
         x, y = P(u, v)
         s.circle(x, y, 11, '#1a1614', GOLD, 2)

@@ -258,7 +258,7 @@ def jungle_scuttle():
     P = s.P
     s.move_wave('a', 4, [P(0.50, 0.50), P(0.58, 0.42)], [(0, 0), (0.25, 1)], 0, 0.98, 2)
     s.move_wave('a', 4, [P(0.80, 0.92), P(0.92, 0.82)], [(0, 0), (0.25, 1)], 0, 0.98, 2)
-    sx, sy = P(0.66, 0.60)
+    sx, sy = P(0.705, 0.652)  # scuttle du bas
     s.text(sx, sy + 5, '🦀', 18)
     s.move_champ('a', 'J', [P(0.40, 0.75), P(0.62, 0.64)], [(0.2, 0), (0.5, 1)], 0, 1, 13)
     s.move_champ('a', 'M', [P(0.50, 0.50), P(0.60, 0.56)], [(0.35, 0), (0.55, 1)], 0, 1, 12)
@@ -291,7 +291,7 @@ def jungle_invade():
     P = s.P
     s.show_at(*P(0.55, 0.22), s.g_champ('e', 'J', 12), 0, 0.98)
     s.boom(*P(0.55, 0.22), 0.05, ENEMY, 'il est en haut')
-    camps = [(0.78, 0.38), (0.82, 0.52), (0.74, 0.58)]
+    camps = [(0.744, 0.434), (0.749, 0.530), (0.854, 0.567)]  # loups, bleu, gromp adverses
     for i, (u, v) in enumerate(camps):
         t = 0.45 + i * 0.13
         s.show_at(*P(u, v), f"<circle r='9' fill='#3a302a' stroke='{ENEMY}' stroke-width='2'/>", 0, t)
@@ -460,7 +460,7 @@ def bot_roam():
 
 def bot_fight():
     s = A(6).title('En fight : la place de l’ADC', 'Derrière sa frontline, il tape le plus proche et recule')
-    s.rect(40, 80, 720, 300, '#1b1714', 16, '#2e2622', 2)
+    s.arena(40, 80, 720, 300)
     s.move_champ('a', 'T', [(330, 200), (420, 200)], [(0, 0), (0.25, 1)])
     s.move_champ('a', 'S', [(300, 280), (360, 260)], [(0, 0), (0.3, 1)], 0, 1, 16)
     s.move_champ('a', 'A', [(180, 230), (220, 230), (180, 240), (220, 230), (180, 240)], [(0, 0), (0.25, 1), (0.45, 2), (0.65, 3), (0.85, 4)])
@@ -494,7 +494,7 @@ def fights_compter():
 
 def fights_roles():
     s = A(7).title('Chacun son rôle', 'Le tank engage, les carrys tapent, quelqu’un protège')
-    s.rect(40, 80, 720, 300, '#1b1714', 16, '#2e2622', 2)
+    s.arena(40, 80, 720, 300)
     s.champ(560, 180, 'e', 'A')
     s.champ(520, 260, 'e', 'M')
     s.champ(470, 220, 'e', 'T')
@@ -513,7 +513,7 @@ def fights_roles():
 
 def fights_cible():
     s = A(7).title('Choisir sa cible', 'Tout le monde sur le même adversaire, à portée')
-    s.rect(40, 80, 720, 300, '#1b1714', 16, '#2e2622', 2)
+    s.arena(40, 80, 720, 300)
     tx, ty = 520, 240
     s.champ(600, 170, 'e', 'T')
     s.champ(640, 300, 'e', 'M')
@@ -636,7 +636,7 @@ def vision_wards():
 
 def vision_pinks():
     s = A(7).title('Les pinks', 'Elle révèle et désactive les wards adverses')
-    s.rect(230, 140, 340, 200, '#1f2a1c', 18)
+    s.arena(230, 140, 340, 200, 18, 0.4)
     s.text(400, 132, 'buisson de la rivière', 14, MUTED)
     s.show_at(470, 260, s.g_ward('e'), 0, 0.98)
     s.move_champ('a', 'S', [(120, 240), (320, 240), (320, 240)], [(0, 0), (0.25, 1), (1, 2)])
@@ -671,7 +671,7 @@ def vision_qui():
 def vision_facecheck():
     s = A(8).title('Jouer avec la vision', 'Pas de facecheck : on éclaire avant d’entrer')
     for y, good in ((150, False), (320, True)):
-        s.rect(380, y - 50, 160, 100, '#1f2a1c', 16)
+        s.arena(380, y - 50, 160, 100, 16, 0.4)
         s.text(130, y - 56, '✗ Entrer sans voir' if not good else '✓ Éclairer d’abord', 16, BAD if not good else OK, 'start', 'bold')
         if not good:
             s.move_champ('a', 'M', [(200, y), (440, y)], [(0.05, 0), (0.35, 1)], 0, 0.45)
@@ -929,7 +929,7 @@ def _overlay(svg, build, dur=7):
 def jungle_chemin_anim():
     def b(a):
         P = a.P
-        camps = [(0.23, 0.45), (0.17, 0.35), (0.27, 0.59), (0.41, 0.68), (0.53, 0.75), (0.44, 0.83), (0.60, 0.80)]
+        camps = [(0.256, 0.469), (0.141, 0.435), (0.256, 0.563), (0.464, 0.637), (0.518, 0.731), (0.565, 0.818), (0.64, 0.80)]
         pts = [P(u, v) for u, v in camps]
         a.move_champ('a', 'J', pts, [(0.02, 0), (0.14, 1), (0.28, 2), (0.42, 3), (0.56, 4), (0.7, 5), (0.85, 6)], 0, 1, 13)
     return _overlay(_S.chemin_jungle(), b, 9)
