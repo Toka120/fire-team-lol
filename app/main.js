@@ -160,8 +160,11 @@ async function fetchPlayer(player, days) {
     puuid = puuid || player.puuid;
     if (!puuid) throw new Error('profil introuvable sur dpm.lol');
     // Demande à dpm.lol de rafraîchir le profil (bouton « Update now »), puis laisse-lui le temps.
+    // Le texte du bouton est dans un <div> avec un point animé : on cherche donc le <button> par son texte complet.
     const clicked = await win.webContents.executeJavaScript(`(() => {
-      const el = [...document.querySelectorAll('button, a, div, span')].find((e) => e.children.length === 0 && /^(update now|mettre à jour|actualiser)$/i.test((e.textContent || '').trim()));
+      const re = /^(update now|mettre à jour|actualiser|mise à jour)$/i;
+      const el = [...document.querySelectorAll('button')].find((e) => re.test((e.textContent || '').trim()))
+        || [...document.querySelectorAll('a, div, span')].find((e) => re.test((e.textContent || '').trim()));
       if (el) { el.click(); return true; }
       return false;
     })()`).catch(() => false);
@@ -214,12 +217,23 @@ async function latestTag() {
     return String(j.tag_name || '').replace(/^v/, '') || null;
   } catch (e) { return null; }
 }
-ipcMain.handle('update:state', async () => ({ ...updateState, auto: canAutoUpdate(), portable, latest: canAutoUpdate() ? null : await latestTag() }));
+ipcMain.handle('update:state', async () => ({ ...updateState, auto: canAutoUpdate(), portable, latest: await latestTag() }));
 ipcMain.handle('update:install', () => {
   if (canAutoUpdate() && updateState.state === 'ready') { setImmediate(() => autoUpdater.quitAndInstall(true, true)); return true; }
   return false;
 });
-ipcMain.handle('update:check', () => { if (canAutoUpdate()) autoUpdater.checkForUpdates().catch(() => {}); return canAutoUpdate(); });
+// Bouton « Installer la dernière version » de l'onglet Paramètres.
+ipcMain.handle('update:check', async () => {
+  const latest = await latestTag();
+  if (!canAutoUpdate()) return { ok: true, auto: false, latest };
+  if (updateState.state === 'ready' || updateState.state === 'progress' || updateState.state === 'available') return { ok: true, auto: true, latest, state: updateState.state };
+  try {
+    const r = await autoUpdater.checkForUpdates();
+    return { ok: true, auto: true, latest, found: r && r.updateInfo ? r.updateInfo.version : null };
+  } catch (e) {
+    return { ok: false, auto: true, latest, error: String((e && e.message) || e).slice(0, 200) };
+  }
+});
 
 // ---------- Démarrage ----------
 

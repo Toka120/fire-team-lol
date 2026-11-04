@@ -245,6 +245,82 @@
     } else if (!u.auto) node = updateNode();
     box.hidden = !node;
     box.replaceChildren(...(node ? [node] : []));
+    if ($('nav').childElementCount) renderNav();
+    if (S.section === 'settings' && !typing()) renderSettings();
+  }
+
+  // ----- Onglet Paramètres -----
+  async function checkUpdate() {
+    S.updMsg = 'Recherche de la dernière version…';
+    S.updChecking = true;
+    renderSettings();
+    let r;
+    try { r = await window.fire.update.check(); } catch (e) { r = { ok: false, error: String(e) }; }
+    S.updChecking = false;
+    if (r && r.latest) S.upd = { ...S.upd, latest: r.latest };
+    if (!r || !r.ok) S.updMsg = '⚠ Vérification impossible : ' + ((r && r.error) || 'pas de connexion');
+    else if (!r.auto) S.updMsg = (r.latest && newer(r.latest, S.version)) ? `La version ${r.latest} est disponible : télécharge-la avec le bouton ci-dessous.` : 'Tu as déjà la dernière version ✓';
+    else if (r.state === 'ready') S.updMsg = 'La nouvelle version est prête : clique sur « Redémarrer et installer ».';
+    else if (r.state === 'progress' || r.state === 'available') S.updMsg = 'Téléchargement déjà en cours…';
+    else if (r.found && newer(r.found, S.version)) S.updMsg = `Version ${r.found} trouvée : téléchargement en cours, puis installation.`;
+    else S.updMsg = 'Tu as déjà la dernière version ✓';
+    S.updLater = false;
+    renderUpdate();
+    renderSettings();
+  }
+
+  function renderSettings() {
+    if (S.section !== 'settings') return;
+    const u = S.upd || {};
+    const view = $('view');
+    const latest = u.latest || (S.cfg && S.cfg.derniere_version) || null;
+    const behind = latest && newer(latest, S.version);
+    const row = (k, v) => h('div', { class: 'srow' }, h('span', { class: 'muted' }, k), h('span', { class: 'sval' }, v));
+    let state = '';
+    if (u.auto && (u.state === 'available' || u.state === 'progress')) state = `Téléchargement de la version ${u.version || ''} : ${u.percent || 0} %`;
+    else if (u.auto && u.state === 'ready') state = `Version ${u.version} téléchargée, prête à installer`;
+    else if (u.auto && u.state === 'checking') state = 'Vérification en cours…';
+    else if (u.auto && u.state === 'error') state = 'Dernière vérification en erreur : ' + (u.error || '');
+    else if (u.auto) state = behind ? 'Nouvelle version disponible' : 'À jour ✓';
+    else state = u.portable ? 'Version portable : mise à jour manuelle' : (behind ? 'Nouvelle version disponible' : 'À jour ✓');
+
+    const buttons = [];
+    if (u.auto && u.state === 'ready') buttons.push(h('button', { class: 'btn-fire small-btn', onclick: installNow }, '🔄 Redémarrer et installer maintenant'));
+    else if (u.auto) buttons.push(h('button', { class: 'btn-fire small-btn', disabled: (S.updChecking || u.state === 'progress' || u.state === 'available') ? true : null, onclick: checkUpdate }, '⬇ Installer la dernière version'));
+    else {
+      buttons.push(h('button', { class: 'btn-ghost', disabled: S.updChecking ? true : null, onclick: checkUpdate }, 'Vérifier'));
+      buttons.push(h('a', { class: 'btn-fire small-btn linklike', href: SETUP_URL, target: '_blank' }, '⬇ Télécharger la dernière version'));
+    }
+
+    const st = S.coachState || {};
+    view.replaceChildren(
+      h('div', null, h('h1', { class: 'title' }, '⚙️ Paramètres')),
+      h('div', { class: 'card settings-card' },
+        h('h2', null, "🔄 Version de l'application"),
+        row('Version installée', 'v' + S.version),
+        row('Dernière version publiée', latest ? 'v' + latest : '…'),
+        row('État', state),
+        h('div', { class: 'row' }, buttons),
+        S.updMsg ? h('p', { class: 'small' }, S.updMsg) : null,
+        h('p', { class: 'muted small' }, u.portable
+          ? "La version portable ne peut pas s'installer toute seule : télécharge FIRE-LoL-Setup.exe, qui se mettra ensuite à jour automatiquement."
+          : "L'application cherche aussi les nouvelles versions toute seule, à chaque ouverture et toutes les 30 minutes.")),
+      h('div', { class: 'card settings-card' },
+        h('h2', null, '📊 Stats et contenu'),
+        row('Stats dpm.lol', S.refreshing ? 'mise à jour en cours…' : (S.lastRefresh ? 'à jour à ' + hm(S.lastRefresh) : '—')),
+        row('Thèmes « Lanes et principes »', S.guides ? `${S.guides.length} thèmes` : '…'),
+        row('Fiches du coach', S.fiches ? String(S.fiches.length) : '…'),
+        h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: S.refreshing ? true : null, onclick: () => { refreshContent(); setTimeout(renderSettings, 300); } }, '⟳ Tout mettre à jour maintenant')),
+        h('p', { class: 'muted small' }, 'Tout se met aussi à jour tout seul à chaque ouverture, puis toutes les 10 minutes.')),
+      h('div', { class: 'card settings-card' },
+        h('h2', null, '🔐 Accès'),
+        row("Code d'équipe", 'enregistré sur cet ordinateur ✓'),
+        row('Mode coach', st.coach ? `activé (Claude ${st.claude ? '✓' : '✗'} · GitHub ${st.github ? '✓' : '✗'})` : 'non activé'),
+        coachAccess()),
+      h('div', { class: 'card settings-card' },
+        h('h2', null, 'ℹ️ À propos'),
+        h('p', { class: 'small' }, 'FIRE LoL · ', h('a', { href: 'https://toka120.github.io/fire-team-lol/', target: '_blank' }, 'page de téléchargement'), ' · ',
+          h('a', { href: 'https://github.com/Toka120/fire-team-lol/releases', target: '_blank' }, 'toutes les versions'))));
   }
 
   // ---------- Lecture dpm.lol ----------
@@ -288,6 +364,7 @@
     S.lastRefresh = Date.now();
     $('refresh').disabled = false;
     renderStatus();
+    if (S.section === 'settings' && !typing()) renderSettings();
   }
 
   function renderStatus() {
@@ -317,9 +394,10 @@
     renderNav();
     $('period-box').hidden = S.section !== 'stats';
     const back = $('back');
-    back.hidden = !(S.section === 'stats' ? S.view === 'player' : S.section === 'guides' ? !!S.theme : !!S.ficheId);
+    back.hidden = S.section === 'settings' || !(S.section === 'stats' ? S.view === 'player' : S.section === 'guides' ? !!S.theme : !!S.ficheId);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? '← Lanes et principes' : '← Parole du coach';
-    if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
+    if (S.section === 'settings') renderSettings();
+    else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
     else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
     else if (S.view === 'player') renderPlayer();
     else renderHub();
@@ -708,7 +786,9 @@
   function renderNav() {
     const n = unseen().length;
     const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
-    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null));
+    const u = S.upd || {};
+    const upd = (u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version)) ? '1' : null;
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('settings', '⚙️ Paramètres', upd));
   }
 
   function newsBanner() {

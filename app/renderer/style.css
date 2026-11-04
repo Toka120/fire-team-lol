@@ -275,3 +275,10 @@ figure.schema figcaption { color: var(--muted); font-size: 13px; margin-top: 6px
 .coach-access .row { margin-top: 8px; }
 .coach-zone { border-color: var(--line); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .coach-zone p { margin: 0; }
+
+/* ---------- Paramètres ---------- */
+.settings-card { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
+.settings-card p { margin: 0; }
+.srow { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding: 6px 0; }
+.sval { font-weight: 600; text-align: right; }
+a.linklike { display: inline-block; text-decoration: none; text-align: center; }
