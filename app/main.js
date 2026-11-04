@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const coach = require('./coach');
+const { teamGrab } = require('./teamgrab');
 let autoUpdater = null;
 try { ({ autoUpdater } = require('electron-updater')); } catch (e) { /* module absent (développement) */ }
 
@@ -190,6 +191,45 @@ async function fetchPlayer(player, days) {
 }
 
 ipcMain.handle('dpm:fetch', (e, player, days) => fetchPlayer(player, days || 31));
+
+// ---------- Stats de l'équipe : détail des flex jouées ensemble ----------
+// Une partie terminée ne change plus : on garde chaque résumé dans team.json et on ne relit que les nouvelles.
+const TEAM_CACHE = 'team.json';
+let teamBusy = null;
+function readTeamCache() {
+  try { return JSON.parse(fs.readFileSync(cachePath(TEAM_CACHE), 'utf8')) || {}; } catch (e) { return {}; }
+}
+
+async function fetchTeam(reqs) {
+  const cache = readTeamCache();
+  const todo = (reqs || []).filter((r) => r && r.id && r.puuid && !(cache[r.id] && !cache[r.id].err)).slice(0, 40);
+  if (todo.length) {
+    const win = new BrowserWindow({ show: false, width: 1280, height: 900,
+      webPreferences: { session: dpmSession(), backgroundThrottling: false, contextIsolation: true, sandbox: true } });
+    win.webContents.setAudioMuted(true);
+    try {
+      await win.loadURL(DPM).catch(() => { /* la page peut se recharger (protection anti-robot) */ });
+      await sleep(2500);
+      // Le détail d'une partie se demande avec l'identifiant d'un joueur qui l'a jouée.
+      const byPuuid = {};
+      for (const r of todo) (byPuuid[r.puuid] = byPuuid[r.puuid] || []).push(String(r.id));
+      for (const [puuid, ids] of Object.entries(byPuuid)) {
+        const got = await win.webContents.executeJavaScript(`(${teamGrab.toString()})(${JSON.stringify(puuid)}, ${JSON.stringify(ids)}, 'EUW1')`).catch(() => ({}));
+        for (const [id, g] of Object.entries(got || {})) if (g && !g.err) cache[id] = g;
+      }
+      try { fs.writeFileSync(cachePath(TEAM_CACHE), JSON.stringify(cache)); } catch (e) { /* ignore */ }
+    } finally {
+      if (!win.isDestroyed()) win.destroy();
+    }
+  }
+  return { ok: true, games: cache, read: todo.length };
+}
+
+ipcMain.handle('dpm:team', async (e, reqs) => {
+  if (teamBusy) await teamBusy.catch(() => {});
+  teamBusy = fetchTeam(reqs).catch((err) => ({ ok: false, error: String((err && err.message) || err), games: readTeamCache() }));
+  return teamBusy;
+});
 
 // ---------- Mise à jour automatique de l'application ----------
 // La version installée (FIRE-LoL-Setup.exe) vérifie les Releases GitHub au lancement puis toutes les 30 minutes,

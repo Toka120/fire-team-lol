@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('fire', {
   hash: call('hash'),
   version: call('version'),
   fetchPlayer: call('dpm:fetch'),
+  team: call('dpm:team'),
   unlock: call('unlock'),
   unlocked: call('unlocked'),
   fiches: call('fiches'),

@@ -17,7 +17,8 @@
     section: 'stats', version: '0', guides: null, guideCats: [], guideCat: null, theme: null,
     fiches: null, fichesErr: '', fichesLoading: false, ficheId: null, seen: new Set(load('fire.vus', [])),
     coachState: { coach: false, claude: false, github: false }, draft: null, flash: '', settingsMsg: '', confirm: null,
-    pools: null, poolsErr: '', poolWeek: null, poolEdit: null, cardEdit: null, champList: null, cfgObj: null
+    pools: null, poolsErr: '', poolWeek: null, poolEdit: null, cardEdit: null, champList: null, cfgObj: null,
+    teamGames: {}, teamState: '', teamErr: '', teamAt: null, teamTab: 'bilan'
   };
 
   // ---------- Petits outils ----------
@@ -155,6 +156,7 @@
     loadFiches();
     loadPools();
     loadChampions();
+    window.fire.team([]).then((r) => { if (r && r.games) { S.teamGames = r.games; if (S.section === 'stats' && !typing()) render(); } }).catch(() => {});
     refreshAll();
     S.timer = setInterval(refreshContent, REFRESH_EVERY);
   }
@@ -371,6 +373,7 @@
     $('refresh').disabled = false;
     renderStatus();
     if (S.section === 'settings' && !typing()) renderSettings();
+    loadTeam();
   }
 
   function renderStatus() {
@@ -408,9 +411,9 @@
   function render() {
     hideTip();
     renderNav();
-    $('period-box').hidden = S.section !== 'stats';
+    $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'settings' || S.section === 'pool' || !(S.section === 'stats' ? S.view === 'player' : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'settings' || S.section === 'pool' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -418,6 +421,7 @@
     else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
     else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
     else if (S.view === 'player') renderPlayer();
+    else if (S.view === 'team') renderTeam();
     else renderHub();
   }
 
@@ -437,6 +441,7 @@
         h('h1', { class: 'title' }, "L'équipe"),
         h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · clique sur un joueur pour voir tout le détail.`),
         S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif : ${S.obj.games} games sur les champions obligatoires depuis le ${dateFr(S.obj.debut)}, réparties comme chacun veut.`) : null)),
+      teamCard(),
       h('div', { class: 'hub-grid' }, S.players.map((p) => hubCard(p, start)))
     ].filter(Boolean));
   }
@@ -491,6 +496,163 @@
     if (s.games >= 3 && s.morts_moy > rep.morts_moy.v) out.push(h('span', { class: 'hp bad' }, `💀 ${fr(s.morts_moy, 1)} morts/game`));
     else if (s.games >= 3 && s.kda >= rep.kda.v) out.push(h('span', { class: 'hp good' }, `⚔️ KDA ${fr(s.kda, 2)}`));
     return out.filter(Boolean).slice(0, 3);
+  }
+
+  // ----- Stats de l'équipe : les flex jouées ensemble -----
+  const teamRoster = () => S.players.filter((p) => p.slug && p.puuid).map((p) => ({ slug: p.slug, pseudo: p.pseudo, puuid: p.puuid, role_id: p.role_id }));
+  const shortName = (p) => String(p || '').split('#')[0];
+
+  // Repère les flex communes dans l'historique déjà lu, puis demande à dpm.lol le détail de celles qu'on n'a pas encore.
+  async function loadTeam() {
+    if (S.teamState === 'loading') return;
+    const roster = teamRoster();
+    const cands = FT.candidates(roster, S.data).slice(0, 80);
+    const reqs = cands.filter((g) => !S.teamGames[g.id]).map((g) => ({ id: g.id, puuid: g.who[0] }));
+    S.teamState = 'loading';
+    if (S.section === 'stats' && S.view !== 'player') render();
+    try {
+      const r = await window.fire.team(reqs);
+      if (r && r.games) S.teamGames = r.games;
+      S.teamState = r && r.ok === false ? 'error' : 'ok';
+      S.teamErr = (r && r.error) || '';
+      S.teamAt = Date.now();
+    } catch (e) {
+      S.teamState = 'error';
+      S.teamErr = String(e);
+    }
+    if (S.section === 'stats' && S.view !== 'player' && !typing()) render();
+  }
+
+  function teamAnalysis() {
+    return FT.analyze(Object.values(S.teamGames || {}), teamRoster());
+  }
+
+  function openTeam() {
+    S.view = 'team';
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  function teamCard() {
+    const A = teamAnalysis();
+    const n = A.all.n;
+    const box = h('div', { class: 'ring' });
+    const last = A.games.slice(0, 10).reverse();
+    const card = h('article', { class: 'team-card', tabindex: '0', onclick: openTeam, onkeydown: (e) => { if (e.key === 'Enter') openTeam(); } },
+      h('div', { class: 'team-card-txt' },
+        h('div', { class: 'team-kick' }, '👥 Stats de l’équipe'),
+        h('div', { class: 'team-big' }, n ? `${A.all.w} V – ${A.all.l} D en flex ensemble` : 'Aucune flex jouée ensemble pour l’instant'),
+        h('p', { class: 'muted small' }, n
+          ? `${pl(n, 'game', 'games')} classées Flex avec au moins 2 joueurs de FIRE · winrates, bonnes et mauvaises actions, stratégie, points forts`
+          : (S.teamState === 'loading' ? 'Recherche des flex jouées ensemble sur dpm.lol…' : 'Jouez une flex à 2 ou plus : elle apparaîtra ici avec l’analyse de l’équipe.')),
+        last.length ? h('div', { class: 'team-dots' }, last.map((g) => h('span', { class: 'tdot ' + (g.win ? 'w' : 'l'), title: `${new Date(g.t).toLocaleDateString('fr-FR')} · ${g.win ? 'Victoire' : 'Défaite'} à ${g.size}` }, g.win ? 'V' : 'D'))) : null,
+        A.bad[0] ? h('div', { class: 'hp bad' }, '⚠️ ' + A.bad[0].titre) : null),
+      n ? box : null,
+      h('span', { class: 'team-go' }, n ? 'Voir l’analyse →' : ''));
+    if (n) later(() => ring(box, { games: n, wr: A.all.wr, wins: A.all.w, losses: A.all.l }, 110));
+    return card;
+  }
+
+  function teamBar(label, x, note) {
+    const w = x && x.n ? x.wr : null;
+    return h('div', { class: 'twr' + (x && x.n ? '' : ' none') },
+      h('div', { class: 'twr-l' }, label, note ? h('span', { class: 'muted small' }, ' ' + note) : null),
+      h('div', { class: 'twr-track' }, w == null ? null : h('div', { class: 'twr-fill ' + (w >= 55 ? 'ok' : w >= 45 ? 'mid' : 'bad'), style: `width:${Math.max(3, w)}%` })),
+      h('div', { class: 'twr-v' }, w == null ? '—' : `${w} %`, x && x.n ? h('span', { class: 'muted small' }, ` (${x.w}/${x.n})`) : null));
+  }
+
+  function renderTeam() {
+    const view = $('view');
+    const A = teamAnalysis();
+    const k = A.k || {};
+    const n = A.all.n;
+    const since = n ? new Date(A.games[n - 1].t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
+    const ringBox = h('div', { class: 'ring' });
+    const state = S.teamState === 'loading' ? '⟳ Lecture des nouvelles flex sur dpm.lol…' : S.teamState === 'error' ? `⚠ dpm.lol n'a pas répondu (${S.teamErr}) : parties déjà connues affichées` : S.teamAt ? `✓ À jour à ${hm(S.teamAt)}` : '';
+    view.replaceChildren(h('header', { class: 'hero' },
+      h('div', { class: 'hero-txt' },
+        h('div', { class: 'tags' }, tag('👥 Équipe'), tag('Classé Flex'), tag('au moins 2 joueurs de FIRE')),
+        h('h1', { class: 'title' }, 'Stats de l’équipe'),
+        h('p', { class: 'muted small' }, n ? `${pl(n, 'flex', 'flex')} jouées ensemble depuis le ${since} · ${state}` : state),
+        n ? h('p', { class: 'lead' }, A.plan[0] || '') : h('p', { class: 'lead' }, 'Aucune flex jouée à 2 ou plus n’a encore été trouvée dans l’historique des joueurs. Elles apparaîtront ici dès la prochaine mise à jour.')),
+      n ? ringBox : null));
+    if (!n) return;
+    later(() => ring(ringBox, { games: n, wr: A.all.wr, wins: A.all.w, losses: A.all.l }, 170));
+
+    const tabs = [['bilan', '🧭 Bilan et stratégie'], ['chiffres', '📊 Ce qui décide vos games'], ['joueurs', '🤝 Qui joue avec qui'], ['games', '📜 Les games']];
+    view.append(h('nav', { class: 'tabs' }, tabs.map(([id, l]) => h('button', { class: 'tab', 'aria-selected': String(S.teamTab === id), onclick: () => { S.teamTab = id; render(); } }, l))));
+    const page = h('section', { class: 'page' });
+    view.append(page);
+
+    if (S.teamTab === 'bilan') {
+      if (A.plan.length) page.append(h('div', { class: 'card team-plan' }, h('h2', null, '🧭 Plan de jeu conseillé'), h('ul', { class: 'checks' }, A.plan.map((x) => h('li', null, x)))));
+      page.append(h('h2', { class: 'team-h' }, '❌ Mauvaises actions d’équipe, et quoi faire'));
+      if (!A.bad.length) page.append(h('p', { class: 'muted' }, 'Rien d’alarmant sur ces games. 👍'));
+      page.append(h('div', { class: 'team-list' }, A.bad.map((b) => h('div', { class: 'card team-act tbad' },
+        h('div', { class: 'ta-t' }, b.titre), h('p', { class: 'muted' }, b.detail),
+        h('div', { class: 'ta-strat' }, h('div', { class: 'ta-k' }, '🎯 La stratégie à prendre'), h('ul', null, b.strat.map((x) => h('li', null, x))))))));
+      page.append(h('h2', { class: 'team-h' }, '✅ Bonnes actions d’équipe'));
+      if (!A.good.length) page.append(h('p', { class: 'muted' }, 'Pas encore assez de games pour en tirer une conclusion.'));
+      page.append(h('div', { class: 'team-list' }, A.good.map((b) => h('div', { class: 'card team-act tgood' },
+        h('div', { class: 'ta-t' }, b.titre), h('p', { class: 'muted' }, b.detail), h('div', { class: 'ta-keep' }, '👉 ' + b.garder)))));
+      if (A.forts.length) {
+        page.append(h('h2', { class: 'team-h' }, '💪 Vos points forts'));
+        page.append(h('div', { class: 'team-forts' }, A.forts.map((f) => h('div', { class: 'card team-fort' }, h('div', { class: 'tf-ico' }, f.ico), h('div', null, h('div', { class: 'ta-t' }, f.titre), h('p', { class: 'muted small' }, f.detail))))));
+      }
+      page.append(h('p', { class: 'muted small' }, `Analyse calculée sur ${pl(n, 'flex', 'flex')}. Une conclusion demande au moins 3 à 4 games ; plus vous jouez ensemble, plus elle est fiable.`));
+    } else if (S.teamTab === 'chiffres') {
+      const vs = (ico, label, a, b, unit, better) => {
+        const good = better === 'up' ? a >= b : a <= b;
+        return h('div', { class: 'card tile' }, h('div', { class: 'tile-h' }, `${ico} ${label}`),
+          h('div', { class: 'num' }, `${fr(a, 1)}${unit || ''}`, h('span', { class: 'vs' }, ` vs ${fr(b, 1)}`)),
+          h('p', { class: 'small ' + (good ? 'ok-t' : 'bad-t') }, good ? '✓ mieux que l’adversaire' : '✗ moins bien que l’adversaire'));
+      };
+      page.append(h('div', { class: 'tiles' },
+        h('div', { class: 'card tile' }, h('div', { class: 'tile-h' }, '⏱️ Golds à 15 min'), h('div', { class: 'num' }, sg(Math.round(k.gd15))), h('p', { class: 'muted small' }, 'Avance (+) ou retard (−) de toute l’équipe, en moyenne.')),
+        vs('🐉', 'Dragons par game', k.dragUs, k.dragThem, '', 'up'),
+        vs('🪱', 'Larves par game', k.grubsUs, k.grubsThem, '', 'up'),
+        vs('👾', 'Barons par game', k.baronUs, k.baronThem, '', 'up'),
+        vs('🏰', 'Tours par game', k.towersUs, k.towersThem, '', 'up'),
+        vs('🔦', 'Vision par minute', k.visUs, k.visThem, '', 'up'),
+        vs('👁️', 'Pinks par game', k.cw, k.cwThem, '', 'up'),
+        h('div', { class: 'card tile' }, h('div', { class: 'tile-h' }, '💀 Morts par game'), h('div', { class: 'num' }, fr(k.deaths, 0)), h('p', { class: 'muted small' }, `${fr(k.deathsW, 0)} dans les victoires, ${fr(k.deathsL, 0)} dans les défaites.`)),
+        h('div', { class: 'card tile' }, h('div', { class: 'tile-h' }, '🩸 Premier sang'), h('div', { class: 'num' }, `${k.fb} %`), h('p', { class: 'muted small' }, 'Part des games où le premier kill est pour vous.'))));
+      const S2 = A.S;
+      page.append(h('div', { class: 'card' }, h('h2', null, 'Votre winrate selon ce qui se passe'),
+        h('p', { class: 'muted small' }, 'Plus l’écart entre deux lignes est grand, plus cet élément décide vos games.'),
+        h('div', { class: 'twrs' },
+          h('div', { class: 'wr-g' }, '🐉 Dragons'), teamBar('Vous en prenez plus', S2.moreDrag), teamBar('Ils en prennent plus', S2.lessDrag),
+          h('div', { class: 'wr-g' }, '👾 Baron'), teamBar('Vous prenez le Baron', S2.baron), teamBar('Ils prennent le Baron', S2.theirBaron),
+          h('div', { class: 'wr-g' }, '🪱 Larves'), teamBar('Vous en prenez plus', S2.moreGrubs), teamBar('Ils en prennent plus', S2.lessGrubs),
+          h('div', { class: 'wr-g' }, '⏱️ Golds à 15 min'), teamBar('Devant (+1 000 ou plus)', S2.ahead), teamBar('À peu près égal', S2.even), teamBar('Derrière (−1 000 ou plus)', S2.behind),
+          h('div', { class: 'wr-g' }, '🩸 Premier sang'), teamBar('Pour vous', S2.fb), teamBar('Pour eux', S2.noFb),
+          h('div', { class: 'wr-g' }, '⌛ Durée'), teamBar('Moins de 25 min', S2.short), teamBar('25 à 32 min', S2.mid), teamBar('Plus de 32 min', S2.long),
+          h('div', { class: 'wr-g' }, '📈 En ce moment'), teamBar('Les 10 dernières flex', S2.recent))));
+    } else if (S.teamTab === 'joueurs') {
+      page.append(h('div', { class: 'card' }, h('h2', null, '👥 Selon le nombre de joueurs de FIRE'),
+        h('div', { class: 'twrs' }, A.bySize.map((x) => teamBar(`À ${x.size}`, x)))));
+      page.append(h('div', { class: 'card' }, h('h2', null, '🤝 Les duos'), h('p', { class: 'muted small' }, 'Winrate quand ces deux joueurs sont dans la même flex.'),
+        h('div', { class: 'twrs' }, A.pairs.map((x) => teamBar(x.label, x)))));
+      page.append(h('div', { class: 'card' }, h('h2', null, '🙋 Chaque joueur en flex d’équipe'),
+        h('table', { class: 'tbl' }, h('thead', null, h('tr', null, ['Joueur', 'Games', 'Winrate', 'KDA', 'Morts', 'Participation aux kills', 'Golds à 15 min'].map((x) => h('th', null, x)))),
+          h('tbody', null, A.byMember.map((m) => h('tr', null, h('td', null, shortName(m.pseudo)), h('td', null, String(m.n)), h('td', { class: m.wr >= 50 ? 'ok-t' : 'bad-t' }, `${m.wr} %`),
+            h('td', null, fr(m.kda, 2)), h('td', null, fr(m.deaths, 1)), h('td', null, `${Math.round(m.kp)} %`), h('td', null, sg(Math.round(m.g15)))))))));
+      if (A.champs.length) page.append(h('div', { class: 'card' }, h('h2', null, '⭐ Champions joués en flex (2 games ou plus)'),
+        h('div', { class: 'twrs' }, A.champs.slice(0, 14).map((x) => teamBar(`${x.who} · ${FC.champName(x.c)}`, x)))));
+    } else {
+      page.append(h('div', { class: 'team-games' }, A.games.map((g) => {
+        const dt = new Date(g.t);
+        const m = Math.round(g.dur / 60);
+        return h('div', { class: 'card tgame ' + (g.win ? 'w' : 'l') },
+          h('div', { class: 'tg-head' }, h('span', { class: 'tg-res' }, g.win ? 'Victoire' : 'Défaite'),
+            h('span', { class: 'muted small' }, `${dt.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} à ${hm(g.t)} · ${m} min · ${g.size} joueurs de FIRE`)),
+          h('div', { class: 'tg-mem' }, g.members.map((x) => h('span', { class: 'tg-p' }, `${shortName(x.pseudo)} · ${FC.champName(x.c)} `, h('b', null, `${x.k}/${x.d}/${x.a}`)))),
+          h('div', { class: 'tg-obj' },
+            h('span', null, `⚔️ ${g.us.k}–${g.them.k}`), h('span', null, `🐉 ${g.us.drag}–${g.them.drag}`), h('span', null, `🪱 ${g.us.grubs}–${g.them.grubs}`),
+            h('span', null, `👾 ${g.us.baron}–${g.them.baron}`), h('span', null, `🏰 ${g.us.towers}–${g.them.towers}`),
+            h('span', { class: g.gd15 >= 0 ? 'ok-t' : 'bad-t' }, `⏱️ ${sg(g.gd15)} à 15 min`), g.us.fb ? h('span', null, '🩸 premier sang') : null));
+      })));
+    }
   }
 
   // ----- Page joueur -----
