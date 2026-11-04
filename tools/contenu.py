@@ -264,3 +264,184 @@ THEMES = [
     'exercice': "Avant ta prochaine game, écris le point que tu veux travailler. Après la game, note si tu l'as fait."
   }
 ]
+
+
+# ---------- Catégories par lane : les thèmes utiles à chaque rôle, avec des conseils propres à la lane ----------
+# Chaque entrée : (id du thème, phrase « focus », [conseils pour cette lane])
+CATEGORIES = [
+  {
+    'id': 'top', 'ico': '🛡️', 'titre': 'TOP LANE', 'roles': ['top'],
+    'intro': "La lane la plus isolée : ta wave, ton matchup et ta Téléportation font ta game.",
+    'themes': [
+      ('top', "Le cœur de ta lane : matchup, trades, TP et side lane.", []),
+      ('wave', "En top, la lane est longue : le freeze est ton arme.", [
+        "Devant : freeze près de ta tour pour obliger ton adversaire à s'avancer.",
+        "Derrière : ne va pas chercher la wave sous sa tour, attends-la près de la tienne.",
+        "Crash ta wave avant chaque back, surtout si tu as la TP."]),
+      ('fights', "Tu es souvent la frontline, ou celui qui arrive en TP.", [
+        "Ta TP peut créer un 4 contre 3 : annonce-la avant le fight.",
+        "Tank : engage ou protège. Combattant : tape ce que tu atteins sans mourir.",
+        "Pas de TP sur un fight si ta wave n'est pas poussée."]),
+      ('vision', "Une ward dans la rivière te protège des ganks.", [
+        "Vers 3:00, ward la rivière ou ton tri-bush.",
+        "En side lane, garde toujours une ward devant toi.",
+        "Une pink dans le buisson de la rivière du haut dure longtemps."]),
+      ('objectifs', "Les larves (8:00) et le Héraut (15:00) sont de ton côté.", [
+        "Pousse ta wave 30 secondes avant les larves ou le Héraut.",
+        "Après la phase de lane, ta pression en side oblige l'adversaire à envoyer quelqu'un.",
+        "Une tour top prise donne de la place à ton jungler."]),
+      ('recall', "Ton back suit ta wave et ta TP.", [
+        "Crash puis back : tu ne perds aucun sbire.",
+        "Avec la TP prête, back puis TP pour revenir sans perdre de wave.",
+        "Pas de back quand une grosse wave arrive sous ta tour."]),
+      ('conceder', "Seul en top, savoir lâcher une tour te garde en vie.", [
+        "Si son jungler et ton adversaire plongent ensemble, recule.",
+        "Si ton équipe perd un fight en bas, prends des plates en top.",
+        "Ne TP pas sur un fight déjà perdu."]),
+      ('bases', "Les bases valent pour toutes les lanes.", [
+        "Regarde la minimap à chaque last-hit : le jungler adverse vient souvent en top tôt."]),
+      ('mental', "Un matchup perdu arrive : reste calme et farme.", [
+        "Une lane perdue n'est pas une game perdue : ton champion peut revenir plus tard."]),
+    ]
+  },
+  {
+    'id': 'jungle', 'ico': '🌲', 'titre': 'JUNGLE', 'roles': ['jungle'],
+    'intro': "Tu donnes le rythme de la game : ton chemin, tes ganks et les objectifs.",
+    'themes': [
+      ('jungle', "Ton cœur de métier : chemin, ganks, objectifs.", []),
+      ('objectifs', "C'est toi qui appelles les objectifs.", [
+        "Regarde les timers après chaque back.",
+        "Demande aux lanes de pousser 1 minute avant.",
+        "Garde ton Smite pour la fin de l'objectif."]),
+      ('vision', "Tu poses et enlèves la vision de la jungle.", [
+        "Ward la jungle adverse pour suivre son jungler.",
+        "En milieu de partie, passe au trinket de balayage.",
+        "Une pink près de la fosse avant chaque dragon."]),
+      ('wave', "Tu ne gères pas de wave, mais tu dois les lire.", [
+        "Ganke quand la wave est près de la tour de ton allié.",
+        "Une wave qui pousse vers sa tour à lui rend le gank difficile.",
+        "Après un gank réussi, aide ton allié à pousser pour prendre des plates."]),
+      ('fights', "Tu engages ou tu protèges, et tu restes près de l'objectif.", [
+        "Avec un champion d'engage (Jarvan IV par exemple), lance le fight quand l'équipe est prête.",
+        "Reste près de l'objectif pour le Smite.",
+        "Ne poursuis pas un adversaire au lieu de prendre le dragon."]),
+      ('recall', "Ton back se cale sur les timers.", [
+        "Back après un full clear ou un objectif.",
+        "Ne back pas 30 secondes avant un dragon.",
+        "Prends tes camps sur le chemin du retour."]),
+      ('conceder', "Tu décides souvent de lâcher ou d'échanger.", [
+        "Son jungler fait le dragon ? Prends les larves, le Héraut ou sa jungle.",
+        "Ne conteste pas sans la prio de tes lanes.",
+        "Annonce ton choix 30 secondes avant."]),
+      ('bases', "Les bases valent pour toutes les lanes.", [
+        "Les timers des objectifs sont ton outil principal : apprends-les par cœur."]),
+      ('mental', "Tout le monde te demande des ganks : reste sur ton plan.", [
+        "Un gank refusé parce qu'il est mauvais, c'est une bonne décision."]),
+    ]
+  },
+  {
+    'id': 'mid', 'ico': '✨', 'titre': 'MID LANE', 'roles': ['mid'],
+    'intro': "Au centre de la carte : ta prio te permet de bouger avant tout le monde.",
+    'themes': [
+      ('mid', "Le cœur de ta lane : prio, roams, trades.", []),
+      ('wave', "Pousser vite pour bouger en premier.", [
+        "Crash ta wave avant de roam.",
+        "Avec un mage, tue d'abord ses sbires à distance avec tes sorts.",
+        "Ne laisse pas une grosse wave s'écraser sous ta tour pendant un roam."]),
+      ('vision', "Le mid peut être gank des deux côtés.", [
+        "Ward le côté où se trouve le jungler adverse.",
+        "Place-toi du côté que tu vois.",
+        "Ward la rivière avant de roam."]),
+      ('fights', "Tu es souvent la grosse source de dégâts ou de contrôle.", [
+        "Reste derrière ta frontline, à portée de tes sorts.",
+        "Garde ton sort de contrôle pour la bonne cible.",
+        "Garde ton ultime pour le moment où il touche le plus d'adversaires ou finit la cible."]),
+      ('objectifs', "Ta prio mid permet d'aller sur les deux fosses.", [
+        "Pousse ta wave avant chaque objectif.",
+        "Va avec ton jungler sur la scuttle et les objectifs.",
+        "Après une tour mid prise, regroupez-vous."]),
+      ('recall', "Back après un crash, avant un objectif.", [
+        "Synchronise ton back avec ton jungler.",
+        "Achète une pink à chaque back pour la rivière.",
+        "Pas de back si ta wave va s'écraser sous ta tour."]),
+      ('conceder', "Ne va pas seul contester ce que l'équipe ne peut pas prendre.", [
+        "Si le jungler et le mid adverses montent, ne conteste pas seul.",
+        "Prends la wave et les plates à la place.",
+        "Ping tôt ce que l'équipe lâche."]),
+      ('bases', "Les bases valent pour toutes les lanes.", [
+        "Au mid, la minimap compte double : tu vois venir les roams des deux côtés."]),
+      ('mental', "Un roam raté arrive : rentre vite et farme.", [
+        "Un roam qui ne marche pas n'est pas une erreur si ta wave était poussée."]),
+    ]
+  },
+  {
+    'id': 'adc', 'ico': '🏹', 'titre': 'ADC', 'roles': ['adc'],
+    'intro': "Farmer, rester en vie, faire les dégâts : la lane bot avec ton support.",
+    'themes': [
+      ('bot', "Ta lane à deux avec ton support.", []),
+      ('wave', "Farmer chaque sbire, c'est ta priorité.", [
+        "Last-hit chaque sbire : tes objets font tes dégâts.",
+        "Poussez et backez avec ton support.",
+        "Avant un dragon, slow push pour arriver les premiers."]),
+      ('fights', "Rester en vie et taper ce qui est à portée.", [
+        "Reste derrière ta frontline.",
+        "Tape le plus proche si c'est sans risque, même si c'est le tank.",
+        "Une attaque, un pas en arrière : ne reste jamais immobile."]),
+      ('recall', "Tes objets font tes dégâts : back au bon moment.", [
+        "Back quand tu as les golds pour un composant important.",
+        "Back en même temps que ton support.",
+        "Achète des potions si la lane est difficile."]),
+      ('vision', "Ton support s'occupe surtout de la vision, mais pas tout seul.", [
+        "Ward ton tri-bush quand ton support roam.",
+        "Ne t'avance pas sans vision quand le jungler adverse a disparu.",
+        "Garde une pink sur toi."]),
+      ('objectifs', "Le dragon est à côté de ta lane.", [
+        "Poussez votre wave avant le dragon.",
+        "Prends les plates de la tour bot quand vous avez la prio.",
+        "Avec le Baron, pousse en restant derrière tes sbires."]),
+      ('conceder', "Seul, lâche quelques sbires plutôt que mourir.", [
+        "Si ton support roam, joue sous ta tour.",
+        "À 1 contre 2, recule et farme sous ta tour.",
+        "Ne rejoins pas un fight où tu arrives seul."]),
+      ('bases', "Les bases valent pour toutes les lanes.", [
+        "Une mort d'ADC coûte cher : tes golds sont ton arme."]),
+      ('mental', "Une lane à deux, un mental à deux.", [
+        "Félicite ton support après un bon engage : la lane va mieux quand vous parlez."]),
+    ]
+  },
+  {
+    'id': 'support', 'ico': '💞', 'titre': 'SUPPORT', 'roles': ['support'],
+    'intro': "La vision, l'engage et la protection : tu prépares tout pour ton équipe.",
+    'themes': [
+      ('bot', "Ta lane à deux avec ton ADC.", []),
+      ('vision', "La vision est ton travail principal.", [
+        "Une pink à chaque back.",
+        "Ward rivière et tri-bush, puis la jungle adverse quand vous avez la prio.",
+        "En milieu de partie, passe au trinket de balayage."]),
+      ('fights', "Tu engages ou tu protèges.", [
+        "Nautilus ou Pyke : engage quand l'équipe peut suivre.",
+        "Vel'Koz : touche de loin et reste derrière ta frontline.",
+        "Protège ton ADC s'il se fait attaquer."]),
+      ('wave', "Tu ne farmes pas, mais tu aides à pousser au bon moment.", [
+        "Laisse les sbires à ton ADC.",
+        "Aide à pousser la 1re wave pour le niveau 2.",
+        "Pousse avec ton ADC avant un back ou un dragon."]),
+      ('objectifs', "Tu prépares la vision des objectifs.", [
+        "Éclaire la fosse du dragon 1 minute avant.",
+        "Accompagne ton jungler dans la rivière.",
+        "Avant le Baron, enlève les wards adverses."]),
+      ('recall', "Ton back suit celui de ton ADC.", [
+        "Back avec ton ADC.",
+        "Achète une pink à chaque back.",
+        "Après un back, tu peux aller poser des wards ou aider le mid."]),
+      ('conceder', "Ne lance pas un fight perdu d'avance.", [
+        "Pas d'engage à 4 contre 5.",
+        "Ping tôt quand il faut lâcher le dragon.",
+        "Va poser de la vision de l'autre côté pendant l'échange."]),
+      ('bases', "Les bases valent pour toutes les lanes.", [
+        "Tu as le plus de temps pour regarder la minimap : préviens ton équipe."]),
+      ('mental', "Tu donnes le ton de l'équipe.", [
+        "Les pings positifs viennent souvent du support : l'équipe joue mieux avec."]),
+    ]
+  },
+]

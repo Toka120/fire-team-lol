@@ -1,7 +1,7 @@
 # Construit guides.json (rubrique « Lanes et principes ») à partir de contenu.py et schemas.py.
 import json, sys, os
 sys.path.insert(0, os.path.dirname(__file__))
-from contenu import THEMES
+from contenu import THEMES, CATEGORIES
 from schemas import ALL
 from scenes import SCENES
 
@@ -20,7 +20,13 @@ for t in THEMES:
         secs.append(d)
     th['sections'] = secs
     out.append(th)
-data = {'v': 1, 'mise_a_jour': '4 novembre 2026', 'saison': '2026', 'themes': out}
+ids = {t['id'] for t in out}
+cats = []
+for c in CATEGORIES:
+    for tid, _, _ in c['themes']:
+        assert tid in ids, tid
+    cats.append({**c, 'themes': [{'id': tid, 'focus': f, 'conseils': cs} for tid, f, cs in c['themes']]})
+data = {'v': 1, 'mise_a_jour': '4 novembre 2026', 'saison': '2026', 'categories': cats, 'themes': out}
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 txt = json.dumps(data, ensure_ascii=False, indent=1) + '\n'
 for p in ['guides.json', 'app/renderer/guides.default.json']:

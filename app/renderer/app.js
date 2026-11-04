@@ -14,7 +14,7 @@
     data: load('fire.data', {}), status: {},
     view: 'hub', player: null, tab: 'resume', jour: 'tous',
     refreshing: false, lastRefresh: null, timer: null,
-    section: 'stats', version: '0', guides: null, theme: null,
+    section: 'stats', version: '0', guides: null, guideCats: [], guideCat: null, theme: null,
     fiches: null, fichesErr: '', fichesLoading: false, ficheId: null, seen: new Set(load('fire.vus', [])),
     coachState: { coach: false, claude: false, github: false }, draft: null, flash: '', settingsMsg: '', confirm: null,
     pools: null, poolsErr: '', poolWeek: null, poolEdit: null, cardEdit: null, champList: null, cfgObj: null
@@ -182,7 +182,7 @@
     since.onchange = () => { if (since.value && since.validity.valid) { S.since = since.value; S.jour = 'tous'; render(); } };
     $('refresh').onclick = () => refreshContent();
     $('back').onclick = () => {
-      if (S.section === 'stats') { S.view = 'hub'; S.player = null; } else if (S.section === 'guides') S.theme = null; else S.ficheId = null;
+      if (S.section === 'stats') { S.view = 'hub'; S.player = null; } else if (S.section === 'guides') { if (S.theme) S.theme = null; else S.guideCat = null; } else S.ficheId = null;
       render();
       window.scrollTo(0, 0);
     };
@@ -195,6 +195,7 @@
   function loadGuides() {
     return window.fire.guides().then((g) => {
       S.guides = (g && g.themes) || [];
+      S.guideCats = (g && g.categories) || [];
       if (S.section === 'guides' && !typing()) render();
     }).catch(() => { S.guides = S.guides || []; });
   }
@@ -408,8 +409,9 @@
     renderNav();
     $('period-box').hidden = S.section !== 'stats';
     const back = $('back');
-    back.hidden = S.section === 'settings' || S.section === 'pool' || !(S.section === 'stats' ? S.view === 'player' : S.section === 'guides' ? !!S.theme : !!S.ficheId);
-    back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? '← Lanes et principes' : '← Parole du coach';
+    back.hidden = S.section === 'settings' || S.section === 'pool' || !(S.section === 'stats' ? S.view === 'player' : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    const gc = catOf(S.guideCat);
+    back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
     else if (S.section === 'pool') renderPool();
     else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
@@ -835,7 +837,7 @@
 
   function go(sec) {
     S.section = sec;
-    if (sec === 'guides') S.theme = null;
+    if (sec === 'guides') { S.theme = null; S.guideCat = null; }
     if (sec === 'coach') S.ficheId = null;
     if (sec === 'stats') { S.view = 'hub'; S.player = null; }
     render();
@@ -948,6 +950,16 @@
     return nodes;
   }
 
+  // Conseils propres à la lane quand on vient d'une catégorie (ex. « Pour le TOP »).
+  function laneBanner(t) {
+    const c = catOf(S.guideCat);
+    const x = c && c.themes.find((y) => y.id === t.id);
+    if (!x || !(x.conseils && x.conseils.length)) return null;
+    return h('div', { class: 'lane-banner' },
+      h('div', { class: 'lb-head' }, h('span', { class: 'lb-ico' }, c.ico), h('div', null, h('div', { class: 'lb-t' }, `Conseils ${c.titre}`), h('div', { class: 'muted small' }, x.focus))),
+      h('div', { class: 'lb-tips' }, x.conseils.map((tip) => h('div', { class: 'lb-tip' }, h('span', { class: 'lb-dot' }, '➜'), h('span', null, tip)))));
+  }
+
   // Page d'un thème : « En bref » en tuiles, puis chaque principe dans un bloc qui se déplie.
   function themeNodes(t) {
     const nodes = [];
@@ -968,7 +980,57 @@
   }
 
   // ----- Lanes et principes -----
+  const catOf = (id) => (S.guideCats || []).find((c) => c.id === id) || null;
+  const myRole = () => { const me = S.players.find((p) => p.slug === S.moi); return me ? me.role_id : null; };
+  const openTheme = (id) => { S.theme = id; render(); window.scrollTo(0, 0); };
+
   function renderGuides() {
+    if (S.guideCats && S.guideCats.length && S.guideCat !== 'all') {
+      if (S.guideCat) { renderCategory(catOf(S.guideCat)); return; }
+      renderCategories();
+      return;
+    }
+    renderAllThemes();
+  }
+
+  function renderCategories() {
+    const view = $('view');
+    const role = myRole();
+    view.replaceChildren(
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📚'), h('div', null, h('h1', { class: 'title' }, 'Lanes et principes'),
+        h('p', { class: 'muted' }, 'Choisis ta lane : tous les principes utiles pour ton rôle, avec des conseils adaptés et des schémas animés.'))),
+      h('div', { class: 'cat-grid' }, S.guideCats.map((c) => {
+        const mine = role && (c.roles || []).includes(role);
+        return h('button', { class: 'catcard' + (mine ? ' mine' : ''), onclick: () => { S.guideCat = c.id; S.theme = null; render(); window.scrollTo(0, 0); } },
+          mine ? h('span', { class: 'me-tag' }, 'Ta lane') : null,
+          h('div', { class: 'cat-ico' }, c.ico),
+          h('div', { class: 'cat-t' }, c.titre),
+          h('p', { class: 'muted small' }, c.intro),
+          h('div', { class: 'cat-chips' }, c.themes.map((x) => { const t = themeOf(x.id); return t ? h('span', { class: 'cchip' }, `${t.ico} ${t.titre.replace(/ \(.*\)$/, '')}`) : null; })));
+      })),
+      h('p', { class: 'muted small' }, h('button', { class: 'linkbtn', onclick: () => { S.guideCat = 'all'; render(); } }, 'Voir tous les thèmes sans catégorie')));
+  }
+
+  function renderCategory(c) {
+    const view = $('view');
+    if (!c) { S.guideCat = null; renderCategories(); return; }
+    view.replaceChildren(
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, c.ico), h('div', null, h('h1', { class: 'title' }, c.titre), h('p', { class: 'muted' }, c.intro))),
+      h('div', { class: 'cat-list' }, c.themes.map((x, i) => {
+        const t = themeOf(x.id);
+        if (!t) return null;
+        const extra = (S.fiches || []).filter((f) => f.rubrique === t.id).length;
+        return h('button', { class: 'cat-item', onclick: () => openTheme(t.id) },
+          h('span', { class: 'ci-n' }, String(i + 1)),
+          h('span', { class: 'ci-ico' }, t.ico),
+          h('span', { class: 'ci-body' }, h('b', null, t.titre), h('span', { class: 'muted small' }, x.focus)),
+          h('span', { class: 'ci-meta' }, x.conseils && x.conseils.length ? h('span', { class: 'cchip lane' }, `${c.ico} ${x.conseils.length} conseil${x.conseils.length > 1 ? 's' : ''} ${c.titre.toLowerCase()}`) : null,
+            h('span', { class: 'muted small' }, `${(t.sections || []).length} principes`), extra ? h('span', { class: 'pill-new' }, `+${extra} du coach`) : null),
+          h('span', { class: 'ci-go' }, '→'));
+      })));
+  }
+
+  function renderAllThemes() {
     const view = $('view');
     const head = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📚'), h('div', null, h('h1', { class: 'title' }, 'Lanes et principes'),
       h('p', { class: 'muted' }, 'Tous les principes de LoL, expliqués simplement, avec des schémas. Clique sur un thème. Saison 2026.')));
@@ -990,6 +1052,7 @@
     const extra = (S.fiches || []).filter((f) => f.rubrique === t.id);
     view.replaceChildren(...[
       h('header', { class: 'doc-head' }, h('div', { class: 'tags' }, tag(pourLabel(t.pour)), tag('Saison 2026')), h('h1', { class: 'title' }, `${t.ico || ''} ${t.titre}`)),
+      laneBanner(t),
       ...themeNodes(t),
       extra.length || S.coachState.coach ? h('div', { class: 'card' },
         h('h2', null, '📣 Ajouts du coach'),

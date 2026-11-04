@@ -18,7 +18,7 @@
     "data": "0WhK6ZLW0V/s+xh29cUhrQ+uVXu2BRo7ztCYqW/jXbY="
   },
   "data_repo": "Toka120/fire-lol-data",
-  "derniere_version": "1.3.1",
+  "derniere_version": "1.5.1",
   "objectif": {
     "debut": "2026-10-31",
     "games": 20,
@@ -57,7 +57,7 @@
       "dpm": "https://dpm.lol/Toks42o%20-TTV"
     },
     {
-      "role": "Jungle (suppléant)",
+      "role": "Jungle (Bench)",
       "role_id": "jungle",
       "pseudo": "Kayn Effect#NuhUh",
       "slug": "Kayn%20Effect-NuhUh",
