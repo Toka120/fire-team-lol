@@ -1737,8 +1737,8 @@
             h('div', { class: 'lore-hero', style: `background-image:url('${jsplash(c, 0)}')` },
               h('div', { class: 'lore-hero-in' }, h('h2', null, c.name), h('p', null, cap(c.title)),
                 h('div', { class: 'lore-tags' }, [c.region, c.year ? `Sorti en ${c.year}` : null, ...c.tags.map((x) => TAGFR[x] || x), ...((l && l.races) || [])].filter(Boolean).map((x) => h('span', { class: 'tag' }, x))))),
-            c.regionSlug && JREG[c.regionSlug] ? h('div', { class: 'lore-mini' }, jMap(c.regionSlug, (k) => { J.loreSel = null; J.loreReg = k; render(); }, true),
-              h('div', null, h('b', null, `${JREG[c.regionSlug].ico} ${c.region}`), h('p', { class: 'muted small' }, 'Là où vit ce champion sur la carte de Runeterra.'),
+            c.regionSlug && JREG[c.regionSlug] ? h('div', { class: 'lore-mini' },
+              h('div', null, h('b', null, `${JREG[c.regionSlug].ico} ${c.region}`), h('p', { class: 'muted small' }, 'Sa région : retrouve-la sur la carte officielle de Runeterra, en haut de l’onglet Lore.'),
                 h('button', { class: 'btn-ghost', onclick: () => { J.loreSel = null; J.loreReg = c.regionSlug; render(); window.scrollTo(0, 0); } }, 'Voir la région et ses champions →'))) : null,
             l && l.quote ? h('blockquote', { class: 'jeu-quote' }, '« ', l.quote, ' »', l.quoteAuthor ? h('span', { class: 'muted small' }, ' — ' + l.quoteAuthor) : null) : null,
             !l ? h('p', { class: 'muted small' }, 'Chargement de la biographie complète…') : null,
@@ -1749,26 +1749,32 @@
       }
     }
     const facs = J.data.factions || [];
-    const fac = facs.find((f) => f.slug === J.loreReg);
     const inp = h('input', { class: 'inp', id: 'lore-q', placeholder: 'Chercher un champion…', value: J.loreQ });
     const match = (c) => (!J.loreReg || c.regionSlug === J.loreReg) && (!jn(J.loreQ) || jn(c.name).includes(jn(J.loreQ)) || jn(c.title).includes(jn(J.loreQ)));
     const loreCards = () => cs.filter(match).map((c) => h('button', { class: 'lore-c', onclick: () => { J.loreSel = c.id; render(); window.scrollTo(0, 0); } }, h('img', { src: jsq(c), alt: '' }), h('b', null, c.name), h('span', { class: 'muted small' }, cap(c.title))));
-    inp.addEventListener('input', () => { J.loreQ = inp.value; const g = $('lore-grid'); if (g) g.replaceChildren(...loreCards()); const n = $('lore-n'); if (n) n.textContent = `${cs.filter(match).length} champions`; });
-    const pickReg = (slug) => { J.loreReg = J.loreReg === slug ? '' : slug; render(); later(() => { const p = $('lore-region'); if (p) p.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); };
-    const out = [h('div', { class: 'card lore-mapcard' },
-      h('div', { class: 'lore-maphead' }, h('h3', null, '🗺️ La carte de Runeterra'), h('span', { class: 'muted small' }, 'Clique sur une région pour voir ses champions et son histoire.'),
-        h('a', { class: 'btn-ghost', href: 'https://map.leagueoflegends.com/fr_FR', target: '_blank' }, 'Carte interactive officielle ↗')),
-      jMap(J.loreReg, pickReg, false),
-      h('p', { class: 'muted small' }, 'Carte simplifiée : les régions sont placées comme sur la carte officielle de Riot, sans le détail du relief.'))];
-    if (fac) out.push(h('div', { class: 'card lore-region', id: 'lore-region' },
-      fac.img ? h('div', { class: 'lore-hero small', style: `background-image:url('${fac.img}')` }, h('div', { class: 'lore-hero-in' }, h('h2', null, (JREG[fac.slug] || {}).ico || '', ' ', fac.name), h('p', null, `${cs.filter((c) => c.regionSlug === fac.slug).length} champions`))) : h('h2', null, fac.name),
-      fac.desc ? h('p', { class: 'lore-text' }, fac.desc) : null,
-      h('div', { class: 'row', style: 'padding:0 24px 16px' }, h('button', { class: 'btn-ghost', onclick: () => pickReg(fac.slug) }, '✕ Toutes les régions'))));
-    out.push(h('div', { class: 'row' }, inp, h('span', { class: 'muted small', id: 'lore-n' }, `${cs.filter(match).length} champions`)),
-      h('div', { class: 'chips' }, h('button', { class: 'chip', 'aria-pressed': String(!J.loreReg), onclick: () => { J.loreReg = ''; render(); } }, 'Toutes les régions'),
-        facs.slice().sort((x, y) => x.name.localeCompare(y.name, 'fr')).map((f) => h('button', { class: 'chip', 'aria-pressed': String(J.loreReg === f.slug), onclick: () => pickReg(f.slug) }, `${(JREG[f.slug] || {}).ico || ''} ${f.name}`))),
-      h('div', { class: 'lore-grid', id: 'lore-grid' }, loreCards()));
-    return out;
+    // Seules ces zones se redessinent : la carte (iframe) n'est jamais rechargée quand on change de région ou qu'on cherche.
+    const regionBox = h('div'), chipsBox = h('div', { class: 'chips' }), grid = h('div', { class: 'lore-grid', id: 'lore-grid' }), count = h('span', { class: 'muted small' });
+    const refresh = () => {
+      const fac = facs.find((f) => f.slug === J.loreReg);
+      regionBox.replaceChildren(...(fac ? [h('div', { class: 'card lore-region', id: 'lore-region' },
+        fac.img ? h('div', { class: 'lore-hero small', style: `background-image:url('${fac.img}')` }, h('div', { class: 'lore-hero-in' }, h('h2', null, (JREG[fac.slug] || {}).ico || '', ' ', fac.name), h('p', null, `${cs.filter((c) => c.regionSlug === fac.slug).length} champions`))) : h('h2', null, fac.name),
+        fac.desc ? h('p', { class: 'lore-text' }, fac.desc) : null,
+        h('div', { class: 'row', style: 'padding:0 24px 16px' }, h('button', { class: 'btn-ghost', onclick: () => pickReg('') }, '✕ Toutes les régions')))] : []));
+      chipsBox.replaceChildren(h('button', { class: 'chip', 'aria-pressed': String(!J.loreReg), onclick: () => pickReg('') }, 'Toutes les régions'),
+        ...facs.slice().sort((x, y) => x.name.localeCompare(y.name, 'fr')).map((f) => h('button', { class: 'chip', 'aria-pressed': String(J.loreReg === f.slug), onclick: () => pickReg(J.loreReg === f.slug ? '' : f.slug) }, `${(JREG[f.slug] || {}).ico || ''} ${f.name}`)));
+      grid.replaceChildren(...loreCards());
+      count.textContent = `${cs.filter(match).length} champions`;
+    };
+    const pickReg = (slug) => { J.loreReg = slug; refresh(); if (slug) later(() => regionBox.scrollIntoView({ behavior: 'smooth', block: 'start' })); };
+    inp.addEventListener('input', () => { J.loreQ = inp.value; grid.replaceChildren(...loreCards()); count.textContent = `${cs.filter(match).length} champions`; });
+    const fb = h('button', { class: 'btn-ghost' }, J.mapFull ? '✕ Fermer le plein écran' : '⛶ Plein écran');
+    const card = h('div', { class: 'card lore-mapcard' + (J.mapFull ? ' full' : '') },
+      h('div', { class: 'lore-maphead' }, h('h3', null, '🗺️ La carte de Runeterra'), h('span', { class: 'muted small' }, 'La carte interactive officielle de Riot : zoome, survole les régions, clique sur les champions.'),
+        fb, h('a', { class: 'btn-ghost', href: 'https://map.leagueoflegends.com/fr_FR/', target: '_blank' }, 'Ouvrir dans le navigateur ↗')),
+      h('iframe', { class: 'lore-iframe', src: 'https://map.leagueoflegends.com/fr_FR/', title: 'Carte de Runeterra', allow: 'fullscreen; autoplay', allowfullscreen: true }));
+    fb.addEventListener('click', () => { J.mapFull = !J.mapFull; card.classList.toggle('full', J.mapFull); fb.textContent = J.mapFull ? '✕ Fermer le plein écran' : '⛶ Plein écran'; });
+    refresh();
+    return [card, regionBox, h('div', { class: 'row' }, inp, count), chipsBox, grid];
   }
 
   // Carte simplifiée de Runeterra (positions des régions comme sur la carte officielle).

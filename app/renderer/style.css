@@ -720,3 +720,6 @@ button.plan-p{cursor:pointer}
 .lore-hero.small{height:220px}
 .lore-mini{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:16px 24px 0}
 .lore-mini .jm-box{width:min(420px,100%)}
+.lore-iframe{width:100%;height:min(72vh,760px);border:1px solid var(--line);border-radius:14px;background:#081422;display:block}
+.lore-mapcard.full{position:fixed;inset:10px;z-index:50;margin:0;display:flex;flex-direction:column}
+.lore-mapcard.full .lore-iframe{flex:1;height:auto}
