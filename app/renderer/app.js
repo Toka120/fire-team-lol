@@ -430,12 +430,13 @@
     renderNav();
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
     else if (S.section === 'pool') renderPool();
     else if (S.section === 'planning') renderPlanning();
+    else if (S.section === 'jeux') renderJeux();
     else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
     else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
     else if (S.view === 'player') renderPlayer();
@@ -1037,6 +1038,7 @@
     if (sec === 'coach') S.ficheId = null;
     if (sec === 'stats') { S.view = 'hub'; S.player = null; }
     if (sec === 'planning') { S.planEdit = null; loadPlanning(); }
+    if (sec === 'jeux') loadJeux();
     render();
     window.scrollTo(0, 0);
   }
@@ -1046,7 +1048,7 @@
     const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = (u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version)) ? '1' : null;
-    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('settings', '⚙️ Paramètres', upd));
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('settings', '⚙️ Paramètres', upd));
   }
 
   function newsBanner() {
@@ -1544,6 +1546,216 @@
     let opt = sel.querySelector('option[value=obj]');
     if (S.obj && !opt) { opt = document.createElement('option'); opt.value = 'obj'; sel.insertBefore(opt, sel.firstChild); }
     if (opt) { if (S.obj) opt.textContent = `Objectif (depuis le ${dateFr(S.obj.debut)})`; else opt.remove(); }
+  }
+
+  // ----- Détente : devine le champion (comme Loldle, en illimité) et lore des champions -----
+  const DD = 'https://ddragon.leagueoflegends.com';
+  const J = { data: null, err: '', loading: false, tab: 'classique', r: {}, lore: {}, loreSel: null, loreQ: '', loreReg: '' };
+  const JMODES = [['classique', '🎯 Classique'], ['sort', '✨ Sort'], ['passif', '🔮 Passif'], ['phrase', '💬 Phrase'], ['splash', '🖼️ Splash'], ['lore', '📖 Lore']];
+  const TAGFR = { Fighter: 'Combattant', Tank: 'Tank', Mage: 'Mage', Assassin: 'Assassin', Marksman: 'Tireur', Support: 'Support' };
+  const jn = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+  const jimg = (type, f) => `${DD}/cdn/${J.data.version}/img/${type}/${f}`;
+  const jsq = (c) => jimg('champion', c.id + '.png');
+  const jsplash = (c, num) => `${DD}/cdn/img/champion/splash/${c.id}_${num || 0}.jpg`;
+  const jstats = () => load('fire.jeux', {});
+
+  async function loadJeux() {
+    if (J.data || J.loading) return;
+    J.loading = true; J.err = '';
+    let r;
+    try { r = await window.fire.jeux.data(); } catch (e) { r = { ok: false, error: String(e) }; }
+    J.loading = false;
+    if (r && r.ok) J.data = r; else J.err = (r && r.error) || 'données indisponibles';
+    if (S.section === 'jeux' && !typing()) render();
+  }
+  async function jLore(c) {
+    if (J.lore[c.id]) return J.lore[c.id];
+    let r;
+    try { r = await window.fire.jeux.lore(c.slug); } catch (e) { r = { ok: false }; }
+    J.lore[c.id] = r && r.ok ? r : { ok: false, races: [], quote: '', full: '', short: '' };
+    return J.lore[c.id];
+  }
+  const pick = (xs) => xs[Math.floor(Math.random() * xs.length)];
+  function jMask(text, c) {
+    let t = String(text || '');
+    const words = [c.name, c.id, ...c.name.split(/[\s'’.-]+/).filter((w) => w.length >= 3)];
+    for (const w of words) t = t.replace(new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '•••');
+    return t;
+  }
+
+  async function jNew(mode) {
+    const cs = J.data.champs;
+    const prev = J.r[mode] && J.r[mode].target;
+    let c = pick(cs);
+    if (prev && cs.length > 1) while (c.id === prev.id) c = pick(cs);
+    const r = { target: c, guesses: [], done: false, gaveUp: false, at: Date.now() };
+    if (mode === 'sort') { r.spell = pick(c.spells); r.rot = pick([90, 180, 270]); }
+    if (mode === 'splash') { const sk = c.skins.filter((x) => x.num > 0); r.skin = sk.length ? pick(sk) : c.skins[0]; r.ox = 20 + Math.round(Math.random() * 60); r.oy = 20 + Math.round(Math.random() * 60); }
+    J.r[mode] = r;
+    if (mode === 'phrase') {
+      r.wait = true; render();
+      const l = await jLore(c);
+      const src = l.quote || (l.short || c.lore || '').split(/(?<=[.!?])\s+/).slice(0, 2).join(' ');
+      r.quote = jMask(src, c); r.fromBio = !l.quote; r.wait = false;
+    }
+    if (mode === 'classique') jLore(c);
+    render();
+  }
+
+  async function jGuess(mode, raw) {
+    const r = J.r[mode];
+    if (!r || r.done) return;
+    const q = jn(raw);
+    if (!q) return;
+    const cs = J.data.champs;
+    let c = cs.find((x) => jn(x.name) === q || jn(x.id) === q);
+    if (!c) { const st = cs.filter((x) => jn(x.name).startsWith(q)); if (st.length === 1) c = st[0]; }
+    if (!c) { J.msg = 'Champion inconnu : choisis un nom dans la liste.'; render(); return; }
+    if (r.guesses.some((g) => g.id === c.id)) { J.msg = 'Déjà proposé.'; render(); return; }
+    J.msg = '';
+    if (mode === 'classique') { await jLore(c); await jLore(r.target); }
+    r.guesses.push(c);
+    if (c.id === r.target.id) {
+      r.done = true;
+      const st = jstats(); const m = st[mode] || { wins: 0, tries: 0, streak: 0, best: 0 };
+      m.wins++; m.tries += r.guesses.length; m.streak++; m.best = Math.max(m.best, m.streak); st[mode] = m; save('fire.jeux', st);
+    }
+    render();
+    later(() => { const i = $('jeu-in'); if (i && !r.done) i.focus(); });
+  }
+  function jGiveUp(mode) {
+    const r = J.r[mode];
+    if (!r || r.done) return;
+    r.done = true; r.gaveUp = true;
+    const st = jstats(); const m = st[mode] || { wins: 0, tries: 0, streak: 0, best: 0 };
+    m.streak = 0; st[mode] = m; save('fire.jeux', st);
+    render();
+  }
+
+  function renderJeux() {
+    const view = $('view');
+    const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎮'),
+      h('div', null, h('h1', { class: 'title' }, 'Détente'), h('p', { class: 'muted' }, 'Devine le champion autant de fois que tu veux, ou plonge dans le lore de Runeterra.')))];
+    nodes.push(h('div', { class: 'chips jeu-tabs' }, JMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
+    if (!J.data) {
+      nodes.push(h('div', { class: 'card' }, J.loading || !J.err ? h('p', { class: 'muted' }, 'Chargement des champions…') : h('p', { class: 'bad' }, '⚠ ' + J.err, ' ', h('button', { class: 'btn-ghost', onclick: () => { J.err = ''; loadJeux(); render(); } }, 'Réessayer'))));
+      view.replaceChildren(...nodes);
+      if (!J.loading && !J.err) loadJeux();
+      return;
+    }
+    if (J.tab === 'lore') { nodes.push(...renderLore()); view.replaceChildren(...nodes); return; }
+    const mode = J.tab;
+    if (!J.r[mode]) { jNew(mode); }
+    const r = J.r[mode];
+    const st = jstats()[mode];
+    if (st && st.wins) nodes.push(h('p', { class: 'muted small jeu-stats' }, `🏆 ${st.wins} trouvé${st.wins > 1 ? 's' : ''} · ${(st.tries / st.wins).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} essais en moyenne · 🔥 série : ${st.streak} (record ${st.best})`));
+    if (!r) { view.replaceChildren(...nodes); return; }
+    const wrong = r.guesses.filter((g) => g.id !== r.target.id).length;
+    const t = r.target;
+    // L'indice
+    let clue = null;
+    if (mode === 'classique') clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'Devine le champion du jour… enfin, de maintenant !'),
+      h('p', { class: 'muted' }, 'Propose un champion : chaque case te dit si tu chauffes. 🟩 pareil · 🟧 en partie · 🟥 différent · ↑↓ plus récent ou plus ancien.'));
+    if (mode === 'sort') {
+      const blur = r.done ? 0 : Math.max(0, 8 - 2 * wrong);
+      clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'À quel champion appartient ce sort ?'),
+        h('img', { class: 'jeu-ico', src: jimg('spell', r.spell.img), alt: '', style: `transform:rotate(${r.done || wrong >= 2 ? 0 : r.rot}deg);filter:grayscale(${r.done || wrong >= 4 ? 0 : 1}) blur(${blur}px)` }),
+        h('p', { class: 'muted small' }, r.done ? `${r.spell.name} (${r.spell.key})` : wrong >= 2 ? 'Remis à l’endroit.' : 'Tourné, en noir et blanc : il s’éclaircit à chaque essai.'));
+    }
+    if (mode === 'passif') {
+      const blur = r.done ? 0 : Math.max(0, 14 - 3 * wrong);
+      clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'À quel champion appartient ce passif ?'),
+        h('img', { class: 'jeu-ico', src: jimg('passive', t.passive.img), alt: '', style: `filter:blur(${blur}px)` }),
+        h('p', { class: 'muted small' }, r.done || wrong >= 4 ? `Passif : ${t.passive.name}` : `Le nom du passif apparaît après 4 essais (encore ${4 - wrong}).`));
+    }
+    if (mode === 'phrase') clue = h('div', { class: 'card jeu-clue' }, h('h3', null, r.fromBio ? 'Qui est décrit ici ?' : 'Qui a dit ça ?'),
+      r.wait ? h('p', { class: 'muted' }, 'Chargement…') : h('blockquote', { class: 'jeu-quote' }, '« ', r.quote, ' »'),
+      wrong >= 3 || r.done ? h('p', { class: 'muted small' }, `Indice : « ${t.title} »${wrong >= 6 || r.done ? ` · ${t.region || 'région inconnue'}` : ''}`) : h('p', { class: 'muted small' }, `Un indice arrive après 3 essais (encore ${3 - wrong}).`));
+    if (mode === 'splash') {
+      const sc = r.done ? 1 : Math.max(1.4, 5 - 0.6 * wrong);
+      clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'À quel champion appartient ce skin ?'),
+        h('div', { class: 'jeu-splash' }, h('img', { src: jsplash(t, r.skin.num), alt: '', style: `transform:scale(${sc});transform-origin:${r.ox}% ${r.oy}%` })),
+        h('p', { class: 'muted small' }, r.done ? r.skin.name : 'Ça dézoome à chaque essai.'));
+    }
+    nodes.push(clue);
+    // Saisie
+    if (!r.done) {
+      const inp = h('input', { id: 'jeu-in', class: 'inp jeu-in', list: 'jeu-list', placeholder: 'Nom du champion…', autocomplete: 'off' });
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); jGuess(mode, inp.value); } });
+      const dl = h('datalist', { id: 'jeu-list' }, J.data.champs.filter((c) => !r.guesses.some((g) => g.id === c.id)).map((c) => h('option', { value: c.name })));
+      nodes.push(h('div', { class: 'row jeu-row' }, inp, dl, h('button', { class: 'btn-fire small-btn', onclick: () => jGuess(mode, inp.value) }, 'Valider'),
+        h('button', { class: 'btn-ghost', onclick: () => jGiveUp(mode) }, 'Je donne ma langue au chat'), J.msg ? h('span', { class: 'bad small' }, J.msg) : null));
+      later(() => { if (S.section === 'jeux' && document.activeElement === document.body) inp.focus(); });
+    } else {
+      const bonus = mode === 'sort' && !r.gaveUp ? h('div', { class: 'jeu-bonus' }, h('span', null, '⭐ Bonus : c’était quelle touche ?'),
+        'QWER'.split('').map((k) => h('button', { class: 'chip' + (r.bonus ? (k === r.spell.key ? ' ok' : k === r.bonus ? ' ko' : '') : ''), disabled: r.bonus ? true : null, onclick: () => { r.bonus = k; render(); } }, k)),
+        r.bonus ? h('b', { class: r.bonus === r.spell.key ? 'good' : 'bad' }, r.bonus === r.spell.key ? ' Bien vu !' : ` Raté, c’était ${r.spell.key}.`) : null) : null;
+      nodes.push(h('div', { class: 'card jeu-win ' + (r.gaveUp ? 'lost' : 'won') },
+        h('img', { class: 'jeu-sq', src: jsq(t), alt: '' }),
+        h('div', null, h('h3', null, r.gaveUp ? `C’était ${t.name}` : `🎉 Bravo ! C’était ${t.name}`), h('p', { class: 'muted' }, t.title + (r.gaveUp ? '' : ` · trouvé en ${r.guesses.length} essai${r.guesses.length > 1 ? 's' : ''}`)), bonus),
+        h('div', { class: 'jeu-win-btns' }, h('button', { class: 'btn-fire small-btn', onclick: () => jNew(mode) }, '▶ Champion suivant'),
+          h('button', { class: 'btn-ghost', onclick: () => { J.tab = 'lore'; J.loreSel = t.id; render(); } }, '📖 Son lore'))));
+    }
+    // Essais
+    if (mode === 'classique') nodes.push(jClassicTable(r));
+    else if (r.guesses.length) nodes.push(h('div', { class: 'jeu-guesses' }, r.guesses.slice().reverse().map((g) => h('span', { class: 'jeu-g ' + (g.id === t.id ? 'ok' : 'ko') }, h('img', { src: jsq(g), alt: '' }), g.name))));
+    view.replaceChildren(...nodes);
+  }
+
+  function jClassicTable(r) {
+    const t = r.target;
+    const lt = J.lore[t.id] || { races: [] };
+    const setCmp = (a, b) => { const A = new Set(a), B = new Set(b); if (A.size === B.size && [...A].every((x) => B.has(x))) return 'ok'; return [...A].some((x) => B.has(x)) ? 'mid' : 'ko'; };
+    const cell = (cls, txt) => h('div', { class: 'jc ' + cls }, txt);
+    const head = h('div', { class: 'jc-row jc-head' }, ['Champion', 'Classes', 'Ressource', 'Portée', 'Région', 'Espèce', 'Sortie'].map((x) => h('div', { class: 'jc' }, x)));
+    const rows = r.guesses.slice().reverse().map((g) => {
+      const lg = J.lore[g.id] || { races: [] };
+      const yc = g.year && t.year ? (g.year === t.year ? 'ok' : 'ko') : 'ko';
+      const arrow = g.year && t.year && g.year !== t.year ? (t.year > g.year ? ' ↑' : ' ↓') : '';
+      return h('div', { class: 'jc-row' },
+        h('div', { class: 'jc jc-champ ' + (g.id === t.id ? 'ok' : '') }, h('img', { src: jsq(g), alt: '' }), h('span', null, g.name)),
+        cell(setCmp(g.tags, t.tags), g.tags.map((x) => TAGFR[x] || x).join(', ')),
+        cell(g.partype === t.partype ? 'ok' : 'ko', g.partype || '—'),
+        cell(g.range === t.range ? 'ok' : 'ko', g.range),
+        cell((g.region || '?') === (t.region || '?') ? 'ok' : 'ko', g.region || '—'),
+        cell(lg.races.length || lt.races.length ? setCmp(lg.races, lt.races) : 'ko', lg.races.join(', ') || '—'),
+        cell(yc, (g.year || '—') + arrow));
+    });
+    return h('div', { class: 'jc-table' }, r.guesses.length ? [head, ...rows] : null);
+  }
+
+  function renderLore() {
+    const cs = J.data.champs;
+    if (J.loreSel) {
+      const c = cs.find((x) => x.id === J.loreSel);
+      if (c) {
+        const l = J.lore[c.id];
+        if (!l) jLore(c).then(() => { if (S.section === 'jeux' && J.tab === 'lore') render(); });
+        const text = l && l.ok && l.full ? l.full : c.lore;
+        return [h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => { J.loreSel = null; render(); } }, '← Tous les champions')),
+          h('div', { class: 'card lore-card' },
+            h('div', { class: 'lore-hero', style: `background-image:url('${jsplash(c, 0)}')` },
+              h('div', { class: 'lore-hero-in' }, h('h2', null, c.name), h('p', null, cap(c.title)),
+                h('div', { class: 'lore-tags' }, [c.region, c.year ? `Sorti en ${c.year}` : null, ...c.tags.map((x) => TAGFR[x] || x), ...((l && l.races) || [])].filter(Boolean).map((x) => h('span', { class: 'tag' }, x))))),
+            l && l.quote ? h('blockquote', { class: 'jeu-quote' }, '« ', l.quote, ' »', l.quoteAuthor ? h('span', { class: 'muted small' }, ' — ' + l.quoteAuthor) : null) : null,
+            !l ? h('p', { class: 'muted small' }, 'Chargement de la biographie complète…') : null,
+            h('div', { class: 'lore-text' }, String(text || '').split(/\n\n+/).map((p) => h('p', null, p))),
+            h('div', { class: 'lore-abil' }, h('h3', null, 'Ses compétences'),
+              h('div', { class: 'lore-sp' }, h('img', { src: jimg('passive', c.passive.img), alt: '' }), h('div', null, h('b', null, 'Passif · ' + c.passive.name), h('p', { class: 'muted small' }, c.passive.desc))),
+              c.spells.map((sp) => h('div', { class: 'lore-sp' }, h('img', { src: jimg('spell', sp.img), alt: '' }), h('div', null, h('b', null, `${sp.key} · ${sp.name}`))))))];
+      }
+    }
+    const regs = [...new Set(cs.map((c) => c.region).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
+    const q = jn(J.loreQ);
+    const list = cs.filter((c) => (!J.loreReg || c.region === J.loreReg) && (!q || jn(c.name).includes(q) || jn(c.title).includes(q)));
+    const inp = h('input', { class: 'inp', id: 'lore-q', placeholder: 'Chercher un champion…', value: J.loreQ });
+    inp.addEventListener('input', () => { J.loreQ = inp.value; const g = $('lore-grid'); if (g) g.replaceChildren(...loreCards()); });
+    const loreCards = () => cs.filter((c) => (!J.loreReg || c.region === J.loreReg) && (!jn(J.loreQ) || jn(c.name).includes(jn(J.loreQ)) || jn(c.title).includes(jn(J.loreQ))))
+      .map((c) => h('button', { class: 'lore-c', onclick: () => { J.loreSel = c.id; render(); window.scrollTo(0, 0); } }, h('img', { src: jsq(c), alt: '' }), h('b', null, c.name), h('span', { class: 'muted small' }, cap(c.title))));
+    return [h('div', { class: 'row' }, inp, h('span', { class: 'muted small' }, `${list.length} champions`)),
+      h('div', { class: 'chips' }, h('button', { class: 'chip', 'aria-pressed': String(!J.loreReg), onclick: () => { J.loreReg = ''; render(); } }, 'Toutes les régions'),
+        regs.map((g) => h('button', { class: 'chip', 'aria-pressed': String(J.loreReg === g), onclick: () => { J.loreReg = g; render(); } }, g))),
+      h('div', { class: 'lore-grid', id: 'lore-grid' }, loreCards())];
   }
 
   // ----- Planning : le coach coche les jours / heures, les joueurs répondent -----
