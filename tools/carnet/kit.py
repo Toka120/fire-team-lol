@@ -18,8 +18,9 @@ THEME = {'light': False}
 
 def veil(mode):
     if THEME['light']:
-        a = {'full': (0.62, 0.42, 0.18), 'light': (0.45, 0.25, 0.0)}.get(mode, (0.55, 0.35, 0.0))
-        g = (f'linear-gradient(90deg, rgba(255,250,242,{a[0]}) 0%, rgba(255,250,242,{a[1]}) 55%, rgba(255,250,242,{a[2]}) 100%)')
+        a = {'full': (0.34, 0.2, 0.06), 'light': (0.26, 0.12, 0.0)}.get(mode, (0.3, 0.16, 0.0))
+        g = (f'linear-gradient(90deg, rgba(236,226,212,{a[0]}) 0%, rgba(236,226,212,{a[1]}) 55%, rgba(236,226,212,{a[2]}) 100%), '
+             'linear-gradient(0deg, rgba(18,14,10,0.22), rgba(18,14,10,0.22))')
         return f'<div style="position:absolute;left:0;top:0;width:1920px;height:1080px;background:{g}"></div>'
     if mode == 'full':
         g = ('linear-gradient(90deg, rgba(10,13,20,0.86) 0%, rgba(10,13,20,0.68) 50%, rgba(10,13,20,0.34) 100%), '
@@ -131,7 +132,7 @@ LIGHT_MAP = [
     ('#f3eee2', '#14110e'), ('#e6dfcf', '#2a241e'), ('#d9d3c4', '#3a332b'), ('#bdb6a6', '#3d362e'),
     ('#ffd38a', '#7a4300'), ('#ffb347', '#a84a00'), ('#d4ab4f', '#7d5300'), ('#5fd39a', '#0b6e3c'),
     ('#ff6b6b', '#b3201f'), ('#5aa9ff', '#1652a8'), ('#b48cff', '#5c32b0'), ('#cbb8ff', '#4b2d96'),
-    ('#05070b', '#fffaf2'), ('rgba(10,13,20,', 'rgba(255,251,245,'), ('rgba(212,171,79,', 'rgba(125,83,0,'),
+    ('#05070b', '#efe6d8'), ('rgba(10,13,20,', 'rgba(232,223,209,'), ('rgba(212,171,79,', 'rgba(125,83,0,'),
     ('rgba(40,120,80,0.35)', 'rgba(30,150,85,0.22)'), ('rgba(255,255,255,0.25)', 'rgba(0,0,0,0.3)'),
     ('rgba(255,255,255,0.16)', 'rgba(0,0,0,0.14)'),
 ]
