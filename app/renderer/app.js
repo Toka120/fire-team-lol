@@ -1947,7 +1947,6 @@
       const src = l.quote || (l.short || c.lore || '').split(/(?<=[.!?])\s+/).slice(0, 2).join(' ');
       r.quote = jMask(src, c); r.fromBio = !l.quote; r.wait = false;
     }
-    if (mode === 'classique') jLore(c);
     render();
   }
 
@@ -1962,7 +1961,6 @@
     if (!c) { J.msg = 'Champion inconnu : choisis un nom dans la liste.'; render(); return; }
     if (r.guesses.some((g) => g.id === c.id)) { J.msg = 'Déjà proposé.'; render(); return; }
     J.msg = '';
-    if (mode === 'classique') { await jLore(c); await jLore(r.target); }
     r.guesses.push(c);
     if (c.id === r.target.id) {
       r.done = true;
@@ -2058,18 +2056,18 @@
     const lt = J.lore[t.id] || { races: [] };
     const setCmp = (a, b) => { const A = new Set(a), B = new Set(b); if (A.size === B.size && [...A].every((x) => B.has(x))) return 'ok'; return [...A].some((x) => B.has(x)) ? 'mid' : 'ko'; };
     const cell = (cls, txt) => h('div', { class: 'jc ' + cls }, txt);
-    const head = h('div', { class: 'jc-row jc-head' }, ['Champion', 'Classes', 'Ressource', 'Portée', 'Région', 'Espèce', 'Sortie'].map((x) => h('div', { class: 'jc' }, x)));
+    const head = h('div', { class: 'jc-row jc-head' }, ['Champion', 'Lane', 'Classes', 'Ressource', 'Portée', 'Région', 'Sortie'].map((x) => h('div', { class: 'jc' }, x)));
     const rows = r.guesses.slice().reverse().map((g) => {
       const lg = J.lore[g.id] || { races: [] };
       const yc = g.year && t.year ? (g.year === t.year ? 'ok' : 'ko') : 'ko';
       const arrow = g.year && t.year && g.year !== t.year ? (t.year > g.year ? ' ↑' : ' ↓') : '';
       return h('div', { class: 'jc-row' },
         h('div', { class: 'jc jc-champ ' + (g.id === t.id ? 'ok' : '') }, h('img', { src: jsq(g), alt: '' }), h('span', null, g.name)),
+        cell((g.lanes || []).length || (t.lanes || []).length ? setCmp(g.lanes || [], t.lanes || []) : 'ko', (g.lanes || []).join(', ') || '—'),
         cell(setCmp(g.tags, t.tags), g.tags.map((x) => TAGFR[x] || x).join(', ')),
         cell(g.partype === t.partype ? 'ok' : 'ko', g.partype || '—'),
         cell(g.range === t.range ? 'ok' : 'ko', g.range),
         cell((g.region || '?') === (t.region || '?') ? 'ok' : 'ko', g.region || '—'),
-        cell(lg.races.length || lt.races.length ? setCmp(lg.races, lt.races) : 'ko', lg.races.join(', ') || '—'),
         cell(yc, (g.year || '—') + arrow));
     });
     return h('div', { class: 'jc-table' }, r.guesses.length ? [head, ...rows] : null);

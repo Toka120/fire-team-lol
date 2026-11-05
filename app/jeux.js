@@ -20,6 +20,10 @@ async function get(url, ms = 30000) {
 const readJson = (n) => { try { return JSON.parse(fs.readFileSync(file(n), 'utf8')); } catch (e) { return null; } };
 const writeJson = (n, d) => { try { fs.writeFileSync(file(n), JSON.stringify(d)); } catch (e) { /* cache facultatif */ } };
 
+// Lanes jouées par champion (Meraki Analytics, figées dans l'app) : la donnée n'existe pas chez Riot.
+let LANES = {};
+try { LANES = require('./lanes.json'); } catch (e) { /* facultatif */ }
+
 const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
 const strip = (html) => String(html || '').replace(/<\/p>\s*<p>/g, '\n\n').replace(/<br\s*\/?>/g, '\n').replace(/<[^>]+>/g, '')
   .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
@@ -30,7 +34,7 @@ async function data() {
   let version = null;
   try { version = (await get(`${DD}/api/versions.json`, 15000))[0]; } catch (e) { /* hors ligne */ }
   const cache = mem || readJson('jeux.json');
-  if (cache && cache.fmt === 2 && (!version || cache.version === version)) { mem = cache; return { ok: true, ...cache, offline: !version }; }
+  if (cache && cache.fmt === 3 && (!version || cache.version === version)) { mem = cache; return { ok: true, ...cache, offline: !version }; }
   if (!version) return cache ? { ok: true, ...cache, offline: true } : { ok: false, error: 'hors ligne : données des champions indisponibles' };
   try {
     const full = await get(`${DD}/cdn/${version}/data/fr_FR/championFull.json`, 60000);
@@ -49,6 +53,7 @@ async function data() {
         passive: { name: c.passive.name, img: c.passive.image.full, desc: strip(c.passive.description) },
         spells: (c.spells || []).map((s, i) => ({ key: 'QWER'[i], name: s.name, img: s.image.full })),
         skins: (c.skins || []).map((s) => ({ num: s.num, name: s.name === 'default' ? c.name : s.name })),
+        lanes: LANES[c.id] || [],
         lore: c.lore, slug: u ? u.slug : c.id.toLowerCase(),
         region: reg && reg !== 'unaffiliated' ? (fac[reg] || reg) : (reg === 'unaffiliated' ? 'Sans région' : null),
         regionSlug: reg || null,
@@ -56,7 +61,7 @@ async function data() {
       };
     }).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
     const factions = (uni.factions || []).map((f) => ({ slug: f.slug, name: f.name, desc: strip(f.description), img: f.image && f.image.uri ? f.image.uri : null }));
-    mem = { fmt: 2, version, champs, factions, at: Date.now() };
+    mem = { fmt: 3, version, champs, factions, at: Date.now() };
     writeJson('jeux.json', mem);
     return { ok: true, ...mem };
   } catch (e) {
