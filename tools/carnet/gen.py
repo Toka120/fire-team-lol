@@ -4,6 +4,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 from kit import *
 from decks import DECKS
 from blocks import bold
+import kit
+from lum import lum
+LIGHT = 0.45
+UNDERLINE = {('adc', 's35')}
 sys.path.insert(0, '/home/claude/lanes')
 from outline import process
 
@@ -191,8 +195,14 @@ def build(deck, mode):
     ico = lambda c: src(ICONS[c])
     out, titles, order = {}, [], []
     for i, (s, sk) in enumerate(zip(slides, skins), 1):
+        light = lum('/home/claude/carnet/' + sk['file']) > LIGHT
+        kit.THEME['light'] = light
         sid, h, t = render(deck, s, i, sk, src(sk['file']), ico, tot)
-        out[sid] = process(h); order.append(sid); titles.append(t)
+        kit.THEME['light'] = False
+        h = process(h)
+        if light: h = kit.to_light(h)
+        if (deck, sid) in UNDERLINE: h = h.replace('<h2 style="', '<h2 style="text-decoration:underline;', 1)
+        out[sid] = h; order.append(sid); titles.append(t)
     return out, order, titles, skins
 
 
