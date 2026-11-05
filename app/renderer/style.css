@@ -707,3 +707,16 @@ button.plan-p{cursor:pointer}
 .lore-sp{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
 .lore-sp img{width:48px;height:48px;border-radius:8px}
 .lore-sp p{margin:2px 0 0}
+.lore-mapcard{margin-bottom:12px}
+.lore-maphead{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.lore-maphead h3{margin:0}
+.lore-maphead a{margin-left:auto;text-decoration:none}
+.jm-box{width:100%}
+.jm{width:100%;height:auto;display:block;border-radius:18px;border:1px solid var(--line)}
+.jm .jm-reg:hover circle:first-child{fill-opacity:.45}
+.jm.small{max-width:420px}
+.lore-region{padding:0;overflow:hidden;margin-bottom:12px;scroll-margin-top:12px}
+.lore-region .lore-text{padding-top:14px}
+.lore-hero.small{height:220px}
+.lore-mini{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:16px 24px 0}
+.lore-mini .jm-box{width:min(420px,100%)}

@@ -30,7 +30,7 @@ async function data() {
   let version = null;
   try { version = (await get(`${DD}/api/versions.json`, 15000))[0]; } catch (e) { /* hors ligne */ }
   const cache = mem || readJson('jeux.json');
-  if (cache && (!version || cache.version === version)) { mem = cache; return { ok: true, ...cache, offline: !version }; }
+  if (cache && cache.fmt === 2 && (!version || cache.version === version)) { mem = cache; return { ok: true, ...cache, offline: !version }; }
   if (!version) return cache ? { ok: true, ...cache, offline: true } : { ok: false, error: 'hors ligne : données des champions indisponibles' };
   try {
     const full = await get(`${DD}/cdn/${version}/data/fr_FR/championFull.json`, 60000);
@@ -51,10 +51,12 @@ async function data() {
         skins: (c.skins || []).map((s) => ({ num: s.num, name: s.name === 'default' ? c.name : s.name })),
         lore: c.lore, slug: u ? u.slug : c.id.toLowerCase(),
         region: reg && reg !== 'unaffiliated' ? (fac[reg] || reg) : (reg === 'unaffiliated' ? 'Sans région' : null),
+        regionSlug: reg || null,
         year: u && u['release-date'] ? Number(String(u['release-date']).slice(0, 4)) : null
       };
     }).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
-    mem = { version, champs, at: Date.now() };
+    const factions = (uni.factions || []).map((f) => ({ slug: f.slug, name: f.name, desc: strip(f.description), img: f.image && f.image.uri ? f.image.uri : null }));
+    mem = { fmt: 2, version, champs, factions, at: Date.now() };
     writeJson('jeux.json', mem);
     return { ok: true, ...mem };
   } catch (e) {
