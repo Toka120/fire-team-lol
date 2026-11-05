@@ -245,7 +245,7 @@
     }
     if (!s.games) return out.concat([{ kind: 'info', ico: '😴', title: 'Pas de game', text: 'Aucune game classée Solo/Duo sur cette période.' }]);
 
-    if (s.morts_moy > rep.morts_moy.v) out.push({ kind: 'warn', ico: '💀', title: 'Il meurt trop', chip: `${fr(s.morts_moy, 1)} morts/game`, text: `${fr(s.morts_moy, 1)} morts par game en moyenne, pour un KDA de ${fr(s.kda, 2)}.` });
+    if (s.morts_moy > rep.morts_moy.v) out.push({ kind: 'warn', ico: '💀', title: 'Moins mourir', chip: `${fr(s.morts_moy, 1)} morts/game`, text: `${fr(s.morts_moy, 1)} morts par game en moyenne, pour un KDA de ${fr(s.kda, 2)}.` });
     else out.push({ kind: 'plus', ico: '🛡️', title: 'Il meurt peu', chip: `${fr(s.morts_moy, 1)} morts/game`, text: `${fr(s.morts_moy, 1)} morts par game en moyenne, pour un KDA de ${fr(s.kda, 2)}.` });
 
     if (s.gold15 != null) {
@@ -283,7 +283,34 @@
       out.push({ kind: 'warn', ico: '🔁', title: 'Rôle', text: `${off.length} ${off.length > 1 ? 'games jouées' : 'game jouée'} hors de son rôle (${lanes}).` });
     }
     if (s.games < 5) out.push({ kind: 'info', ico: '📉', title: 'Peu de games', text: `Seulement ${pl(s.games, 'game', 'games')} sur la période : les moyennes sont à prendre avec prudence.` });
+    positives(out, player, rows, s, pc, R, rep);
     return out;
+  }
+
+  // Toujours des points forts (vrais, tirés des chiffres) : au moins 3, et au moins autant que de points à travailler.
+  function positives(out, player, rows, s, pc, R, rep) {
+    const want = Math.min(5, Math.max(3, out.filter((x) => x.kind === 'warn').length));
+    const has = () => out.filter((x) => x.kind === 'plus').length;
+    const add = (x) => { if (has() < want) out.push({ kind: 'plus', ...x }); };
+    const cands = [];
+    if (s.wr != null && s.wr >= 50) cands.push({ ico: '🏆', title: 'Il gagne plus qu\'il ne perd', chip: `${fr(s.wr, 1)} %`, text: `${pl(s.wins, 'victoire', 'victoires')} pour ${pl(s.losses, 'défaite', 'défaites')} sur la période.` });
+    if (s.kda != null && s.kda >= rep.kda.v) cands.push({ ico: '⚔️', title: 'Bon KDA', chip: `KDA ${fr(s.kda, 2)}`, text: `${s.kills} / ${s.morts} / ${s.assists} au total : il participe beaucoup plus qu'il ne meurt.` });
+    if (s.kp != null && s.kp >= 50) cands.push({ ico: '🤝', title: 'Présent pour l\'équipe', chip: `${fr(s.kp)} % KP`, text: `Il participe à ${fr(s.kp)} % des kills de son équipe en moyenne.` });
+    if (R.cs && s.cs_min != null && s.cs_min >= R.cs) cands.push({ ico: '🌾', title: 'Bon farm', chip: `${fr(s.cs_min, 1)} CS/min`, text: `${fr(s.cs_min, 1)} CS par minute en moyenne (repère ≥ ${R.cs}).` });
+    if (player.role_id !== 'support' && s.pinks_moy != null && s.pinks_moy >= rep.pinks_moy.v) cands.push({ ico: '👁️', title: 'Il pose ses pinks', chip: `${fr(s.pinks_moy, 1)} pink/game`, text: `${pl(s.pinks, 'pink posée', 'pinks posées')} en ${s.games} games.` });
+    const best = pc.filter((c) => c.wins > 0).sort((a, b) => b.wins - a.wins || b.wr - a.wr || b.kda - a.kda)[0];
+    if (best) cands.push({ ico: '⭐', title: `Son point d'appui : ${best.champion}`, chip: `${best.wins} V – ${best.losses} D`, text: `Son champion qui lui rapporte le plus de victoires sur la période (KDA ${fr(best.kda, 2)}).` });
+    if (rows.length >= 4) {
+      const h = Math.floor(rows.length / 2), a = stats(rows.slice(0, h)), b = stats(rows.slice(h));
+      if (b.morts_moy != null && a.morts_moy != null && b.morts_moy < a.morts_moy - 0.4) cands.push({ ico: '📈', title: 'En progrès', chip: `${fr(a.morts_moy, 1)} → ${fr(b.morts_moy, 1)} morts`, text: `Il meurt moins sur ses dernières games que sur les premières de la période.` });
+      else if (b.kda != null && a.kda != null && b.kda > a.kda + 0.3) cands.push({ ico: '📈', title: 'En progrès', chip: `KDA ${fr(a.kda, 2)} → ${fr(b.kda, 2)}`, text: `Son KDA monte sur ses dernières games.` });
+      else if (b.wr != null && a.wr != null && b.wr > a.wr) cands.push({ ico: '📈', title: 'En progrès', chip: `${fr(a.wr)} % → ${fr(b.wr)} %`, text: `Il gagne plus sur ses dernières games que sur les premières de la période.` });
+    }
+    const top = rows.filter((r) => r.win).sort((x, y) => y.kda - x.kda)[0];
+    if (top) cands.push({ ico: '🔥', title: 'Sa meilleure game', chip: `${top.kills} / ${top.morts} / ${top.assists}`, text: `${top.champion}, ${top.jour_label.toLowerCase()}, victoire en ${top.duree} : la preuve de ce qu'il sait faire.` });
+    cands.push({ ico: '💪', title: 'Il ne lâche rien', chip: pl(s.games, 'game', 'games'), text: `${pl(s.games, 'game classée jouée', 'games classées jouées')} sur la période : chaque game est une occasion de progresser.` });
+    const seen = new Set(out.filter((x) => x.kind === 'plus').map((x) => x.title));
+    cands.forEach((c) => { if (!seen.has(c.title)) add(c); });
   }
 
   function lead(player, s) {
