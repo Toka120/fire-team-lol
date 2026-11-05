@@ -1,7 +1,7 @@
 {
   "name": "fire-lol",
   "productName": "FIRE LoL",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "description": "FIRE LoL - les stats de l'équipe, à jour depuis dpm.lol",
   "main": "main.js",
   "author": "Toka120",
@@ -29,6 +29,7 @@
       "coach.js",
       "teamgrab.js",
       "jeux.js",
+      "worlds.js",
       "package.json",
       "renderer/**/*",
       "assets/**/*"

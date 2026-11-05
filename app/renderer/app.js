@@ -430,13 +430,14 @@
     renderNav();
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
     else if (S.section === 'pool') renderPool();
     else if (S.section === 'planning') renderPlanning();
     else if (S.section === 'jeux') renderJeux();
+    else if (S.section === 'worlds') renderWorlds();
     else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
     else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
     else if (S.view === 'player') renderPlayer();
@@ -1039,6 +1040,7 @@
     if (sec === 'stats') { S.view = 'hub'; S.player = null; }
     if (sec === 'planning') { S.planEdit = null; loadPlanning(); }
     if (sec === 'jeux') loadJeux();
+    if (sec === 'worlds') { loadJeux(); loadWorlds(W.year); }
     render();
     window.scrollTo(0, 0);
   }
@@ -1048,7 +1050,7 @@
     const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = (u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version)) ? '1' : null;
-    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('settings', '⚙️ Paramètres', upd));
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('worlds', '🏆 Worlds'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('settings', '⚙️ Paramètres', upd));
   }
 
   function newsBanner() {
@@ -1546,6 +1548,182 @@
     let opt = sel.querySelector('option[value=obj]');
     if (S.obj && !opt) { opt = document.createElement('option'); opt.value = 'obj'; sel.insertBefore(opt, sel.firstChild); }
     if (opt) { if (S.obj) opt.textContent = `Objectif (depuis le ${dateFr(S.obj.debut)})`; else opt.remove(); }
+  }
+
+  // ----- Worlds : résultats, compos et lecture de chaque game (données Leaguepedia, CC BY-SA) -----
+  const W = { year: new Date().getFullYear(), seasons: {}, loading: {}, err: {}, open: null, game: 0 };
+  async function loadWorlds(y, force) {
+    if (W.loading[y] || (W.seasons[y] && !force)) return;
+    W.loading[y] = true; W.err[y] = '';
+    let r;
+    try { r = await window.fire.worlds(y, !!force); } catch (e) { r = { ok: false, error: String(e) }; }
+    W.loading[y] = false;
+    if (r && r.ok) W.seasons[y] = { ...wParse(r.pages), at: r.at, offline: r.offline };
+    else W.err[y] = (r && r.error) || 'résultats indisponibles';
+    if (S.section === 'worlds' && !typing()) render();
+  }
+  const wNum = (t) => { t = String(t || '').trim().toLowerCase(); const m = t.match(/([\d.]+)\s*k/); return m ? Math.round(parseFloat(m[1]) * 1000) : (parseInt(t, 10) || 0); };
+  function wParseBoards(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const out = [];
+    for (const sb of doc.querySelectorAll('table.sb')) {
+      const teams = [...sb.querySelectorAll('tr:first-child .sb-teamname .teamname')].map((e) => e.textContent.trim());
+      const groups = {};
+      for (const tr of sb.querySelectorAll(':scope > tbody > tr')) { const m = tr.className.match(/sb-w\d+-g(\d+)(?!\S)/); if (!m) continue; (groups[m[1]] = groups[m[1]] || []).push(tr); }
+      for (const rows of Object.values(groups)) {
+        const hd = rows.find((r) => r.querySelector('.sb-header'));
+        if (!hd) continue;
+        const th = [...hd.querySelectorAll(':scope > th')];
+        const side = (i) => ({ win: /Victory/i.test(th[i].textContent), gold: wNum((th[i].querySelector('.sb-header-Gold') || {}).textContent), kills: wNum((th[i].querySelector('.sb-header-Kills') || {}).textContent) });
+        const pr = rows.find((r) => r.querySelector('.sb-p'));
+        const pl = pr ? [...pr.querySelectorAll(':scope > td')].map((td) => [...td.querySelectorAll('.sb-p')].map((p) => {
+          const k = ((p.querySelector('.sb-p-stat-kda') || {}).textContent || '0/0/0').trim().split('/').map((x) => parseInt(x, 10) || 0);
+          return { champ: (p.querySelector('.sb-p-champion [title]') || {}).title || '?', name: ((p.querySelector('.sb-p-name') || {}).textContent || '').trim(), k: k[0], d: k[1], a: k[2], cs: wNum((p.querySelector('.sb-p-stat-cs') || {}).textContent), gold: wNum((p.querySelector('.sb-p-stat-gold') || {}).textContent) };
+        })) : [[], []];
+        const fr = rows.find((r) => r.querySelector('.sb-footer'));
+        const ft = fr ? [...fr.querySelectorAll('.sb-footer')].map((f) => { const o = { bans: [...f.querySelectorAll('.sb-footer-bans [title]')].map((x) => x.title).filter(Boolean) }; f.querySelectorAll('.sb-footer-item').forEach((it) => { o[it.className.replace(/.*sb-footer-item-/, '')] = wNum(it.textContent); }); return o; }) : [{}, {}];
+        const meta = rows.find((r) => /Patch/.test(r.textContent));
+        const vodA = meta ? [...meta.querySelectorAll('a[href^="http"]')].find((a) => /youtu|twitch|vod/i.test(a.href) || /Link/i.test(a.textContent)) : null;
+        out.push({ teams, dur: ((th[1] || {}).textContent || '').trim(),
+          patch: meta ? (meta.textContent.match(/Patch\s*([\d.]+)/) || [])[1] : null,
+          date: meta ? (meta.textContent.match(/(\d{4}),(\d+),(\d+)/) || []).slice(1, 4).map((x, i) => i ? String(x).padStart(2, '0') : x).join('-') : null,
+          vod: vodA ? vodA.href : null,
+          sides: [{ team: teams[0], ...side(0), players: pl[0] || [], ...ft[0] }, { team: teams[1], ...side(2), players: pl[1] || [], ...ft[1] }] });
+      }
+    }
+    return out;
+  }
+  function wParse(pages) {
+    const stages = [];
+    for (const pg of pages || []) {
+      const games = wParseBoards(pg.html || '');
+      if (!games.length) continue;
+      const series = [];
+      for (const g of games) {
+        const key = g.teams.slice().sort().join(' vs ');
+        let s0 = series[series.length - 1];
+        if (!s0 || s0.key !== key) { s0 = { key, teams: g.teams.slice(), games: [] }; series.push(s0); }
+        s0.games.push(g);
+      }
+      series.forEach((x) => { x.score = x.teams.map((t) => x.games.filter((g) => g.sides.find((sd) => sd.team === t && sd.win)).length); x.date = x.games[0].date; });
+      const label = pg.stage === 'Play-In' ? 'Play-In' + (pg.name ? ' · ' + pg.name : '') : (pg.name || 'Rounds 1-2');
+      stages.push({ label: label.replace('Semifinals and Finals', 'Demi-finales et finale').replace('Quarterfinals', 'Quarts de finale').replace(/^Round/, 'Ronde').replace('Rounds', 'Rondes'), series });
+    }
+    return { stages };
+  }
+  const WSPEC = { MonkeyKing: 'wukong', Renata: 'renataglasc', Nunu: 'nunuwillump' };
+  function wChampId(name) {
+    if (!J.data) return null;
+    const n = jn(name);
+    const c = J.data.champs.find((x) => jn(x.id) === n || jn(x.name) === n || WSPEC[x.id] === n);
+    return c ? c.id : null;
+  }
+  function wIcon(name, size) {
+    const id = wChampId(name);
+    const sz = size || 40;
+    if (!id) return h('span', { class: 'cico-l', style: `width:${sz}px;height:${sz}px;font-size:${Math.round(sz / 2.3)}px`, title: name }, (name || '?').charAt(0));
+    return h('img', { class: 'w-ico', src: `${DD}/cdn/${J.data.version}/img/champion/${id}.png`, alt: name, title: name, width: sz, height: sz });
+  }
+  const wk = (n) => (n >= 1000 ? (n / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' k' : String(n));
+  const wMin = (dur) => { const m = String(dur || '').match(/(\d+):(\d+)/); return m ? +m[1] + +m[2] / 60 : null; };
+
+  // Lecture automatique d'une game, tirée des chiffres de fin de partie (pas de la timeline).
+  function wAnalyze(g) {
+    const Wn = g.sides.find((x) => x.win) || g.sides[0], L = g.sides.find((x) => x !== Wn);
+    const good = [], bad = [], learn = [];
+    const dg = Wn.gold - L.gold, min = wMin(g.dur);
+    const ratio = (p) => (p.k + p.a) / Math.max(1, p.d);
+    const mvp = Wn.players.slice().sort((a, b) => ratio(b) - ratio(a) || b.gold - a.gold)[0];
+    if (mvp) good.push(`⭐ MVP : ${mvp.name} sur ${mvp.champ}, ${mvp.k}/${mvp.d}/${mvp.a}.`);
+    if ((Wn.dragons || 0) - (L.dragons || 0) >= 2) good.push(`🐉 Contrôle des dragons : ${Wn.dragons} contre ${L.dragons || 0}${Wn.dragons >= 4 ? ' (âme du dragon)' : ''}.`);
+    if ((Wn.barons || 0) > (L.barons || 0)) good.push(`🟣 Baron pris${Wn.barons > 1 ? ` ${Wn.barons} fois` : ''} : c'est lui qui ouvre la base.`);
+    if ((Wn.voidgrubs || 0) >= 3 && Wn.voidgrubs > (L.voidgrubs || 0)) good.push(`🪲 ${Wn.voidgrubs} larves du Néant : la pression early sur les tours.`);
+    if ((Wn.riftheralds || 0) > (L.riftheralds || 0)) good.push('👁️ Héraut pris : une tour gratuite et du rythme.');
+    if ((Wn.towers || 0) - (L.towers || 0) >= 4) good.push(`🏰 Pression sur la carte : ${Wn.towers} tours contre ${L.towers || 0}.`);
+    if (dg >= 8000) good.push(`💰 ${wk(dg)} golds d'avance à la fin : l'avance a été convertie, pas gaspillée.`);
+    if (Wn.kills < L.kills) good.push(`🎯 Victoire avec moins de kills (${Wn.kills} contre ${L.kills}) : les objectifs gagnent les games, pas les kills.`);
+    if (min && min < 27) good.push(`⚡ Game pliée en ${g.dur} : snowball propre, l'avance a été jouée tout de suite.`);
+    if (min && min > 38) good.push(`🐢 Game longue (${g.dur}) : patience et scaling jusqu'au bon fight.`);
+    if (!(L.dragons)) bad.push('🐉 Aucun dragon pris.');
+    if ((L.towers || 0) <= 3) bad.push(`🏰 Seulement ${L.towers || 0} tour${(L.towers || 0) > 1 ? 's' : ''} détruite${(L.towers || 0) > 1 ? 's' : ''} : peu de pression sur la carte.`);
+    if (!(L.barons) && Wn.barons) bad.push('🟣 Baron laissé à l\'adversaire.');
+    if (L.kills > Wn.kills) bad.push(`⚔️ Plus de kills (${L.kills} contre ${Wn.kills}) mais défaite : les kills n'ont pas été transformés en objectifs.`);
+    if (L.gold > Wn.gold) bad.push('💰 Plus de golds mais défaite : un fight ou un Baron a tout renversé à la fin.');
+    const dead = L.players.slice().sort((a, b) => b.d - a.d)[0];
+    if (dead && dead.d >= 6) bad.push(`💀 ${dead.name} (${dead.champ}) meurt ${dead.d} fois.`);
+    if (Wn.kills < L.kills || L.kills > Wn.kills) learn.push('Carnet ADC et Jungle : un kill ne sert que s\'il devient un objectif (tour, dragon, Baron).');
+    if ((Wn.dragons || 0) - (L.dragons || 0) >= 2) learn.push('Les vagues servent les objectifs : pousser sa lane avant le dragon, c\'est ce qui permet de le prendre.');
+    if ((Wn.voidgrubs || 0) >= 3) learn.push('Jungle : les prios de lane avant les larves et le carapateur, comme dans ton carnet.');
+    if (dead && dead.d >= 6) learn.push('Fights : check R et flash, jamais de face check, se rapprocher de ses alliés.');
+    if (!learn.length) learn.push('Regarde la VOD : repère les moments où le gagnant prend un objectif juste après un kill. Il y a toujours une réponse.');
+    return { Wn, L, good, bad, learn };
+  }
+
+  function renderWorlds() {
+    const view = $('view');
+    const y = W.year, data = W.seasons[y];
+    const years = [];
+    for (let k = new Date().getFullYear(); k >= 2020; k--) years.push(k);
+    const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🏆'),
+      h('div', null, h('h1', { class: 'title' }, `Worlds ${y}`), h('p', { class: 'muted' }, 'Les résultats, les compos et la lecture de chaque game : regarde ce que font les pros.'))),
+      h('div', { class: 'row' }, h('div', { class: 'chips' }, years.map((k) => h('button', { class: 'chip', 'aria-pressed': String(k === y), onclick: () => { W.year = k; W.open = null; loadWorlds(k); render(); } }, String(k)))),
+        h('button', { class: 'btn-ghost', disabled: W.loading[y] ? true : null, onclick: () => { loadWorlds(y, true); render(); } }, W.loading[y] ? 'Chargement…' : '🔄 Actualiser'))];
+    if (!J.data) loadJeux();
+    if (!data) {
+      nodes.push(h('div', { class: 'card' }, W.err[y] ? h('p', { class: 'bad' }, '⚠ ' + W.err[y]) : h('p', { class: 'muted' }, 'Chargement des résultats depuis Leaguepedia… (la première fois, ça peut prendre une minute)')));
+      if (!W.loading[y] && !W.err[y]) loadWorlds(y);
+      view.replaceChildren(...nodes); return;
+    }
+    if (W.err[y]) nodes.push(h('p', { class: 'muted small' }, '⚠ ' + W.err[y]));
+    if (data.offline) nodes.push(h('p', { class: 'muted small' }, 'Hors ligne : derniers résultats enregistrés.'));
+    for (const st of data.stages.slice().reverse()) {
+      nodes.push(h('h2', { class: 'team-h' }, st.label));
+      nodes.push(h('div', { class: 'w-series' }, st.series.map((sr) => {
+        const id = st.label + '|' + sr.key + '|' + sr.date;
+        const open = W.open === id;
+        const win = sr.score[0] > sr.score[1] ? 0 : sr.score[1] > sr.score[0] ? 1 : -1;
+        const card = h('div', { class: 'card w-card' + (open ? ' open' : '') },
+          h('button', { class: 'w-head', onclick: () => { W.open = open ? null : id; W.game = 0; render(); } },
+            h('span', { class: 'w-team' + (win === 0 ? ' win' : '') }, sr.teams[0]),
+            h('span', { class: 'w-score' }, `${sr.score[0]} – ${sr.score[1]}`),
+            h('span', { class: 'w-team r' + (win === 1 ? ' win' : '') }, sr.teams[1]),
+            h('span', { class: 'muted small w-date' }, sr.date ? dateFr(sr.date) : '', sr.games.length > 1 ? ` · ${sr.games.length} games` : ''), h('span', { class: 'w-chev' }, open ? '▲' : '▼')));
+        if (open) card.append(wGame(sr));
+        return card;
+      })));
+    }
+    nodes.push(h('p', { class: 'muted small' }, 'Données : Leaguepedia (lol.fandom.com), licence CC BY-SA. Lecture des games calculée automatiquement à partir des chiffres de fin de partie.'));
+    view.replaceChildren(...nodes);
+  }
+
+  function wGame(sr) {
+    const gi = Math.min(W.game, sr.games.length - 1);
+    const g = sr.games[gi];
+    const A = wAnalyze(g);
+    const tabs = sr.games.length > 1 ? h('div', { class: 'chips' }, sr.games.map((x, i) => h('button', { class: 'chip', 'aria-pressed': String(i === gi), onclick: () => { W.game = i; render(); } }, `Game ${i + 1}`))) : null;
+    const ROLES5 = ['🛡️', '🌲', '✨', '🏹', '💞'];
+    const sideCol = (sd, i) => h('div', { class: 'w-side ' + (i ? 'red' : 'blue') + (sd.win ? ' win' : '') },
+      h('div', { class: 'w-side-h' }, h('b', null, sd.team), h('span', { class: sd.win ? 'good' : 'bad' }, sd.win ? 'Victoire' : 'Défaite'), h('span', { class: 'muted small' }, `${sd.kills} kills · ${wk(sd.gold)} golds`)),
+      sd.players.map((p, k) => h('div', { class: 'w-p' }, h('span', { class: 'w-role' }, ROLES5[k] || ''), wIcon(p.champ, 40),
+        h('div', { class: 'w-pn' }, h('b', null, p.champ), h('span', { class: 'muted small' }, p.name)),
+        h('div', { class: 'w-ps' }, h('b', null, `${p.k}/${p.d}/${p.a}`), h('span', { class: 'muted small' }, `${p.cs} CS · ${wk(p.gold)}`)))),
+      h('div', { class: 'w-bans' }, h('span', { class: 'muted small' }, 'Bans '), (sd.bans || []).map((b) => wIcon(b, 26))));
+    const obj = [['towers', '🏰 Tours'], ['dragons', '🐉 Dragons'], ['barons', '🟣 Barons'], ['voidgrubs', '🪲 Larves'], ['riftheralds', '👁️ Héraut'], ['inhibitors', '🧱 Inhibiteurs']];
+    const objRows = h('div', { class: 'w-obj' }, obj.map(([k, l]) => {
+      const a = g.sides[0][k] || 0, b = g.sides[1][k] || 0, t = Math.max(1, a + b);
+      return h('div', { class: 'w-or' }, h('b', { class: a > b ? 'good' : '' }, String(a)),
+        h('div', { class: 'w-bar' }, h('i', { class: 'blue', style: `width:${(a / t) * 100}%` }), h('i', { class: 'red', style: `width:${(b / t) * 100}%` })),
+        h('b', { class: b > a ? 'good' : '' }, String(b)), h('span', { class: 'muted small' }, l));
+    }));
+    return h('div', { class: 'w-game' }, tabs,
+      h('div', { class: 'row w-meta' }, h('span', { class: 'muted small' }, `⏱️ ${g.dur}${g.patch ? ' · patch ' + g.patch : ''}${g.date ? ' · ' + dateFr(g.date) : ''}`),
+        g.vod ? h('a', { class: 'btn-ghost', href: g.vod, target: '_blank' }, '▶ Voir la VOD') : null),
+      h('div', { class: 'w-sides' }, sideCol(g.sides[0], 0), sideCol(g.sides[1], 1)),
+      objRows,
+      h('div', { class: 'w-ana' },
+        h('div', { class: 'card w-a good' }, h('h3', null, `✅ Ce qu'a bien fait ${A.Wn.team}`), A.good.map((x) => h('p', null, x))),
+        h('div', { class: 'card w-a bad' }, h('h3', null, `⚠️ Ce qui a manqué à ${A.L.team}`), A.bad.length ? A.bad.map((x) => h('p', null, x)) : h('p', { class: 'muted' }, 'Rien de flagrant dans les chiffres : la game s\'est jouée sur les détails, à voir en VOD.')),
+        h('div', { class: 'card w-a learn' }, h('h3', null, '🎓 À retenir pour FIRE'), A.learn.map((x) => h('p', null, x)))));
   }
 
   // ----- Détente : devine le champion (comme Loldle, en illimité) et lore des champions -----

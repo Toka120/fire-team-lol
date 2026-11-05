@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('fire', {
   savePlanning: call('planning:save'),
   champions: call('champions'),
   jeux: { data: call('jeux:data'), lore: call('jeux:lore') },
+  worlds: call('worlds:season'),
   update: {
     state: call('update:state'),
     install: call('update:install'),

@@ -7,6 +7,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const coach = require('./coach');
 const jeux = require('./jeux');
+const worlds = require('./worlds');
 const { teamGrab } = require('./teamgrab');
 let autoUpdater = null;
 try { ({ autoUpdater } = require('electron-updater')); } catch (e) { /* module absent (développement) */ }
@@ -91,6 +92,7 @@ ipcMain.handle('planning:save', (e, action) => coach.savePlanning(action || {}))
 ipcMain.handle('champions', () => coach.champions());
 ipcMain.handle('jeux:data', () => jeux.data());
 ipcMain.handle('jeux:lore', (e, slug) => jeux.lore(slug));
+ipcMain.handle('worlds:season', (e, y, force) => worlds.season(y, !!force));
 
 ipcMain.handle('hash', (e, text) => crypto.createHash('sha256').update(String(text)).digest('hex'));
 ipcMain.handle('version', () => app.getVersion());
