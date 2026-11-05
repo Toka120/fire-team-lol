@@ -1,0 +1,633 @@
+{
+ "jungle": {
+  "titre": "Le carnet du jungler · Toks42o · Kayn Effect",
+  "resume": "Les notes du coach pour Toks42o et Kayn Effect : ta classe, ton départ, le carapateur, les ganks, en mode quête.",
+  "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-jungle/",
+  "slides": [
+   {
+    "img": "slide-01.jpg?v=2",
+    "titre": "Le carnet du jungler"
+   },
+   {
+    "img": "slide-02.jpg?v=2",
+    "titre": "La quête"
+   },
+   {
+    "img": "slide-03.jpg?v=2",
+    "titre": "Farmer et ganker"
+   },
+   {
+    "img": "slide-04.jpg?v=2",
+    "titre": "Choisis ta classe"
+   },
+   {
+    "img": "slide-05.jpg?v=2",
+    "titre": "Quiz"
+   },
+   {
+    "img": "slide-06.jpg?v=2",
+    "titre": "Réponse"
+   },
+   {
+    "img": "slide-07.jpg?v=2",
+    "titre": "Monocible : start Blue"
+   },
+   {
+    "img": "slide-08.jpg?v=2",
+    "titre": "Ganker AOE : start Red"
+   },
+   {
+    "img": "slide-09.jpg?v=2",
+    "titre": "Combien de camps ?"
+   },
+   {
+    "img": "slide-10.jpg?v=2",
+    "titre": "Une course de vitesse"
+   },
+   {
+    "img": "slide-11.jpg?v=2",
+    "titre": "Les 2 voyants avant d’y aller"
+   },
+   {
+    "img": "slide-12.jpg?v=2",
+    "titre": "Quiz"
+   },
+   {
+    "img": "slide-13.jpg?v=2",
+    "titre": "Réponse"
+   },
+   {
+    "img": "slide-14.jpg?v=2",
+    "titre": "Quelle lane ganker ?"
+   },
+   {
+    "img": "slide-15.jpg?v=2",
+    "titre": "Quiz"
+   },
+   {
+    "img": "slide-16.jpg?v=2",
+    "titre": "Réponse"
+   },
+   {
+    "img": "slide-17.jpg?v=2",
+    "titre": "Ce que te donnent les buffs"
+   },
+   {
+    "img": "slide-18.jpg?v=2",
+    "titre": "Les 5 mots des vagues"
+   },
+   {
+    "img": "slide-19.jpg?v=2",
+    "titre": "Jamais de face check"
+   },
+   {
+    "img": "slide-20.jpg?v=2",
+    "titre": "Avant chaque fight"
+   },
+   {
+    "img": "slide-21.jpg?v=2",
+    "titre": "Solo queue ≠ en équipe"
+   },
+   {
+    "img": "slide-22.jpg?v=2",
+    "titre": "Tu ne contrôles que toi"
+   },
+   {
+    "img": "slide-23.jpg?v=2",
+    "titre": "Laisse les ressources"
+   },
+   {
+    "img": "slide-24.jpg?v=2",
+    "titre": "Runes et data"
+   },
+   {
+    "img": "slide-25.jpg?v=2",
+    "titre": "Avant la game"
+   },
+   {
+    "img": "slide-26.jpg?v=2",
+    "titre": "Boss final"
+   }
+  ]
+ },
+ "adc": {
+  "titre": "Le carnet de l’ADC · The World",
+  "resume": "Les notes du coach pour The World : les 4 catégories, les fondamentaux, le trading, les vagues et la bot lane en duo, en mode quête.",
+  "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-adc/",
+  "slides": [
+   {
+    "img": "slide-01.jpg?v=2",
+    "titre": "Le carnet de l’ADC"
+   },
+   {
+    "img": "slide-02.jpg?v=2",
+    "titre": "La quête"
+   },
+   {
+    "img": "slide-03.jpg?v=2",
+    "titre": "La petite princesse"
+   },
+   {
+    "img": "slide-04.jpg?v=2",
+    "titre": "Quel ADC tu joues ?"
+   },
+   {
+    "img": "slide-05.jpg?v=2",
+    "titre": "Savoir farmer"
+   },
+   {
+    "img": "slide-06.jpg?v=2",
+    "titre": "Identifier les menaces"
+   },
+   {
+    "img": "slide-07.jpg?v=2",
+    "titre": "Anticiper : sois parano"
+   },
+   {
+    "img": "slide-08.jpg?v=2",
+    "titre": "Se positionner"
+   },
+   {
+    "img": "slide-09.jpg?v=2",
+    "titre": "Quiz"
+   },
+   {
+    "img": "slide-10.jpg?v=2",
+    "titre": "Réponse"
+   },
+   {
+    "img": "slide-11.jpg?v=2",
+    "titre": "Être patient"
+   },
+   {
+    "img": "slide-12.jpg?v=2",
+    "titre": "Quiz"
+   },
+   {
+    "img": "slide-13.jpg?v=2",
+    "titre": "Réponse"
+   },
+   {
+    "img": "slide-14.jpg?v=2",
+    "titre": "Matchups et responsabilités"
+   },
+   {
+    "img": "slide-15.jpg?v=2",
+    "titre": "Farmer sous ta tour"
+   },
+   {
+    "img": "slide-16.jpg?v=2",
+    "titre": "Le défi CS"
+   },
+   {
+    "img": "slide-17.jpg?v=2",
+    "titre": "Taper en farmant"
+   },
+   {
+    "img": "slide-18.jpg?v=2",
+    "titre": "Ce qui décide un échange"
+   },
+   {
+    "img": "slide-19.jpg?v=2",
+    "titre": "Les petits plus de la bot"
+   },
+   {
+    "img": "slide-20.jpg?v=2",
+    "titre": "La wave est un outil"
+   },
+   {
+    "img": "slide-21.jpg?v=2",
+    "titre": "Le freeze"
+   },
+   {
+    "img": "slide-22.jpg?v=2",
+    "titre": "Comment freeze devant la tour ?"
+   },
+   {
+    "img": "slide-23.jpg?v=2",
+    "titre": "Quand éviter de freeze ?"
+   },
+   {
+    "img": "slide-24.jpg?v=2",
+    "titre": "Le slow push"
+   },
+   {
+    "img": "slide-25.jpg?v=2",
+    "titre": "Le fast push"
+   },
+   {
+    "img": "slide-26.jpg?v=2",
+    "titre": "Le bounce"
+   },
+   {
+    "img": "slide-27.jpg?v=2",
+    "titre": "Le reset"
+   },
+   {
+    "img": "slide-28.jpg?v=2",
+    "titre": "Quiz"
+   },
+   {
+    "img": "slide-29.jpg?v=2",
+    "titre": "Réponse"
+   },
+   {
+    "img": "slide-30.jpg?v=2",
+    "titre": "Le plan de jeu vient des vagues"
+   },
+   {
+    "img": "slide-31.jpg?v=2",
+    "titre": "Feu, eau, nature"
+   },
+   {
+    "img": "slide-32.jpg?v=2",
+    "titre": "Ce que fait chaque bot"
+   },
+   {
+    "img": "slide-33.jpg?v=2",
+    "titre": "C’est le duo qui décide"
+   },
+   {
+    "img": "slide-34.jpg?v=2",
+    "titre": "Chaque duo change la lane"
+   },
+   {
+    "img": "slide-35.jpg?v=2",
+    "titre": "Quiz"
+   },
+   {
+    "img": "slide-36.jpg?v=2",
+    "titre": "Réponse"
+   },
+   {
+    "img": "slide-37.jpg?v=2",
+    "titre": "Back au bon moment"
+   },
+   {
+    "img": "slide-38.jpg?v=2",
+    "titre": "Push mid, puis fight"
+   },
+   {
+    "img": "slide-39.jpg?v=2",
+    "titre": "Le swap mid / bot"
+   },
+   {
+    "img": "slide-40.jpg?v=2",
+    "titre": "Jamais de face check"
+   },
+   {
+    "img": "slide-41.jpg?v=2",
+    "titre": "Avant chaque fight"
+   },
+   {
+    "img": "slide-42.jpg?v=2",
+    "titre": "Jouer front to back"
+   },
+   {
+    "img": "slide-43.jpg?v=2",
+    "titre": "Solo queue ≠ en équipe"
+   },
+   {
+    "img": "slide-44.jpg?v=2",
+    "titre": "Tu ne contrôles que toi"
+   },
+   {
+    "img": "slide-45.jpg?v=2",
+    "titre": "Avant la game"
+   },
+   {
+    "img": "slide-46.jpg?v=2",
+    "titre": "Boss final"
+   }
+  ]
+ },
+ "top": {
+  "titre": "Le carnet du top · lebrésilien",
+  "resume": "Les notes du coach pour lebrésilien : le farm, le trading, les vagues et les fights, en mode quête.",
+  "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-top/",
+  "slides": [
+   {
+    "img": "slide-01.jpg?v=2",
+    "titre": "Le carnet du top"
+   },
+   {
+    "img": "slide-02.jpg?v=2",
+    "titre": "La quête"
+   },
+   {
+    "img": "slide-03.jpg?v=2",
+    "titre": "Seul sur ta lane"
+   },
+   {
+    "img": "slide-04.jpg?v=2",
+    "titre": "Ta prio compte"
+   },
+   {
+    "img": "slide-05.jpg?v=2",
+    "titre": "Farmer sous ta tour"
+   },
+   {
+    "img": "slide-06.jpg?v=2",
+    "titre": "Le défi CS"
+   },
+   {
+    "img": "slide-07.jpg?v=2",
+    "titre": "Taper en farmant"
+   },
+   {
+    "img": "slide-08.jpg?v=2",
+    "titre": "Ce qui décide un échange"
+   },
+   {
+    "img": "slide-09.jpg?v=2",
+    "titre": "La wave est un outil"
+   },
+   {
+    "img": "slide-10.jpg?v=2",
+    "titre": "Le freeze"
+   },
+   {
+    "img": "slide-11.jpg?v=2",
+    "titre": "Comment freeze devant la tour ?"
+   },
+   {
+    "img": "slide-12.jpg?v=2",
+    "titre": "Quand éviter de freeze ?"
+   },
+   {
+    "img": "slide-13.jpg?v=2",
+    "titre": "Le slow push"
+   },
+   {
+    "img": "slide-14.jpg?v=2",
+    "titre": "Le fast push"
+   },
+   {
+    "img": "slide-15.jpg?v=2",
+    "titre": "Le bounce"
+   },
+   {
+    "img": "slide-16.jpg?v=2",
+    "titre": "Le reset"
+   },
+   {
+    "img": "slide-17.jpg?v=2",
+    "titre": "Quiz"
+   },
+   {
+    "img": "slide-18.jpg?v=2",
+    "titre": "Réponse"
+   },
+   {
+    "img": "slide-19.jpg?v=2",
+    "titre": "Back au bon moment"
+   },
+   {
+    "img": "slide-20.jpg?v=2",
+    "titre": "Push mid, puis fight"
+   },
+   {
+    "img": "slide-21.jpg?v=2",
+    "titre": "Jamais de face check"
+   },
+   {
+    "img": "slide-22.jpg?v=2",
+    "titre": "Avant chaque fight"
+   },
+   {
+    "img": "slide-23.jpg?v=2",
+    "titre": "Jouer front to back"
+   },
+   {
+    "img": "slide-24.jpg?v=2",
+    "titre": "Solo queue ≠ en équipe"
+   },
+   {
+    "img": "slide-25.jpg?v=2",
+    "titre": "Tu ne contrôles que toi"
+   },
+   {
+    "img": "slide-26.jpg?v=2",
+    "titre": "Avant la game"
+   },
+   {
+    "img": "slide-27.jpg?v=2",
+    "titre": "Boss final"
+   }
+  ]
+ },
+ "mid": {
+  "titre": "Le carnet du mid · xena",
+  "resume": "Les notes du coach pour xena : le farm, le trading, les vagues, le swap et les fights, en mode quête.",
+  "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-mid/",
+  "slides": [
+   {
+    "img": "slide-01.jpg?v=2",
+    "titre": "Le carnet du mid"
+   },
+   {
+    "img": "slide-02.jpg?v=2",
+    "titre": "La quête"
+   },
+   {
+    "img": "slide-03.jpg?v=2",
+    "titre": "Au centre de tout"
+   },
+   {
+    "img": "slide-04.jpg?v=2",
+    "titre": "Ta prio compte"
+   },
+   {
+    "img": "slide-05.jpg?v=2",
+    "titre": "Farmer sous ta tour"
+   },
+   {
+    "img": "slide-06.jpg?v=2",
+    "titre": "Le défi CS"
+   },
+   {
+    "img": "slide-07.jpg?v=2",
+    "titre": "Taper en farmant"
+   },
+   {
+    "img": "slide-08.jpg?v=2",
+    "titre": "Ce qui décide un échange"
+   },
+   {
+    "img": "slide-09.jpg?v=2",
+    "titre": "La wave est un outil"
+   },
+   {
+    "img": "slide-10.jpg?v=2",
+    "titre": "Le freeze"
+   },
+   {
+    "img": "slide-11.jpg?v=2",
+    "titre": "Comment freeze devant la tour ?"
+   },
+   {
+    "img": "slide-12.jpg?v=2",
+    "titre": "Quand éviter de freeze ?"
+   },
+   {
+    "img": "slide-13.jpg?v=2",
+    "titre": "Le slow push"
+   },
+   {
+    "img": "slide-14.jpg?v=2",
+    "titre": "Le fast push"
+   },
+   {
+    "img": "slide-15.jpg?v=2",
+    "titre": "Le bounce"
+   },
+   {
+    "img": "slide-16.jpg?v=2",
+    "titre": "Le reset"
+   },
+   {
+    "img": "slide-17.jpg?v=2",
+    "titre": "Quiz"
+   },
+   {
+    "img": "slide-18.jpg?v=2",
+    "titre": "Réponse"
+   },
+   {
+    "img": "slide-19.jpg?v=2",
+    "titre": "Back au bon moment"
+   },
+   {
+    "img": "slide-20.jpg?v=2",
+    "titre": "Push mid, puis fight"
+   },
+   {
+    "img": "slide-21.jpg?v=2",
+    "titre": "Le swap mid / bot"
+   },
+   {
+    "img": "slide-22.jpg?v=2",
+    "titre": "Jamais de face check"
+   },
+   {
+    "img": "slide-23.jpg?v=2",
+    "titre": "Avant chaque fight"
+   },
+   {
+    "img": "slide-24.jpg?v=2",
+    "titre": "Jouer front to back"
+   },
+   {
+    "img": "slide-25.jpg?v=2",
+    "titre": "Solo queue ≠ en équipe"
+   },
+   {
+    "img": "slide-26.jpg?v=2",
+    "titre": "Tu ne contrôles que toi"
+   },
+   {
+    "img": "slide-27.jpg?v=2",
+    "titre": "Avant la game"
+   },
+   {
+    "img": "slide-28.jpg?v=2",
+    "titre": "Boss final"
+   }
+  ]
+ },
+ "support": {
+  "titre": "Le carnet du support · TheM3talDrakonar",
+  "resume": "Les notes du coach pour TheM3talDrakonar : la bot lane en duo, le trading, les fights, en mode quête.",
+  "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-support/",
+  "slides": [
+   {
+    "img": "slide-01.jpg?v=2",
+    "titre": "Le carnet du support"
+   },
+   {
+    "img": "slide-02.jpg?v=2",
+    "titre": "La quête"
+   },
+   {
+    "img": "slide-03.jpg?v=2",
+    "titre": "Le garde du corps"
+   },
+   {
+    "img": "slide-04.jpg?v=2",
+    "titre": "Le plan de jeu vient des vagues"
+   },
+   {
+    "img": "slide-05.jpg?v=2",
+    "titre": "Feu, eau, nature"
+   },
+   {
+    "img": "slide-06.jpg?v=2",
+    "titre": "Ce que fait chaque bot"
+   },
+   {
+    "img": "slide-07.jpg?v=2",
+    "titre": "C’est le duo qui décide"
+   },
+   {
+    "img": "slide-08.jpg?v=2",
+    "titre": "Chaque duo change la lane"
+   },
+   {
+    "img": "slide-09.jpg?v=2",
+    "titre": "Quiz"
+   },
+   {
+    "img": "slide-10.jpg?v=2",
+    "titre": "Réponse"
+   },
+   {
+    "img": "slide-11.jpg?v=2",
+    "titre": "Taper en farmant"
+   },
+   {
+    "img": "slide-12.jpg?v=2",
+    "titre": "Ce qui décide un échange"
+   },
+   {
+    "img": "slide-13.jpg?v=2",
+    "titre": "Les petits plus de la bot"
+   },
+   {
+    "img": "slide-14.jpg?v=2",
+    "titre": "Les 5 mots des vagues"
+   },
+   {
+    "img": "slide-15.jpg?v=2",
+    "titre": "Back avec ton ADC"
+   },
+   {
+    "img": "slide-16.jpg?v=2",
+    "titre": "Jamais de face check"
+   },
+   {
+    "img": "slide-17.jpg?v=2",
+    "titre": "Avant chaque fight"
+   },
+   {
+    "img": "slide-18.jpg?v=2",
+    "titre": "Jouer front to back"
+   },
+   {
+    "img": "slide-19.jpg?v=2",
+    "titre": "Solo queue ≠ en équipe"
+   },
+   {
+    "img": "slide-20.jpg?v=2",
+    "titre": "Tu ne contrôles que toi"
+   },
+   {
+    "img": "slide-21.jpg?v=2",
+    "titre": "Avant la game"
+   },
+   {
+    "img": "slide-22.jpg?v=2",
+    "titre": "Boss final"
+   }
+  ]
+ }
+}
