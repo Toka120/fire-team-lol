@@ -1550,6 +1550,177 @@
     if (opt) { if (S.obj) opt.textContent = `Objectif (depuis le ${dateFr(S.obj.debut)})`; else opt.remove(); }
   }
 
+  // ----- Apprendre en jouant : mini-jeux tirés des carnets du coach -----
+  const LMODES = [['wave', '🌊 Lis la wave'], ['jgl', '🦀 Le jungler'], ['bot', '🔥 Bot lane'], ['trade', '⚔️ Trade ou pas ?'], ['vf', '✅ Vrai ou faux'], ['quoi', '🧠 Que fais-tu ?']];
+  const L = { st: {} };
+  const shuffle = (xs) => { const a = xs.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  const WAVE_Q = [
+    { mine: 3, theirs: 6, pos: 22, q: 'Ta wave est devant ta tour, avec 3 casters ennemis en plus. Tu veux farmer en sécurité.', ch: ['Je last hit seulement', 'Je tape toute la wave', 'Je vais dive sous sa tour'], why: 'C’est un freeze : la wave ne bouge plus devant ta tour. Pour le tenir : 3 casters full PV en face (wave canon : 3 casters + 1 mêlée). Attention, tu perds la prio.' },
+    { mine: 6, theirs: 3, pos: 55, q: 'Tu veux reset : tu as slow push la 1re wave et stacké la 2e. Que fais-tu de la 3e ?', ch: ['Je la fast push pour crash, puis je back', 'Je la freeze', 'Je la laisse et je back tout de suite'], why: 'Reset : slow push la 1re, stack la 2e, fast push la 3e, puis back sans rien perdre.' },
+    { mine: 0, theirs: 7, pos: 18, q: 'Tu as tout crash sous sa tour. La wave revient très vite vers toi et il passe niveau 3 avant toi. Pourquoi ?', ch: ['C’est le bounce : j’ai trop crash la wave', 'Il a eu de la chance', 'Mon jungler a pris mes sbires'], why: 'Le bounce : ses sbires et la wave qui revient tuent vite, il prend l’XP pendant que toi tu es encore sous ta tour. C’est le « niveau 3 et demi ».' },
+    { mine: 2, theirs: 5, pos: 60, q: 'Tu as les golds de ton objet, mais tu ne peux pas crash ta wave : elle est plus petite que la sienne.', ch: ['Back direct pour acheter', 'Je fast push quand même', 'J’attends sous sa tour'], why: 'Fast push SEULEMENT si tu peux crash la wave. Sinon : back direct pour acheter tes objets.' },
+    { mine: 0, theirs: 2, pos: 50, q: 'Il a pris sa wave, il reste 2 de ses sbires, et la wave suivante n’est pas arrivée.', ch: ['Je prends les 2 derniers et je back en même temps que lui', 'Je laisse ses 2 sbires', 'Je vais taper sa tour'], why: 'C’est un reset : tu annules tout, la wave revient au milieu.' },
+    { mine: 8, theirs: 3, pos: 55, q: 'Tu slow push avec 8 sbires. Il vient casser ta wave pour se mettre un freeze.', ch: ['Je deviens agressif : j’ai plus de sbires', 'Je recule sous ma tour', 'Je back'], why: 'Tu as plus de sbires : sur les longs fights tu gagnes, et même sur les courts trades. Reste près de tes sbires.' },
+    { mine: 5, theirs: 5, pos: 50, q: 'Mid game : ton équipe se regroupe pour un dragon dans 1 minute. Ta wave est au milieu.', ch: ['Je push ma wave puis je rejoins', 'Je freeze devant ma tour', 'Je reste farmer seul'], why: 'Au mid game, évite de freeze : push, puis fight. Rends-toi disponible sur la carte.' },
+    { mine: 0, theirs: 4, pos: 25, q: 'Tu n’as plus de sbires et leur wave arrive sous ta tour.', ch: ['Je la laisse crash et je farme sous ma tour', 'Je force un freeze', 'Je vais chercher la wave suivante chez eux'], why: 'Pas de wave ? Ne force pas : laisse crash et farme sous ta tour. Rappel : la tour tape d’abord le canon, ou le premier sbire qu’elle voit.' },
+    { mine: 5, theirs: 6, pos: 75, q: 'Mid game : ta wave de side est près de leur jungle. Pas de vision, personne pour te shadow.', ch: ['J’attends la wave en sécurité ou je demande un shadow', 'J’y vais seul', 'Je face check le buisson'], why: 'Ne va jamais chercher une wave seul : fais-toi shadow et dis-le. Pas de shadow ? Attends la wave en sécurité.' },
+    { mine: 4, theirs: 4, pos: 50, q: 'Pourquoi tu slow push ta wave ?', ch: ['Pour un but : dive, reset ou objectif', 'Pour rien, c’est joli', 'Pour perdre des sbires'], why: 'Chaque gestion de wave a un but. On n’enfonce pas un clou avec une scie : le bon outil au bon moment.' }
+  ];
+  const TRADE_Q = [
+    ['Il vient de lancer son sort le plus dangereux, il est en cooldown.', true, 'Cooldown : c’est la fenêtre pour trade.'],
+    ['Il va chercher un sbire (last hit).', true, 'Punis sur les last hits : quand il farme, tu tapes.'],
+    ['Sa wave est plus grosse que la tienne, vous êtes au milieu.', false, 'Plus de sbires de son côté : l’échange est pour lui.'],
+    ['Tu as 4 sbires de plus que lui, il vient te taper.', true, 'Plus de sbires : tu gagnes les longs fights et même les courts trades.'],
+    ['Tu viens de gagner un trade, il recule à 20 % PV sous sa tour.', false, 'Trade gagnant : ne prends pas la confiance, ne ruine pas ta lane en le poursuivant.'],
+    ['Tu es all-in, niveau 1, contre une lane poke, et tu as déjà pris du poke.', false, 'Garde tes PV : sinon tu ne pourras plus all-in.'],
+    ['Tu n’as plus ni flash ni R, lui a les deux.', false, 'Sans flash ou sans R : joue safe et call-le.'],
+    ['Ta wave arrive en premier pour le niveau 2.', true, 'Toujours contester le niveau 2 si possible.'],
+    ['Le jungler adverse n’a pas été vu depuis longtemps et tu es poussé.', false, 'Sois parano : où sont-ils ? Je ne vois personne, je fais attention.'],
+    ['L’adversaire n’a plus de flash et ton jungler arrive.', true, 'Un ennemi sans flash : on joue sur lui.'],
+    ['Tu es ADC, ton support est loin, leur support Leona est dans le buisson.', false, 'L’ADC est fragile : sans ton support, pas de trade contre un engage.'],
+    ['Il rate son sort principal en voulant te toucher.', true, 'Punis ses erreurs : il n’a plus son sort.']
+  ];
+  const VF_Q = [
+    ['Un ganker monocible commence plutôt au Blue.', true, 'Blue, Grump et loups : peu de cibles.'],
+    ['Pour le carapateur bot, on regarde la prio top et bot.', false, 'Carapateur bot : prio mid + bot.'],
+    ['Le freeze te fait perdre la prio.', true, 'Tu farmes safe, mais tu perds la prio.'],
+    ['Au mid game, il vaut mieux freeze ses waves.', false, 'Au mid game : push, puis fight.'],
+    ['La tour tape d’abord le canon, ou le premier sbire qu’elle voit.', true, ''],
+    ['Fast push même si tu ne peux pas crash la wave.', false, 'Seulement si tu peux crash ; sinon back direct.'],
+    ['L’ADC scale surtout avec les golds.', true, 'Les autres lanes scalent surtout avec l’XP.'],
+    ['Prendre une R d’Amumu en tant qu’ADC, c’est la faute du support.', false, 'C’est à toi d’être à range.'],
+    ['Avant un fight, on check les R et les flashs des deux équipes.', true, ''],
+    ['Jouer front to back : taper ce que tu vois, pas l’ADC au fond.', true, ''],
+    ['En solo queue, il faut surtout corriger les erreurs de ses alliés.', false, 'Concentre-toi sur ton jeu.'],
+    ['Back sur une wave canon si possible.', true, 'Toujours crash ta wave avant de back.'],
+    ['All-in bat sustain.', true, 'Le feu brûle la nature.'],
+    ['Poke bat sustain.', false, 'La nature absorbe l’eau : sustain bat poke.'],
+    ['Le farmeur gank seulement s’il est sûr d’un kill ou d’un flash.', true, ''],
+    ['Une wave qui bounce revient vers celui qui l’a fait crash.', true, 'Tu crash sous sa tour : la wave suivante repart vers toi.'],
+    ['Il y a toujours une réponse : après votre play, ils jouent ailleurs.', true, ''],
+    ['Les tanks peuvent face check, les squishy restent derrière.', true, ''],
+    ['Sous une R de zone, il faut se regrouper.', false, 'Ne te regroupe jamais sous une R de zone.'],
+    ['Smite sur le Grump avant qu’il soit mort pour récupérer de la vie.', true, ''],
+    ['Le swap lane mid/bot se fait souvent vers 15 min, quand la première tour tombe.', true, ''],
+    ['Tu es 10-0 en early : tu peux attendre tranquillement le late game.', false, 'Prends tes responsabilités : crée du jeu, snowball.'],
+    ['Pour un reset : slow push, stack, puis fast push la 3e wave.', true, ''],
+    ['Contre une lane poke, le long trade est à l’avantage de la lane all-in.', true, ''],
+    ['Le jungler doit garder tous les camps jusqu’à la fin de la game.', false, 'À un moment, il laisse les ressources aux laners (sauf s’il scale très fort).'],
+    ['Le blue buff donne de la régénération de mana et de la réduction des cooldowns.', true, ''],
+    ['Le red buff ralentit et met des dégâts sur les auto-attaques.', true, ''],
+    ['Il faut toujours face check les buissons pour avoir l’info.', false, 'Pas de face check : doute de tout.']
+  ];
+  const QUOI_Q = [
+    { m: [{ x: 0.2, y: 0.09, t: 'Fiddlesticks', c: 'r' }, { x: 0.5, y: 0.5, t: 'Toi (ADC)', c: 'b' }], q: 'Fiddlesticks a été vu au top. Tu es ADC au mid. Où te places-tu ?', ch: ['Vers le bas de la mid lane', 'Vers le haut de la mid lane', 'Je vais ward seul vers le top'], why: 'Tu restes au mid, mais tu joues à l’opposé de la menace.' },
+    { m: [{ x: 0.663, y: 0.703, t: 'Dragon 0:40', c: 'o' }, { x: 0.82, y: 0.9, t: 'Ta bot (prio)', c: 'b' }, { x: 0.55, y: 0.45, t: 'Ton mid', c: 'b' }], q: 'Dragon dans 40 secondes. Ta bot lane a la prio.', ch: ['On pousse les waves et on se place au dragon avant eux', 'On attend qu’il apparaisse pour bouger', 'Chacun continue de farmer'], why: 'Les vagues servent les objectifs : push, puis place-toi avant eux, rapproche-toi de tes alliés.' },
+    { m: [{ x: 0.337, y: 0.296, t: 'Baron', c: 'o' }, { x: 0.3, y: 0.12, t: 'Ennemis', c: 'r' }, { x: 0.36, y: 0.33, t: 'Ton équipe', c: 'b' }], q: 'Ton équipe commence le Baron. Les ennemis arrivent par le haut. Tu es l’ADC.', ch: ['Je me place à l’opposé, côté bas du pit', 'Je face check le buisson du haut', 'Je quitte le Baron seul'], why: 'Objectif commencé : anticipe leur arrivée et place-toi à l’opposé. Ni trop loin, ni trop près.' },
+    { m: [{ x: 0.9, y: 0.6, t: 'Toi (side)', c: 'b' }], q: 'Tu es seul en side bot. 4 ennemis ne sont plus visibles sur la carte.', ch: ['Je recule et je ne face check pas', 'Je push jusqu’à l’inhibiteur', 'Je vais ward seul dans leur jungle'], why: 'Pas d’info ? Doute de tout. Ne va jamais chercher une wave seul sans shadow.' },
+    { m: [{ x: 0.78, y: 0.92, t: 'Wave canon', c: 'o' }, { x: 0.7, y: 0.92, t: 'Toi : 1400 g', c: 'b' }], q: 'La wave canon arrive, tu as 1400 golds et tu peux crash.', ch: ['Je crash la wave canon puis je back', 'Je back tout de suite', 'Je reste avec mes golds'], why: 'Toujours crash ta wave, back sur une wave canon si possible, et ne reste pas avec tes golds.' },
+    { m: [{ x: 0.86, y: 0.85, t: 'ADC sans flash', c: 'r' }, { x: 0.74, y: 0.74, t: 'Ton jungler', c: 'b' }], q: 'L’ADC adverse n’a pas de flash et ton jungler est tout proche.', ch: ['On le call et on joue sur lui', 'On l’ignore', 'Je back'], why: 'Un ennemi sans flash : s’il fait une erreur de placement, on peut le tuer. Call-le.' },
+    { m: [{ x: 0.3, y: 0.36, t: 'Carapateur top', c: 'o' }, { x: 0.5, y: 0.5, t: 'Prio mid', c: 'b' }, { x: 0.12, y: 0.15, t: 'Prio top', c: 'b' }], q: 'Tu es jungler. Tu as la prio mid et la prio top.', ch: ['Je prends le carapateur top', 'Je prends le carapateur bot', 'Je ne bouge pas'], why: 'Carapateur top : prio mid + top. Et pousse-le vers la lane où tu as la prio, pour que ton laner décale.' },
+    { m: [{ x: 0.5, y: 0.5, t: 'Toi : 10-0', c: 'b' }], q: 'Tu es 10-0 à 15 minutes.', ch: ['Je crée du jeu : objectifs, on finit avant le late', 'Je farme tranquille jusqu’au late', 'J’attends que l’équipe fasse le travail'], why: 'Prends tes responsabilités : tu as toutes les ressources pour carry, snowball.' }
+  ];
+  const SUPS = { allin: ['Leona', 'Nautilus', 'Alistar', 'Rakan', 'Rell', 'Pyke', 'Thresh', 'Blitzcrank'], poke: ['Lux', 'Xerath', "Vel'Koz", 'Brand', 'Zyra', 'Karma'], sustain: ['Soraka', 'Yuumi', 'Sona', 'Nami', 'Milio', 'Janna'] };
+  const ADCS = ['Jinx', 'Caitlyn', "Kai'Sa", 'Draven', 'Ezreal', 'Ashe', 'Zeri', 'Miss Fortune', 'Xayah', 'Jhin'];
+  const BTYPE = { allin: ['🔥', 'All-in'], poke: ['💧', 'Poke'], sustain: ['🌿', 'Sustain'] };
+  const BEATS = { allin: 'sustain', sustain: 'poke', poke: 'allin' };
+
+  // Une « question » : texte, visuel, choix (le bon est le premier, mélangé à l'affichage), explication.
+  function lNext(mode) {
+    const st = L.st[mode] = L.st[mode] || { ok: 0, n: 0, streak: 0, idx: shuffle([...Array(99).keys()]), k: 0 };
+    let q;
+    if (mode === 'wave') { const x = WAVE_Q[st.idx.filter((i) => i < WAVE_Q.length)[st.k++ % WAVE_Q.length]]; q = { ...x, vis: 'lane' }; }
+    if (mode === 'quoi') { const x = QUOI_Q[st.idx.filter((i) => i < QUOI_Q.length)[st.k++ % QUOI_Q.length]]; q = { ...x, vis: 'rift' }; }
+    if (mode === 'trade') { const x = TRADE_Q[st.idx.filter((i) => i < TRADE_Q.length)[st.k++ % TRADE_Q.length]]; q = { q: x[0], ch: x[1] ? ['⚔️ Trade !', '🛡️ Pas trade'] : ['🛡️ Pas trade', '⚔️ Trade !'], why: x[2], fixed: true, timer: 8 }; }
+    if (mode === 'vf') { const x = VF_Q[st.idx.filter((i) => i < VF_Q.length)[st.k++ % VF_Q.length]]; q = { q: x[0], ch: x[1] ? ['✅ Vrai', '❌ Faux'] : ['❌ Faux', '✅ Vrai'], why: x[2], fixed: true, timer: 10 }; }
+    if (mode === 'bot') q = lBot();
+    if (mode === 'jgl') q = lJungle();
+    q.order = q.fixed ? (q.ch[0].includes('Trade !') || q.ch[0].includes('Vrai') ? [0, 1] : [1, 0]) : shuffle(q.ch.map((_, i) => i));
+    q.start = Date.now();
+    st.q = q; st.ans = null;
+    return q;
+  }
+  function lBot() {
+    const r = Math.random();
+    const t = pick(Object.keys(SUPS)), adc = pick(ADCS), sup = pick(SUPS[t]);
+    if (r < 0.45) return { duo: [[adc, sup]], q: `${adc} + ${sup} : c’est quel type de bot lane ?`, ch: [BTYPE[t].join(' '), ...Object.keys(BTYPE).filter((k) => k !== t).map((k) => BTYPE[k].join(' '))], why: `C’est le support qui change la bot lane : ${sup} rend ce duo ${BTYPE[t][1].toLowerCase()}.` };
+    if (r < 0.9) {
+      let t2 = pick(Object.keys(SUPS)); while (t2 === t) t2 = pick(Object.keys(SUPS));
+      const adc2 = pick(ADCS.filter((x) => x !== adc)), sup2 = pick(SUPS[t2]);
+      const win = BEATS[t] === t2 ? 0 : 1;
+      const lab = (a, s, k) => `${a} + ${s} (${BTYPE[k][1]})`;
+      return { duo: [[adc, sup], [adc2, sup2]], q: `${lab(adc, sup, t)} contre ${lab(adc2, sup2, t2)} : qui a l’avantage en lane ?`, ch: [win === 0 ? 'Le premier duo' : 'Le second duo', win === 0 ? 'Le second duo' : 'Le premier duo', 'Aucun, c’est égal'], why: 'Le feu brûle la nature (all-in bat sustain), la nature absorbe l’eau (sustain bat poke), l’eau éteint le feu (poke bat all-in).' };
+    }
+    return { duo: [['Caitlyn', 'Shaco']], q: 'Shaco + Caitlyn en face : à première vue ça poke. En vrai ?', ch: ['C’est un bait : une bot lane qui reçoit', 'C’est du poke pur', 'C’est du all-in'], why: 'Il y a des bot lanes qui ont l’air poke mais qui sont un bait : elles reçoivent.' };
+  }
+  function lJungle() {
+    const kind = pick(['gm', 'ga', 'f']);
+    const KN = { gm: 'ganker monocible', ga: 'ganker AOE', f: 'farmeur AOE' };
+    const step = pick(kind === 'f' ? ['camps', 'crabe', 'gankf'] : ['start', 'camps', 'crabe', 'gank']);
+    if (step === 'start') return { q: `Ton champion est ${KN[kind]}. Tu commences où ?`, ch: kind === 'gm' ? ['🔵 Au Blue', '🔴 Au Red', '🦀 Au carapateur'] : ['🔴 Au Red', '🔵 Au Blue', '🦀 Au carapateur'], why: kind === 'gm' ? 'Monocible : start Blue (Blue, Grump, loups : peu de cibles). Et ward à l’opposé, côté Red.' : 'Ganker AOE : start Red, puis Krugs, Corbins, Loups, Blue, puis carapateur ou gank.' };
+    if (step === 'camps') return kind === 'f' ? { q: 'Tu joues un farmeur. Ta priorité en début de game ?', ch: ['Mon farm, je gank seulement si kill ou flash sûr', 'Ganker toutes les lanes', 'Le carapateur à tout prix'], why: 'Le farmeur priorise le farm et s’adapte au rythme de la partie, sans être obnubilé par ses camps.' }
+      : { q: `Tu joues un ${KN[kind]}. Combien de camps avant d’aller gank ou au carapateur ?`, ch: ['4 à 5 camps, full clear seulement s’il est propre', 'Toujours les 6 camps', 'Aucun, je gank niveau 1'], why: 'Ganker : au minimum 4 à 5 camps. Sinon priorise les ganks : ton perso est un ganker.' };
+    if (step === 'crabe') {
+      const pr = { top: Math.random() < 0.5, mid: Math.random() < 0.6, bot: Math.random() < 0.5 };
+      const ans = pr.mid && pr.bot ? 'Carapateur bot' : pr.mid && pr.top ? 'Carapateur top' : 'Pas de carapateur : je joue ailleurs';
+      const all = ['Carapateur bot', 'Carapateur top', 'Pas de carapateur : je joue ailleurs'];
+      return { prios: pr, q: 'Voici tes prios de lane. Quel carapateur tu vas chercher ?', ch: [ans, ...all.filter((x) => x !== ans)], why: 'Carapateur bot : prio mid + bot. Carapateur top : prio mid + top. Pas de prio : n’y va pas. Et pousse-le vers la lane où tu as la prio.' };
+    }
+    // Une seule lane est clairement la bonne : prête (freeze) avec au moins un bonus ; les autres sont pas prêtes ou sans bonus.
+    const bi = Math.floor(Math.random() * 3);
+    const bonus = shuffle(['feed', 'cc', 'noflash']).slice(0, 1 + Math.floor(Math.random() * 2));
+    const lanes = ['Top', 'Mid', 'Bot'].map((n, i) => i === bi ? { n, freeze: true, feed: bonus.includes('feed'), cc: bonus.includes('cc'), noflash: bonus.includes('noflash') }
+      : (Math.random() < 0.5 ? { n, freeze: false, feed: Math.random() < 0.4, cc: Math.random() < 0.4, noflash: false } : { n, freeze: true, feed: false, cc: false, noflash: false }));
+    if (step === 'gankf') {
+      const ok = lanes.find((l) => l.freeze && l.noflash);
+      return { lanes, q: 'Tu es farmeur. Tu ganks ou tu farmes ?', ch: ok ? [`Gank ${ok.n} : kill ou flash sûr`, 'Je farme', `Gank ${lanes.find((l) => l !== ok).n}`] : ['Je farme', ...lanes.slice(0, 2).map((l) => `Gank ${l.n}`)], why: 'Le farmeur gank seulement s’il est sûr de prendre un kill ou de faire claquer un flash, sans perdre de temps.' };
+    }
+    const best = lanes[bi];
+    return { lanes, q: 'Tu es ganker. Quelle lane tu vas gank ?', ch: [`Gank ${best.n}`, ...lanes.filter((l) => l !== best).map((l) => `Gank ${l.n}`)], why: 'Une lane prête à être gank (freeze installé). Puis la plus feed, ou la plus facile : allié avec un CC, adversaire sans flash.' };
+  }
+
+  function lVisual(q) {
+    if (q.vis === 'lane') {
+      const dots = (n, cls) => h('div', { class: 'lw-g ' + cls }, Array.from({ length: n }, () => h('i')));
+      return h('div', { class: 'lw' }, h('div', { class: 'lw-t b' }, '🏰', h('span', null, 'Ta tour')), h('div', { class: 'lw-road' },
+        h('div', { class: 'lw-wave', style: `left:${q.pos}%` }, dots(q.mine, 'b'), dots(q.theirs, 'r'))), h('div', { class: 'lw-t r' }, '🏰', h('span', null, 'Sa tour')));
+    }
+    if (q.vis === 'rift') {
+      const src = (S.assets && S.assets.rift) || null;
+      return h('div', { class: 'lr' }, src ? h('img', { src, alt: '' }) : h('div', { class: 'lr-ph' }),
+        q.m.map((m) => h('div', { class: 'lr-m ' + m.c, style: `left:${m.x * 100}%;top:${m.y * 100}%` }, h('i'), h('span', null, m.t))));
+    }
+    if (q.duo) return h('div', { class: 'lb' }, q.duo.map((d, i) => h('div', { class: 'lb-d' }, i ? h('b', { class: 'lb-vs' }, 'VS') : null, d.map((c) => J.data ? wIcon(c, 64) : h('b', null, c)))));
+    if (q.prios) return h('div', { class: 'lj' }, ['top', 'mid', 'bot'].map((k) => h('div', { class: 'lj-l ' + (q.prios[k] ? 'ok' : 'ko') }, h('b', null, cap(k)), h('span', null, q.prios[k] ? '✅ prio' : '❌ pas de prio'))));
+    if (q.lanes) return h('div', { class: 'lj' }, q.lanes.map((l) => h('div', { class: 'lj-l' }, h('b', null, l.n),
+      h('span', null, l.freeze ? '🧊 freeze devant sa tour' : '⚡ wave qui pousse'), l.feed ? h('span', null, '🔥 adversaire feed') : null, l.cc ? h('span', null, '🪝 ton allié a un CC') : null, l.noflash ? h('span', null, '⚡ adversaire sans flash') : null)));
+    return null;
+  }
+
+  function renderLearn(mode) {
+    if (mode === 'bot' && !J.data) loadJeux();
+    const st = L.st[mode];
+    const q = st && st.q ? st.q : lNext(mode);
+    const s2 = L.st[mode];
+    const answered = s2.ans != null;
+    const pickAns = (i) => {
+      if (s2.ans != null) return;
+      s2.ans = i; s2.n++;
+      if (i === 0) { s2.ok++; s2.streak++; } else s2.streak = 0;
+      clearInterval(L.timer);
+      render();
+    };
+    const out = [h('p', { class: 'muted small jeu-stats' }, s2.n ? `✅ ${s2.ok} / ${s2.n} bonnes réponses · 🔥 série : ${s2.streak}` : 'Les réponses viennent des carnets du coach. À toi de jouer !')];
+    const timer = q.timer && !answered ? h('div', { class: 'lt-bar' }, h('i', { style: `animation-duration:${q.timer}s` })) : null;
+    if (timer) { clearInterval(L.timer); L.timer = setTimeout(() => { if (s2.q === q && s2.ans == null && S.section === 'jeux' && J.tab === mode) pickAns(-1); }, q.timer * 1000); }
+    out.push(h('div', { class: 'card l-card' }, timer, h('h3', null, q.q), lVisual(q),
+      h('div', { class: 'l-ch' }, q.order.map((i) => h('button', { class: 'l-btn' + (answered ? (i === 0 ? ' ok' : i === s2.ans ? ' ko' : ' dim') : ''), disabled: answered ? true : null, onclick: () => pickAns(i) }, q.ch[i]))),
+      answered ? h('div', { class: 'l-fb ' + (s2.ans === 0 ? 'ok' : 'ko') }, h('b', null, s2.ans === 0 ? '✅ Bien joué !' : s2.ans === -1 ? '⏱️ Trop tard !' : '❌ Pas tout à fait.'), q.why ? h('p', null, q.why) : null,
+        h('button', { class: 'btn-fire small-btn', onclick: () => { lNext(mode); render(); } }, 'Question suivante ▶')) : null));
+    return out;
+  }
+
   // ----- Worlds : résultats, compos et lecture de chaque game (données Leaguepedia, CC BY-SA) -----
   const W = { year: new Date().getFullYear(), seasons: {}, loading: {}, err: {}, open: null, game: 0 };
   async function loadWorlds(y, force) {
@@ -1815,6 +1986,8 @@
     const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎮'),
       h('div', null, h('h1', { class: 'title' }, 'Détente'), h('p', { class: 'muted' }, 'Devine le champion autant de fois que tu veux, ou plonge dans le lore de Runeterra.')))];
     nodes.push(h('div', { class: 'chips jeu-tabs' }, JMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
+    nodes.push(h('div', { class: 'chips jeu-tabs learn' }, h('span', { class: 'muted small' }, '🎓 Apprendre en jouant :'), LMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
+    if (LMODES.some(([k]) => k === J.tab)) { nodes.push(...renderLearn(J.tab)); view.replaceChildren(...nodes); return; }
     if (!J.data) {
       nodes.push(h('div', { class: 'card' }, J.loading || !J.err ? h('p', { class: 'muted' }, 'Chargement des champions…') : h('p', { class: 'bad' }, '⚠ ' + J.err, ' ', h('button', { class: 'btn-ghost', onclick: () => { J.err = ''; loadJeux(); render(); } }, 'Réessayer'))));
       view.replaceChildren(...nodes);
