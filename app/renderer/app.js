@@ -446,7 +446,7 @@
   }
 
   function openPlayer(slug) {
-    S.view = 'player'; S.player = slug; S.tab = 'resume'; S.jour = 'tous';
+    S.view = 'player'; S.player = slug; S.tab = 'resume'; S.jour = 'tous'; S.more = false; S.openCard = null;
     render();
     window.scrollTo(0, 0);
   }
@@ -712,17 +712,18 @@
     const ringBox = h('div', { class: 'ring' });
     view.replaceChildren(h('header', { class: 'hero' },
       h('div', { class: 'hero-txt' },
-        h('div', { class: 'tags' }, tag(`${R.ico} ${p.role || R.label}`), tag('Classé Solo/Duo'), p.pool ? tag('🎯 ' + p.pool) : null, (p.maitrise_ids || []).length ? tag('⭐ ' + p.maitrise_ids.map(FC.champName).join(' · ')) : null, d.rank ? tag(d.rank) : null),
+        h('div', { class: 'tags' }, tag(`${R.ico} ${p.role || R.label}`), d.rank ? tag(d.rank) : null,
+          S.more ? [tag('Classé Solo/Duo'), p.pool ? tag('🎯 ' + p.pool) : null, (p.maitrise_ids || []).length ? tag('⭐ ' + p.maitrise_ids.map(FC.champName).join(' · ')) : null] : null),
         h('h1', { class: 'title' }, p.pseudo),
-        h('p', { class: 'muted small' }, `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · stats dpm.lol de ${hm(d.at)} · ${lastGame(d) || 'aucune game Solo/Duo'} · `,
+        h('p', { class: 'muted small' }, S.more ? `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · stats dpm.lol de ${hm(d.at)} · ${lastGame(d) || 'aucune game Solo/Duo'} · ` : `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · `,
           h('a', { href: 'https://dpm.lol/' + p.slug, target: '_blank' }, 'voir sur dpm.lol')),
-        h('p', { class: 'lead' }, FC.lead(p, s)),
-        progress(obj, true),
-        s.games ? catBar({ oblig: s.oblig, maitrise: s.maitrise_g, autres: s.autres }) : null),
+        S.more ? h('p', { class: 'lead' }, FC.lead(p, s)) : null,
+        progress(obj, S.more),
+        S.more && s.games ? catBar({ oblig: s.oblig, maitrise: s.maitrise_g, autres: s.autres }) : null),
       ringBox));
     later(() => ring(ringBox, s, 170));
 
-    if (s.games) {
+    if (s.games && S.more) {
       const sb = h('div', { class: 'streak' });
       view.append(h('div', { class: 'card' }, h('h2', null, 'La série, game après game'),
         h('p', { class: 'muted small' }, "Chaque rond est une game, dans l'ordre. Survole pour voir le détail, clique pour l'ouvrir."), sb));
@@ -750,26 +751,34 @@
       ['⏱️', 'Golds à 15 min', sg(s.gold15), rep.gold15, s.gold15, `Avance (+) ou retard (−) ${R.sur} à 15 min. En retard dans ${s.gold15_neg} ${s.gold15_neg > 1 ? 'games' : 'game'} sur ${s.games}.`],
       ['👁️', 'Pinks par game', fr(s.pinks_moy, 1), rep.pinks_moy, s.pinks_moy, `Balises de contrôle posées. ${s.pinks} au total.`]
     ];
-    page.append(h('div', { class: 'tiles' }, tiles.map(([ico, label, val, r, v, expl]) => {
+    const shown = S.more ? tiles : tiles.slice(0, 4);
+    page.append(h('div', { class: 'tiles' + (S.more ? '' : ' compact') }, shown.map(([ico, label, val, r, v, expl]) => {
       const m = h('div', { class: 'meter' });
       if (r && v != null) later(() => meter(m, v, r));
-      return h('div', { class: 'card tile' }, h('div', { class: 'tile-h' }, `${ico} ${label}`), h('div', { class: 'num' }, val), m, h('p', { class: 'muted small' }, expl));
+      return h('div', { class: 'card tile', title: expl }, h('div', { class: 'tile-h' }, `${ico} ${label}`), h('div', { class: 'num' }, val), m, S.more ? h('p', { class: 'muted small' }, expl) : null);
     })));
 
     const ins = FC.insights(p, rows, s, d.champs, obj);
-    const acard = (x) => h('div', { class: 'acard k-' + x.kind },
-      h('div', { class: 'acard-ico' }, x.ico),
-      h('div', { class: 'acard-body' }, h('div', { class: 'acard-t' }, x.title, x.chip ? h('span', { class: 'acard-chip' }, x.chip) : null), h('p', null, x.text)));
-    const col = (title, cls, list) => h('div', { class: 'acol ' + cls }, h('h3', null, title, h('span', { class: 'acount' }, list.length)), list.length ? list.map(acard) : h('p', { class: 'muted small' }, 'Rien à signaler.'));
+    // Compact : titres seulement, un clic ouvre le détail d'une carte.
+    const acard = (x) => {
+      const key = x.kind + '|' + x.title;
+      const open = S.more || S.openCard === key;
+      return h('div', { class: 'acard k-' + x.kind + (S.more ? '' : ' click'), onclick: S.more ? null : () => { S.openCard = open ? null : key; render(); } },
+        h('div', { class: 'acard-ico' }, x.ico),
+        h('div', { class: 'acard-body' }, h('div', { class: 'acard-t' }, x.title, x.chip ? h('span', { class: 'acard-chip' }, x.chip) : null), open ? h('p', null, x.text) : null));
+    };
+    const lim = (list) => (S.more ? list : list.slice(0, 3));
+    const col = (title, cls, list) => h('div', { class: 'acol ' + cls }, h('h3', null, title, h('span', { class: 'acount' }, list.length)), list.length ? lim(list).map(acard) : h('p', { class: 'muted small' }, 'Rien à signaler.'));
     page.append(h('div', { class: 'card' },
       h('h2', null, '🎯 Le bilan en un coup d\'œil'),
-      h('p', { class: 'muted small' }, 'Calculé automatiquement à partir des chiffres de la période, à confirmer au replay.'),
+      h('p', { class: 'muted small' }, S.more ? 'Calculé automatiquement à partir des chiffres de la période, à confirmer au replay.' : 'Clique sur une carte pour voir le détail.'),
       h('div', { class: 'acols' },
         col('💪 Points forts', 'good', ins.filter((x) => x.kind === 'plus')),
         col('⚠️ À travailler', 'bad', ins.filter((x) => x.kind === 'warn'))),
-      ins.some((x) => x.kind === 'info') ? h('div', { class: 'ainfo' }, ins.filter((x) => x.kind === 'info').map(acard)) : null));
+      S.more && ins.some((x) => x.kind === 'info') ? h('div', { class: 'ainfo' }, ins.filter((x) => x.kind === 'info').map(acard)) : null));
 
-    if (days.length) {
+    page.append(h('div', { class: 'more-row' }, h('button', { class: 'btn-ghost more-btn', onclick: () => { S.more = !S.more; render(); } }, S.more ? '➖ Moins de détails' : '➕ Plus de détails')));
+    if (days.length && S.more) {
       const c = h('div', { class: 'chart' });
       page.append(h('div', { class: 'card' }, h('h2', null, 'Victoires et défaites par jour'), h('p', { class: 'muted small' }, 'Clique sur une barre pour voir les games du jour.'), c));
       later(() => dayChart(c, days));

@@ -809,3 +809,9 @@ button.plan-p{cursor:pointer}
 .lj-l{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel2);display:flex;flex-direction:column;gap:4px;font-size:13px}
 .lj-l b{font-size:16px}
 .lj-l.ok{border-color:rgba(76,195,138,.6)}.lj-l.ko{border-color:rgba(239,90,90,.5)}
+.tiles.compact .tile{padding:14px}
+.tiles.compact .num{font-size:28px}
+.acard.click{cursor:pointer}
+.acard.click:hover{border-color:var(--fire1)}
+.more-row{display:flex;justify-content:center;margin:6px 0 12px}
+.more-btn{font-size:15px;padding:10px 22px}
