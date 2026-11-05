@@ -462,7 +462,8 @@
         h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · clique sur un joueur pour voir tout le détail.`),
         S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif : ${S.obj.games} games sur les champions obligatoires depuis le ${dateFr(S.obj.debut)}, réparties comme chacun veut.`) : null)),
       teamCards(),
-      h('div', { class: 'hub-grid' }, S.players.map((p) => hubCard(p, start)))
+      h('div', { class: 'more-row hub-more' }, h('button', { class: 'btn-ghost more-btn', onclick: () => { S.hubMore = !S.hubMore; render(); } }, S.hubMore ? '➖ Moins de détails' : '➕ Plus de détails')),
+      h('div', { class: 'hub-grid' + (S.hubMore ? '' : ' compact') }, S.players.map((p) => hubCard(p, start)))
     ].filter(Boolean));
   }
 
@@ -478,8 +479,15 @@
     const d = S.data[p.slug];
     const st = S.status[p.slug];
     const card = h('article', { class: 'pcard', tabindex: '0', onclick: () => openPlayer(p.slug), onkeydown: (e) => { if (e.key === 'Enter') openPlayer(p.slug); } },
-      roleLine(p, R), h('div', { class: 'pname' }, p.pseudo), p.pool ? h('div', { class: 'muted small' }, '🎯 ' + p.pool) : null,
-      (p.maitrise_ids || []).length ? h('div', { class: 'muted small' }, '⭐ ' + p.maitrise_ids.map(FC.champName).join(' · ')) : null);
+      roleLine(p, R), h('div', { class: 'pname' }, p.pseudo));
+    // Vue compacte : rôle, pseudo et objectif de games. Le reste avec « Plus de détails » ou sur le profil.
+    if (!S.hubMore) {
+      if (d) card.append(progress(FC.objectif(p, d.matches, S.obj)));
+      if (!d) card.append(h('div', { class: 'pstatus ' + ((st && st.state) || '') }, statusText(st, d)));
+      return card;
+    }
+    if (p.pool) card.append(h('div', { class: 'muted small' }, '🎯 ' + p.pool));
+    if ((p.maitrise_ids || []).length) card.append(h('div', { class: 'muted small' }, '⭐ ' + p.maitrise_ids.map(FC.champName).join(' · ')));
     if (d) {
       const s = FC.stats(FC.toRows(p, d.matches, start));
       const box = h('div');

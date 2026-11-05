@@ -815,3 +815,5 @@ button.plan-p{cursor:pointer}
 .acard.click:hover{border-color:var(--fire1)}
 .more-row{display:flex;justify-content:center;margin:6px 0 12px}
 .more-btn{font-size:15px;padding:10px 22px}
+.hub-more{justify-content:flex-end;margin:4px 0 10px}
+.hub-grid.compact .pcard{gap:8px;min-height:0}
