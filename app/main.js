@@ -86,8 +86,13 @@ function createMainWindow(forceShow) {
   });
   if (hidden) ensureTray();
   // Avec l'arrière-plan activé, fermer la fenêtre la cache seulement : FIRE reste près de l'horloge.
+  // Arrêt ou redémarrage de Windows : FIRE se ferme normalement.
+  mainWin.on('session-end', () => { quitting = true; });
   mainWin.on('close', (e) => {
     if (quitting || !bgPrefs().bg) return;
+    // Fenêtre déjà cachée : la demande de fermeture vient de Windows ou de l'installeur, pas du joueur.
+    // On quitte vraiment, sinon l'installeur ne peut pas remplacer les fichiers.
+    if (!mainWin.isVisible()) { quitting = true; dropTray(); setImmediate(() => app.quit()); return; }
     e.preventDefault();
     mainWin.hide();
     ensureTray();

@@ -1,7 +1,7 @@
 {
   "name": "fire-lol",
   "productName": "FIRE LoL",
-  "version": "1.10.1",
+  "version": "1.10.2",
   "description": "FIRE LoL - les stats de l'équipe, à jour depuis dpm.lol",
   "main": "main.js",
   "author": "Toka120",
@@ -21,7 +21,8 @@
     "appId": "lol.fire.team",
     "productName": "FIRE LoL",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
       "main.js",
@@ -50,7 +51,8 @@
       "shortcutName": "FIRE LoL",
       "installerIcon": "assets/fire.ico",
       "uninstallerIcon": "assets/fire.ico",
-      "artifactName": "FIRE-LoL-Setup.exe"
+      "artifactName": "FIRE-LoL-Setup.exe",
+      "include": "build/installer.nsh"
     },
     "portable": {
       "artifactName": "FIRE-LoL-Portable.exe"
