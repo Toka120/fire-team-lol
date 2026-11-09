@@ -2190,7 +2190,7 @@
       const jit = () => Math.round((Math.random() - 0.5) * 8);
       r.ox = Math.min(92, Math.max(8, (r.skin.fx == null ? 50 : r.skin.fx) + jit()));
       r.oy = Math.min(92, Math.max(8, (r.skin.fy == null ? 40 : r.skin.fy) + jit()));
-      r.flip = pick(['x', 'y', 'xy']); // image retournée : en miroir, à l'envers, ou les deux
+      r.flip = true; // image à l'envers jusqu'à la bonne réponse
     }
     J.r[mode] = r;
     if (mode === 'phrase') {
@@ -2277,8 +2277,8 @@
       const z0 = r.skin.c != null && r.skin.c < 0.6 ? 3.2 : 5;
       const sc = r.done ? 1 : Math.max(1.4, z0 - 0.6 * wrong);
       clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'À quel champion appartient ce skin ?'),
-        h('div', { class: 'jeu-splash' }, h('div', { class: 'jeu-flip', style: r.done ? '' : `transform:scale(${/x/.test(r.flip || '') ? -1 : 1},${/y/.test(r.flip || '') ? -1 : 1})` }, h('img', { src: jsplash(t, r.skin.num), alt: '', style: splashZoom(sc, r.ox, r.oy) + `;filter:blur(${r.done ? 0 : [6, 4.5, 3.2, 2.2, 1.4, 0.8, 0.4][wrong] || 0}px)`, onerror: () => { if (!r.done && !r.badImg) { r.badImg = true; jNew('splash'); } } }))),
-        h('p', { class: 'muted small' }, r.done ? r.skin.name : 'Flou, zoomé et retourné : ça devient net et ça dézoome à chaque essai. L’image se remet à l’endroit quand tu trouves.'));
+        h('div', { class: 'jeu-splash' }, h('div', { class: 'jeu-flip', style: r.done || !r.flip ? '' : 'transform:rotate(180deg)' }, h('img', { src: jsplash(t, r.skin.num), alt: '', style: splashZoom(sc, r.ox, r.oy) + `;filter:blur(${r.done ? 0 : [6, 4.5, 3.2, 2.2, 1.4, 0.8, 0.4][wrong] || 0}px)`, onerror: () => { if (!r.done && !r.badImg) { r.badImg = true; jNew('splash'); } } }))),
+        h('p', { class: 'muted small' }, r.done ? r.skin.name : 'Flou, zoomé et à l’envers : ça devient net et ça dézoome à chaque essai. L’image se remet à l’endroit quand tu trouves.'));
     }
     nodes.push(clue);
     // Saisie
