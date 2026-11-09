@@ -2294,7 +2294,8 @@
           J.audio.play().then(() => { b.textContent = '🔊 Réécouter sa voix'; }).catch(() => { r.noVo = true; render(); });
         } }, '🔊 Écouter sa voix'),
         h('span', { class: 'muted small' }, 'La voix du champion dit cette phrase.')) : null,
-      wrong >= 3 || r.done ? h('p', { class: 'muted small' }, `Indice : « ${t.title} »${wrong >= 6 || r.done ? ` · ${t.region || 'région inconnue'}` : ''}`) : h('p', { class: 'muted small' }, `Un indice arrive après 3 essais (encore ${3 - wrong}).`));
+      // Plus d'indice écrit (titre, région) : la voix débloquée après 3 essais suffit. Le titre s'affiche une fois trouvé.
+      r.done ? h('p', { class: 'muted small' }, `« ${t.title} » · ${t.region || 'région inconnue'}`) : null);
     if (mode === 'splash') {
       // Position du champion moins sûre : on part d'un zoom plus large.
       const z0 = r.skin.c != null && r.skin.c < 0.6 ? 3.2 : 5;
