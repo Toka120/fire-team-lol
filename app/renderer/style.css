@@ -12,11 +12,13 @@
   --bad: #ef5a5a;
   --warn: #f5a524;
   --r: 12px;
+  --glow: rgba(255, 94, 58, .16);
+  --bar: rgba(15, 13, 12, .85);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
-  background: radial-gradient(1200px 500px at 50% -10%, rgba(255, 94, 58, .16), transparent 70%), var(--bg);
+  background: radial-gradient(1200px 500px at 50% -10%, var(--glow), transparent 70%), var(--bg);
   color: var(--fg);
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   font-size: 15px;
@@ -53,7 +55,7 @@ a { color: inherit; }
 
 /* ---------- Barre du haut ---------- */
 .shell { min-height: 100%; display: flex; flex-direction: column; }
-.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--line); background: rgba(15, 13, 12, .85); position: sticky; top: 0; z-index: 5; backdrop-filter: blur(6px); }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--line); background: var(--bar); position: sticky; top: 0; z-index: 5; backdrop-filter: blur(6px); }
 .brand-sm { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: .04em; }
 .brand-sm img { width: 34px; height: 34px; border-radius: 8px; }
 .brand-sm span { background: linear-gradient(90deg, var(--fire1), var(--fire2)); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: 18px; }
@@ -847,3 +849,16 @@ button.plan-p{cursor:pointer}
 @keyframes popdown{from{transform:translateY(-120%);opacity:0}to{transform:none;opacity:1}}
 @keyframes popup-out{to{transform:translateY(-120%);opacity:0}}
 .nlab{margin:10px 0 0}
+
+/* ---------- Thèmes de l'application (fond) : Paramètres › Thème ---------- */
+html[data-theme=bleu]  { --bg:#0a1430; --panel:#112047; --panel2:#172a5a; --line:#25397a; --muted:#a3b4d8; --glow:rgba(80,140,255,.32); --bar:rgba(10,20,48,.9); }
+html[data-theme=rouge] { --bg:#1f0709; --panel:#330c11; --panel2:#421218; --line:#5e1c25; --muted:#d6a5aa; --glow:rgba(240,40,60,.32); --bar:rgba(31,7,9,.9); }
+html[data-theme=vert]  { --bg:#061a0f; --panel:#0c2b19; --panel2:#123822; --line:#1f5233; --muted:#a0c9ae; --glow:rgba(60,220,120,.28); --bar:rgba(6,26,15,.9); }
+html[data-theme=jaune] { --bg:#1c1606; --panel:#2e240b; --panel2:#3b2f10; --line:#58461c; --muted:#d4c38f; --glow:rgba(255,205,40,.28); --bar:rgba(28,22,6,.9); }
+html[data-theme=noir]  { --bg:#000000; --panel:#0b0b0b; --panel2:#141414; --line:#262626; --muted:#9a9a9a; --glow:rgba(255,255,255,.04); --bar:rgba(0,0,0,.9); }
+html[data-theme=gris]  { --bg:#1b1c1f; --panel:#25272b; --panel2:#2e3035; --line:#3d4046; --muted:#a6a9b0; --glow:rgba(255,255,255,.07); --bar:rgba(27,28,31,.9); }
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;margin-top:8px}
+.theme-sw{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 8px;border-radius:12px;border:2px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer;font:inherit;font-weight:600}
+.theme-sw:hover{border-color:var(--fire2)}
+.theme-sw[aria-pressed=true]{border-color:var(--fire2);box-shadow:0 0 0 3px rgba(255,94,58,.25)}
+.theme-dot{width:54px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.18)}

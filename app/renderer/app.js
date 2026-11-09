@@ -7,6 +7,10 @@
   const FETCH_DAYS = 31;
 
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
+  // Thème de fond choisi dans Paramètres (appliqué dès le démarrage, écran du code compris).
+  const THEMES = [['fire', '🔥 FIRE', '#0f0d0c', '#ff5e3a'], ['bleu', 'Bleu', '#0a1430', '#508cff'], ['rouge', 'Rouge', '#1f0709', '#f0283c'], ['vert', 'Vert', '#061a0f', '#3cdc78'], ['jaune', 'Jaune', '#1c1606', '#ffcd28'], ['noir', 'Noir', '#000000', '#444444'], ['gris', 'Gris', '#1b1c1f', '#6b6f78']];
+  const applyTheme = (t) => { if (!t || t === 'fire') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); };
+  applyTheme(load('fire.theme', 'fire'));
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
 
   const S = {
@@ -434,6 +438,11 @@
         h('p', { class: 'muted small' }, u.portable
           ? "La version portable ne peut pas s'installer toute seule : télécharge FIRE-LoL-Setup.exe, qui se mettra ensuite à jour automatiquement."
           : "L'application cherche aussi les nouvelles versions toute seule, à chaque ouverture et toutes les 30 minutes.")),
+      h('div', { class: 'card settings-card' },
+        h('h2', null, '🎨 Thème de l’application'),
+        h('p', { class: 'muted small' }, 'Change la couleur du fond de FIRE. Le choix est gardé sur cet ordinateur.'),
+        h('div', { class: 'themes' }, THEMES.map(([id, label, bg, glow]) => h('button', { class: 'theme-sw', 'aria-pressed': String(load('fire.theme', 'fire') === id), onclick: () => { save('fire.theme', id); applyTheme(id); renderSettings(); } },
+          h('span', { class: 'theme-dot', style: `background: radial-gradient(60px 30px at 50% 0%, ${glow}66, transparent 80%), ${bg}` }), label)))),
       notifCard(),
       h('div', { class: 'card settings-card' },
         h('h2', null, '📊 Stats et contenu'),
