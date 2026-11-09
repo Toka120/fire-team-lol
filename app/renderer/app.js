@@ -1290,7 +1290,7 @@
     const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = (u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version)) ? '1' : null;
-    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('worlds', '🏆 Worlds'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('worlds', '🏆 E-sport'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
   }
 
   function newsBanner() {
@@ -2116,7 +2116,7 @@
     const years = [];
     for (let k = new Date().getFullYear(); k >= 2020; k--) years.push(k);
     const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🏆'),
-      h('div', null, h('h1', { class: 'title' }, `Worlds ${y}`), h('p', { class: 'muted' }, 'Les résultats, les compos et la lecture de chaque game : regarde ce que font les pros.'))),
+      h('div', null, h('h1', { class: 'title' }, `E-sport · Worlds ${y}`), h('p', { class: 'muted' }, 'Les résultats, les compos et la lecture de chaque game : regarde ce que font les pros.'))),
       h('div', { class: 'row' }, h('div', { class: 'chips' }, years.map((k) => h('button', { class: 'chip', 'aria-pressed': String(k === y), onclick: () => { W.year = k; W.open = null; loadWorlds(k); render(); } }, String(k)))),
         h('button', { class: 'btn-ghost', disabled: W.loading[y] ? true : null, onclick: () => { loadWorlds(y, true); render(); } }, W.loading[y] ? 'Chargement…' : '🔄 Actualiser'))];
     if (!J.data) loadJeux();
