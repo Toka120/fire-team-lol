@@ -155,6 +155,8 @@
       window.fire.update.on((m) => { S.upd = { ...S.upd, ...m }; renderUpdate(); });
       window.fire.update.state().then((m) => { S.upd = { ...m, ...S.upd, auto: m.auto, portable: m.portable }; renderUpdate(); }).catch(() => {});
     }
+    if (window.fire.onNotifyGo) window.fire.onNotifyGo((sec) => { if (sec) go(sec); });
+    if (window.fire.background) window.fire.background.get().then((b) => { S.bg = b; if (S.section === 'settings' && !typing()) renderSettings(); }).catch(() => {});
     renderUpdate();
     render();
     loadGuides();
@@ -250,7 +252,63 @@
       if (S.updLeft <= 0) installNow(); else renderUpdate();
     }, 1000);
   }
+  // ----- Notifications de bureau -----
+  // Réglages enregistrés sur cet ordinateur. Chaque alerte n'est envoyée qu'une fois.
+  const NOTIF_DEF = { on: true, upd: true, plan: true, coach: true };
+  const notifPrefs = () => ({ ...NOTIF_DEF, ...load('fire.notif', {}) });
+  function notifyDesk(kind, title, body, section) {
+    const p = notifPrefs();
+    if (!p.on || !p[kind] || !window.fire.notify) return;
+    window.fire.notify({ title, body, section }).catch(() => {});
+  }
+  function notifUpdate() {
+    const u = S.upd || {};
+    let v = null, body = '';
+    if (u.auto && u.state === 'ready' && u.version) { v = u.version; body = `La version ${v} est téléchargée. Ouvre FIRE et clique sur « Redémarrer et installer » dans Paramètres.`; }
+    else if (!u.auto) {
+      let l = S.cfg && S.cfg.derniere_version;
+      if (u.latest && (!l || newer(u.latest, l))) l = u.latest;
+      if (l && newer(l, S.version)) { v = l; body = `La version ${v} est disponible (tu as la ${S.version}). Ouvre Paramètres pour l'installer.`; }
+    }
+    if (!v || load('fire.notif.v', '') === v) return;
+    save('fire.notif.v', v);
+    notifyDesk('upd', '🔥 Mise à jour disponible', body, 'settings');
+  }
+  // Empreinte des jours de jeu à venir, pour voir si le coach a changé le planning.
+  function planSig() {
+    const t = todayYmd(), j = (S.plan && S.plan.jours) || {};
+    return JSON.stringify(Object.keys(j).filter((d) => d >= t).sort().map((d) => [d, (j[d].heures || []).slice().sort((a, b) => a - b), j[d].type || '', j[d].note || '']));
+  }
+  function notifPlanning(mine) {
+    const sig = planSig();
+    const prev = load('fire.notif.plan', null);
+    save('fire.notif.plan', sig);
+    if (mine || prev === null || prev === sig) return;
+    const was = new Map(JSON.parse(prev).map((x) => [x[0], JSON.stringify(x)]));
+    const now = JSON.parse(sig);
+    const added = now.filter((x) => !was.has(x[0])).map((x) => x[0]);
+    const changed = now.filter((x) => was.has(x[0]) && was.get(x[0]) !== JSON.stringify(x)).map((x) => x[0]);
+    const removed = [...was.keys()].filter((d) => d >= todayYmd() && !now.some((x) => x[0] === d));
+    const parts = [];
+    if (added.length) parts.push(`${added.length > 1 ? 'nouveaux jours' : 'nouveau jour'} : ${added.slice(0, 3).map(dateFr).join(', ')}`);
+    if (changed.length) parts.push(`horaires changés : ${changed.slice(0, 3).map(dateFr).join(', ')}`);
+    if (removed.length) parts.push(`${removed.length > 1 ? 'jours retirés' : 'jour retiré'} : ${removed.slice(0, 3).map(dateFr).join(', ')}`);
+    if (!parts.length) return;
+    notifyDesk('plan', '📅 Le planning a changé', cap(parts.join(' · ')) + '. Vérifie tes disponibilités.', 'planning');
+  }
+  function notifFiches() {
+    const ids = (S.fiches || []).map((f) => f.id);
+    const known = load('fire.notif.fiches', null);
+    save('fire.notif.fiches', ids.slice(-300));
+    if (known === null) return;
+    const fresh = (S.fiches || []).filter((f) => !known.includes(f.id) && !S.seen.has(f.id));
+    if (!fresh.length) return;
+    const body = fresh.length === 1 ? `« ${fresh[0].titre} »` : `${fresh.length} nouveaux messages, dont « ${fresh[0].titre} »`;
+    notifyDesk('coach', '📣 Nouveau message du coach', body, 'coach');
+  }
+
   function renderUpdate() {
+    notifUpdate();
     const box = $('update');
     const u = S.upd || {};
     let node = null;
@@ -292,6 +350,32 @@
     renderSettings();
   }
 
+  // Carte « Notifications sur le bureau » des Paramètres.
+  function notifCard() {
+    const p = notifPrefs();
+    const b = S.bg || {};
+    const set = (k, v) => { save('fire.notif', { ...notifPrefs(), [k]: v }); renderSettings(); };
+    const box = (checked, label, onchange, disabled) => h('label', { class: 'nrow' + (disabled ? ' off' : '') },
+      h('input', { type: 'checkbox', checked: checked ? true : null, disabled: disabled ? true : null, onchange: (e) => onchange(e.target.checked) }), h('span', null, label));
+    const setBg = async (m) => { try { S.bg = await window.fire.background.set(m); } catch (e) { /* ignore */ } renderSettings(); };
+    return h('div', { class: 'card settings-card' },
+      h('h2', null, '🔔 Notifications sur le bureau'),
+      h('p', { class: 'muted small' }, 'Une petite fenêtre Windows apparaît en bas de l’écran, même si tu es dans une autre application. Clique dessus pour ouvrir la bonne page de FIRE.'),
+      box(p.on, 'Activer les notifications', (v) => set('on', v)),
+      h('div', { class: 'nsub' },
+        box(p.upd, '🔥 Une mise à jour de FIRE est disponible', (v) => set('upd', v), !p.on),
+        box(p.plan, '📅 Le coach a changé le planning (jour ajouté, retiré ou horaires modifiés)', (v) => set('plan', v), !p.on),
+        box(p.coach, '📣 Nouveau message dans « Parole du coach »', (v) => set('coach', v), !p.on)),
+      h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: p.on ? null : true, onclick: () => window.fire.notify({ title: '🔥 FIRE LoL', body: 'Les notifications fonctionnent ✓', section: 'settings' }) }, '🔔 Envoyer une notification de test')),
+      b.notif === false ? h('p', { class: 'bad small' }, '⚠ Ton ordinateur bloque les notifications. Active-les dans Windows : Paramètres › Système › Notifications.') : null,
+      h('h3', { class: 'nh' }, 'Recevoir les notifications même fenêtre fermée'),
+      h('p', { class: 'muted small' }, 'FIRE vérifie le planning, les messages et les mises à jour toutes les 10 minutes, mais seulement quand il est ouvert.'),
+      window.fire.background ? [
+        box(b.bg, 'Quand je ferme la fenêtre, garder FIRE ouvert en arrière-plan (icône 🔥 près de l’horloge, clic droit › Quitter pour le fermer vraiment)', (v) => setBg({ bg: v })),
+        box(b.startup, 'Lancer FIRE en arrière-plan au démarrage de Windows', (v) => setBg({ startup: v, bg: v ? true : undefined }), !b.canStartup)
+      ] : null);
+  }
+
   function renderSettings() {
     if (S.section !== 'settings') return;
     const u = S.upd || {};
@@ -329,6 +413,7 @@
         h('p', { class: 'muted small' }, u.portable
           ? "La version portable ne peut pas s'installer toute seule : télécharge FIRE-LoL-Setup.exe, qui se mettra ensuite à jour automatiquement."
           : "L'application cherche aussi les nouvelles versions toute seule, à chaque ouverture et toutes les 30 minutes.")),
+      notifCard(),
       h('div', { class: 'card settings-card' },
         h('h2', null, '📊 Stats et contenu'),
         row('Stats dpm.lol', S.refreshing ? 'mise à jour en cours…' : (S.lastRefresh ? 'à jour à ' + hm(S.lastRefresh) : '—')),
@@ -1085,7 +1170,7 @@
     let r;
     try { r = await window.fire.fiches(); } catch (e) { r = { ok: false, error: String(e) }; }
     S.fichesLoading = false;
-    if (r && r.ok) { S.fiches = r.fiches; S.fichesErr = r.offline ? 'Hors ligne : seules les fiches déjà téléchargées sont affichées.' : ''; }
+    if (r && r.ok) { S.fiches = r.fiches; S.fichesErr = r.offline ? 'Hors ligne : seules les fiches déjà téléchargées sont affichées.' : ''; if (!r.offline) notifFiches(); }
     else { S.fiches = S.fiches || []; S.fichesErr = (r && r.error) || 'fiches indisponibles'; }
     renderNav();
     if (typing()) return;
@@ -2207,7 +2292,7 @@
   async function loadPlanning() {
     let r;
     try { r = await window.fire.planning(); } catch (e) { r = { ok: false, error: String(e) }; }
-    if (r && r.ok) { S.plan = { jours: r.jours || {}, reponses: r.reponses || {} }; S.planErr = r.offline ? 'Hors ligne : dernier planning enregistré.' : ''; }
+    if (r && r.ok) { S.plan = { jours: r.jours || {}, reponses: r.reponses || {} }; S.planErr = r.offline ? 'Hors ligne : dernier planning enregistré.' : ''; if (!r.offline) notifPlanning(false); }
     else { S.plan = S.plan || { jours: {}, reponses: {} }; S.planErr = (r && r.error) || 'planning indisponible'; }
     S.planWrite = !!(r && r.peutEcrire);
     renderNav();
@@ -2352,7 +2437,7 @@
       e.busy = true; e.err = ''; render();
       const r = await window.fire.savePlanning({ type: 'semaine', debut: e.mon, jours: e.jours });
       e.busy = false;
-      if (r && r.ok) { S.plan = { jours: r.jours, reponses: r.reponses }; S.planWeek = e.mon; S.planEdit = null; S.flash = 'Planning publié ✓ Les joueurs peuvent répondre.'; }
+      if (r && r.ok) { S.plan = { jours: r.jours, reponses: r.reponses }; notifPlanning(true); S.planWeek = e.mon; S.planEdit = null; S.flash = 'Planning publié ✓ Les joueurs peuvent répondre.'; }
       else e.err = (r && r.error) || 'erreur';
       render();
     } }, e.busy ? 'Publication…' : "📣 Publier le planning");

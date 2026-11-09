@@ -1,7 +1,7 @@
 // FIRE LoL - application de bureau (Electron).
 // Lit les stats des joueurs sur dpm.lol dans une fenêtre cachée, puis les affiche.
 
-const { app, BrowserWindow, ipcMain, session, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, session, shell, Notification, Tray, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -17,8 +17,56 @@ const GUIDES_URL = 'https://toka120.github.io/fire-team-lol/guides.json';
 const DPM = 'https://dpm.lol/';
 let mainWin = null;
 
-function createMainWindow() {
+// ---------- Arrière-plan et notifications de bureau ----------
+// Réglages de l'ordinateur (pas de l'équipe) : garder FIRE ouvert près de l'horloge quand on ferme la fenêtre,
+// et le lancer au démarrage de Windows, pour recevoir les notifications même fenêtre fermée.
+let tray = null;
+let quitting = false;
+let trayHintShown = false;
+const startHidden = process.argv.includes('--hidden');
+const bgPath = () => path.join(app.getPath('userData'), 'arriere-plan.json');
+function bgPrefs() {
+  try { return { bg: false, ...JSON.parse(fs.readFileSync(bgPath(), 'utf8')) }; } catch (e) { return { bg: false }; }
+}
+const exePath = () => process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+function startupOn() {
+  try { return !!app.getLoginItemSettings({ path: exePath(), args: ['--hidden'] }).openAtLogin; } catch (e) { return false; }
+}
+function showMain() {
+  if (!mainWin || mainWin.isDestroyed()) { createMainWindow(true); return; }
+  if (mainWin.isMinimized()) mainWin.restore();
+  mainWin.show();
+  mainWin.focus();
+}
+function ensureTray() {
+  if (tray) return;
+  try {
+    tray = new Tray(path.join(__dirname, 'assets', process.platform === 'win32' ? 'fire.ico' : 'fire.png'));
+    tray.setToolTip('FIRE LoL');
+    tray.setContextMenu(Menu.buildFromTemplate([
+      { label: 'Ouvrir FIRE LoL', click: showMain },
+      { type: 'separator' },
+      { label: 'Quitter FIRE LoL', click: () => { quitting = true; app.quit(); } }
+    ]));
+    tray.on('click', showMain);
+  } catch (e) { tray = null; }
+}
+function dropTray() { if (tray) { tray.destroy(); tray = null; } }
+function notify(title, body, section) {
+  if (!Notification.isSupported()) return false;
+  const n = new Notification({ title, body, icon: path.join(__dirname, 'assets', 'fire.png'), silent: false });
+  n.on('click', () => {
+    showMain();
+    if (section && mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('notify:go', section);
+  });
+  n.show();
+  return true;
+}
+
+function createMainWindow(forceShow) {
+  const hidden = !forceShow && startHidden && bgPrefs().bg;
   mainWin = new BrowserWindow({
+    show: !hidden,
     width: 1320,
     height: 880,
     minWidth: 900,
@@ -31,8 +79,19 @@ function createMainWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      // Les vérifications (planning, messages, mises à jour) continuent quand la fenêtre est cachée.
+      backgroundThrottling: false
     }
+  });
+  if (hidden) ensureTray();
+  // Avec l'arrière-plan activé, fermer la fenêtre la cache seulement : FIRE reste près de l'horloge.
+  mainWin.on('close', (e) => {
+    if (quitting || !bgPrefs().bg) return;
+    e.preventDefault();
+    mainWin.hide();
+    ensureTray();
+    if (!trayHintShown) { trayHintShown = true; notify('FIRE LoL reste ouvert', "Tu recevras les notifications ici. Clic droit sur l'icône FIRE près de l'horloge pour quitter."); }
   });
   mainWin.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   // Les liens externes (dpm.lol, GitHub) s'ouvrent dans le navigateur par défaut.
@@ -274,8 +333,24 @@ async function latestTag() {
   } catch (e) { return null; }
 }
 ipcMain.handle('update:state', async () => ({ ...updateState, auto: canAutoUpdate(), portable, latest: await latestTag() }));
+ipcMain.handle('notify', (e, m) => notify(String((m && m.title) || 'FIRE LoL').slice(0, 120), String((m && m.body) || '').slice(0, 300), m && m.section));
+ipcMain.handle('bg:get', () => ({ ...bgPrefs(), startup: startupOn(), canStartup: app.isPackaged && process.platform !== 'linux', notif: Notification.isSupported() }));
+ipcMain.handle('bg:set', (e, m) => {
+  const cur = bgPrefs();
+  if (m && typeof m.bg === 'boolean') {
+    cur.bg = m.bg;
+    try { fs.writeFileSync(bgPath(), JSON.stringify(cur)); } catch (err) { /* ignore */ }
+    if (!cur.bg) dropTray();
+  }
+  if (m && typeof m.startup === 'boolean' && app.isPackaged) {
+    try { app.setLoginItemSettings({ openAtLogin: m.startup, path: exePath(), args: ['--hidden'] }); } catch (err) { /* ignore */ }
+  }
+  return { ...bgPrefs(), startup: startupOn(), canStartup: app.isPackaged && process.platform !== 'linux', notif: Notification.isSupported() };
+});
+app.on('before-quit', () => { quitting = true; });
+
 ipcMain.handle('update:install', () => {
-  if (canAutoUpdate() && updateState.state === 'ready') { setImmediate(() => autoUpdater.quitAndInstall(true, true)); return true; }
+  if (canAutoUpdate() && updateState.state === 'ready') { quitting = true; setImmediate(() => autoUpdater.quitAndInstall(true, true)); return true; }
   return false;
 });
 // Bouton « Installer la dernière version » de l'onglet Paramètres.
@@ -297,9 +372,9 @@ const single = app.requestSingleInstanceLock();
 if (!single) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
-    if (mainWin) { if (mainWin.isMinimized()) mainWin.restore(); mainWin.focus(); }
-  });
+  // Windows n'affiche les notifications que si l'application a un identifiant (le même que l'installeur).
+  if (process.platform === 'win32') app.setAppUserModelId('lol.fire.team');
+  app.on('second-instance', () => showMain());
   app.whenReady().then(() => { createMainWindow(); setupUpdater(); });
-  app.on('window-all-closed', () => app.quit());
+  app.on('window-all-closed', () => { if (!bgPrefs().bg || quitting) app.quit(); });
 }

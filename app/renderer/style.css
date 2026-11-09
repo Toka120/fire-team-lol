@@ -828,3 +828,9 @@ button.plan-p{cursor:pointer}
 .navbtn { background: var(--panel2); border-color: var(--line); color: var(--fg); }
 .navbtn:hover { border-color: var(--fire2); background: var(--panel); }
 .navbtn[aria-current=page] { background: linear-gradient(135deg, var(--fire1), var(--fire2)); border-color: var(--fire2); color: #fff; box-shadow: 0 2px 10px rgba(255, 90, 40, .35); }
+/* Notifications (Paramètres) */
+.nrow{display:flex;gap:10px;align-items:flex-start;padding:7px 0;cursor:pointer;line-height:1.35}
+.nrow input{width:18px;height:18px;margin-top:1px;accent-color:var(--fire2);flex:none;cursor:pointer}
+.nrow.off{opacity:.45;cursor:default}
+.nsub{margin-left:28px;border-left:2px solid var(--line);padding-left:12px;margin-bottom:6px}
+.nh{font-size:15px;margin:16px 0 4px}

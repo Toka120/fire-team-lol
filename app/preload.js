@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('fire', {
   champions: call('champions'),
   jeux: { data: call('jeux:data'), lore: call('jeux:lore') },
   worlds: call('worlds:season'),
+  notify: call('notify'),
+  onNotifyGo: (cb) => ipcRenderer.on('notify:go', (e, sec) => cb(sec)),
+  background: { get: call('bg:get'), set: call('bg:set') },
   update: {
     state: call('update:state'),
     install: call('update:install'),
