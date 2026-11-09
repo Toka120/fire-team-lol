@@ -15,3 +15,31 @@
 !macro customUnInit
   !insertmacro fireCloseApp
 !macroend
+
+; Si l'ancienne version refuse de se désinstaller (fichier encore bloqué par Windows, antivirus, dossier
+; temporaire sur un autre disque…), on ne montre plus d'erreur : on referme FIRE, on supprime nous-mêmes
+; les anciens fichiers du programme et l'installation continue. Les données des joueurs (AppData\Roaming)
+; ne sont pas touchées.
+!macro fireCleanOld
+  ${if} $R0 != 0
+    DetailPrint "Ancienne version de FIRE : nettoyage direct (code $R0)."
+    !insertmacro fireCloseApp
+    RMDir /r "$INSTDIR"
+    ClearErrors
+    StrCpy $R0 0
+  ${endif}
+!macroend
+
+!macro customUnInstallCheck
+  !insertmacro fireCleanOld
+!macroend
+
+!macro customUnInstallCheckCurrentUser
+  !insertmacro fireCleanOld
+!macroend
+
+; Désinstalleur des prochaines versions : suppression directe, sans déplacer les fichiers dans le dossier
+; temporaire (c'est ce déplacement qui échouait).
+!macro customRemoveFiles
+  RMDir /r "$INSTDIR"
+!macroend
