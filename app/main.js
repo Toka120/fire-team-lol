@@ -323,10 +323,49 @@ function setupUpdater() {
   autoUpdater.on('update-available', (i) => sendUpdate({ state: 'available', version: i.version, percent: 0 }));
   autoUpdater.on('download-progress', (p) => sendUpdate({ state: 'progress', percent: Math.round(p.percent || 0) }));
   autoUpdater.on('update-downloaded', (i) => sendUpdate({ state: 'ready', version: i.version }));
-  autoUpdater.on('error', (e) => sendUpdate({ state: 'error', error: String((e && e.message) || e).slice(0, 200) }));
-  const check = () => { if (updateState.state !== 'ready') autoUpdater.checkForUpdates().catch(() => { /* hors ligne */ }); };
-  setTimeout(check, 1500);
-  setInterval(check, 30 * 60 * 1000);
+  autoUpdater.on('error', (e) => onUpdateError(e));
+  setTimeout(safeCheck, 1500);
+  setInterval(safeCheck, 30 * 60 * 1000);
+}
+
+// Une seule recherche de mise à jour à la fois : deux téléchargements en parallèle se disputent le même fichier
+// (« EPERM: operation not permitted, rename … FIRE-LoL-Setup.exe »).
+let checking = false;
+let fileRetries = 0;
+async function safeCheck() {
+  if (!canAutoUpdate() || checking) return null;
+  if (['checking', 'available', 'progress', 'ready'].includes(updateState.state)) return null;
+  checking = true;
+  try { return await autoUpdater.checkForUpdates(); } catch (e) { return null; /* l'erreur passe par onUpdateError */ } finally { checking = false; }
+}
+// Dossier où electron-updater prépare l'installeur : %LOCALAPPDATA%\fire-lol-updater\pending
+function pendingDir() {
+  const local = process.env.LOCALAPPDATA || path.join(require('os').homedir(), 'AppData', 'Local');
+  return path.join(local, 'fire-lol-updater', 'pending');
+}
+function onUpdateError(e) {
+  const raw = String((e && e.message) || e);
+  // Fichier bloqué (antivirus qui analyse l'installeur, ancien téléchargement encore ouvert) : on vide le dossier
+  // de préparation et on recommence tout seul, jusqu'à 3 fois.
+  if (/EPERM|EBUSY|EACCES|operation not permitted|resource busy/i.test(raw) && fileRetries < 3) {
+    fileRetries++;
+    sendUpdate({ state: 'retry', error: `Windows ou l'antivirus bloque le fichier de mise à jour : nouvel essai automatique (${fileRetries}/3)…`, raw: raw.slice(0, 200) });
+    setTimeout(() => {
+      try { fs.rmSync(pendingDir(), { recursive: true, force: true }); } catch (err) { /* encore bloqué : on réessaiera */ }
+      updateState.state = 'idle';
+      safeCheck();
+    }, 8000 * fileRetries);
+    return;
+  }
+  const blocked = /EPERM|EBUSY|EACCES|operation not permitted/i.test(raw);
+  const offline = /ENOTFOUND|ETIMEDOUT|ECONNRESET|ECONNREFUSED|net::ERR/i.test(raw);
+  sendUpdate({
+    state: 'error',
+    error: blocked ? "La mise à jour automatique n'a pas pu se préparer (fichier bloqué par Windows ou l'antivirus). Télécharge l'installeur avec le bouton ci-dessous, ou redémarre l'ordinateur puis réessaie."
+      : offline ? 'Pas de connexion à GitHub pour le moment : nouvel essai automatique plus tard.'
+        : 'La vérification a échoué : nouvel essai automatique plus tard.',
+    raw: raw.slice(0, 200)
+  });
 }
 // Pour la version portable : on lit le numéro de la dernière version publiée, pour proposer le téléchargement.
 async function latestTag() {
@@ -362,13 +401,12 @@ ipcMain.handle('update:install', () => {
 ipcMain.handle('update:check', async () => {
   const latest = await latestTag();
   if (!canAutoUpdate()) return { ok: true, auto: false, latest };
-  if (updateState.state === 'ready' || updateState.state === 'progress' || updateState.state === 'available') return { ok: true, auto: true, latest, state: updateState.state };
-  try {
-    const r = await autoUpdater.checkForUpdates();
-    return { ok: true, auto: true, latest, found: r && r.updateInfo ? r.updateInfo.version : null };
-  } catch (e) {
-    return { ok: false, auto: true, latest, error: String((e && e.message) || e).slice(0, 200) };
-  }
+  if (['ready', 'progress', 'available', 'checking', 'retry'].includes(updateState.state) || checking) return { ok: true, auto: true, latest, state: updateState.state };
+  // Le bouton relance aussi après une erreur de fichier bloqué : on repart d'un dossier de préparation vide.
+  if (updateState.state === 'error') { fileRetries = 0; try { fs.rmSync(pendingDir(), { recursive: true, force: true }); } catch (e) { /* ignore */ } updateState.state = 'idle'; }
+  const r = await safeCheck();
+  if (updateState.state === 'error') return { ok: false, auto: true, latest, error: updateState.error };
+  return { ok: true, auto: true, latest, found: r && r.updateInfo ? r.updateInfo.version : null };
 });
 
 // ---------- Démarrage ----------

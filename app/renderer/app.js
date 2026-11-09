@@ -413,13 +413,17 @@
     if (u.auto && (u.state === 'available' || u.state === 'progress')) state = `Téléchargement de la version ${u.version || ''} : ${u.percent || 0} %`;
     else if (u.auto && u.state === 'ready') state = `Version ${u.version} téléchargée, prête à installer`;
     else if (u.auto && u.state === 'checking') state = 'Vérification en cours…';
-    else if (u.auto && u.state === 'error') state = 'Dernière vérification en erreur : ' + (u.error || '');
+    else if (u.auto && u.state === 'retry') state = u.error || 'Nouvel essai en cours…';
+    else if (u.auto && u.state === 'error') state = u.error || 'La dernière vérification a échoué.';
     else if (u.auto) state = behind ? 'Nouvelle version disponible' : 'À jour ✓';
     else state = u.portable ? 'Version portable : mise à jour manuelle' : (behind ? 'Nouvelle version disponible' : 'À jour ✓');
 
     const buttons = [];
     if (u.auto && u.state === 'ready') buttons.push(h('button', { class: 'btn-fire small-btn', onclick: installNow }, '🔄 Redémarrer et installer maintenant'));
-    else if (u.auto) buttons.push(h('button', { class: 'btn-fire small-btn', disabled: (S.updChecking || u.state === 'progress' || u.state === 'available') ? true : null, onclick: checkUpdate }, '⬇ Installer la dernière version'));
+    else if (u.auto) {
+      buttons.push(h('button', { class: 'btn-fire small-btn', disabled: (S.updChecking || u.state === 'progress' || u.state === 'available' || u.state === 'retry') ? true : null, onclick: checkUpdate }, u.state === 'error' ? '🔄 Réessayer la mise à jour' : '⬇ Installer la dernière version'));
+      if (u.state === 'error') buttons.push(h('a', { class: 'btn-ghost linklike', href: SETUP_URL, target: '_blank' }, '⬇ Télécharger l’installeur'));
+    }
     else {
       buttons.push(h('button', { class: 'btn-ghost', disabled: S.updChecking ? true : null, onclick: checkUpdate }, 'Vérifier'));
       buttons.push(h('a', { class: 'btn-fire small-btn linklike', href: SETUP_URL, target: '_blank' }, '⬇ Télécharger la dernière version'));
