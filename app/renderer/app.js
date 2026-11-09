@@ -799,7 +799,7 @@
       if (A.champs.length) page.append(h('div', { class: 'card' }, h('h2', null, '⭐ Champions joués en équipe (2 games ou plus)'),
         h('div', { class: 'twrs' }, A.champs.slice(0, 14).map((x) => teamBar(`${x.who} · ${FC.champName(x.c)}`, x)))));
     } else {
-      page.append(h('div', { class: 'team-games' }, A.games.map((g) => {
+      const tgCard = (g) => {
         const dt = new Date(g.t);
         const m = Math.round(g.dur / 60);
         return h('div', { class: 'card tgame ' + (g.win ? 'w' : 'l') },
@@ -810,6 +810,21 @@
             h('span', null, `⚔️ ${g.us.k}–${g.them.k}`), h('span', null, `🐉 ${g.us.drag}–${g.them.drag}`), h('span', null, `🪱 ${g.us.grubs}–${g.them.grubs}`),
             h('span', null, `👾 ${g.us.baron}–${g.them.baron}`), h('span', null, `🏰 ${g.us.towers}–${g.them.towers}`),
             h('span', { class: g.gd15 >= 0 ? 'ok-t' : 'bad-t' }, `⏱️ ${sg(g.gd15)} à 15 min`), g.us.fb ? h('span', null, '🩸 premier sang') : null));
+      };
+      // Semaines (lundi → dimanche), puis jours, puis games : tout est dépliable.
+      const ymdT = (g) => FC.ymd(new Date(g.t));
+      const weeks = weekGroups(A.games, ymdT);
+      const lastW = weeks[weeks.length - 1];
+      const vd = (gs) => { const w = gs.filter((g) => g.win).length; return vdChip({ wins: w, losses: gs.length - w, games: gs.length, wr: gs.length ? (w / gs.length) * 100 : 0 }); };
+      page.append(h('div', { class: 'folds' }, weeks.map((w) => {
+        const byD = new Map();
+        w.items.slice().sort((a, b) => a.t - b.t).forEach((g) => { const k = ymdT(g); if (!byD.has(k)) byD.set(k, []); byD.get(k).push(g); });
+        const dk = [...byD.keys()];
+        return fold('tw:' + S.teamQ + ':' + w.n, w === lastW,
+          [h('span', { class: 'fold-t' }, weekTitle(w)), h('span', { class: 'muted small' }, `${weekRangeFr(w)} · ${pl(w.items.length, 'game', 'games')}`), vd(w.items)],
+          h('div', { class: 'fold-body' }, dk.map((k) => fold('td:' + S.teamQ + ':' + k, w === lastW && k === dk[dk.length - 1],
+            [h('span', { class: 'fold-t' }, cap(dayFr(k).replace(/^(\S+) 1 /, '$1 1er '))), h('span', { class: 'muted small' }, pl(byD.get(k).length, 'game', 'games')), vd(byD.get(k))],
+            h('div', { class: 'team-games' }, byD.get(k).map(tgCard)), 'fold-day'))), 'fold-week');
       })));
     }
   }
@@ -910,36 +925,77 @@
     }
   }
 
+  // Semaines du lundi au dimanche. La semaine 1 commence au début de l'équipe (même un mardi) et finit le dimanche suivant.
+  function weekGroups(items, ymdOf) {
+    const firstDay = items.reduce((m, x) => (!m || ymdOf(x) < m ? ymdOf(x) : m), null);
+    const anchor = S.debut || firstDay;
+    if (!anchor) return [];
+    const mon0 = mondayOf(anchor);
+    const map = new Map();
+    items.forEach((x) => {
+      const d = ymdOf(x);
+      // Les games jouées avant le début de l'équipe sont regroupées à part (« Avant la semaine 1 »).
+      if (d < anchor) {
+        if (!map.has(0)) map.set(0, { n: 0, start: d, end: addDays(anchor, -1), items: [] });
+        const z = map.get(0); if (d < z.start) z.start = d; z.items.push(x); return;
+      }
+      const n = Math.floor(Math.round((dOf(mondayOf(d)) - dOf(mon0)) / 86400000) / 7) + 1;
+      if (!map.has(n)) {
+        const mon = addDays(mon0, (n - 1) * 7);
+        map.set(n, { n, start: n === 1 && anchor > mon ? anchor : mon, end: addDays(mon, 6), items: [] });
+      }
+      map.get(n).items.push(x);
+    });
+    return [...map.values()].sort((a, b) => a.n - b.n);
+  }
+  const weekTitle = (w) => (w.n ? `Semaine ${w.n}` : 'Avant la semaine 1');
+  const weekRangeFr = (w) => `du ${dayFr(w.start, { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^(\S+) 1 /, '$1 1er ')} au ${dayFr(w.end, { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^(\S+) 1 /, '$1 1er ')}`;
+  // Garde ouverts les blocs dépliés (semaines, jours) quand la page se redessine.
+  S.openFold = S.openFold || {};
+  function fold(key, defOpen, summary, body, cls) {
+    const open = key in S.openFold ? S.openFold[key] : defOpen;
+    const el = h('details', { class: 'fold ' + (cls || ''), open: open ? true : null }, h('summary', null, summary), body);
+    el.addEventListener('toggle', () => { S.openFold[key] = el.open; });
+    return el;
+  }
+  const vdChip = (st) => h('span', { class: 'fold-vd' }, h('b', { class: 'good' }, `${st.wins} V`), ' – ', h('b', { class: 'bad' }, `${st.losses} D`), st.games ? h('span', { class: 'muted' }, ` · ${fr(st.wr, 0)} %`) : null);
+
   function pageJours(page, p, R, rows, s, days) {
     days = days.slice().sort((a, b) => (a.jour < b.jour ? -1 : a.jour > b.jour ? 1 : 0));
     if (!rows.length) { page.append(h('div', { class: 'empty-state' }, 'Aucune game classée Solo/Duo sur cette période.')); return; }
-    page.append(h('div', { class: 'chips' },
-      h('button', { class: 'chip', 'aria-pressed': String(S.jour === 'tous'), onclick: () => { S.jour = 'tous'; render(); } }, 'Tous les jours'),
-      days.map((d) => h('button', { class: 'chip', 'aria-pressed': String(S.jour === d.jour), onclick: () => { S.jour = d.jour; render(); } }, d.court))));
-    const cur = S.jour === 'tous' ? { label: 'Tous les jours', ...s } : days.find((d) => d.jour === S.jour);
     const item = (lab, v) => h('div', { class: 'it' }, h('span', { class: 'lab' }, lab), h('span', { class: 'v' }, v));
     page.append(h('div', { class: 'card' }, h('div', { class: 'banner' },
-      h('div', { class: 'it' }, h('span', { class: 'lab' }, S.jour === 'tous' ? cap(periodLabel()) : 'Jour sélectionné'), h('span', { class: 'big' }, cur.label)),
-      item('Victoires', fr(cur.wins)), item('Défaites', fr(cur.losses)), item('Win rate', fr(cur.wr, 1) + ' %'),
-      item('KDA', fr(cur.kda, 2)), item('Morts / game', fr(cur.morts_moy, 1)), item('Golds @15', sg(cur.gold15)))));
-    page.append(h('p', { class: 'muted small' }, 'Bordure verte : victoire, rouge : défaite. Les flèches comparent chaque game à sa moyenne sur la période. Ouvre « Toutes les stats » pour le détail complet.'));
+      h('div', { class: 'it' }, h('span', { class: 'lab' }, 'Période'), h('span', { class: 'big' }, cap(periodLabel()))),
+      item('Victoires', fr(s.wins)), item('Défaites', fr(s.losses)), item('Win rate', fr(s.wr, 1) + ' %'),
+      item('KDA', fr(s.kda, 2)), item('Morts / game', fr(s.morts_moy, 1)), item('Golds @15', sg(s.gold15)))));
+    page.append(h('p', { class: 'muted small' }, 'Clique sur une semaine pour voir ses jours, puis sur un jour pour voir ses games. Bordure verte : victoire, rouge : défaite. Les flèches comparent chaque game à sa moyenne sur la période.'));
 
-    const grid = h('div', { class: 'matches' });
-    const list = S.jour === 'tous' ? days : days.filter((d) => d.jour === S.jour);
-    list.forEach((d) => {
-      if (S.jour === 'tous') grid.append(h('div', { class: 'dayhead' }, h('span', { class: 'd' }, d.label), h('span', { class: 'muted small' }, `${d.wins} V – ${d.losses} D`)));
-      d.rows.forEach((g) => grid.append(matchCard(p, R, g, s)));
+    const weeks = weekGroups(days, (d) => d.jour);
+    const lastW = weeks[weeks.length - 1];
+    const list = h('div', { class: 'folds' });
+    weeks.forEach((w) => {
+      const wst = FC.stats(w.items.flatMap((d) => d.rows));
+      const lastD = w.items[w.items.length - 1];
+      const body = h('div', { class: 'fold-body' }, w.items.map((d) => fold('j:' + p.slug + ':' + d.jour, w === lastW && d === lastD,
+        [h('span', { class: 'fold-t' }, d.label), h('span', { class: 'muted small' }, pl(d.games, 'game', 'games')), vdChip(d)],
+        h('div', { class: 'matches' }, d.rows.map((g) => matchCard(p, R, g, s))), 'fold-day')));
+      list.append(fold('w:' + p.slug + ':' + w.n, w === lastW,
+        [h('span', { class: 'fold-t' }, weekTitle(w)), h('span', { class: 'muted small' }, `${weekRangeFr(w)} · ${pl(wst.games, 'game', 'games')}`), vdChip(wst)],
+        body, 'fold-week'));
     });
-    page.append(grid);
+    page.append(list);
 
-    page.append(h('div', { class: 'card' }, h('h2', null, 'Tableau récapitulatif par jour'), h('p', { class: 'muted small' }, 'Clique sur une ligne pour afficher ce jour. Moyennes par game.'),
+    page.append(h('div', { class: 'card' }, h('h2', null, 'Tableau récapitulatif par semaine'), h('p', { class: 'muted small' }, 'Moyennes par game.'),
       h('div', { class: 'scroll' }, h('table', { class: 't' },
-        h('thead', null, h('tr', null, h('th', { class: 'l' }, 'Jour'), ['Games', 'V', 'D', 'Win rate %', 'KDA', 'Morts', p.role_id === 'support' ? 'Vision' : 'CS/min', 'Golds @15', 'Dégâts/min', 'Pinks'].map((x) => h('th', null, x)))),
-        h('tbody', null, days.map((d) => h('tr', { class: 'click', onclick: () => { S.jour = d.jour; render(); window.scrollTo(0, 0); } },
-          h('td', { class: 'l' }, d.label), h('td', null, d.games), h('td', null, d.wins), h('td', null, d.losses),
-          h('td', { class: d.wr >= 50 ? 'good' : 'bad' }, fr(d.wr, 1)), h('td', null, fr(d.kda, 2)), h('td', null, fr(d.morts_moy, 1)),
-          h('td', null, p.role_id === 'support' ? fr(d.vision, 1) : fr(d.cs_min, 1)),
-          h('td', { class: d.gold15 > 0 ? 'good' : d.gold15 < 0 ? 'bad' : '' }, sg(d.gold15)), h('td', null, fr(d.degats_min)), h('td', null, d.pinks))))))));
+        h('thead', null, h('tr', null, h('th', { class: 'l' }, 'Semaine'), ['Games', 'V', 'D', 'Win rate %', 'KDA', 'Morts', p.role_id === 'support' ? 'Vision' : 'CS/min', 'Golds @15', 'Dégâts/min', 'Pinks'].map((x) => h('th', null, x)))),
+        h('tbody', null, weeks.map((w) => {
+          const d = FC.stats(w.items.flatMap((x) => x.rows));
+          return h('tr', { class: 'click', onclick: () => { S.openFold['w:' + p.slug + ':' + w.n] = true; render(); } },
+            h('td', { class: 'l' }, h('b', null, weekTitle(w)), h('div', { class: 'muted small' }, weekRangeFr(w))), h('td', null, d.games), h('td', null, d.wins), h('td', null, d.losses),
+            h('td', { class: d.wr >= 50 ? 'good' : 'bad' }, fr(d.wr, 1)), h('td', null, fr(d.kda, 2)), h('td', null, fr(d.morts_moy, 1)),
+            h('td', null, p.role_id === 'support' ? fr(d.vision, 1) : fr(d.cs_min, 1)),
+            h('td', { class: d.gold15 > 0 ? 'good' : d.gold15 < 0 ? 'bad' : '' }, sg(d.gold15)), h('td', null, fr(d.degats_min)), h('td', null, d.pinks));
+        }))))));
   }
 
   function matchCard(p, R, g, s) {
@@ -970,6 +1026,13 @@
 
   function openGame(g) {
     S.tab = 'jours'; S.jour = g.jour;
+    const p = S.players.find((x) => x.slug === S.player);
+    if (p) {
+      const days = FC.byDay(FC.toRows(p, (S.data[p.slug] || {}).matches || [], periodStart()));
+      const w = weekGroups(days, (d) => d.jour).find((x) => x.items.some((d) => d.jour === g.jour));
+      if (w) S.openFold['w:' + p.slug + ':' + w.n] = true;
+      S.openFold['j:' + p.slug + ':' + g.jour] = true;
+    }
     render();
     setTimeout(() => {
       const card = document.getElementById('match-' + g.id);

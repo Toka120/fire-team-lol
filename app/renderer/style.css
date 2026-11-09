@@ -885,3 +885,19 @@ html[data-theme=gris]  { --bg:#1b1c1f; --panel:#25272b; --panel2:#2e3035; --line
 .tg-p{display:inline-flex;align-items:center;gap:6px}
 .tg-p .cico,.tg-p .cico-l{border-radius:6px}
 .mhead{align-items:center}
+/* Semaines et jours dépliables */
+.folds{display:grid;gap:10px;margin:8px 0 18px}
+.fold{border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary::before{content:'▶';font-size:11px;color:var(--fire2);transition:transform .15s}
+.fold[open]>summary::before{transform:rotate(90deg)}
+.fold>summary:hover{background:var(--panel2);border-radius:14px}
+.fold-t{font-weight:800;font-size:17px}
+.fold-vd{margin-left:auto;font-size:14px}
+.fold-body{display:grid;gap:8px;padding:0 12px 12px}
+.fold-day{background:var(--panel2)}
+.fold-day>summary{padding:10px 14px}
+.fold-day .fold-t{font-size:15px}
+.fold-day .matches,.fold-day .team-games{padding:4px 10px 12px}
+.fold>summary{color:var(--fg)}
