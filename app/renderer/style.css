@@ -902,3 +902,4 @@ html[data-theme=gris]  { --bg:#1b1c1f; --panel:#25272b; --panel2:#2e3035; --line
 .fold-day .matches,.fold-day .team-games{padding:4px 10px 12px}
 .fold>summary{color:var(--fg)}
 .jeu-flip{width:100%;height:100%;overflow:hidden;transition:transform .6s}
+.jeu-vo{display:flex;align-items:center;justify-content:center;gap:12px;margin:10px 0 4px;flex-wrap:wrap}
