@@ -637,8 +637,8 @@ async function champions() {
 
 function message(m) {
   const texte = str(m.texte, 6000);
-  if (!texte) return { ok: false, error: 'écris ton message' };
-  return { ok: true, fiche: { type: 'message', titre: str(m.titre, 140) || 'Message du coach', accroche: '', sections: [{ titre: '', texte, schema: null }], a_retenir: [], exercice: '', videos: [], sources: [], sujet: '', cible: str(m.cible, 40) || "Toute l'équipe" } };
+  if (!texte) return { ok: false, error: 'écris ta note' };
+  return { ok: true, fiche: { type: 'message', titre: str(m.titre, 140) || 'Note du coach', accroche: '', sections: [{ titre: '', texte, schema: null }], a_retenir: [], exercice: '', videos: [], sources: [], sujet: '', cible: str(m.cible, 40) || "Toute l'équipe" } };
 }
 
 module.exports = { pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

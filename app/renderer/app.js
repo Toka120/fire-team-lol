@@ -323,8 +323,9 @@
     if (known === null) return;
     const fresh = (S.fiches || []).filter((f) => !known.includes(f.id) && !S.seen.has(f.id));
     if (!fresh.length) return;
-    const body = fresh.length === 1 ? `« ${fresh[0].titre} »` : `${fresh.length} nouveaux messages, dont « ${fresh[0].titre} »`;
-    notifyDesk('coach', '📣 Nouveau message du coach', body, 'coach');
+    const body = fresh.length === 1 ? `« ${fresh[0].titre} »` : `${fresh.length} nouveautés, dont « ${fresh[0].titre} »`;
+    S.coachTab = fresh.every(isNote) ? 'notes' : 'fiches';
+    notifyDesk('coach', fresh.every(isNote) ? '📝 Nouvelle note du coach' : '📣 Nouveau du coach', body, 'coach');
   }
 
   function renderUpdate() {
@@ -387,7 +388,7 @@
       h('div', { class: 'nsub' },
         box(p.upd, '🔥 Une mise à jour de FIRE est disponible', (v) => set('upd', v), !p.on && !p.app),
         box(p.plan, '📅 Le coach a changé le planning (jour ajouté, retiré ou horaires modifiés)', (v) => set('plan', v), !p.on && !p.app),
-        box(p.coach, '📣 Nouveau message dans « Parole du coach »', (v) => set('coach', v), !p.on && !p.app)),
+        box(p.coach, '📣 Nouvelle fiche ou note dans « Parole du coach »', (v) => set('coach', v), !p.on && !p.app)),
       h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: (p.on || p.app) ? null : true, onclick: () => {
         if (p.app) popup('🔥 FIRE LoL', 'Les notifications fonctionnent ✓', null);
         if (p.on && window.fire.notify) window.fire.notify({ title: '🔥 FIRE LoL', body: 'Les notifications fonctionnent ✓', section: 'settings' });
@@ -576,6 +577,7 @@
         h('h1', { class: 'title' }, "L'équipe"),
         h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · clique sur un joueur pour voir tout le détail.`),
         S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif : ${S.obj.games} games sur les champions obligatoires depuis le ${dateFr(S.obj.debut)}, réparties comme chacun veut.`) : null)),
+      homeNotes(),
       teamCards(),
       h('div', { class: 'more-row hub-more' }, h('button', { class: 'btn-ghost more-btn', onclick: () => { S.hubMore = !S.hubMore; render(); } }, S.hubMore ? '➖ Moins de détails' : '➕ Plus de détails')),
       h('div', { class: 'hub-grid' + (S.hubMore ? '' : ' compact') }, S.players.map((p) => hubCard(p, start)))
@@ -1186,7 +1188,7 @@
   }
 
   function newsBanner() {
-    const u = unseen();
+    const u = unseen().filter((f) => !(isNote(f) && isCommon(f)));
     if (!u.length) return null;
     const f = u[0];
     return h('button', { class: 'news', onclick: () => openFiche(f.id) },
@@ -1459,11 +1461,36 @@
   }
 
   // ----- Parole du coach -----
+  const isNote = (f) => f.type === 'message';
+  const isCommon = (f) => !f.cible || f.cible === "Toute l'équipe" || f.cible === 'tous';
+  const byDate = (a, b) => String(b.at || '').localeCompare(String(a.at || ''));
+  const noteText = (f) => ((f.sections || [])[0] || {}).texte || '';
+  // Une note se lit directement, sans ouvrir de page.
+  function noteCard(f, compact) {
+    const fresh = !S.seen.has(f.id);
+    return h('article', { class: 'card note-card' + (fresh ? ' fresh' : '') },
+      h('div', { class: 'note-head' }, h('span', { class: 'note-t' }, '📝 ' + f.titre), fresh ? h('span', { class: 'pill-new' }, 'Nouveau') : null,
+        h('span', { class: 'muted small note-d' }, [f.at ? dateLong(f.at) : '', compact || isCommon(f) ? '' : ' · pour ' + f.cible].join(''))),
+      h('div', { class: 'md' }, md(noteText(f))),
+      S.coachState.coach && !compact ? h('button', { class: 'linkbtn small', onclick: () => openFiche(f.id) }, 'Gérer cette note') : null);
+  }
+  // Écran d'accueil : les notes pour toute l'équipe.
+  function homeNotes() {
+    const notes = (S.fiches || []).filter((f) => isNote(f) && isCommon(f)).sort(byDate).slice(0, 3);
+    if (!notes.length) return null;
+    later(() => notes.forEach((f) => markSeen(f.id)));
+    later(renderNav);
+    return h('section', { class: 'home-notes' },
+      h('div', { class: 'home-notes-h' }, h('h2', null, '📝 Notes du coach'),
+        h('button', { class: 'linkbtn', onclick: () => { S.section = 'coach'; S.ficheId = null; S.coachTab = 'notes'; render(); window.scrollTo(0, 0); } }, 'Toutes les notes →')),
+      notes.map((f) => noteCard(f, true)));
+  }
+
   function ficheCard(f) {
     const th = f.rubrique ? themeOf(f.rubrique) : null;
     return h('button', { class: 'fcard', onclick: () => openFiche(f.id) },
       h('div', { class: 'fmeta' }, h('span', { class: 'muted small' }, f.at ? dateLong(f.at) : ''), !S.seen.has(f.id) ? h('span', { class: 'pill-new' }, 'Nouveau') : null),
-      h('div', { class: 'fname' }, (f.type === 'message' ? '💬 ' : '📘 ') + f.titre),
+      h('div', { class: 'fname' }, (f.type === 'message' ? '📝 ' : '📘 ') + f.titre),
       f.accroche ? h('p', { class: 'muted small' }, f.accroche) : null,
       h('div', { class: 'tags' }, tag('Pour : ' + (f.cible || "Toute l'équipe")), th ? tag(`${th.ico} ${th.titre}`) : null));
   }
@@ -1474,7 +1501,7 @@
     if (!f) { S.ficheId = null; renderCoach(); return; }
     const th = f.rubrique ? themeOf(f.rubrique) : null;
     const nodes = [h('header', { class: 'doc-head' },
-      h('div', { class: 'tags' }, tag(f.type === 'message' ? '💬 Message du coach' : '📘 Fiche du coach'), tag('Pour : ' + (f.cible || "Toute l'équipe")), th ? tag(`${th.ico} ${th.titre}`) : null),
+      h('div', { class: 'tags' }, tag(f.type === 'message' ? '📝 Note du coach' : '📘 Fiche du coach'), tag('Pour : ' + (f.cible || "Toute l'équipe")), th ? tag(`${th.ico} ${th.titre}`) : null),
       h('h1', { class: 'title' }, f.titre),
       h('p', { class: 'muted small' }, f.at ? 'Publié le ' + dateLong(f.at) : ''))];
     nodes.push(...docNodes(f));
@@ -1501,13 +1528,28 @@
   function renderCoach() {
     const view = $('view');
     const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📣'), h('div', null, h('h1', { class: 'title' }, 'Parole du coach'),
-      h('p', { class: 'muted' }, "Les fiches et les messages du coach pour l'équipe. Les nouvelles arrivent toutes seules à l'ouverture de l'application."))) ];
+      h('p', { class: 'muted' }, "Les fiches et les notes du coach pour l'équipe. Les nouvelles arrivent toutes seules à l'ouverture de l'application."))) ];
     if (S.flash) nodes.push(h('div', { class: 'flash' }, S.flash, h('button', { class: 'flash-x', onclick: () => { S.flash = ''; render(); } }, '✕')));
     if (S.coachState.coach) nodes.push(composerCard(), settingsCard());
     if (S.fichesErr) nodes.push(h('p', { class: 'muted small' }, '⚠ ' + S.fichesErr));
     if (!S.fiches) nodes.push(h('div', { class: 'empty-state' }, 'Chargement des fiches du coach…'));
     else if (!S.fiches.length) nodes.push(h('div', { class: 'empty-state' }, "Le coach n'a encore rien publié."));
-    else nodes.push(h('div', { class: 'fgrid' }, S.fiches.map(ficheCard)));
+    else {
+      const notes = S.fiches.filter(isNote).sort(byDate), fiches = S.fiches.filter((f) => !isNote(f));
+      const newN = notes.filter((f) => !S.seen.has(f.id)).length, newF = fiches.filter((f) => !S.seen.has(f.id)).length;
+      if (!S.coachTab) S.coachTab = newN && !newF ? 'notes' : (fiches.length ? 'fiches' : 'notes');
+      const tb = (id, l, n, nw) => h('button', { class: 'tab', 'aria-selected': String(S.coachTab === id), onclick: () => { S.coachTab = id; render(); } }, `${l} (${n})`, nw ? h('span', { class: 'nbadge' }, nw) : null);
+      nodes.push(h('nav', { class: 'tabs coach-tabs' }, tb('fiches', '📘 Fiches', fiches.length, newF), tb('notes', '📝 Notes', notes.length, newN)));
+      if (S.coachTab === 'notes') {
+        if (!notes.length) nodes.push(h('div', { class: 'empty-state' }, "Le coach n'a pas encore écrit de note."));
+        else {
+          nodes.push(h('div', { class: 'notes-list' }, notes.map((f) => noteCard(f, false))));
+          later(() => notes.forEach((f) => markSeen(f.id)));
+          later(renderNav);
+        }
+      } else if (!fiches.length) nodes.push(h('div', { class: 'empty-state' }, "Le coach n'a pas encore publié de fiche."));
+      else nodes.push(h('div', { class: 'fgrid' }, fiches.map(ficheCard)));
+    }
     nodes.push(coachAccess());
     view.replaceChildren(...nodes);
   }
@@ -1564,7 +1606,7 @@
     const d = ensureDraft();
     const seg = (m, l) => h('button', { class: 'seg', 'aria-pressed': String(d.mode === m), disabled: d.busy ? true : null, onclick: () => { d.mode = m; d.fiche = null; d.err = ''; render(); } }, l);
     const sujet = h('textarea', { id: 'sujet', class: 'inp', rows: d.mode === 'message' ? 6 : 3, disabled: d.busy ? true : null,
-      placeholder: d.mode === 'message' ? 'Ton message pour l\'équipe (ex. : scrim demain à 20 h, soyez là 10 min avant).' : 'Ex. : comment gérer sa wave en top quand on est en retard ; ou : explique le tempo jungle avec Jarvan IV.' });
+      placeholder: d.mode === 'message' ? 'Ta note pour l\'équipe (ex. : scrim demain à 20 h, soyez là 10 min avant).' : 'Ex. : comment gérer sa wave en top quand on est en retard ; ou : explique le tempo jungle avec Jarvan IV.' });
     sujet.value = d.sujet;
     sujet.addEventListener('input', () => { d.sujet = sujet.value; });
     const titre = h('input', { class: 'inp', placeholder: 'Titre (facultatif)', disabled: d.busy ? true : null });
@@ -1576,8 +1618,8 @@
     const main = h('button', { class: 'btn-fire small-btn', disabled: d.busy ? true : null, onclick: () => generate(false) }, d.mode === 'fiche' ? (d.fiche ? '🔄 Refaire la fiche' : '🔎 Générer la fiche') : '👀 Voir l\'aperçu');
     const box = h('div', { class: 'card composer' },
       h('h2', null, '✍️ Écrire pour l\'équipe'),
-      h('div', { class: 'segs' }, seg('fiche', '🔎 Fiche avec recherche et schémas'), seg('message', '💬 Message simple')),
-      d.mode === 'fiche' ? h('p', { class: 'muted small' }, "Écris ton sujet : l'application cherche sur le web (guides, vidéos), rédige une fiche claire et dessine des schémas. Tu relis l'aperçu avant de publier.") : h('p', { class: 'muted small' }, 'Ton message est publié tel quel. Tu peux utiliser **gras** et des listes avec « - ».'),
+      h('div', { class: 'segs' }, seg('fiche', '🔎 Fiche avec recherche et schémas'), seg('message', '📝 Note')),
+      d.mode === 'fiche' ? h('p', { class: 'muted small' }, "Écris ton sujet : l'application cherche sur le web (guides, vidéos), rédige une fiche claire et dessine des schémas. Tu relis l'aperçu avant de publier.") : h('p', { class: 'muted small' }, 'Ta note est publiée telle quelle. Pour « Toute l’équipe », elle s’affiche aussi sur l’écran d’accueil de chaque joueur. Tu peux utiliser **gras** et des listes avec « - ».'),
       d.mode === 'message' ? titre : null,
       sujet,
       h('div', { class: 'row' }, h('label', { class: 'fld-inline' }, 'Pour ', cible), h('label', { class: 'fld-inline' }, 'Ranger dans ', rub)),
@@ -1591,7 +1633,7 @@
       const pub = h('button', { class: 'btn-fire small-btn', disabled: d.busy || !S.coachState.github ? true : null, onclick: publishDraft }, "📣 Publier pour l'équipe");
       box.append(h('div', { class: 'preview' },
         h('div', { class: 'preview-label' }, 'Aperçu : voilà ce que verront les joueurs' + (d.info ? ' · ' + d.info : '')),
-        h('h1', { class: 'title' }, (d.fiche.type === 'message' ? '💬 ' : '📘 ') + d.fiche.titre),
+        h('h1', { class: 'title' }, (d.fiche.type === 'message' ? '📝 ' : '📘 ') + d.fiche.titre),
         ...docNodes(d.fiche)),
         d.mode === 'fiche' ? h('div', { class: 'row' }, modif, h('button', { class: 'btn-ghost', disabled: d.busy ? true : null, onclick: () => { if (d.modif.trim()) generate(true); } }, '✏️ Modifier')) : null,
         h('div', { class: 'row' }, pub, h('button', { class: 'btn-ghost', disabled: d.busy ? true : null, onclick: () => { S.draft = newDraft(); render(); } }, 'Tout effacer'),
@@ -1615,7 +1657,7 @@
   async function generate(modif) {
     const d = ensureDraft();
     if (d.busy) return;
-    if (!d.sujet.trim()) { d.err = d.mode === 'message' ? 'Écris ton message.' : 'Écris un sujet.'; render(); return; }
+    if (!d.sujet.trim()) { d.err = d.mode === 'message' ? 'Écris ta note.' : 'Écris un sujet.'; render(); return; }
     d.err = ''; d.busy = true; d.t0 = Date.now();
     render(); startBusy();
     let r;

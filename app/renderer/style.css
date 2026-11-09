@@ -862,3 +862,16 @@ html[data-theme=gris]  { --bg:#1b1c1f; --panel:#25272b; --panel2:#2e3035; --line
 .theme-sw:hover{border-color:var(--fire2)}
 .theme-sw[aria-pressed=true]{border-color:var(--fire2);box-shadow:0 0 0 3px rgba(255,94,58,.25)}
 .theme-dot{width:54px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.18)}
+/* Notes du coach */
+.coach-tabs{margin:6px 0 14px}
+.coach-tabs .tab{font-size:16px;padding:10px 20px}
+.notes-list{display:grid;gap:12px}
+.note-card{border-left:4px solid var(--fire1)}
+.note-card.fresh{border-left-color:var(--fire2);box-shadow:0 0 0 1px rgba(255,94,58,.25)}
+.note-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.note-t{font-weight:800;font-size:16px}
+.note-d{margin-left:auto}
+.note-card .md p{margin:6px 0}
+.home-notes{display:grid;gap:10px;margin:0 0 18px}
+.home-notes-h{display:flex;align-items:center;justify-content:space-between}
+.home-notes-h h2{margin:0;font-size:18px}
