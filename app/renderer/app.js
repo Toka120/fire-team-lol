@@ -2276,8 +2276,8 @@
       const z0 = r.skin.c != null && r.skin.c < 0.6 ? 3.2 : 5;
       const sc = r.done ? 1 : Math.max(1.4, z0 - 0.6 * wrong);
       clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'À quel champion appartient ce skin ?'),
-        h('div', { class: 'jeu-splash' }, h('img', { src: jsplash(t, r.skin.num), alt: '', style: splashZoom(sc, r.ox, r.oy), onerror: () => { if (!r.done && !r.badImg) { r.badImg = true; jNew('splash'); } } })),
-        h('p', { class: 'muted small' }, r.done ? r.skin.name : 'Ça dézoome à chaque essai.'));
+        h('div', { class: 'jeu-splash' }, h('img', { src: jsplash(t, r.skin.num), alt: '', style: splashZoom(sc, r.ox, r.oy) + `;filter:blur(${r.done ? 0 : [6, 4.5, 3.2, 2.2, 1.4, 0.8, 0.4][wrong] || 0}px)`, onerror: () => { if (!r.done && !r.badImg) { r.badImg = true; jNew('splash'); } } })),
+        h('p', { class: 'muted small' }, r.done ? r.skin.name : 'Flou et zoomé au début : ça devient net et ça dézoome à chaque essai.'));
     }
     nodes.push(clue);
     // Saisie
