@@ -2285,7 +2285,8 @@
     }
     if (mode === 'phrase') clue = h('div', { class: 'card jeu-clue' }, h('h3', null, r.fromBio ? 'Qui est décrit ici ?' : 'Qui a dit ça ?'),
       r.wait ? h('p', { class: 'muted' }, 'Chargement…') : h('blockquote', { class: 'jeu-quote' }, '« ', r.quote, ' »'),
-      r.vo && !r.noVo ? h('div', { class: 'jeu-vo' },
+      r.vo && !r.noVo && !(wrong >= 3 || r.done) ? h('p', { class: 'muted small jeu-vo-lock' }, `🔒 La voix du champion se débloque après 3 essais ratés (encore ${3 - wrong}), ou quand tu as trouvé.`) : null,
+      r.vo && !r.noVo && (wrong >= 3 || r.done) ? h('div', { class: 'jeu-vo' },
         h('button', { class: 'btn-fire small-btn', onclick: (e) => {
           const b = e.currentTarget;
           if (!J.audio || J.audio.dataset.src !== r.vo) { J.audio = new Audio(r.vo); J.audio.dataset.src = r.vo; J.audio.volume = 0.8; J.audio.onerror = () => { r.noVo = true; render(); }; }
