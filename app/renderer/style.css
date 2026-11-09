@@ -817,3 +817,14 @@ button.plan-p{cursor:pointer}
 .more-btn{font-size:15px;padding:10px 22px}
 .hub-more{justify-content:flex-end;margin:4px 0 10px}
 .hub-grid.compact .pcard{gap:8px;min-height:0}
+/* Onglets bien visibles : chaque onglet est un vrai bouton, l'onglet actif est en couleur FIRE. */
+.tab, .chip { background: var(--panel2); border: 1px solid var(--line); color: var(--fg); padding: 8px 16px; font-weight: 600; }
+.tab:hover, .chip:hover { border-color: var(--fire2); background: var(--panel); }
+.tab[aria-selected=true], .chip[aria-pressed=true] { background: linear-gradient(135deg, var(--fire1), var(--fire2)); border-color: var(--fire2); color: #fff; box-shadow: 0 2px 10px rgba(255, 90, 40, .35); }
+.tabs { gap: 8px; }
+.jeu-tabs { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; gap: 8px; align-items: center; margin-bottom: 10px; }
+.jt-label { font-weight: 700; color: var(--fire2); margin-right: 6px; font-size: 14px; }
+/* Menu principal : chaque rubrique est un bouton visible, la rubrique ouverte en couleur FIRE. */
+.navbtn { background: var(--panel2); border-color: var(--line); color: var(--fg); }
+.navbtn:hover { border-color: var(--fire2); background: var(--panel); }
+.navbtn[aria-current=page] { background: linear-gradient(135deg, var(--fire1), var(--fire2)); border-color: var(--fire2); color: #fff; box-shadow: 0 2px 10px rgba(255, 90, 40, .35); }

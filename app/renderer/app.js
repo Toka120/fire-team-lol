@@ -2000,8 +2000,8 @@
     const view = $('view');
     const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎮'),
       h('div', null, h('h1', { class: 'title' }, 'Détente'), h('p', { class: 'muted' }, 'Devine le champion autant de fois que tu veux, ou plonge dans le lore de Runeterra.')))];
-    nodes.push(h('div', { class: 'chips jeu-tabs' }, JMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
-    nodes.push(h('div', { class: 'chips jeu-tabs learn' }, h('span', { class: 'muted small' }, '🎓 Apprendre en jouant :'), LMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
+    nodes.push(h('div', { class: 'chips jeu-tabs' }, h('span', { class: 'jt-label' }, '🎮 Deviner le champion'), JMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
+    nodes.push(h('div', { class: 'chips jeu-tabs learn' }, h('span', { class: 'jt-label' }, '🎓 Apprendre en jouant'), LMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
     if (LMODES.some(([k]) => k === J.tab)) { nodes.push(...renderLearn(J.tab)); view.replaceChildren(...nodes); return; }
     if (!J.data) {
       nodes.push(h('div', { class: 'card' }, J.loading || !J.err ? h('p', { class: 'muted' }, 'Chargement des champions…') : h('p', { class: 'bad' }, '⚠ ' + J.err, ' ', h('button', { class: 'btn-ghost', onclick: () => { J.err = ''; loadJeux(); render(); } }, 'Réessayer'))));
