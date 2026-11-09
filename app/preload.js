@@ -5,6 +5,7 @@ const call = (ch) => (...a) => ipcRenderer.invoke(ch, ...a);
 contextBridge.exposeInMainWorld('fire', {
   config: call('config'),
   guides: call('guides'),
+  patchnotes: call('patchnotes'),
   hash: call('hash'),
   version: call('version'),
   fetchPlayer: call('dpm:fetch'),

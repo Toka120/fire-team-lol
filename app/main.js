@@ -14,6 +14,7 @@ try { ({ autoUpdater } = require('electron-updater')); } catch (e) { /* module a
 
 const CONFIG_URL = 'https://toka120.github.io/fire-team-lol/joueurs.json';
 const GUIDES_URL = 'https://toka120.github.io/fire-team-lol/guides.json';
+const PATCH_URL = 'https://toka120.github.io/fire-team-lol/patchnotes.json';
 const DPM = 'https://dpm.lol/';
 let mainWin = null;
 
@@ -136,6 +137,12 @@ ipcMain.handle('config', async () => {
   return j;
 });
 ipcMain.handle('guides', async () => (await remoteJson(GUIDES_URL, 'guides.json')) || { themes: [] });
+// Patch notes : version en ligne (à jour même avant d'installer), sinon la copie livrée avec l'application.
+ipcMain.handle('patchnotes', async () => {
+  const r = await remoteJson(PATCH_URL, 'patchnotes.json');
+  if (r && Array.isArray(r.versions)) return r;
+  try { return require('./patchnotes.json'); } catch (e) { return { versions: [] }; }
+});
 
 coach.init(() => lastCfg || {});
 ipcMain.handle('unlock', (e, code) => coach.unlock(code));

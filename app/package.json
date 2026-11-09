@@ -1,7 +1,7 @@
 {
   "name": "fire-lol",
   "productName": "FIRE LoL",
-  "version": "1.10.14",
+  "version": "1.10.15",
   "description": "FIRE LoL - les stats de l'équipe, à jour depuis dpm.lol",
   "main": "main.js",
   "author": "Toka120",
@@ -34,6 +34,7 @@
       "lanes.json",
       "splash.json",
       "voicelines.json",
+      "patchnotes.json",
       "package.json",
       "renderer/**/*",
       "assets/**/*"

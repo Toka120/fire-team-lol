@@ -168,6 +168,7 @@
     loadFiches();
     loadPools();
     loadPlanning();
+    loadPatch();
     loadChampions();
     window.fire.team([]).then((r) => { if (r && r.games) { S.teamGames = r.games; if (S.section === 'stats' && !typing()) render(); } }).catch(() => {});
     refreshAll();
@@ -550,7 +551,7 @@
     renderNav();
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -558,6 +559,7 @@
     else if (S.section === 'planning') renderPlanning();
     else if (S.section === 'jeux') renderJeux();
     else if (S.section === 'worlds') renderWorlds();
+    else if (S.section === 'patch') renderPatch();
     else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
     else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
     else if (S.view === 'player') renderPlayer();
@@ -1242,10 +1244,45 @@
     if (sec === 'coach') S.ficheId = null;
     if (sec === 'stats') { S.view = 'hub'; S.player = null; }
     if (sec === 'planning') { S.planEdit = null; loadPlanning(); }
+    if (sec === 'patch') { loadPatch(); save('fire.patch.vu', S.version); }
     if (sec === 'jeux') loadJeux();
     if (sec === 'worlds') { loadJeux(); loadWorlds(W.year); }
     render();
     window.scrollTo(0, 0);
+  }
+
+  // ----- Patch notes -----
+  const patchUnseen = () => !!S.version && load('fire.patch.vu', '') !== S.version;
+  async function loadPatch() {
+    try { const r = await window.fire.patchnotes(); if (r && Array.isArray(r.versions)) S.patch = r.versions; } catch (e) { /* hors ligne */ }
+    if (!S.patch) S.patch = [];
+    if (S.section === 'patch' && !typing()) render();
+    patchPopup();
+  }
+  // Après une mise à jour : un pop-up propose de voir les nouveautés de la version installée.
+  function patchPopup() {
+    const last = load('fire.patch.version', null);
+    save('fire.patch.version', S.version);
+    if (!last || last === S.version || !S.patch) return;
+    const mine = S.patch.filter((x) => newer(x.v, last) && !newer(x.v, S.version));
+    if (!mine.length) return;
+    popup(`🆕 FIRE est passé en v${S.version}`, mine.slice(0, 3).map((x) => x.titre).join(' · ') + (mine.length > 3 ? '…' : ''), 'patch');
+  }
+  const PATCH_KIND = { new: ['🆕', 'Nouveau'], improve: ['✨', 'Amélioré'], fix: ['🛠️', 'Corrigé'] };
+  function renderPatch() {
+    const view = $('view');
+    const list = S.patch || [];
+    view.replaceChildren(...[
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🆕'), h('div', null, h('h1', { class: 'title' }, 'Patch notes'),
+        h('p', { class: 'muted' }, `Tout ce qui change dans FIRE, de la plus récente à la plus ancienne. Tu as la v${S.version}.`))),
+      !S.patch ? h('div', { class: 'empty-state' }, 'Chargement des patch notes…') : null,
+      h('div', { class: 'patch-list' }, list.map((x, i) => h('article', { class: 'card patch' + (x.v === S.version ? ' cur' : '') + (newer(x.v, S.version) ? ' soon' : '') },
+        h('div', { class: 'patch-h' },
+          h('span', { class: 'patch-v' }, 'v' + x.v),
+          h('span', { class: 'patch-t' }, x.titre),
+          x.v === S.version ? h('span', { class: 'pill-new' }, 'Ta version') : newer(x.v, S.version) ? h('span', { class: 'pill-new soon' }, 'À installer') : null,
+          h('span', { class: 'muted small patch-d' }, x.date ? dayFr(x.date, { day: 'numeric', month: 'long', year: 'numeric' }) : '')),
+        h('ul', { class: 'patch-items' }, (x.items || []).map(([k, t]) => h('li', { class: 'pk-' + k }, h('span', { class: 'pk-tag' }, (PATCH_KIND[k] || ['•', '']).join(' ')), h('span', null, t)))))))].filter(Boolean));
   }
 
   function renderNav() {
@@ -1253,7 +1290,7 @@
     const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = (u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version)) ? '1' : null;
-    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('worlds', '🏆 Worlds'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('settings', '⚙️ Paramètres', upd));
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('worlds', '🏆 Worlds'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
   }
 
   function newsBanner() {

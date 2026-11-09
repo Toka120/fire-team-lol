@@ -903,3 +903,22 @@ html[data-theme=gris]  { --bg:#1b1c1f; --panel:#25272b; --panel2:#2e3035; --line
 .fold>summary{color:var(--fg)}
 .jeu-flip{width:100%;height:100%;overflow:hidden;transition:transform .6s}
 .jeu-vo{display:flex;align-items:center;justify-content:center;gap:12px;margin:10px 0 4px;flex-wrap:wrap}
+/* Patch notes */
+.patch-list{display:grid;gap:12px}
+.patch{border-left:4px solid var(--line)}
+.patch.cur{border-left-color:var(--fire2);box-shadow:0 0 0 1px rgba(255,94,58,.25)}
+.patch.soon{border-left-color:var(--ok)}
+.patch-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.patch-v{font-weight:800;color:var(--fire1);font-size:15px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:2px 8px}
+.patch-t{font-weight:800;font-size:17px}
+.patch-d{margin-left:auto}
+.pill-new.soon{background:var(--ok);color:#06140c}
+.patch-items{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.patch-items li{display:flex;gap:10px;align-items:flex-start;line-height:1.45}
+.pk-tag{flex:none;font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px;background:var(--panel2);border:1px solid var(--line);white-space:nowrap}
+.pk-new .pk-tag{color:var(--fire1)}
+.pk-improve .pk-tag{color:#7cb4ff}
+.pk-fix .pk-tag{color:var(--ok)}
+/* 9 rubriques : menu un peu plus serré pour tenir sur une ligne */
+.navbtn { padding: 6px 11px; font-size: 14px; }
+#nav { gap: 6px; }
