@@ -805,7 +805,7 @@
         return h('div', { class: 'card tgame ' + (g.win ? 'w' : 'l') },
           h('div', { class: 'tg-head' }, h('span', { class: 'tg-q q' + g.q }, g.q === 710 ? '🏆 5c5' : '🔁 Flex'), h('span', { class: 'tg-res' }, g.win ? 'Victoire' : 'Défaite'),
             h('span', { class: 'muted small' }, `${dt.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} à ${hm(g.t)} · ${m} min · ${g.size} joueurs de FIRE`)),
-          h('div', { class: 'tg-mem' }, g.members.map((x) => h('span', { class: 'tg-p' }, `${shortName(x.pseudo)} · ${FC.champName(x.c)} `, h('b', null, `${x.k}/${x.d}/${x.a}`)))),
+          h('div', { class: 'tg-mem' }, g.members.map((x) => h('span', { class: 'tg-p' }, champIcon(champIdFromName(x.c), 26), `${shortName(x.pseudo)} · ${FC.champName(x.c)} `, h('b', null, `${x.k}/${x.d}/${x.a}`)))),
           h('div', { class: 'tg-obj' },
             h('span', null, `⚔️ ${g.us.k}–${g.them.k}`), h('span', null, `🐉 ${g.us.drag}–${g.them.drag}`), h('span', null, `🪱 ${g.us.grubs}–${g.them.grubs}`),
             h('span', null, `👾 ${g.us.baron}–${g.them.baron}`), h('span', null, `🏰 ${g.us.towers}–${g.them.towers}`),
@@ -957,9 +957,9 @@
       ['Drakes', fr(g.drakes)], ['Larves', fr(g.larves)], ['Score DPM', fr(g.score, 1)], ['Game', g.id]];
     const b = FC.badges(p, g);
     return h('article', { class: 'match ' + (g.win ? 'win' : 'loss'), id: 'match-' + g.id },
-      h('div', { class: 'mhead' }, h('span', { class: 'champ' }, g.champion), h('span', { class: 'pill ' + (g.win ? 'good' : 'bad') }, g.win ? 'Victoire' : 'Défaite')),
+      h('div', { class: 'mhead' }, h('span', { class: 'mchamp' }, champIcon(champIdFromName(g.champ_id), 44), h('span', { class: 'champ' }, g.champion)), h('span', { class: 'pill ' + (g.win ? 'good' : 'bad') }, g.win ? 'Victoire' : 'Défaite')),
       h('div', null, h('span', { class: 'catpill c-' + g.cat }, g.cat === 'oblig' ? (g.maitrise ? '🎯⭐ Obligatoire et maîtrisé' : '🎯 Obligatoire') : g.cat === 'maitrise' ? '⭐ Maîtrisé' : '❔ Hors pool')),
-      h('div', { class: 'muted small' }, `contre ${g.adversaire} · ${g.heure} · ${g.duree}${g.lane && g.lane !== R.lane ? ' · en ' + g.lane : ''}`),
+      h('div', { class: 'muted small mvs' }, 'contre ', g.adv_id ? champIcon(champIdFromName(g.adv_id), 22) : null, ` ${g.adversaire} · ${g.heure} · ${g.duree}${g.lane && g.lane !== R.lane ? ' · en ' + g.lane : ''}`),
       h('div', { class: 'kda' }, h('span', { class: 'k' }, `${g.kills} / ${g.morts} / ${g.assists}`), h('span', { class: 'muted small' }, `KDA ${fr(g.kda, 2)}`)),
       h('div', { class: 'mstats' },
         sup ? stat('KP %', g.kp, s.kp, f1) : stat('CS/min', g.cs_min, s.cs_min, f1),

@@ -59,7 +59,7 @@
           champion: champName(m.championName), champ_id: m.championName, pool: pool.has(m.championName), lane,
           maitrise: maitrise.has(m.championName),
           cat: pool.has(m.championName) ? 'oblig' : maitrise.has(m.championName) ? 'maitrise' : 'autre',
-          adversaire: m.opponentChampionName ? champName(m.opponentChampionName) : '—',
+          adversaire: m.opponentChampionName ? champName(m.opponentChampionName) : '—', adv_id: m.opponentChampionName || null,
           win: !!m.win, duree: `${Math.floor(m.d / 60)}:${pad(m.d % 60)}`,
           kills: num(m.kills) || 0, morts: num(m.deaths) || 0, assists: num(m.assists) || 0,
           kda: r1(((num(m.kills) || 0) + (num(m.assists) || 0)) / Math.max(1, num(m.deaths) || 0), 2),

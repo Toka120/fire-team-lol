@@ -875,3 +875,13 @@ html[data-theme=gris]  { --bg:#1b1c1f; --panel:#25272b; --panel2:#2e3035; --line
 .home-notes{display:grid;gap:10px;margin:0 0 18px}
 .home-notes-h{display:flex;align-items:center;justify-content:space-between}
 .home-notes-h h2{margin:0;font-size:18px}
+/* Sprites des champions dans les games */
+.mchamp{display:inline-flex;align-items:center;gap:10px}
+.mchamp .cico,.mchamp .cico-l{border-radius:10px;border:2px solid var(--line)}
+.match.win .mchamp .cico{border-color:var(--ok)}
+.match.loss .mchamp .cico{border-color:var(--bad)}
+.mvs{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.mvs .cico,.mvs .cico-l{border-radius:6px}
+.tg-p{display:inline-flex;align-items:center;gap:6px}
+.tg-p .cico,.tg-p .cico-l{border-radius:6px}
+.mhead{align-items:center}
