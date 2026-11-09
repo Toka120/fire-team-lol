@@ -834,3 +834,16 @@ button.plan-p{cursor:pointer}
 .nrow.off{opacity:.45;cursor:default}
 .nsub{margin-left:28px;border-left:2px solid var(--line);padding-left:12px;margin-bottom:6px}
 .nh{font-size:15px;margin:16px 0 4px}
+/* Pop-ups qui descendent du haut de FIRE */
+#popups{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:10px;width:min(520px,calc(100vw - 32px));pointer-events:none}
+.popup{pointer-events:auto;display:flex;gap:10px;align-items:flex-start;background:var(--panel2);border:1px solid var(--fire2);border-left:5px solid var(--fire2);border-radius:14px;padding:14px 12px 14px 16px;box-shadow:0 12px 32px rgba(0,0,0,.55),0 0 0 1px rgba(255,94,58,.15);animation:popdown .35s cubic-bezier(.2,.9,.3,1.2)}
+.popup.out{animation:popup-out .3s ease forwards}
+.popup-body{flex:1;cursor:pointer}
+.popup-body b{font-size:15px}
+.popup-body p{margin:4px 0 0;color:var(--fg);font-size:14px;line-height:1.4}
+.popup-go{display:inline-block;margin-top:6px;color:var(--fire1);font-weight:700;font-size:13px}
+.popup-x{flex:none;background:none;border:1px solid var(--line);color:var(--fg);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:14px}
+.popup-x:hover{border-color:var(--fire2);background:var(--panel)}
+@keyframes popdown{from{transform:translateY(-120%);opacity:0}to{transform:none;opacity:1}}
+@keyframes popup-out{to{transform:translateY(-120%);opacity:0}}
+.nlab{margin:10px 0 0}

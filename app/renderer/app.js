@@ -254,12 +254,24 @@
   }
   // ----- Notifications de bureau -----
   // Réglages enregistrés sur cet ordinateur. Chaque alerte n'est envoyée qu'une fois.
-  const NOTIF_DEF = { on: true, upd: true, plan: true, coach: true };
+  const NOTIF_DEF = { on: true, app: true, upd: true, plan: true, coach: true };
   const notifPrefs = () => ({ ...NOTIF_DEF, ...load('fire.notif', {}) });
   function notifyDesk(kind, title, body, section) {
     const p = notifPrefs();
-    if (!p.on || !p[kind] || !window.fire.notify) return;
-    window.fire.notify({ title, body, section }).catch(() => {});
+    if (!p[kind]) return;
+    if (p.app) popup(title, body, section);
+    if (p.on && window.fire.notify) window.fire.notify({ title, body, section }).catch(() => {});
+  }
+  // Pop-up dans FIRE : descend du haut de la fenêtre et reste jusqu'à ce qu'on clique sur la croix.
+  function popup(title, body, section) {
+    let zone = document.getElementById('popups');
+    if (!zone) { zone = h('div', { id: 'popups', 'aria-live': 'polite' }); document.body.append(zone); }
+    const close = () => { el.classList.add('out'); setTimeout(() => el.remove(), 300); };
+    const el = h('div', { class: 'popup', role: 'status' },
+      h('div', { class: 'popup-body', onclick: () => { if (section) go(section); close(); } }, h('b', null, title), h('p', null, body), section ? h('span', { class: 'popup-go' }, 'Ouvrir →') : null),
+      h('button', { class: 'popup-x', title: 'Fermer', 'aria-label': 'Fermer', onclick: close }, '✕'));
+    zone.append(el);
+    while (zone.children.length > 3) zone.firstChild.remove();
   }
   function notifUpdate() {
     const u = S.upd || {};
@@ -270,9 +282,13 @@
       if (u.latest && (!l || newer(u.latest, l))) l = u.latest;
       if (l && newer(l, S.version)) { v = l; body = `La version ${v} est disponible (tu as la ${S.version}). Ouvre Paramètres pour l'installer.`; }
     }
-    if (!v || load('fire.notif.v', '') === v) return;
+    if (!v) return;
+    const p = notifPrefs();
+    // Le pop-up revient à chaque ouverture de FIRE tant que la mise à jour n'est pas installée ; la notification Windows, une seule fois.
+    if (S.popV !== v) { S.popV = v; if (p.app && p.upd) popup('🔥 Mise à jour disponible', body, 'settings'); }
+    if (load('fire.notif.v', '') === v) return;
     save('fire.notif.v', v);
-    notifyDesk('upd', '🔥 Mise à jour disponible', body, 'settings');
+    if (p.on && p.upd && window.fire.notify) window.fire.notify({ title: '🔥 Mise à jour disponible', body, section: 'settings' }).catch(() => {});
   }
   // Empreinte des jours de jeu à venir, pour voir si le coach a changé le planning.
   function planSig() {
@@ -359,14 +375,19 @@
       h('input', { type: 'checkbox', checked: checked ? true : null, disabled: disabled ? true : null, onchange: (e) => onchange(e.target.checked) }), h('span', null, label));
     const setBg = async (m) => { try { S.bg = await window.fire.background.set(m); } catch (e) { /* ignore */ } renderSettings(); };
     return h('div', { class: 'card settings-card' },
-      h('h2', null, '🔔 Notifications sur le bureau'),
-      h('p', { class: 'muted small' }, 'Une petite fenêtre Windows apparaît en bas de l’écran, même si tu es dans une autre application. Clique dessus pour ouvrir la bonne page de FIRE.'),
-      box(p.on, 'Activer les notifications', (v) => set('on', v)),
+      h('h2', null, '🔔 Notifications'),
+      h('p', { class: 'muted small' }, 'Clique sur une notification pour ouvrir la bonne page de FIRE.'),
+      box(p.app, 'Pop-up en haut de FIRE (avec une croix pour le fermer)', (v) => set('app', v)),
+      box(p.on, 'Notification sur le bureau Windows (en bas de l’écran, même si tu es dans une autre application)', (v) => set('on', v)),
+      h('p', { class: 'muted small nlab' }, 'Me prévenir quand :'),
       h('div', { class: 'nsub' },
-        box(p.upd, '🔥 Une mise à jour de FIRE est disponible', (v) => set('upd', v), !p.on),
-        box(p.plan, '📅 Le coach a changé le planning (jour ajouté, retiré ou horaires modifiés)', (v) => set('plan', v), !p.on),
-        box(p.coach, '📣 Nouveau message dans « Parole du coach »', (v) => set('coach', v), !p.on)),
-      h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: p.on ? null : true, onclick: () => window.fire.notify({ title: '🔥 FIRE LoL', body: 'Les notifications fonctionnent ✓', section: 'settings' }) }, '🔔 Envoyer une notification de test')),
+        box(p.upd, '🔥 Une mise à jour de FIRE est disponible', (v) => set('upd', v), !p.on && !p.app),
+        box(p.plan, '📅 Le coach a changé le planning (jour ajouté, retiré ou horaires modifiés)', (v) => set('plan', v), !p.on && !p.app),
+        box(p.coach, '📣 Nouveau message dans « Parole du coach »', (v) => set('coach', v), !p.on && !p.app)),
+      h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: (p.on || p.app) ? null : true, onclick: () => {
+        if (p.app) popup('🔥 FIRE LoL', 'Les notifications fonctionnent ✓', null);
+        if (p.on && window.fire.notify) window.fire.notify({ title: '🔥 FIRE LoL', body: 'Les notifications fonctionnent ✓', section: 'settings' });
+      } }, '🔔 Envoyer une notification de test')),
       b.notif === false ? h('p', { class: 'bad small' }, '⚠ Ton ordinateur bloque les notifications. Active-les dans Windows : Paramètres › Système › Notifications.') : null,
       h('h3', { class: 'nh' }, 'Recevoir les notifications même fenêtre fermée'),
       h('p', { class: 'muted small' }, 'FIRE vérifie le planning, les messages et les mises à jour toutes les 10 minutes, mais seulement quand il est ouvert.'),
