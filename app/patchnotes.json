@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.17",
+   "date": "2026-11-09",
+   "titre": "Signaler un bug",
+   "items": [
+    [
+     "new",
+     "Bouton 🐞 Signaler un bug (dans Patch notes et Paramètres) : un texte et jusqu'à 3 captures d'écran, ajoutées depuis un fichier ou collées avec Ctrl+V."
+    ],
+    [
+     "new",
+     "Le coach voit les rapports reçus dans Patch notes et peut les marquer comme réglés."
+    ]
+   ]
+  },
+  {
    "v": "1.10.16",
    "date": "2026-11-09",
    "titre": "E-sport",

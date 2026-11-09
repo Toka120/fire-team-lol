@@ -641,4 +641,67 @@ function message(m) {
   return { ok: true, fiche: { type: 'message', titre: str(m.titre, 140) || 'Note du coach', accroche: '', sections: [{ titre: '', texte, schema: null }], a_retenir: [], exercice: '', videos: [], sources: [], sujet: '', cible: str(m.cible, 40) || "Toute l'équipe" } };
 }
 
-module.exports = { pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+
+// ---------- Rapports de bug (texte + captures), chiffrés avec la clé d'équipe ----------
+// Rangés dans le dépôt de données de l'équipe (bugs/<id>.json) avec le jeton d'équipe,
+// ou à défaut dans le dépôt de l'application (coach/bugs/) avec le jeton GitHub du coach.
+function bugTarget() {
+  const dr = getConfig().data_repo || null;
+  const c = readSecret('coach.bin') || {};
+  return { dr, coach: coachState().coach, coachTok: c.github || null };
+}
+async function bugRepo() {
+  const t = bugTarget();
+  const tok = t.dr ? await teamToken() : null;
+  if (t.dr && tok) return { repo: t.dr, token: tok, dir: 'bugs/' };
+  if (t.coach && t.coachTok) return { repo: REPO, token: t.coachTok, dir: 'coach/bugs/' };
+  return null;
+}
+async function sendBug(b) {
+  if (!teamKey()) return { ok: false, error: "entre à nouveau le code d'équipe" };
+  const texte = str(b.texte, 4000);
+  if (!texte || texte.length < 5) return { ok: false, error: 'décris le problème en quelques mots' };
+  const images = (Array.isArray(b.images) ? b.images : []).slice(0, 3)
+    .filter((x) => typeof x === 'string' && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(x) && x.length < 3.5e6);
+  const where = await bugRepo();
+  if (!where) return { ok: false, error: "le coach doit d'abord activer le jeton d'équipe (Paramètres › Réglages coach)" };
+  const id = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14) + '-' + crypto.randomBytes(3).toString('hex');
+  const rapport = { id, at: Date.now(), qui: str(b.qui, 60) || 'anonyme', version: str(b.version, 20), section: str(b.section, 40), texte, images };
+  try {
+    const r = await ghPut(where.token, where.dir + id + '.json', seal(rapport, id), null, 'Rapport de bug ' + id, where.repo);
+    if (!r.ok) return { ok: false, error: "GitHub n'a pas accepté l'envoi, réessaie" };
+    return { ok: true, id };
+  } catch (e) { return { ok: false, error: String(e.message || e) }; }
+}
+async function listBugs() {
+  if (!coachState().coach) return { ok: false, error: 'réservé au coach' };
+  const where = await bugRepo();
+  if (!where) return { ok: true, bugs: [], info: "jeton d'équipe pas encore activé" };
+  try {
+    const r = await http(apiOf(where.repo) + where.dir.replace(/\/$/, '') + '?ref=main', { headers: ghHeaders(where.token) });
+    if (r.status === 404) return { ok: true, bugs: [] };
+    if (!r.ok) throw new Error('GitHub a refusé la lecture (' + r.status + ')');
+    const files = (await r.json()).filter((f) => /\.json$/.test(f.name)).sort((a, b) => b.name.localeCompare(a.name)).slice(0, 40);
+    const bugs = [];
+    for (const f of files) {
+      try { const box = await readPublic(where.dir + f.name, where.repo, where.token); if (box) bugs.push(open(box)); } catch (e) { /* illisible : ignoré */ }
+    }
+    return { ok: true, bugs };
+  } catch (e) { return { ok: false, error: String(e.message || e) }; }
+}
+async function closeBug(id) {
+  if (!coachState().coach) return { ok: false, error: 'réservé au coach' };
+  if (!/^[0-9]{14}-[a-f0-9]{6}$/.test(String(id || ''))) return { ok: false, error: 'rapport inconnu' };
+  const where = await bugRepo();
+  if (!where) return { ok: false, error: "jeton d'équipe pas encore activé" };
+  try {
+    const r = await http(apiOf(where.repo) + where.dir + id + '.json?ref=main', { headers: ghHeaders(where.token) });
+    if (!r.ok) return { ok: true };
+    const j = await r.json();
+    const d = await http(apiOf(where.repo) + where.dir + id + '.json', { method: 'DELETE', headers: { ...ghHeaders(where.token), 'content-type': 'application/json' }, body: JSON.stringify({ message: 'Bug réglé ' + id, sha: j.sha, branch: 'main' }) });
+    if (!d.ok) throw new Error('GitHub a refusé la suppression (' + d.status + ')');
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String(e.message || e) }; }
+}
+
+module.exports = { sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

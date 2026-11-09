@@ -449,6 +449,8 @@
         h('p', { class: 'muted small' }, 'Change la couleur du fond de FIRE. Le choix est gardé sur cet ordinateur.'),
         h('div', { class: 'themes' }, THEMES.map(([id, label, bg, glow]) => h('button', { class: 'theme-sw', 'aria-pressed': String(load('fire.theme', 'fire') === id), onclick: () => { save('fire.theme', id); applyTheme(id); renderSettings(); } },
           h('span', { class: 'theme-dot', style: `background: radial-gradient(60px 30px at 50% 0%, ${glow}66, transparent 80%), ${bg}` }), label)))),
+      h('div', { class: 'card settings-card' }, h('h2', null, '🐞 Signaler un bug'), h('p', { class: 'muted small' }, 'Un souci dans FIRE ? Décris-le avec des captures d’écran : le coach reçoit ton rapport.'),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: openBug }, '🐞 Signaler un bug'))),
       notifCard(),
       h('div', { class: 'card settings-card' },
         h('h2', null, '📊 Stats et contenu'),
@@ -1239,6 +1241,7 @@
   const pourLabel = (p) => (!p || p === 'tous') ? "Toute l'équipe" : String(p).split(/\s+/).map((r) => (FC.ROLES[r] ? FC.ROLES[r].label : r)).join(' et ');
 
   function go(sec) {
+    if (sec !== S.section) S.prevSection = S.section;
     S.section = sec;
     if (sec === 'guides') { S.theme = null; S.guideCat = null; }
     if (sec === 'coach') S.ficheId = null;
@@ -1268,13 +1271,111 @@
     if (!mine.length) return;
     popup(`🆕 FIRE est passé en v${S.version}`, mine.slice(0, 3).map((x) => x.titre).join(' · ') + (mine.length > 3 ? '…' : ''), 'patch');
   }
+  // ----- Signaler un bug : texte + jusqu'à 3 captures (fichier ou Ctrl+V), envoyé chiffré au coach -----
+  S.bug = { open: false, texte: '', images: [], busy: false, msg: '', ok: false };
+  function shrinkImage(file) {
+    return new Promise((resolve) => {
+      const rd = new FileReader();
+      rd.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL('image/jpeg', 0.82));
+        };
+        img.onerror = () => resolve(null);
+        img.src = rd.result;
+      };
+      rd.onerror = () => resolve(null);
+      rd.readAsDataURL(file);
+    });
+  }
+  async function addBugImages(files) {
+    const b = S.bug;
+    for (const f of [...files].filter((x) => /^image\//.test(x.type))) {
+      if (b.images.length >= 3) { b.msg = '3 images maximum.'; break; }
+      const d = await shrinkImage(f);
+      if (d) b.images.push(d);
+    }
+    if (S.section === 'patch') render();
+  }
+  document.addEventListener('paste', (e) => {
+    if (S.section !== 'patch' || !S.bug.open || !e.clipboardData) return;
+    const files = [...e.clipboardData.items].filter((i) => i.kind === 'file').map((i) => i.getAsFile()).filter(Boolean);
+    if (files.length) { e.preventDefault(); addBugImages(files); }
+  });
+  function openBug() { S.section = 'patch'; S.bug.open = true; S.bug.ok = false; S.bug.msg = ''; loadPatch(); render(); window.scrollTo(0, 0); setTimeout(() => { const x = $('bug-txt'); if (x) x.focus(); }, 60); }
+  async function sendBug() {
+    const b = S.bug;
+    if (b.busy) return;
+    if ((b.texte || '').trim().length < 5) { b.msg = 'Décris le problème en quelques mots.'; render(); return; }
+    b.busy = true; b.msg = ''; render();
+    const me = S.players.find((x) => x.slug === S.moi);
+    let r;
+    try { r = await window.fire.bugs.send({ texte: b.texte, images: b.images, qui: me ? me.pseudo : 'anonyme', version: S.version, section: S.prevSection || '' }); } catch (e) { r = { ok: false, error: String(e) }; }
+    b.busy = false;
+    if (r && r.ok) { S.bug = { open: false, texte: '', images: [], busy: false, msg: '', ok: true }; popup('🐞 Rapport envoyé', 'Merci ! Le coach a bien reçu ton rapport de bug.', null); }
+    else b.msg = '⚠ Envoi impossible : ' + ((r && r.error) || 'erreur inconnue');
+    render();
+  }
+  function bugCard() {
+    const b = S.bug;
+    if (!b.open) {
+      return h('div', { class: 'card bug-cta' },
+        h('div', null, h('h2', null, '🐞 Un bug ? Dis-le !'), h('p', { class: 'muted small' }, b.ok ? '✓ Ton dernier rapport a bien été envoyé. Merci !' : 'Explique ce qui ne va pas et ajoute des captures d’écran si tu veux : le coach reçoit ton rapport.')),
+        h('button', { class: 'btn-fire small-btn', onclick: openBug }, '🐞 Signaler un bug'));
+    }
+    const ta = h('textarea', { id: 'bug-txt', class: 'inp', rows: 5, maxlength: 4000, placeholder: 'Que s’est-il passé ? Où (quelle page) ? Qu’est-ce que tu attendais ? Ex. : dans Détente › Splash, l’image reste noire après 2 essais.', disabled: b.busy ? true : null });
+    ta.value = b.texte;
+    ta.addEventListener('input', () => { b.texte = ta.value; });
+    const file = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', multiple: true, hidden: true, onchange: (e) => addBugImages(e.target.files) });
+    return h('div', { class: 'card bug-form' },
+      h('h2', null, '🐞 Signaler un bug'),
+      ta,
+      h('div', { class: 'bug-imgs' },
+        b.images.map((src, i) => h('div', { class: 'bug-thumb' }, h('img', { src, alt: '', onclick: () => zoom(src, 'Capture ' + (i + 1)) }),
+          h('button', { class: 'bug-x', title: 'Retirer', onclick: () => { b.images.splice(i, 1); render(); } }, '✕'))),
+        b.images.length < 3 ? h('button', { class: 'bug-add', onclick: () => file.click(), disabled: b.busy ? true : null }, '＋', h('span', null, 'Ajouter une image')) : null, file),
+      h('p', { class: 'muted small' }, 'Jusqu’à 3 images. Tu peux aussi coller une capture avec Ctrl+V (Win+Maj+S pour en faire une). Ton pseudo et ta version de FIRE sont ajoutés automatiquement.'),
+      b.msg ? h('p', { class: 'bad small' }, b.msg) : null,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn-fire small-btn', disabled: b.busy ? true : null, onclick: sendBug }, b.busy ? 'Envoi…' : '📨 Envoyer le rapport'),
+        h('button', { class: 'btn-ghost', disabled: b.busy ? true : null, onclick: () => { b.open = false; render(); } }, 'Annuler')));
+  }
+  // Côté coach : les rapports reçus.
+  async function loadBugs() {
+    S.bugsLoading = true;
+    let r; try { r = await window.fire.bugs.list(); } catch (e) { r = { ok: false, error: String(e) }; }
+    S.bugsLoading = false;
+    S.bugs = r && r.ok ? r.bugs : []; S.bugsErr = r && !r.ok ? r.error : (r && r.info) || '';
+    if (S.section === 'patch' && !typing()) render();
+  }
+  function bugInbox() {
+    if (!S.bugs && !S.bugsLoading) loadBugs();
+    const list = S.bugs || [];
+    return h('div', { class: 'card bug-inbox' },
+      h('h2', null, `🔒 Rapports de bug reçus (${list.length})`, h('button', { class: 'linkbtn small', style: 'margin-left:10px', onclick: loadBugs }, '⟳ Actualiser')),
+      S.bugsErr ? h('p', { class: 'muted small' }, '⚠ ' + S.bugsErr) : null,
+      S.bugsLoading && !S.bugs ? h('p', { class: 'muted' }, 'Chargement…') : !list.length ? h('p', { class: 'muted small' }, 'Aucun rapport pour le moment. 👍') : null,
+      list.map((x) => h('div', { class: 'bug-item' },
+        h('div', { class: 'bug-meta' }, h('b', null, x.qui || 'anonyme'), h('span', { class: 'muted small' }, ` · v${x.version || '?'} · ${x.at ? dateLong(x.at) : ''}`),
+          h('button', { class: 'btn-ghost bug-done', onclick: async (e) => { e.target.disabled = true; const r = await window.fire.bugs.close(x.id); if (r && r.ok) { S.bugs = S.bugs.filter((y) => y.id !== x.id); } else S.bugsErr = (r && r.error) || 'erreur'; render(); } }, '✓ Réglé')),
+        h('p', { class: 'bug-text' }, x.texte),
+        (x.images || []).length ? h('div', { class: 'bug-imgs' }, x.images.map((src, i) => h('div', { class: 'bug-thumb' }, h('img', { src, alt: '', onclick: () => zoom(src, `${x.qui} · capture ${i + 1}`) })))) : null)));
+  }
+
   const PATCH_KIND = { new: ['🆕', 'Nouveau'], improve: ['✨', 'Amélioré'], fix: ['🛠️', 'Corrigé'] };
   function renderPatch() {
     const view = $('view');
     const list = S.patch || [];
     view.replaceChildren(...[
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🆕'), h('div', null, h('h1', { class: 'title' }, 'Patch notes'),
-        h('p', { class: 'muted' }, `Tout ce qui change dans FIRE, de la plus récente à la plus ancienne. Tu as la v${S.version}.`))),
+        h('p', { class: 'muted' }, `Tout ce qui change dans FIRE, et un bouton pour signaler un bug. Tu as la v${S.version}.`))),
+      bugCard(),
+      S.coachState.coach ? bugInbox() : null,
+      h('h2', { class: 'team-h' }, '📜 Les versions'),
       !S.patch ? h('div', { class: 'empty-state' }, 'Chargement des patch notes…') : null,
       h('div', { class: 'patch-list' }, list.map((x, i) => h('article', { class: 'card patch' + (x.v === S.version ? ' cur' : '') + (newer(x.v, S.version) ? ' soon' : '') },
         h('div', { class: 'patch-h' },
