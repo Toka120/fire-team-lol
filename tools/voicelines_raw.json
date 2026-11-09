@@ -1,0 +1,2078 @@
+{
+"266": {
+"choose": [
+"Écoute le silence de l'annihilation !",
+-0.29,
+0.02
+],
+"ban": [
+"Laisse-moi en finir !",
+-0.27,
+0.08
+]
+},
+"103": {
+"choose": [
+"Une renarde maligne ne se laisse pas attraper.",
+-0.26,
+0.2
+],
+"ban": [
+"Allons, je ne suis pas si effrayante.",
+-0.32,
+0.04
+]
+},
+"84": {
+"choose": [
+"craignez l'assassin sans mettre",
+-0.33,
+0.15
+],
+"ban": [
+"Vous avez peur ? C'est bon à savoir.",
+-0.36,
+0.07
+]
+},
+"166": {
+"choose": [
+"On répare le monde, une crapule à la fois !",
+-0.37,
+0.02
+],
+"ban": [
+"Je ne suis pas prêt de l'oublier.",
+-0.17,
+0.22
+]
+},
+"12": {
+"choose": [
+"Rien ne peut me retenir !",
+-0.36,
+0.03
+],
+"ban": [
+"Là, je suis en colère !",
+-0.37,
+0.01
+]
+},
+"799": {
+"choose": [
+"Une Louvre ne connaît pas la Clémence.",
+-0.37,
+0.03
+],
+"ban": [
+"Les Médardas n'oublient et ne pardonnent pas.",
+-0.27,
+0.01
+]
+},
+"32": {
+"choose": [
+"Je n'aurais jamais pensé que vous me choisiriez.",
+-0.22,
+0.09
+],
+"ban": [
+"Uaaah...",
+-1.13,
+0.18
+]
+},
+"34": {
+"choose": [
+"Attire d'elle.",
+-0.65,
+0.13
+],
+"ban": [
+"Le cycle se termine.",
+-0.33,
+0.03
+]
+},
+"1": {
+"choose": [
+"On va bien s'amuser !",
+-0.3,
+0.09
+],
+"ban": [
+"Tibers trouve que tu es très moche, bah !",
+-0.45,
+0.08
+]
+},
+"523": {
+"choose": [
+"Tu as tant d'armes, Aphelios, mais c'est ta foi qui l'a plus mortelle.",
+-0.28,
+0.59
+],
+"ban": [
+"Condamnés aux ténèbres, où notre puissance croit.",
+-0.33,
+0.26
+]
+},
+"22": {
+"choose": [
+"Le poids du monde repose sur une flèche.",
+-0.22,
+0.15
+],
+"ban": [
+"Bande de lâches, puissiez-vous mourir les yeux fermés !",
+-0.28,
+0.11
+]
+},
+"136": {
+"choose": [
+"Naturellement.",
+-0.38,
+0.07
+],
+"ban": [
+"Je deviens dangereux quand je m'ennuie.",
+-0.26,
+0.17
+]
+},
+"893": {
+"choose": [
+"Voyez derrière le voile.",
+-0.27,
+0.17
+],
+"ban": [
+"Je voulais rentrer à la maison de toute façon.",
+-0.21,
+0.03
+]
+},
+"268": {
+"choose": [
+"Shurima, ton empereur est de retour.",
+-0.31,
+0.01
+],
+"ban": [
+"Votre empereur reviendra.",
+-0.38,
+0.03
+]
+},
+"432": {
+"choose": [
+"Générique",
+-0.98,
+0.44
+],
+"ban": [
+"",
+-9,
+1
+]
+},
+"200": {
+"choose": [
+"Je suis la voix du silence.",
+-0.45,
+0.02
+],
+"ban": [
+"Votre résistance est futile.",
+-0.31,
+0.08
+]
+},
+"53": {
+"choose": [
+"En service, prêt à agir.",
+-0.44,
+0.15
+],
+"ban": [
+"Je reviendrai.",
+-0.44,
+0.08
+]
+},
+"63": {
+"choose": [
+"Prêt à embraser le monde !",
+-0.54,
+0.03
+],
+"ban": [
+"Vous ne me contiendrez pas, invocateur.",
+-0.38,
+0.05
+]
+},
+"201": {
+"choose": [
+"Le cœur est le plus puissant des muscles.",
+-0.36,
+0.0
+],
+"ban": [
+"Ah ah ah, puisque c'est comme ça, j'arrête d'être gentil.",
+-0.25,
+0.03
+]
+},
+"233": {
+"choose": [
+"Ravie de vous dévorer... euh... de vous rencontrer.",
+-0.45,
+0.02
+],
+"ban": [
+"La vengeance est un plat qui se mange chaud !",
+-0.28,
+0.04
+]
+},
+"51": {
+"choose": [
+"L'enquête est ouverte.",
+-0.23,
+0.05
+],
+"ban": [
+"Dois-je aussi rendre mon insigne et mon fusil ?",
+-0.25,
+0.03
+]
+},
+"164": {
+"choose": [
+"La précision est ce qui différencie le boucher du chirurgien.",
+-0.21,
+0.02
+],
+"ban": [
+"Le compromis n'est qu'un synonyme d'échec.",
+-0.18,
+0.03
+]
+},
+"69": {
+"choose": [
+"Il n'y a pas d'antidote contre moi.",
+-0.29,
+0.06
+],
+"ban": [
+"Pensez à tout ce que je pourrais vous offrir.",
+-0.27,
+0.14
+]
+},
+"31": {
+"choose": [
+"Vous souhaitez la fin du monde ? Oui !",
+-0.48,
+0.17
+],
+"ban": [
+"Peur des Noirs, c'est sage !",
+-0.55,
+0.4
+]
+},
+"42": {
+"choose": [
+"Ma machine de guerre et moi, on est Top Gun !",
+-0.37,
+0.06
+],
+"ban": [
+"Hey, tu ferais mieux de te payer des cours de pilotage !",
+-0.35,
+0.08
+]
+},
+"122": {
+"choose": [
+"Moi seul peut nous mener à la victoire.",
+-0.37,
+0.02
+],
+"ban": [
+"Je ne tolère pas les lâches !",
+-0.37,
+0.02
+]
+},
+"131": {
+"choose": [
+"Une lune nouvelle se lève.",
+-0.37,
+0.16
+],
+"ban": [
+"Pauvres ignorants !",
+-0.39,
+0.01
+]
+},
+"119": {
+"choose": [
+"Bienvenue dans League of Dragons.",
+-0.51,
+0.45
+],
+"ban": [
+"Ne soyez pas jaloux.",
+-0.26,
+0.06
+]
+},
+"36": {
+"choose": [
+"Le docteur est, euh, arrivé !",
+-0.61,
+0.03
+],
+"ban": [
+"Moi, je suis comme un pillier de déplacement",
+-0.61,
+0.36
+]
+},
+"245": {
+"choose": [
+"Ce qui compte, ce n'est pas d'avoir beaucoup de temps, c'est de savoir s'en servir.",
+-0.21,
+0.0
+],
+"ban": [
+"Avant, t'étais plus sympa.",
+-0.43,
+0.04
+]
+},
+"60": {
+"choose": [
+"Nul n'échappe à mes rêves.",
+-0.39,
+0.2
+],
+"ban": [
+"Je sens leur peur.",
+-0.59,
+0.09
+]
+},
+"28": {
+"choose": [
+"Je savais que vous ne résisteriez pas.",
+-0.27,
+0.21
+],
+"ban": [
+"Mais voilà, une fois de plus insatisfaite.",
+-0.37,
+0.03
+]
+},
+"81": {
+"choose": [
+"Quête acceptée ! Euh... On va où, au fait ?",
+-0.6,
+0.18
+],
+"ban": [
+"Tant pis pour vous, vous ne savez pas ce que vous ratez !",
+-0.21,
+0.42
+]
+},
+"9": {
+"choose": [
+"TROP L'ÉÎÎÎÎÎÎÎÎÎÎÎÎÎÎÎÎÎÎÎÎ",
+-0.41,
+0.22
+],
+"ban": [
+"PELIFIEUX !",
+-1.02,
+0.24
+]
+},
+"114": {
+"choose": [
+"Trouvez-moi un adversaire de valeur.",
+-0.34,
+0.08
+],
+"ban": [
+"Pathétique.",
+-0.66,
+0.21
+]
+},
+"105": {
+"choose": [
+"Moi, moi, moi !",
+-0.52,
+0.18
+],
+"ban": [
+"Qu'est-ce que je m'ennuie...",
+-0.22,
+0.03
+]
+},
+"3": {
+"choose": [
+"C'est le moment de frapper fort !",
+-0.17,
+0.02
+],
+"ban": [
+"Dans ce cas, je vais me rendormir.",
+-0.22,
+0.02
+]
+},
+"41": {
+"choose": [
+"Ni les flammes, ni les abysses n'ont eu raison de moi.",
+-0.25,
+0.01
+],
+"ban": [
+"Ne vous relâchez pas en mon absence.",
+-0.28,
+0.05
+]
+},
+"86": {
+"choose": [
+"Mon cœur et mon épée appartiennent à Démacia.",
+-0.31,
+0.01
+],
+"ban": [
+"La peur est le premier de nombreux ennemis.",
+-0.25,
+0.04
+]
+},
+"150": {
+"choose": [
+"Nargada !",
+-0.71,
+0.23
+],
+"ban": [
+"S'abonnez-vous !",
+-0.91,
+0.28
+]
+},
+"79": {
+"choose": [
+"Si c'est toi qui paye, ça roule pour moi !",
+-0.27,
+0.04
+],
+"ban": [
+"Ouai ouai !",
+-0.77,
+0.15
+]
+},
+"104": {
+"choose": [
+"La mort en mouvement.",
+-0.56,
+0.01
+],
+"ban": [
+"C'est le terminus.",
+-0.39,
+0.11
+]
+},
+"887": {
+"choose": [
+"Test haute, menton relevé, ciseaux prestes.",
+-0.39,
+0.46
+],
+"ban": [
+"Allons, mais Ciso ne mord de point !",
+-0.65,
+0.36
+]
+},
+"120": {
+"choose": [
+"Admirez la puissance des yeux obscurs.",
+-0.48,
+0.03
+],
+"ban": [
+"Ne me faites pas tourner en bourrique.",
+-0.45,
+0.05
+]
+},
+"74": {
+"choose": [
+"Absolument ! Un choix très sage !",
+-0.43,
+0.04
+],
+"ban": [
+"N'ayez crainte, vous pouvez apprendre de vos échecs.",
+-0.28,
+0.06
+]
+},
+"910": {
+"choose": [
+"L'art illumine ce qui ternit dans l'ombre.",
+-0.22,
+0.01
+],
+"ban": [
+"La censure est futile.",
+-0.18,
+0.03
+]
+},
+"420": {
+"choose": [
+"Avec moi, pas de sermons! Les eaux brisées enseignent bien plus de leçons!",
+-0.29,
+0.06
+],
+"ban": [
+"La vie est trop courte pour avoir peur !",
+-0.28,
+0.06
+]
+},
+"39": {
+"choose": [
+"Combattez pour les terres premières !",
+-0.29,
+0.26
+],
+"ban": [
+"TIRAN !",
+-0.96,
+0.46
+]
+},
+"427": {
+"choose": [
+"Ma couleur préférée, c'est le printemps.",
+-0.27,
+0.0
+],
+"ban": [
+"Ah, je vais pouvoir me reposer.",
+-0.44,
+0.01
+]
+},
+"40": {
+"choose": [
+"Méfiez-vous du calme avant la tempête.",
+-0.29,
+0.01
+],
+"ban": [
+"Comme vous voudrez.",
+-0.42,
+0.29
+]
+},
+"59": {
+"choose": [
+"Je jure que nous en finirons.",
+-0.28,
+0.03
+],
+"ban": [
+"Qui ose me défier ?",
+-0.28,
+0.2
+]
+},
+"24": {
+"choose": [
+"C'est parti !",
+-0.39,
+0.12
+],
+"ban": [
+"Non, c'est impossible !",
+-0.4,
+0.01
+]
+},
+"126": {
+"choose": [
+"Je me bats pour un futur plus beau.",
+-0.32,
+0.03
+],
+"ban": [
+"Euh, n'hésitez pas à abandonner.",
+-0.37,
+0.03
+]
+},
+"202": {
+"choose": [
+"Je fleuris dans le carnage, comme une corolle à l'aube.",
+-0.32,
+0.02
+],
+"ban": [
+"Un jour, mon génie sera reconnu.",
+-0.37,
+0.01
+]
+},
+"222": {
+"choose": [
+"Cool, j'ai hâte d'y être !",
+-0.27,
+0.08
+],
+"ban": [
+"Oh, allez ! C'est pas comme si on risquait de se blesser !",
+-0.26,
+0.02
+]
+},
+"145": {
+"choose": [
+"Êtes-vous le chasseur ou la proie ?",
+-0.28,
+0.16
+],
+"ban": [
+"Vous ne tiendriez pas une seule journée dans le néant.",
+-0.25,
+0.65
+]
+},
+"429": {
+"choose": [
+"Morts ou traîtres.",
+-0.66,
+0.2
+],
+"ban": [
+"Toute action a ses conséquences.",
+-0.38,
+0.24
+]
+},
+"43": {
+"choose": [
+"Croyez en votre force intérieure.",
+-0.31,
+0.12
+],
+"ban": [
+"Nous avons tous des décisions à prendre.",
+-0.26,
+0.04
+]
+},
+"30": {
+"choose": [
+"Vous n'avez pas senti comme un coup de froid.",
+-0.24,
+0.01
+],
+"ban": [
+"A mon retour, vous rejoindrez mon cœur.",
+-0.41,
+0.24
+]
+},
+"38": {
+"choose": [
+"L'équilibre des pouvoirs doit être préservé.",
+-0.22,
+0.08
+],
+"ban": [
+"Comme vous désirez.",
+-0.41,
+0.16
+]
+},
+"55": {
+"choose": [
+"Que commence la danse macabre ?",
+-0.44,
+0.03
+],
+"ban": [
+"Auriez-vous peur ?",
+-0.3,
+0.05
+]
+},
+"10": {
+"choose": [
+"Ils trembleront devant ma perfection.",
+-0.43,
+0.03
+],
+"ban": [
+"Vous manquez de jugement.",
+-0.35,
+0.1
+]
+},
+"141": {
+"choose": [
+"Serez-vous à la hauteur ? Ça m'étonnerait.",
+-0.31,
+0.03
+],
+"ban": [
+"Les faibles craignent les ombres. Ils sont contrôlés par la peur.",
+-0.27,
+0.02
+]
+},
+"85": {
+"choose": [
+"Les yeux ne mentent jamais !",
+-0.46,
+0.06
+],
+"ban": [
+"Aaaaah !",
+-1.04,
+0.31
+]
+},
+"121": {
+"choose": [
+"Le changement est nécessaire.",
+-0.53,
+0.07
+],
+"ban": [
+"Il me craigne.",
+-0.43,
+0.05
+]
+},
+"203": {
+"choose": [
+"Rappelle-moi, petit agneau, de quoi puis-je m'emparer ? De tout, mon cher loup.",
+-0.31,
+0.04
+],
+"ban": [
+"Vont-ils fuir ? Découvrons-le.",
+-0.37,
+0.04
+]
+},
+"240": {
+"choose": [
+"Le courage, c'est imprévisible ! J'préfère y aller en mode fou furieux !",
+-0.27,
+0.07
+],
+"ban": [
+"Ah, je savais que vous étiez une bande de larges, pour l'instant !",
+-0.61,
+0.18
+]
+},
+"96": {
+"choose": [
+"HELL FISTA",
+-0.7,
+0.2
+],
+"ban": [
+"Fin ! Jamais dormir !",
+-0.61,
+0.07
+]
+},
+"897": {
+"choose": [
+"Mieux vaut se battre que vivre dans la peur.",
+-0.24,
+0.02
+],
+"ban": [
+"Seuls les proies fuient.",
+-0.35,
+0.01
+]
+},
+"7": {
+"choose": [
+"La rose noire va pouvoir éclore à nouveau.",
+-0.24,
+0.09
+],
+"ban": [
+"Tout se passe comme prévu.",
+-0.27,
+0.06
+]
+},
+"64": {
+"choose": [
+"Votre volonté, ma force.",
+-0.42,
+0.03
+],
+"ban": [
+"Très bien, je retourne m'entraîner.",
+-0.22,
+0.07
+]
+},
+"89": {
+"choose": [
+"L'aube s'lève.",
+-0.6,
+0.19
+],
+"ban": [
+"Je ne dois pas faillir.",
+-0.29,
+0.09
+]
+},
+"876": {
+"choose": [
+"Moi, c'est comme dans mes rêves.",
+-0.35,
+0.03
+],
+"ban": [
+"Est-ce qu'ils ont peur de moi ?",
+-0.22,
+0.03
+]
+},
+"127": {
+"choose": [
+"Je couvrirai le monde de glace.",
+-0.31,
+0.05
+],
+"ban": [
+"Pauvre enfant !",
+-0.63,
+0.05
+]
+},
+"805": {
+"choose": [
+"On va leur clouer le bec.",
+-0.26,
+0.02
+],
+"ban": [
+"La vérité te fait peur ?",
+-0.28,
+0.13
+]
+},
+"236": {
+"choose": [
+"Tout le monde meurt, mais certains ont besoin d'aide.",
+-0.27,
+0.1
+],
+"ban": [
+"Vous n'avez pas le cœur assez bien accroché.",
+-0.27,
+0.05
+]
+},
+"117": {
+"choose": [
+"Ravie de vous rencontrer !",
+-0.35,
+0.05
+],
+"ban": [
+"Je ne crois pas qu'ils y croient, Pix.",
+-0.26,
+0.17
+]
+},
+"99": {
+"choose": [
+"C'est ce que j'appelle un choix éclairé.",
+-0.19,
+0.2
+],
+"ban": [
+"Vous devriez abandonner, petit vermisseau.",
+-0.33,
+0.04
+]
+},
+"54": {
+"choose": [
+"Solide comme un roc.",
+-0.61,
+0.07
+],
+"ban": [
+"Vous allez perdre.",
+-0.48,
+0.07
+]
+},
+"90": {
+"choose": [
+"L'oubli les attend.",
+-0.5,
+0.04
+],
+"ban": [
+"Ne défiez pas le destin !",
+-0.49,
+0.07
+]
+},
+"57": {
+"choose": [
+"Un jour, les îles refleuriront !",
+-0.36,
+0.03
+],
+"ban": [
+"Votre heure viendra, d'une manière ou d'une autre.",
+-0.25,
+0.05
+]
+},
+"11": {
+"choose": [
+"Ma lame vous appartient.",
+-0.26,
+0.03
+],
+"ban": [
+"Le doute est le plus grand des ennemis.",
+-0.26,
+0.04
+]
+},
+"800": {
+"choose": [
+"je tracerai ma propre voie.",
+-0.3,
+0.06
+],
+"ban": [
+"Le nom même des Médardas inspire la crainte.",
+-0.19,
+0.0
+]
+},
+"902": {
+"choose": [
+"CHEAU DE VENT",
+-0.75,
+0.07
+],
+"ban": [
+"Oh non ! Mais faut émigoser moi, on était vraiment chauds pour se battre !",
+-0.41,
+0.03
+]
+},
+"21": {
+"choose": [
+"La fortune sourit aux audacieux.",
+-0.35,
+0.2
+],
+"ban": [
+"sans problème.",
+-0.61,
+0.56
+]
+},
+"62": {
+"choose": [
+"Je serai le meilleur.",
+-0.44,
+0.06
+],
+"ban": [
+"Améliorez-vous, puis revenez me voir.",
+-0.32,
+0.26
+]
+},
+"82": {
+"choose": [
+"Destiné... Domination... Duplicité...",
+-0.41,
+0.15
+],
+"ban": [
+"Nul ne peut m'échapper.",
+-0.41,
+0.22
+]
+},
+"25": {
+"choose": [
+"La souffrance ne m'a pas brisé.",
+-0.28,
+0.03
+],
+"ban": [
+"Nos pires décisions reviennent toujours montées.",
+-0.28,
+0.01
+]
+},
+"950": {
+"choose": [
+"La chasse commence !",
+-0.42,
+0.04
+],
+"ban": [
+"NON SERONT PAS MISÉLÉS",
+-0.53,
+0.03
+]
+},
+"267": {
+"choose": [
+"Je décide ce qu'apporte la marée.",
+-0.29,
+0.24
+],
+"ban": [
+"Les bipètes sont étranges !",
+-0.29,
+0.05
+]
+},
+"75": {
+"choose": [
+"Le cycle de la vie et de la mort continue, nous vivrons, ils mourront.",
+-0.35,
+0.05
+],
+"ban": [
+"Ne me poussez pas à bout !",
+-0.39,
+0.32
+]
+},
+"111": {
+"choose": [
+"Régnez les profondeurs.",
+-0.77,
+0.05
+],
+"ban": [
+"Je ne connaîtrai pas l'un ou l'autre.",
+-0.62,
+0.08
+]
+},
+"518": {
+"choose": [
+"Nico, c'est le bon choix !",
+-0.27,
+0.15
+],
+"ban": [
+"Nico doit la faire vraiment peur.",
+-0.48,
+0.04
+]
+},
+"76": {
+"choose": [
+"Je ne réponds qu'à l'appel de la nature.",
+-0.22,
+0.03
+],
+"ban": [
+"Vous avez raison de me craindre.",
+-0.16,
+0.05
+]
+},
+"895": {
+"choose": [
+"Ma joie est infinie !",
+-0.38,
+0.15
+],
+"ban": [
+"Je comprends, je suis plutôt forte.",
+-0.23,
+0.02
+]
+},
+"56": {
+"choose": [
+"Soumettez-vous au télèbre !",
+-0.48,
+0.18
+],
+"ban": [
+"Vous avez peur du Noir ?",
+-0.65,
+0.07
+]
+},
+"20": {
+"choose": [
+"Les aventures, c'est toujours mieux à deux ! Ha ha ha !",
+-0.48,
+0.01
+],
+"ban": [
+"C'est pas grave, on jouera plus tard !",
+-0.23,
+0.01
+]
+},
+"2": {
+"choose": [
+"Ne laissez rien derrière vous.",
+-0.38,
+0.04
+],
+"ban": [
+"Approchez. Je ne vous ferai pas de mal. Promis.",
+-0.36,
+0.13
+]
+},
+"61": {
+"choose": [
+"Nous tuerons vos ennemis. Ce sera amusant.",
+-0.29,
+0.08
+],
+"ban": [
+"La sphère est en colère",
+-0.22,
+0.09
+]
+},
+"516": {
+"choose": [
+"Bon, très bien, j'arrive.",
+-0.41,
+0.02
+],
+"ban": [
+"Je retourne à ma forge.",
+-0.25,
+0.06
+]
+},
+"80": {
+"choose": [
+"Le combat est une renaissance.",
+-0.41,
+0.07
+],
+"ban": [
+"Fuyez, et je vous frapperai dans le dos !",
+-0.34,
+0.05
+]
+},
+"78": {
+"choose": [
+"Je suis pas un héros, juste une yordle avec un marteau.",
+-0.29,
+0.04
+],
+"ban": [
+"Ça perd l'hypopie, je suis perdue.",
+-0.47,
+0.08
+]
+},
+"555": {
+"choose": [
+"Prêts pour le grand plongeon.",
+-0.32,
+0.09
+],
+"ban": [
+"Ma liste vient de s'allonger.",
+-0.3,
+0.05
+]
+},
+"246": {
+"choose": [
+"Allez-y, vénérez-moi !",
+-0.42,
+0.29
+],
+"ban": [
+"Vous avez raison de craindre ma grandeur.",
+-0.24,
+0.03
+]
+},
+"133": {
+"choose": [
+"les ailes de la justice.",
+-0.35,
+0.23
+],
+"ban": [
+"À votre place, je baisserai la tête.",
+-0.29,
+0.45
+]
+},
+"497": {
+"choose": [
+"Venez danser avec moi !",
+-0.22,
+0.03
+],
+"ban": [
+"Sérieusement ? Sérieusement ? Pfff, c'est vraiment nul.",
+-0.39,
+0.02
+]
+},
+"33": {
+"choose": [
+"Amusons-nous !",
+-0.57,
+0.05
+],
+"ban": [
+"OK !",
+-0.98,
+0.28
+]
+},
+"421": {
+"choose": [
+"Grrrrrrrrrrrrrr",
+-0.8,
+0.56
+],
+"ban": [
+"Grrrrrrrrrr",
+-0.58,
+0.66
+]
+},
+"526": {
+"choose": [
+"Rien n'entre et personne ne m'échappe.",
+-0.23,
+0.02
+],
+"ban": [
+"Vous êtes faible.",
+-0.4,
+0.55
+]
+},
+"888": {
+"choose": [
+"Je vous conseille de m'appeler Madame Glask si vous tenez à la vie.",
+-0.27,
+0.35
+],
+"ban": [
+"Vous ne manquez pas d'air !",
+-0.36,
+0.24
+]
+},
+"58": {
+"choose": [
+"Moi vivant, ils mourront tous !",
+-0.38,
+0.02
+],
+"ban": [
+"Rien ne peut m'arrêter !",
+-0.35,
+0.06
+]
+},
+"107": {
+"choose": [
+"Ce soir, on chasse !",
+-0.48,
+0.07
+],
+"ban": [
+"Le vrai chasseur ne se repose pas.",
+-0.33,
+0.06
+]
+},
+"92": {
+"choose": [
+"Ce qui a été brisé peut être reforgé.",
+-0.28,
+0.1
+],
+"ban": [
+"Apprenez de vos erreurs.",
+-0.27,
+0.11
+]
+},
+"68": {
+"choose": [
+"Allons nous battre !",
+-0.4,
+0.03
+],
+"ban": [
+"Ok, j'y vais !",
+-0.36,
+0.09
+]
+},
+"13": {
+"choose": [
+"La fin du monde n'est pas encore pour demain.",
+-0.18,
+0.06
+],
+"ban": [
+"Ça va mal finir.",
+-0.45,
+0.03
+]
+},
+"360": {
+"choose": [
+"Vous voulez du style ? Me voilà.",
+-0.38,
+0.1
+],
+"ban": [
+"Eh, vous n'étiez clairement pas à la hauteur.",
+-0.26,
+0.02
+]
+},
+"113": {
+"choose": [
+"N'ayez confiance qu'en votre force.",
+-0.28,
+0.03
+],
+"ban": [
+"Plutôt mourir que vivre dans la peur.",
+-0.26,
+0.09
+]
+},
+"235": {
+"choose": [
+"Personne n'est jamais seul dans la brume.",
+-0.22,
+0.07
+],
+"ban": [
+"Très bien, ça me fera des ennemis en moins.",
+-0.23,
+0.05
+]
+},
+"147": {
+"choose": [
+"T'allons changer le monde !",
+-0.47,
+0.04
+],
+"ban": [
+"OK !",
+-0.79,
+0.03
+]
+},
+"875": {
+"choose": [
+"C'est moi le plus fort !",
+-0.35,
+0.17
+],
+"ban": [
+"Je vois, vous aviez peur de perdre, hein ?",
+-0.28,
+0.04
+]
+},
+"35": {
+"choose": [
+"Et un petit tour de magie ?",
+-0.45,
+0.06
+],
+"ban": [
+"Là vous me voyez, là vous me voyez plus !",
+-0.53,
+0.14
+]
+},
+"98": {
+"choose": [
+"la preuve d'un grand discernement.",
+-0.2,
+0.03
+],
+"ban": [
+"ils n'en sont pas dignes.",
+-0.31,
+0.08
+]
+},
+"102": {
+"choose": [
+"Ma fureur s'éveille.",
+-0.31,
+0.22
+],
+"ban": [
+"Je sens... leur peur...",
+-0.65,
+0.04
+]
+},
+"27": {
+"choose": [
+"Un p'tit verre ?",
+-0.4,
+0.03
+],
+"ban": [
+"Je vous entends.",
+-0.38,
+0.03
+]
+},
+"14": {
+"choose": [
+"Le repos, c'est pour les vivants.",
+-0.3,
+0.0
+],
+"ban": [
+"Tu empestes la peur !",
+-0.47,
+0.02
+]
+},
+"15": {
+"choose": [
+"Je collecte toujours un péage en or ou en sang.",
+-0.34,
+0.02
+],
+"ban": [
+"Ça n'a rien de personnel.",
+-0.32,
+0.06
+]
+},
+"72": {
+"choose": [
+"Ishtal est sous ma protection.",
+-0.37,
+0.04
+],
+"ban": [
+"Les Yuntas l'ont la mémoire longue.",
+-0.54,
+0.02
+]
+},
+"901": {
+"choose": [
+"RAAAARGH!",
+-1.07,
+0.2
+],
+"ban": [
+"J'vais l'dire à ma maman !",
+-0.32,
+0.01
+]
+},
+"37": {
+"choose": [
+"Quelle symphonie jouerons-nous ?",
+-0.33,
+0.02
+],
+"ban": [
+"Générique",
+-0.97,
+0.75
+]
+},
+"16": {
+"choose": [
+"Roi vivante, personne ne sauvera.",
+-0.42,
+0.18
+],
+"ban": [
+"Je fais ce qui doit être fait.",
+-0.31,
+0.39
+]
+},
+"50": {
+"choose": [
+"Mon vrai pouvoir est invisible, c'est lui que vous devriez craindre.",
+-0.27,
+0.01
+],
+"ban": [
+"Vous vous croyez sage, mais vous n'êtes que des lâches.",
+-0.26,
+0.06
+]
+},
+"517": {
+"choose": [
+"Je détruirai toutes les cages qui nous retiennent.",
+-0.23,
+0.1
+],
+"ban": [
+"Vous ne m'enfermerez pas éternellement.",
+-0.21,
+0.06
+]
+},
+"134": {
+"choose": [
+"Tant de puissance à explorer encore !",
+-0.41,
+0.06
+],
+"ban": [
+"Les gens ont peur de ce qu'ils ne comprennent pas.",
+-0.24,
+0.52
+]
+},
+"223": {
+"choose": [
+"Appelez-moi roi. Appelez-moi démon. L'eau oublie le nom des noyés.",
+-0.27,
+0.03
+],
+"ban": [
+"Ton cruel manque d'appétit me révulse.",
+-0.29,
+0.18
+]
+},
+"163": {
+"choose": [
+"Façonnez le monde avec un fil de pierre.",
+-0.36,
+0.2
+],
+"ban": [
+"Moi, Banny ? Vous avez un cœur de pierre.",
+-0.49,
+0.12
+]
+},
+"91": {
+"choose": [
+"Vivre et mourir par la Lame.",
+-0.46,
+0.02
+],
+"ban": [
+"Pathétique.",
+-0.62,
+0.21
+]
+},
+"44": {
+"choose": [
+"Cette lueur d'espoir que vous voyez, c'est moi.",
+-0.25,
+0.02
+],
+"ban": [
+"Ton jugement manque de clarté.",
+-0.3,
+0.06
+]
+},
+"17": {
+"choose": [
+"Éclaireur Timo, au rapport !",
+-0.28,
+0.03
+],
+"ban": [
+"Ha ! J'avais oublié mon manuel des éclaireurs de toute façon !",
+-0.23,
+0.04
+]
+},
+"412": {
+"choose": [
+"Nous les plongerons tous dans l'agonie.",
+-0.27,
+0.05
+],
+"ban": [
+"C'est moi qui décide quand c'est fini.",
+-0.31,
+0.33
+]
+},
+"18": {
+"choose": [
+"Canonnière de Bundle un jour, canonnière de Bundle toujours !",
+-0.42,
+0.09
+],
+"ban": [
+"Essayez donc de m'arrêter. Allez-y, essayez !",
+-0.29,
+0.17
+]
+},
+"48": {
+"choose": [
+"Il est temps de troller !",
+-0.2,
+0.01
+],
+"ban": [
+"Pathétique !",
+-0.44,
+0.39
+]
+},
+"23": {
+"choose": [
+"Avec honneur !",
+-0.33,
+0.07
+],
+"ban": [
+"Comme vous voulez.",
+-0.54,
+0.45
+]
+},
+"4": {
+"choose": [
+"Dame chance nos souris...",
+-0.54,
+0.05
+],
+"ban": [
+"Je suis un as, et vous, un valet qui va rester sur le carreau.",
+-0.28,
+0.09
+]
+},
+"29": {
+"choose": [
+"Les poubelles des uns font les trésors des autres !",
+-0.31,
+0.01
+],
+"ban": [
+"Il y a deux types d'ordures, les bonnes et vous !",
+-0.36,
+0.05
+]
+},
+"77": {
+"choose": [
+"Les conflits nourrissent Freljord.",
+-0.31,
+0.04
+],
+"ban": [
+"PLEUTRE",
+-0.69,
+0.5
+]
+},
+"6": {
+"choose": [
+"Seuls ceux qui ont été brisés savent ce qu'est la puissance.",
+-0.29,
+0.01
+],
+"ban": [
+"Vous aurez beau vous accrocher à l'espoir, ça ne suffira pas.",
+-0.19,
+0.01
+]
+},
+"110": {
+"choose": [
+"Les coupables connaîtront l'agonie.",
+-0.26,
+0.02
+],
+"ban": [
+"Mes ennemis ne connaîtront nulle grâce.",
+-0.29,
+0.03
+]
+},
+"67": {
+"choose": [
+"Traquons ceux que les ténèbres ont corrompus !",
+-0.36,
+0.06
+],
+"ban": [
+"Imbéciles impures...",
+-0.55,
+0.02
+]
+},
+"45": {
+"choose": [
+"Sachez que si les choses étaient différentes, je n'aurais aucune pitié pour vous !",
+-0.23,
+0.03
+],
+"ban": [
+"Vos ordres me fatiguent !",
+-0.34,
+0.02
+]
+},
+"161": {
+"choose": [
+"La connaissance par la désintégration.",
+-0.4,
+0.05
+],
+"ban": [
+"Je ne m'y attendais pas.",
+-0.39,
+0.25
+]
+},
+"711": {
+"choose": [
+"Ok, je m'en fiche.",
+-0.39,
+0.12
+],
+"ban": [
+"Ok, je m'en fiche.",
+-0.38,
+0.15
+]
+},
+"254": {
+"choose": [
+"On tape d'abord et on pose des questions en tapant.",
+-0.28,
+0.02
+],
+"ban": [
+"Si je voulais ton avis, je te l'arracherai à coups de poing !",
+-0.29,
+0.39
+]
+},
+"234": {
+"choose": [
+"L'amour détruit tout.",
+-0.39,
+0.2
+],
+"ban": [
+"Mon cœur était déjà brisé.",
+-0.33,
+0.06
+]
+},
+"112": {
+"choose": [
+"La Glorieuse Évolution est en marche !",
+-0.41,
+0.04
+],
+"ban": [
+"L'humanité comprendra un jour.",
+-0.34,
+0.06
+]
+},
+"8": {
+"choose": [
+"La rivière virera au rouge.",
+-0.35,
+0.04
+],
+"ban": [
+"Je suis vraiment livide.",
+-0.56,
+0.01
+]
+},
+"106": {
+"choose": [
+"Ah... Vous verrez la puissance de la nature.",
+-0.49,
+0.03
+],
+"ban": [
+"Vous avez le cœur d'un faible.",
+-0.38,
+0.01
+]
+},
+"19": {
+"choose": [
+"Des blessures qui saignent, la braque peut commencer.",
+-0.45,
+0.17
+],
+"ban": [
+"Ils ont peur de moi ! Ils ont raison !",
+-0.58,
+0.04
+]
+},
+"498": {
+"choose": [
+"Je suis toujours partante pour aller danser.",
+-0.3,
+0.05
+],
+"ban": [
+"Très bien, je resterai ici, à aiguiser mes plumes.",
+-0.31,
+0.04
+]
+},
+"101": {
+"choose": [
+"Je vous dévoilerai... la vraie puissance !",
+-0.48,
+0.07
+],
+"ban": [
+"IN YOUR HEART",
+-0.46,
+0.46
+]
+},
+"5": {
+"choose": [
+"Une lance, mille combats !",
+-0.42,
+0.06
+],
+"ban": [
+"L'âme du guerrier ne rompt jamais.",
+-0.32,
+0.0
+]
+},
+"157": {
+"choose": [
+"La mort est comme le vent, toujours à mes côtés.",
+-0.24,
+0.01
+],
+"ban": [
+"Rien ne guérit la sottise.",
+-0.25,
+0.03
+]
+},
+"777": {
+"choose": [
+"Une pour trancher, une pour sceller.",
+-0.27,
+0.2
+],
+"ban": [
+"Ce n'est pas de moi qu'il faut avoir peur.",
+-0.26,
+0.02
+]
+},
+"83": {
+"choose": [
+"N'ayez crainte. Votre mort servira un grand dessin.",
+-0.28,
+0.01
+],
+"ban": [
+"Vous signez votre arrêt de mort.",
+-0.25,
+0.03
+]
+},
+"804": {
+"choose": [
+"Le temps est venu de tailler l'arbre.",
+-0.2,
+0.02
+],
+"ban": [
+"Ne vous en faites pas, je sais faire preuve de patience.",
+-0.25,
+0.03
+]
+},
+"350": {
+"choose": [
+"Grimoire et moi, on s'en occupe !",
+-0.14,
+0.03
+],
+"ban": [
+"Hmph ! Vous préférez les chiens, c'est ça ?",
+-0.34,
+0.14
+]
+},
+"904": {
+"choose": [
+"Dans mes veines coulent des temps anciens, des millénaires de violence et de sang.",
+-0.21,
+0.02
+],
+"ban": [
+"J'ai patienté dans le silence durant des millénaires.",
+-0.23,
+0.02
+]
+},
+"154": {
+"choose": [
+"C'est littéralement pour ça que je suis fait.",
+-0.24,
+0.01
+],
+"ban": [
+"Ok, maintenant je suis en colère.",
+-0.38,
+0.01
+]
+},
+"238": {
+"choose": [
+"La lame qu'on ne voit pas est la plus dangereuse.",
+-0.29,
+0.04
+],
+"ban": [
+"Ne vous refusez pas à moi.",
+-0.41,
+0.04
+]
+},
+"221": {
+"choose": [
+"J'ai besoin que d'une étincelle.",
+-0.36,
+0.04
+],
+"ban": [
+"De toute façon, y'avait pas d'étincelles entre nous.",
+-0.18,
+0.05
+]
+},
+"115": {
+"choose": [
+"On va faire un carton !",
+-0.33,
+0.03
+],
+"ban": [
+"Allez, on y va, on y va !",
+-0.43,
+0.05
+]
+},
+"26": {
+"choose": [
+"Je savais que vous vouliez faire ça.",
+-0.28,
+0.06
+],
+"ban": [
+"Inévitablement.",
+-0.35,
+0.17
+]
+},
+"142": {
+"choose": [
+"Wouhou ! On va s'éclater, pas vrai ?",
+-0.22,
+0.06
+],
+"ban": [
+"Ah non ! C'est pas sympa !",
+-0.25,
+0.03
+]
+},
+"143": {
+"choose": [
+"Voici le baiser des ronces.",
+-0.43,
+0.04
+],
+"ban": [
+"Nul n'échappe à mon emprise !",
+-0.27,
+0.06
+]
+}
+}

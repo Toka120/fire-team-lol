@@ -2198,13 +2198,20 @@
     }
     J.r[mode] = r;
     if (mode === 'phrase') {
-      // Réplique audio en français (sélection ou bannissement du champion), via CommunityDragon.
-      r.vo = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/fr_fr/v1/champion-${pick(['choose', 'ban'])}-vo/${c.key}.ogg`;
       if (J.audio) { try { J.audio.pause(); } catch (e) { /* rien */ } }
-      r.wait = true; render();
-      const l = await jLore(c);
-      const src = l.quote || (l.short || c.lore || '').split(/(?<=[.!?])\s+/).slice(0, 2).join(' ');
-      r.quote = jMask(src, c); r.fromBio = !l.quote; r.wait = false;
+      // La phrase affichée est exactement la réplique audio (sélection ou bannissement, en français).
+      const line = (c.vo || []).length ? pick(c.vo) : null;
+      if (line) {
+        r.vo = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/fr_fr/v1/champion-${line.kind}-vo/${c.key}.ogg`;
+        r.quote = jMask(line.text, c); r.fromBio = false;
+      } else {
+        // Pas de réplique fiable pour ce champion : citation du lore, sans audio.
+        r.vo = null;
+        r.wait = true; render();
+        const l = await jLore(c);
+        const src = l.quote || (l.short || c.lore || '').split(/(?<=[.!?])\s+/).slice(0, 2).join(' ');
+        r.quote = jMask(src, c); r.fromBio = !l.quote; r.wait = false;
+      }
     }
     render();
   }
@@ -2285,7 +2292,7 @@
           J.audio.currentTime = 0;
           J.audio.play().then(() => { b.textContent = '🔊 Réécouter sa voix'; }).catch(() => { r.noVo = true; render(); });
         } }, '🔊 Écouter sa voix'),
-        h('span', { class: 'muted small' }, 'Une réplique du champion, en français.')) : null,
+        h('span', { class: 'muted small' }, 'La voix du champion dit cette phrase.')) : null,
       wrong >= 3 || r.done ? h('p', { class: 'muted small' }, `Indice : « ${t.title} »${wrong >= 6 || r.done ? ` · ${t.region || 'région inconnue'}` : ''}`) : h('p', { class: 'muted small' }, `Un indice arrive après 3 essais (encore ${3 - wrong}).`));
     if (mode === 'splash') {
       // Position du champion moins sûre : on part d'un zoom plus large.

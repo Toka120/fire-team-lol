@@ -25,6 +25,15 @@ let LANES = {};
 try { LANES = require('./lanes.json'); } catch (e) { /* facultatif */ }
 // Vrais skins (sans les chromas, qui n'ont pas de splash) et position du champion dans chaque splash.
 // Fichier calculé par tools/splash_focus.py : { skins: { Malzahar: [[num, x%, y%, confiance], ...] } }
+// Répliques audio françaises transcrites puis relues (tools/voicelines.py et voicelines_curate.py) :
+// { "103": { "choose": "texte…", "ban": "texte…" } }. Seules les répliques bien comprises sont gardées,
+// pour que le texte affiché soit exactement celui qu'on entend.
+let VOICE = {};
+try { VOICE = require('./voicelines.json'); } catch (e) { /* facultatif */ }
+function voiceList(key) {
+  const v = VOICE[key] || {};
+  return ['choose', 'ban'].filter((kind) => typeof v[kind] === 'string' && v[kind]).map((kind) => ({ kind, text: v[kind] }));
+}
 let SPLASH = {};
 try { SPLASH = require('./splash.json').skins || {}; } catch (e) { /* facultatif */ }
 
@@ -60,7 +69,7 @@ async function data() {
   let version = null;
   try { version = (await get(`${DD}/api/versions.json`, 15000))[0]; } catch (e) { /* hors ligne */ }
   const cache = mem || readJson('jeux.json');
-  if (cache && cache.fmt === 5 && (!version || cache.version === version)) { mem = cache; return { ok: true, ...cache, offline: !version }; }
+  if (cache && cache.fmt === 6 && (!version || cache.version === version)) { mem = cache; return { ok: true, ...cache, offline: !version }; }
   if (!version) return cache ? { ok: true, ...cache, offline: true } : { ok: false, error: 'hors ligne : données des champions indisponibles' };
   try {
     const full = await get(`${DD}/cdn/${version}/data/fr_FR/championFull.json`, 60000);
@@ -82,6 +91,7 @@ async function data() {
         passive: { name: c.passive.name, img: c.passive.image.full, desc: strip(c.passive.description) },
         spells: (c.spells || []).map((s, i) => ({ key: 'QWER'[i], name: s.name, img: s.image.full })),
         skins: skinList(c),
+        vo: voiceList(c.key),
         lanes: LANES[c.id] || [],
         lore: c.lore, slug: u ? u.slug : c.id.toLowerCase(),
         region: reg && reg !== 'unaffiliated' ? (fac[reg] || FAC_FR[reg] || reg) : null,
@@ -90,7 +100,7 @@ async function data() {
       };
     }).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
     const factions = (uni.factions || []).map((f) => ({ slug: f.slug, name: f.name, desc: strip(f.description), img: f.image && f.image.uri ? f.image.uri : null }));
-    mem = { fmt: 5, version, champs, factions, at: Date.now() };
+    mem = { fmt: 6, version, champs, factions, at: Date.now() };
     writeJson('jeux.json', mem);
     return { ok: true, ...mem };
   } catch (e) {
