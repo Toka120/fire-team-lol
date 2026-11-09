@@ -2145,6 +2145,11 @@
   const jimg = (type, f) => `${DD}/cdn/${J.data.version}/img/${type}/${f}`;
   const jsq = (c) => jimg('champion', c.id + '.png');
   const jsplash = (c, num) => `${DD}/cdn/img/champion/splash/${c.id}_${num || 0}.jpg`;
+  // Place le point (fx %, fy %) du splash au centre du cadre, sans laisser de bord vide.
+  const splashZoom = (sc, fx, fy) => {
+    const cl = (v) => Math.min(0, Math.max(100 - 100 * sc, v));
+    return `transform-origin:0 0;transform:translate(${cl(50 - sc * fx)}%, ${cl(50 - sc * fy)}%) scale(${sc})`;
+  };
   const jstats = () => load('fire.jeux', {});
 
   async function loadJeux() {
@@ -2178,7 +2183,14 @@
     if (prev && cs.length > 1) while (c.id === prev.id) c = pick(cs);
     const r = { target: c, guesses: [], done: false, gaveUp: false, at: Date.now() };
     if (mode === 'sort') { r.spell = pick(c.spells); r.rot = pick([90, 180, 270]); }
-    if (mode === 'splash') { const sk = c.skins.filter((x) => x.num > 0); r.skin = sk.length ? pick(sk) : c.skins[0]; r.ox = 20 + Math.round(Math.random() * 60); r.oy = 20 + Math.round(Math.random() * 60); }
+    if (mode === 'splash') {
+      const sk = c.skins.filter((x) => x.num > 0);
+      r.skin = sk.length ? pick(sk) : c.skins[0];
+      // Zoom centré sur le champion du skin (pas sur le décor ni sur l'autre personnage d'un splash à deux).
+      const jit = () => Math.round((Math.random() - 0.5) * 8);
+      r.ox = Math.min(92, Math.max(8, (r.skin.fx == null ? 50 : r.skin.fx) + jit()));
+      r.oy = Math.min(92, Math.max(8, (r.skin.fy == null ? 40 : r.skin.fy) + jit()));
+    }
     J.r[mode] = r;
     if (mode === 'phrase') {
       r.wait = true; render();
@@ -2260,9 +2272,11 @@
       r.wait ? h('p', { class: 'muted' }, 'Chargement…') : h('blockquote', { class: 'jeu-quote' }, '« ', r.quote, ' »'),
       wrong >= 3 || r.done ? h('p', { class: 'muted small' }, `Indice : « ${t.title} »${wrong >= 6 || r.done ? ` · ${t.region || 'région inconnue'}` : ''}`) : h('p', { class: 'muted small' }, `Un indice arrive après 3 essais (encore ${3 - wrong}).`));
     if (mode === 'splash') {
-      const sc = r.done ? 1 : Math.max(1.4, 5 - 0.6 * wrong);
+      // Position du champion moins sûre : on part d'un zoom plus large.
+      const z0 = r.skin.c != null && r.skin.c < 0.6 ? 3.2 : 5;
+      const sc = r.done ? 1 : Math.max(1.4, z0 - 0.6 * wrong);
       clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'À quel champion appartient ce skin ?'),
-        h('div', { class: 'jeu-splash' }, h('img', { src: jsplash(t, r.skin.num), alt: '', style: `transform:scale(${sc});transform-origin:${r.ox}% ${r.oy}%` })),
+        h('div', { class: 'jeu-splash' }, h('img', { src: jsplash(t, r.skin.num), alt: '', style: splashZoom(sc, r.ox, r.oy), onerror: () => { if (!r.done && !r.badImg) { r.badImg = true; jNew('splash'); } } })),
         h('p', { class: 'muted small' }, r.done ? r.skin.name : 'Ça dézoome à chaque essai.'));
     }
     nodes.push(clue);
