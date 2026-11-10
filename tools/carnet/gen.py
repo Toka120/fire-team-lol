@@ -7,7 +7,8 @@ from blocks import bold
 import kit
 from lum import lum
 LIGHT = 0.45
-UNDERLINE = {('adc', 's35')}
+# Slide retouchée à la main par l'utilisateur (titre souligné) : repérée par son texte, plus par son numéro.
+UNDERLINE = {('adc', 'quizq', "Shaco + Caitlyn en face. C'est une bot lane…")}
 sys.path.insert(0, '/home/claude/lanes')
 from outline import process
 
@@ -79,6 +80,8 @@ def render(deck, s, i, skin, src, ico, tot):
               for a, col, xs in s['cards']]
         if cols == 3 and len(cs) > 3:
             grid = (f'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px;width:1664px">\n' + '\n'.join(cs) + '\n</div>')
+        elif cols == 2 and len(cs) > 2:
+            grid = (f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;width:1664px">\n' + '\n'.join(cs) + '\n</div>')
         else:
             grid = row(cs, gap=28)
         parts = [kicker(s['kick']), h2(title, 76), grid]
@@ -180,7 +183,104 @@ def render(deck, s, i, skin, src, ico, tot):
         inner = (kicker(s['kick']) + '\n' + h2(title, 70) + '\n'
                  f'<div style="display:flex;gap:50px;align-items:center;width:1664px">{dia}{side}</div>')
         return sid, section(sid, inner, skin, src, g=16, mode='full', xp=xp), title
+
+    if k == 'tiers':
+        rows = []
+        for lab, col, champs in s['rows']:
+            icons = ''.join(f'<div style="display:flex;flex-direction:column;align-items:center;gap:4px;width:84px">{icon(ico(c), 72, col)}'
+                            f'<p style="font-size:15px;color:#e6dfcf;text-align:center;line-height:1.1">{E(c)}</p></div>' for c in champs)
+            rows.append(f'<div style="display:flex;gap:18px;align-items:center;width:1664px;background:rgba(10,13,20,0.72);border:2px solid {col};border-radius:16px;padding:10px 16px">'
+                        f'<p style="{OS};font-size:34px;font-weight:700;color:{col};width:210px;flex:none;line-height:1.05">{E(lab)}</p>'
+                        f'<div style="display:flex;flex-wrap:wrap;gap:6px 6px">{icons}</div></div>')
+        parts = [kicker(s['kick']), h2(title, 64)] + rows
+        if s.get('foot'): parts.append(para('💡 ' + s['foot'], 26, 1664, '#ffd38a'))
+        return sid, section(sid, '\n'.join(parts), skin, src, g=12, mode='full', xp=xp), title
+    if k == 'map':
+        maps = ''.join(minimap(m, ico) for m in s['maps'])
+        side = bullets(s['bullets'], s.get('size', 30), s.get('bw', 640)) if s.get('bullets') else ''
+        inner = (kicker(s['kick']) + '\n' + h2(title, 68) + '\n'
+                 f'<div style="display:flex;gap:36px;align-items:center;width:1664px">{maps}{side}</div>')
+        if s.get('foot'): inner += '\n' + para('💡 ' + s['foot'], 26, 1664, '#ffd38a')
+        return sid, section(sid, inner, skin, src, g=16, mode='full', xp=xp), title
+    if k == 'lane':
+        side = bullets(s['bullets'], s.get('size', 30), 600)
+        inner = (kicker(s['kick']) + '\n' + h2(title, 68) + '\n'
+                 f'<div style="display:flex;gap:40px;align-items:center;width:1664px">{lanediag(s, ico)}{side}</div>')
+        if s.get('foot'): inner += '\n' + para('💡 ' + s['foot'], 26, 1664, '#ffd38a')
+        return sid, section(sid, inner, skin, src, g=16, mode='full', xp=xp), title
+    if k == 'swap':
+        def compo(t, col, pairs, verdict):
+            ps = ''.join(f'<div style="display:flex;gap:12px;align-items:center">{icon(ico(a), 84, "#5aa9ff")}'
+                         f'<p style="{OS};font-size:30px;color:#e6dfcf">VS</p>{icon(ico(b), 84, "#ff6b6b")}'
+                         f'<p style="font-size:24px;color:#f3eee2;width:230px">{E(a)} contre {E(b)}<br><span style="color:#cfc6b3">{E(w)}</span></p></div>'
+                         for a, b, w in pairs)
+            return box(h3(t, col, 40) + '\n' + ps + '\n' + '\n'.join(line(x, 26, mark='›', mcolor=col) for x in verdict), color=col, pad=24)
+        cols = [compo(*c) for c in s['compos']]
+        inner = kicker(s['kick']) + '\n' + h2(title, 66) + '\n' + row(cols, 28)
+        if s.get('foot'): inner += '\n' + para('💡 ' + s['foot'], 26, 1664, '#ffd38a')
+        return sid, section(sid, inner, skin, src, g=18, mode='full', xp=xp), title
     raise ValueError(k)
+
+
+# ---------------------------------------------------------------- Schémas de carte (SVG simplifié)
+def minimap(m, ico, size=600):
+    """Carte schématique : base bleue en bas à gauche, rouge en haut à droite. Coordonnées en % (0-100)."""
+    S = size / 100
+    P = lambda x, y: f'{x * S:.0f},{y * S:.0f}'
+    lane = lambda pts, col='#6b6455': f'<polyline points="{" ".join(P(*q) for q in pts)}" fill="none" stroke="{col}" stroke-width="{size*0.045:.0f}" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>'
+    g = [f'<rect x="0" y="0" width="{size}" height="{size}" rx="22" fill="#0e1a14" stroke="#d4ab4f" stroke-width="3"/>',
+         f'<line x1="{P(4,4).split(",")[0]}" y1="{P(4,4).split(",")[1]}" x2="{P(96,96).split(",")[0]}" y2="{P(96,96).split(",")[1]}" stroke="#2c6d8f" stroke-width="{size*0.06:.0f}" opacity="0.7"/>',
+         lane([(9, 91), (9, 9), (91, 9)]), lane([(9, 91), (91, 9)]), lane([(9, 91), (91, 91), (91, 9)]),
+         f'<circle cx="{8*S:.0f}" cy="{92*S:.0f}" r="{size*0.06:.0f}" fill="#2f6fd6"/>',
+         f'<circle cx="{92*S:.0f}" cy="{8*S:.0f}" r="{size*0.06:.0f}" fill="#c43b3b"/>',
+         f'<circle cx="{33*S:.0f}" cy="{30*S:.0f}" r="{size*0.04:.0f}" fill="none" stroke="#b48cff" stroke-width="3"/>',
+         f'<text x="{33*S:.0f}" y="{30*S+6:.0f}" font-size="{size*0.04:.0f}" text-anchor="middle">👾</text>',
+         f'<circle cx="{67*S:.0f}" cy="{70*S:.0f}" r="{size*0.04:.0f}" fill="none" stroke="#ffb347" stroke-width="3"/>',
+         f'<text x="{67*S:.0f}" y="{70*S+6:.0f}" font-size="{size*0.04:.0f}" text-anchor="middle">🐉</text>']
+    for a in m.get('arrows', []):
+        x1, y1, x2, y2, col = a[:5]
+        dash = '14 10' if (len(a) > 5 and a[5]) else 'none'
+        g.append(f'<defs><marker id="ah{col[1:]}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="{col}"/></marker></defs>'
+                 f'<line x1="{x1*S:.0f}" y1="{y1*S:.0f}" x2="{x2*S:.0f}" y2="{y2*S:.0f}" stroke="{col}" stroke-width="6" stroke-dasharray="{dash}" marker-end="url(#ah{col[1:]})"/>')
+    for mk in m.get('marks', []):
+        x, y, txt, lab, col = mk
+        g.append(f'<circle cx="{x*S:.0f}" cy="{y*S:.0f}" r="{size*0.05:.0f}" fill="rgba(10,13,20,0.9)" stroke="{col}" stroke-width="4"/>'
+                 f'<text x="{x*S:.0f}" y="{y*S+size*0.018:.0f}" font-size="{size*0.05:.0f}" text-anchor="middle">{txt}</text>')
+        if lab:
+            g.append(f'<text x="{x*S:.0f}" y="{y*S+size*0.1:.0f}" font-size="{size*0.042:.0f}" font-family="Rubik" font-weight="700" fill="{col}" text-anchor="middle" '
+                     f'stroke="#0a0d14" stroke-width="5" paint-order="stroke">{E(lab)}</text>')
+    t = m.get('title', '')
+    head = f'<p style="{OS};font-size:34px;font-weight:700;color:#ffb347;text-align:center">{E(t)}</p>' if t else ''
+    return (f'<div style="display:flex;flex-direction:column;gap:10px;align-items:center">{head}'
+            f'<svg aria-label="{E(t or "Schéma de la carte")}" width="{size}" height="{size}" viewBox="0 0 {size} {size}" style="display:block">{"".join(g)}</svg></div>')
+
+
+def lanediag(s, ico, w=980, h=520):
+    """Une lane vue de côté : ta tour à gauche, sa tour à droite, buissons, sbires, champions."""
+    X = lambda v: v / 100 * w
+    Y = lambda v: v / 100 * h
+    g = [f'<rect x="0" y="0" width="{w}" height="{h}" rx="22" fill="#0e1a14" stroke="#d4ab4f" stroke-width="3"/>',
+         f'<rect x="20" y="{Y(42):.0f}" width="{w-40}" height="{Y(22):.0f}" rx="18" fill="#5a5444" opacity="0.65"/>',
+         f'<text x="{w/2:.0f}" y="{Y(97):.0f}" font-size="24" font-family="Rubik" fill="#cfc6b3" text-anchor="middle">la lane (vue simplifiée)</text>']
+    for bx, top in s.get('bushes', []):
+        y = Y(14) if top else Y(80)
+        g.append(f'<ellipse cx="{X(bx):.0f}" cy="{y:.0f}" rx="{w*0.11:.0f}" ry="{Y(11):.0f}" fill="#2f7d3a" stroke="#5fd39a" stroke-width="3"/>'
+                 f'<text x="{X(bx)+w*0.06:.0f}" y="{y+Y(9):.0f}" font-size="24" font-family="Rubik" font-weight="700" fill="#d8ffd8" text-anchor="middle">buisson</text>')
+    for x, lab, col in ((5, 'ta tour', '#9cc7ff'), (95, 'sa tour', '#ff9c9c')):
+        g.append(f'<text x="{X(x):.0f}" y="{Y(57):.0f}" font-size="64" text-anchor="middle">🗼</text>'
+                 f'<text x="{X(x):.0f}" y="{Y(72):.0f}" font-size="24" font-family="Rubik" font-weight="700" fill="{col}" text-anchor="middle">{lab}</text>')
+    for x, n, col in s.get('minions', []):
+        for j in range(n):
+            g.append(f'<circle cx="{X(x) + (j % 3) * 26:.0f}" cy="{Y(48) + (j // 3) * 26:.0f}" r="11" fill="{col}" stroke="#0a0d14" stroke-width="2"/>')
+    for x, pos, emo, lab, col in s.get('champs', []):
+        y = Y(20) if pos == 'top' else (Y(30) if pos == 'mid' else Y(84))
+        g.append(f'<circle cx="{X(x):.0f}" cy="{y:.0f}" r="38" fill="rgba(10,13,20,0.92)" stroke="{col}" stroke-width="5"/>'
+                 f'<text x="{X(x):.0f}" y="{y+14:.0f}" font-size="40" text-anchor="middle">{emo}</text>'
+                 f'<text x="{X(x):.0f}" y="{y-48:.0f}" font-size="26" font-family="Rubik" font-weight="700" fill="{col}" text-anchor="middle" stroke="#0a0d14" stroke-width="5" paint-order="stroke">{E(lab)}</text>')
+    for x1, y1, x2, y2, col in s.get('arrows', []):
+        g.append(f'<defs><marker id="la{col[1:]}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="{col}"/></marker></defs>'
+                 f'<line x1="{X(x1):.0f}" y1="{Y(y1):.0f}" x2="{X(x2):.0f}" y2="{Y(y2):.0f}" stroke="{col}" stroke-width="7" stroke-dasharray="16 10" marker-end="url(#la{col[1:]})"/>')
+    return f'<svg aria-label="Schéma de la lane" width="{w}" height="{h}" viewBox="0 0 {w} {h}" style="display:block;flex:none">{"".join(g)}</svg>'
 
 
 def build(deck, mode):
@@ -201,7 +301,7 @@ def build(deck, mode):
         kit.THEME['light'] = False
         h = process(h)
         if light: h = kit.to_light(h)
-        if (deck, sid) in UNDERLINE: h = h.replace('<h2 style="', '<h2 style="text-decoration:underline;', 1)
+        if (deck, s['kind'], s.get('q')) in UNDERLINE: h = h.replace('<h2 style="', '<h2 style="text-decoration:underline;', 1)
         out[sid] = h; order.append(sid); titles.append(t)
     return out, order, titles, skins
 

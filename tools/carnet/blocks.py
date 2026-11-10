@@ -188,17 +188,18 @@ def fights(lane, niv):
 
 # ---------------------------------------------------------------- Mindset
 def mindset(lane, niv, jungle=False):
-    s = [dict(kind='cards', niv=niv, kick='Le mindset', title='Solo queue ≠ en équipe', cols=2,
-        cards=[('🎧 En solo queue', '#5aa9ff', [
-                    "Concentre-toi sur ton jeu, pas sur celui des autres.",
-                    "Mode 1v9 : tu es une machine. Tes erreurs, tes placements : c'est ça qui compte.",
-                    "« Comment je gagne cette game ? » avant la draft, pendant la draft, pendant la game.",
-                    "Respecte ton plan."]),
-               ('🔥 En équipe (FIRE)', '#ffb347', [
+    s = [dict(kind='cards', niv=niv, kick='Le mindset', title='Solo queue et équipe : complémentaires', cols=2,
+        cards=[('🎧 La solo queue construit ta base', '#5aa9ff', [
+                    "Ton champion, tes matchups, tes mécaniques, ton farm, tes trades, tes décisions.",
+                    "Concentre-toi sur ton jeu : tes erreurs, tes placements, c'est ça qui compte.",
+                    "« Comment je gagne cette game ? » avant, pendant la draft, pendant la game.",
+                    "Ce que tu apprends en solo queue sert directement en équipe."]),
+               ('🔥 L’équipe t’apprend à l’utiliser à plusieurs', '#ffb347', [
+                    "Coordination, préparation, plan collectif, rotations organisées.",
                     "Call : « pas de flash », « pas de R », « je ne veux pas fight ».",
-                    "Donne les infos : « là, je sens le danger », « ils veulent m'engage ».",
-                    "Chacun fait ce travail d'info.",
-                    "Demande les ressources : « je te prends ça »."])]),
+                    "Donne les infos : « je sens le danger », « ils veulent m'engage ». Chacun fait ce travail.",
+                    "Un bon niveau solo ne garantit pas un bon niveau en équipe : ça s'apprend aussi."])],
+        foot="La solo queue construit une base individuelle solide. Le jeu en équipe apprend à l'utiliser collectivement."),
          dict(kind='std', niv=niv, kick='Le mental', title='Tu ne contrôles que toi',
         bullets=["Tes alliés, ta team : tu ne les contrôles pas.",
                  "Même s'il se passe des dingueries : reste positif. Ton moment de gloire va arriver.",
@@ -221,3 +222,185 @@ def training(lane, niv):
                "Shadow laning : imagine ta lane de A à Z, comme le shadow boxing",
                "Ça marche aussi pour le roam : « jouer sans jouer »",
                "Un objectif pour la game (par exemple : tes CS)"])]
+
+
+# ================================================================ Notions communes à tous les rôles (prompt TOPLANE)
+EX = {  # exemples adaptés à chaque rôle
+ 'top': dict(trade="Il s'avance pour last hit : tu le punis avec ton combo.", combo='Renekton',
+             cover="Tu veux crash ta wave et back : ton jungler reste à côté pour couvrir.",
+             tempo="Waves, back, TP et side lane.", vision="La ward de rivière top et le tri-buisson."),
+ 'mid': dict(trade="Il avance pour un caster : ton sort de poke le touche avant qu'il recule.", combo='Syndra',
+             cover="Tu veux roam : ton jungler couvre ta wave ou t'accompagne.",
+             tempo="Prio, roams et rotations.", vision="Les deux côtés de la rivière : tu es au centre."),
+ 'adc': dict(trade="Son ADC va chercher un sbire : toi et ton support le punissez.", combo='Caitlyn',
+             cover="Tu veux back avec une wave crash : ton jungler couvre le bot.",
+             tempo="Ressources, backs et swaps de lanes.", vision="Le tri-buisson et la rivière bot."),
+ 'support': dict(trade="Leur ADC va last hit : tu le zones ou tu l'engages.", combo='Nautilus',
+             cover="Tu roam au mid : ton ADC reste en sécurité, ton jungler couvre le bot.",
+             tempo="Vision, roams et objectifs.", vision="Les entrées de jungle et la rivière avant un objectif."),
+ 'jungle': dict(trade="Un laner adverse s'avance trop : c'est une fenêtre de gank.", combo='Lee Sin',
+             cover="Tu restes près d'une lane pour couvrir son crash, sans forcément chercher un kill.",
+             tempo="Camps, déplacements et objectifs.", vision="Les entrées de ta jungle et celles de l'adversaire."),
+}
+
+
+def patterns(lane, niv):
+    e = EX[lane]
+    return [dict(kind='cards', niv=niv, kick='Les patterns', title='À quel moment j’utilise mon combo, et pourquoi ?', cols=3, champ=e['combo'],
+        cards=[('⚡ Trade court', '#ffb347', ["Un ou deux sorts, puis tu recules.", "Tu gardes une menace pour la suite."]),
+               ('🗡️ Trade prolongé', '#ff6b6b', ["Tu restes dans l'échange.", "Il faut plus de sbires et plus de PV."]),
+               ('💥 All-in', '#b48cff', ["Tout ton combo pour le kill.", "Seulement si les infos disent que ça passe."]),
+               ('🔍 Un sort, puis observer', '#5aa9ff', ["Commence par un sort, regarde sa réponse, puis décide."]),
+               ('🛡️ Le sort gardé', '#5fd39a', ["Garder un sort important pour répondre ou menacer."]),
+               ('⏱️ La fenêtre de faiblesse', '#d4ab4f', ["Ses sorts sont lancés : il est vulnérable quelques secondes."])],
+        foot=e['trade'])]
+
+
+def deny(lane, niv):
+    s = [dict(kind='cards', niv=niv, kick='Gold et expérience', title='Priver l’adversaire de ressources', cols=2,
+        cards=[('💰 Empêcher le last hit', '#ffb347', ["Il perd le gold du sbire.",
+                                                     "Mais s'il est assez proche, il prend quand même l'XP."]),
+               ('📈 Empêcher l’accès à l’XP', '#5aa9ff', ["Il doit rester trop loin pour recevoir l'XP du sbire.",
+                                                        "Ça peut créer un très gros avantage, surtout au top (duels, niveaux)."])],
+        foot="Ne t'expose pas pour autant : ne perds pas tes propres ressources, et pense au jungler adverse."),
+         dict(kind='std', niv=niv, kick='Gold ou XP ?', title='Le meilleur compromis',
+        bullets=["Parfois, il vaut mieux garder l'XP et renoncer à quelques last hits, plutôt que perdre les deux.",
+                 f"Dans l'ordre : {bold('ta survie')}, ton XP, ton gold, la position de la wave, les risques.",
+                 "Le gold reste important : ne le néglige jamais.",
+                 f"{bold('Cherche le meilleur compromis')} selon la situation."]
+                + (["Au bot, le support peut zoner pendant que l'ADC prend les ressources."] if lane in ('adc', 'support') else [])
+                + (["Au mid, les roams et les déplacements rendent le zoning plus difficile à tenir."] if lane == 'mid' else []))]
+    if lane in ('top', 'mid', 'adc'):
+        s.append(dict(kind='std', niv=niv, kick='Le repère du coach', title='15 CS, c’est (à peu près) un kill',
+            bigs=[('15 CS', '≈ 250 à 300 golds selon les sbires'), ('1 kill', '≈ 300 golds, + la pression')],
+            bullets=["C'est un ordre de grandeur, pas une égalité exacte : ça dépend des sbires, des canons et du moment.",
+                     "Un kill apporte aussi de la pression et fait perdre des ressources à l'adversaire.",
+                     f"Le message : {bold('tu peux gagner ta lane sans tuer ton adversaire')}."]))
+    return s
+
+
+def after_kill(lane, niv):
+    return [dict(kind='std', niv=niv, kick='Après un kill', title='Deux questions, tout de suite',
+        bigs=[('1', 'Qu’est-ce que je fais avec ma wave ?'), ('2', 'Où est le jungler adverse ?')],
+        bullets=["Pousser, crash, garder la wave, la laisser évoluer, back, prendre plus de ressources, demander de l'aide.",
+                 "Ça dépend : position et taille de la wave, tes PV, son temps de retour, le jungler, le risque de perdre des waves.",
+                 f"{bold('Prépare tes options avant')} que la situation arrive : tu décides vite."],
+        size=32),
+         dict(kind='quiz', niv=niv, q="Tu viens de le tuer, ta wave est grosse et avance. Le jungler adverse a été vu de l'autre côté. Tu fais quoi ?",
+        ch=["Je back tout de suite", "Je crash la wave sous sa tour, puis je back", "Je reste à côté de sa tour sans rien faire"], good=1,
+        why="Il est mort et son jungler est loin : crash la wave fait perdre de l'XP et des golds à l'adversaire, puis tu back tranquille.")]
+
+
+def tracking(lane, niv):
+    side = {'top': 'au top', 'mid': 'au mid', 'adc': 'au bot', 'support': 'au bot', 'jungle': 'dans ta jungle'}[lane]
+    s = [dict(kind='std', niv=niv, kick='Le jungle tracking', title='Où est son jungler ?',
+        bullets=["Où a-t-il commencé ? Quels mouvements sont possibles ? De quel côté est-il sûrement ?",
+                 f"Quand peut-il arriver {side} ? Ce qui a été vu, et ce qui reste inconnu.",
+                 "Risque de gank ? Adapte ton placement, pose une ward, baisse ton agressivité, demande une couverture, prépare un crash.",
+                 f"{bold('Une position supposée n’est pas une certitude')}."]
+                + (["Toi, tu connais tout le pathing : les laners, eux, ont besoin des infos utiles pour leur lane."] if lane == 'jungle' else []),
+        size=33),
+         dict(kind='map', niv=niv, kick='Le jungle tracking', title='Vu, supposé, dangereux',
+        maps=[dict(marks=[(80, 30, '👁️', 'vu à 1:30', '#5aa9ff'), (60, 22, '❔', 'peut-être ici', '#d4ab4f'),
+                          (22, 22, '⚠️', 'zone à risque', '#ff6b6b')],
+                   arrows=[(78, 34, 62, 26, '#d4ab4f', True), (58, 24, 28, 24, '#ff6b6b', True)])],
+        bullets=["👁️ Ce qui a été vu : une certitude, mais à un instant.",
+                 "❔ Ce qu'on suppose : des chemins possibles.",
+                 "⚠️ Les zones dangereuses : là où il peut arriver.",
+                 "Le tracking sert à mieux décider, pas à deviner exactement."], size=28)]
+    return s
+
+
+def vision(lane, niv):
+    e = EX[lane]
+    return [dict(kind='std', niv=niv, kick='La vision', title='Lire la vision, pas seulement poser des wards',
+        bullets=["Les wards alliées, les wards adverses connues, les zones surveillées, les zones sans vision.",
+                 f"{bold('Tu veux flank ?')} Pense à leurs wards : s'ils t'ont vu arriver, la surprise disparaît.",
+                 "Ne révèle pas tes intentions pour rien : utilise le fog of war.",
+                 f"Chez toi : {e['vision']}"], size=34)]
+
+
+def sides(lane, niv):
+    sp = {'top': "Weakside au top : absorbe la pression, garde ton XP, ne meurs pas pour rien.",
+          'mid': "Le mid est rarement oublié, mais il peut jouer weakside pour libérer le jungler ailleurs.",
+          'adc': "Weakside au bot : farme en sécurité, garde tes PV et ton XP, tu scales.",
+          'support': "Weakside au bot : protège ton ADC, ward, et donne les infos.",
+          'jungle': "C'est souvent toi qui décides où vont les ressources : explique-le à tes laners."}[lane]
+    return [dict(kind='cards', niv=niv, kick='Weakside et strongside', title='Où l’équipe met ses ressources', cols=2,
+        cards=[('💪 Strongside', '#ffb347', ["L'équipe y met plus de ressources, de présence, d'aide.",
+                                            "Selon : plan de jeu, draft, pathing, matchups, objectifs, dives.",
+                                            "Strongside ne veut pas dire gagner automatiquement."]),
+               ('🛡️ Weakside', '#5aa9ff', ["Moins d'aide : joue plus prudent, limite tes pertes, garde ton XP.",
+                                         "Évite les morts inutiles, accepte certains désavantages, communique.",
+                                         "Weakside ne veut pas dire abandonné, ni forcément plus de ganks."])],
+        foot=sp),
+         dict(kind='map', niv=niv, kick='Weakside et strongside', title='Deux plans de jeu possibles',
+        maps=[dict(title='Plan bot', marks=[(18, 82, '🌲', 'jungler', '#5fd39a'), (82, 88, '💪', 'strongside', '#ffb347'), (9, 18, '🛡️', 'weakside', '#5aa9ff')],
+                   arrows=[(22, 80, 70, 86, '#5fd39a', True)]),
+              dict(title='Plan top', marks=[(18, 30, '🌲', 'jungler', '#5fd39a'), (12, 12, '💪', 'strongside', '#ffb347'), (88, 90, '🛡️', 'weakside', '#5aa9ff')],
+                   arrows=[(20, 34, 12, 20, '#5fd39a', True)])],
+        foot="En équipe : dites quelle lane reçoit les ressources, pourquoi, et quoi faire si le plan ne marche pas.")]
+
+
+def cover(lane, niv):
+    e = EX[lane]
+    return [dict(kind='cards', niv=niv, kick='Le jungler n’est pas là que pour tuer', title='Gank, cover, countergank, aide au crash', cols=2,
+        cards=[('⚔️ Gank', '#ff6b6b', ["Le jungler vient pour tuer ou faire flash."]),
+               ('🛡️ Cover', '#5aa9ff', ["Il reste à côté pour sécuriser ton action.", e['cover']]),
+               ('🔁 Countergank', '#b48cff', ["Il anticipe un gank adverse et se place pour y répondre."]),
+               ('🌊 Aide au crash', '#5fd39a', ["Il t'aide à pousser ta wave pour débloquer la situation et back."])],
+        foot="« On n'est pas obligé d'appeler le jungler uniquement pour obtenir un gank. »")]
+
+
+def tempo(lane, niv):
+    e = EX[lane]
+    return [dict(kind='std', niv=niv, kick='La tempo', title='La tempo, c’est quoi ?',
+        para="Les moments où toi ou ton équipe pouvez agir, bouger ou préparer une action dans de bonnes conditions, "
+             "selon vos ressources, vos waves, vos positions et ce que peut faire l'adversaire.",
+        bullets=["Back au bon moment, revenir avant l'adversaire, poser la vision, aider le jungler, préparer un objectif, prendre une tour.",
+                 "Les cooldowns (R, flash) comptent, mais ils ne font pas toute la tempo.",
+                 f"Pour toi : {e['tempo']}"], size=32),
+         dict(kind='path', niv=niv, kick='La tempo', title='Une bonne wave crée du temps',
+        steps=['🌊 Wave', '💥 Crash', '🏠 Back ou déplacement', '🎯 Action', '🔁 Retour sur la carte'],
+        bullets=["Tu crash : la wave pousse chez eux, tu as du temps pour faire autre chose.",
+                 "Tu ne crash pas : tu perds des sbires dès que tu pars.",
+                 f"{bold('Compare toujours')} ce que rapporte le déplacement et ce qu'il te coûte."]),
+         dict(kind='cards', niv=niv, kick='La tempo', title='Ta fenêtre, ou la leur ?', cols=2,
+        cards=[('🔥 Votre fenêtre', '#ffb347', ["Vous avez vos R, vos flashs, vos PV, des waves qui poussent.",
+                                              "C'est le moment de préparer ou de lancer une action."]),
+               ('🧊 Leur fenêtre', '#5aa9ff', ["Vous venez de tout utiliser, vous devez back.",
+                                             "L'initiative peut passer chez eux : ralentissez, évitez l'engage."])],
+        foot="Ce n'est jamais automatique : ça dépend aussi des waves, des objectifs, des champions et des infos."),
+         dict(kind='std', niv=niv, kick='La tempo', title='Punir une erreur de tempo',
+        bullets=["Une équipe a tout utilisé et continue d'avancer sans les moyens de se battre : c'est le moment de la punir.",
+                 "À l'inverse, une équipe en avance garde sa capacité à engager : respecte-la.",
+                 f"Le but n'est pas de fight {bold('à chaque R adverse indisponible')}, mais de reconnaître les vraies bonnes occasions."])]
+
+
+def intentions(lane, niv):
+    return [dict(kind='cards', niv=niv, kick='Dans la tête de l’adversaire', title='« Il faut être dans la tête de son adversaire »', cols=2,
+        cards=[('🔎 Lire ses intentions', '#5aa9ff', ["Quel est son objectif ? Quelle wave veut-il ?",
+                                                     "Pourquoi avance-t-il, pourquoi recule-t-il ?",
+                                                     "Cherche-t-il un trade ? Attend-il son jungler ?",
+                                                     "Veut-il back, roam, ou te piéger ?"]),
+               ('🎭 Ne pas être un livre ouvert', '#ffb347', ["Varie tes timings et tes positions.",
+                                                            "Utilise le fog, garde des menaces crédibles.",
+                                                            "Adapte tes trades, contrôle les infos que tu donnes.",
+                                                            "Varier, oui, mais avec un plan logique, pas au hasard."])])]
+
+
+def first_self(lane, niv):
+    return [dict(kind='std', niv=niv, kick='Le mindset', title='D’abord ton propre jeu',
+        bullets=["Comprendre ton champion, tes matchups, tes trades, ta wave, tes backs, tes erreurs.",
+                 "Tes alliés te demandent beaucoup : ne sacrifie pas ta lane à chaque demande.",
+                 f"{bold('Ne pas pouvoir aider à un moment')} ne veut pas dire mal jouer.",
+                 "Mais ce n'est pas une excuse pour ignorer l'équipe : reconnais les actions vraiment utiles.",
+                 "Le but : une bonne maîtrise perso, et une bonne disponibilité pour l'équipe."], size=34)]
+
+
+def structures(lane, niv):
+    return [dict(kind='std', niv=niv, kick='Les objectifs', title='« Les tours sont aussi des objectifs »',
+        bullets=["League ne se résume pas aux dragons et au Baron : les tours et les inhibiteurs mènent au Nexus.",
+                 "Un fight trop dangereux sur un objectif ? Prenez des ressources ou une tour ailleurs.",
+                 f"Un échange n'est pas gratuit : {bold('compare ce que vous prenez et ce que vous laissez')}.",
+                 "Toutes les tours ne valent pas plus que tous les objectifs : ça se décide à chaque fois."], size=34)]
