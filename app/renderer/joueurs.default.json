@@ -156,7 +156,33 @@
       "bandeau": {
         "texte": "🌠 Étoile montante",
         "theme": "star"
-      }
+      },
+      "fonds": [
+        {
+          "champ": "MissFortune",
+          "skin": 16
+        },
+        {
+          "champ": "MissFortune",
+          "skin": 69
+        },
+        {
+          "champ": "Zeri",
+          "skin": 19
+        },
+        {
+          "champ": "Xayah",
+          "skin": 26
+        },
+        {
+          "champ": "Kaisa",
+          "skin": 70
+        },
+        {
+          "champ": "Kaisa",
+          "skin": 71
+        }
+      ]
     },
     {
       "role": "Support",

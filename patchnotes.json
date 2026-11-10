@@ -2,6 +2,18 @@
  "versions": [
   {
    "contenu": true,
+   "id": "c-2026-11-10-fond-theworld",
+   "date": "2026-11-10",
+   "titre": "Skins en fond pour The World",
+   "items": [
+    [
+     "new",
+     "The World a ses skins préférés en fond de sa carte et de son profil, en alternance : Miss Fortune déesse des flingues, MVP T1 Miss Fortune, Zeri du Voyage immortel, Xayah phénix courageux prestige, Kai'Sa légende transcendée et Kai'Sa légende immortalisée."
+    ]
+   ]
+  },
+  {
+   "contenu": true,
    "id": "c-2026-11-10-fond-frost",
    "date": "2026-11-10",
    "titre": "Skin en fond pour Frost tham",
