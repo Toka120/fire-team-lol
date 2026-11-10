@@ -3552,9 +3552,10 @@
       }));
       nodes.push(h('div', { class: 'card plan-day' + (past ? ' past' : '') + (d === t ? ' today' : '') },
         h('div', { class: 'plan-head' },
-          h('div', null, h('div', { class: 'plan-date' }, cap(dayFr(d)), d === t ? h('span', { class: 'plan-tag' }, "aujourd'hui") : null),
-            h('div', { class: 'plan-hours' }, '🕒 ', hourBlocks(j.heures), h('span', { class: 'plan-type' }, type[1])),
-            j.note ? h('div', { class: 'muted small' }, '📝 ' + j.note) : null),
+          h('div', null, h('div', { class: 'plan-date' }, cap(dayFr(d)), d === t ? h('span', { class: 'plan-tag' }, "aujourd'hui") : null,
+              // La note du coach, en gros à côté de la date : c'est l'info importante du jour.
+              j.note ? h('span', { class: 'plan-note' }, '📝 ' + j.note) : null),
+            h('div', { class: 'plan-hours' }, '🕒 ', hourBlocks(j.heures), h('span', { class: 'plan-type' }, type[1]))),
           h('div', { class: 'plan-count' },
             h('span', { class: 'st-ok' }, `✅ ${cnt.present}`), h('span', { class: 'st-warn' }, `❔ ${cnt.incertain}`), h('span', { class: 'st-bad' }, `❌ ${cnt.absent}`),
             cnt.none ? h('span', { class: 'muted' }, `⏳ ${cnt.none}`) : null,

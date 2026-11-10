@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.36",
+   "date": "2026-11-10",
+   "titre": "Planning : la note du coach en gros",
+   "items": [
+    [
+     "improve",
+     "Planning : la note du coach pour un jour s'affiche maintenant en gros, encadrée en doré, juste à côté de la date."
+    ]
+   ]
+  },
+  {
    "v": "1.10.35",
    "date": "2026-11-10",
    "titre": "Chef d'équipe",

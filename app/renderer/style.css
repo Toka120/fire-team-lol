@@ -1219,3 +1219,7 @@ button.dr-row:hover{border-color:var(--line);background:var(--panel2)}
 .pcard.captain:hover,.pcard.captain:focus-visible{border-color:#f5c542;box-shadow:0 10px 30px rgba(245,197,66,.22)}
 .pcap{position:absolute;top:0;left:0;right:0;padding:6px 12px;text-align:center;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#2a1a05;background:linear-gradient(90deg,#f5c542,#e8902a,#f5c542)}
 .tag.tag-cap{border-color:#e8b64c;background:linear-gradient(90deg,#f5c542,#e8902a);color:#2a1a05;font-weight:800}
+/* Note du coach sur un jour du planning : en gros, à côté de la date */
+.plan-date{flex-wrap:wrap}
+.plan-note{margin-left:10px;padding:6px 14px;border-radius:10px;font-size:19px;font-weight:800;letter-spacing:.01em;color:#ffd27a;background:rgba(255,179,71,.12);border:1px solid rgba(255,179,71,.55);box-shadow:0 0 18px rgba(255,140,40,.12)}
+.plan-day.past .plan-note{opacity:.6}
