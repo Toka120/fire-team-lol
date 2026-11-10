@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "1.10.57",
+   "date": "2026-11-10",
+   "titre": "Clic droit sur les streams, comme sur Discord",
+   "items": [
+    [
+     "new",
+     "Clic droit sur un partage d'écran (ou bouton ⋯ dessus) : Arrêter de regarder, Rendre muet, Volume du stream, Ouvrir le stream dans une petite fenêtre (qui reste par-dessus tes autres fenêtres), Plein écran."
+    ],
+    [
+     "new",
+     "Atténuation du stream : le son du stream baisse tout seul quand quelqu'un parle dans le salon, puis remonte. La force de l'atténuation se règle dans le même menu. Activée par défaut."
+    ],
+    [
+     "new",
+     "Pas de son sur un stream ? « Demander le son à X » dans le clic droit : la personne qui partage reçoit la demande et choisit « Partager le son » ou « Non »."
+    ],
+    [
+     "new",
+     "Arrêter de regarder un stream le coupe vraiment (moins de connexion utilisée) ; une case « Regarder » permet de le reprendre."
+    ],
+    [
+     "new",
+     "Clic droit sur un participant : son volume et « Rendre muet pour moi »."
+    ]
+   ]
+  },
+  {
    "v": "1.10.56",
    "date": "2026-11-10",
    "titre": "Salon vocal : plus d'initiales sur les vidéos",

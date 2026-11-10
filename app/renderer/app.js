@@ -1604,7 +1604,7 @@
   }
   function vocalSig(v) {
     return JSON.stringify([v.on, v.joining, v.err, v.mute, v.deaf, v.monitor, !!v.cam, !!v.screen, v.lmute,
-      v.members.filter((m) => m.ok).map((m) => [m.slug, m.remote]).sort(), v.videos.map((x) => x.slug + x.kind + (x.sound ? 's' : '')).sort(), v.svol, v.cfg.streamSound, v.screenAudio]);
+      v.members.filter((m) => m.ok).map((m) => [m.slug, m.remote]).sort(), v.videos.map((x) => x.slug + x.kind + (x.sound ? 's' : '')).sort(), v.svol, v.cfg.streamSound, v.screenAudio, v.unwatch]);
   }
   // Salon libre : toute l'équipe arrive dans le même salon, sans code.
   // Plusieurs salons : le salon de l'équipe, deux salons duo et un salon de coaching perso (2 places).
@@ -1812,6 +1812,7 @@
       }
     });
     if (window.fire.keys) { window.fire.keys.on(keyAction); setTimeout(() => syncKeys(true), 1500); }
+    FV().onSoundRequest(soundAsk);
     // Définition reçue de chaque écran partagé (petit badge en haut à gauche de la vidéo).
     setInterval(async () => {
       if (S.section !== 'vocal' || !FV().state().on || !document.querySelector('.vt-q')) return;
@@ -1845,6 +1846,70 @@
     }, 1500);
   }
 
+  // Menu clic droit (comme sur Discord) : sur un stream ou sur un participant.
+  function vctxClose() { const m = document.getElementById('vctx'); if (m) m.remove(); document.removeEventListener('mousedown', vctxOut, true); document.removeEventListener('keydown', vctxEsc, true); }
+  function vctxOut(e) { if (!e.target.closest('#vctx')) vctxClose(); }
+  function vctxEsc(e) { if (e.key === 'Escape') vctxClose(); }
+  function vctxOpen(x, y, build) {
+    vctxClose();
+    const m = h('div', { id: 'vctx', oncontextmenu: (e) => e.preventDefault() });
+    const paint = () => m.replaceChildren(...build(paint).filter(Boolean));
+    paint(); document.body.append(m);
+    const r = m.getBoundingClientRect();
+    m.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px';
+    m.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px';
+    setTimeout(() => { document.addEventListener('mousedown', vctxOut, true); document.addEventListener('keydown', vctxEsc, true); }, 0);
+  }
+  const cxItem = (label, fn, ico, cls) => h('button', { class: 'cx-item' + (cls ? ' ' + cls : ''), onclick: fn }, ico ? vi(ico) : null, h('span', null, label));
+  const cxCheck = (label, on, fn, hint) => h('button', { class: 'cx-item cx-chk', onclick: fn }, h('span', { class: 'cx-l' }, label, hint ? h('small', null, hint) : null), h('span', { class: 'vm-box' + (on ? ' on' : '') }, on ? vi('check') : null));
+  const cxRange = (label, val, min, max, fn) => { const out = h('span', { class: 'vs-rv' }, Math.round(val * 100) + ' %');
+    return h('div', { class: 'cx-range' }, h('label', null, label), h('div', { class: 'vs-range' }, h('input', { type: 'range', min, max, step: 0.05, value: val, oninput: (e) => { out.textContent = Math.round(e.target.value * 100) + ' %'; fn(Number(e.target.value)); } }), out)); };
+  const cxSep = () => h('div', { class: 'cx-sep' });
+  function streamMenu(t, box, x, y) {
+    vctxOpen(x, y, (paint) => {
+      const v = FV().state();
+      const vid = (box.querySelector(':scope > video'));
+      const hasSnd = !!(v.videos.find((z) => z.slug === t.slug && z.kind === 'screen') || {}).sound;
+      const so = (v.svol || {})[t.slug] || {};
+      const sndOn = so.on == null ? v.cfg.streamSound !== false : so.on;
+      const vol = so.vol ?? 0.8;
+      return [
+        cxItem('Arrêter de regarder', () => { vctxClose(); FV().watchStream(t.slug, false); }, 'camOff'),
+        cxSep(),
+        hasSnd ? cxCheck('Rendre muet', !sndOn, () => { FV().setStreamSound(t.slug, { on: !sndOn }); paint(); }) : null,
+        hasSnd ? cxRange('Volume du stream', vol, 0, 1.5, (n) => FV().setStreamSound(t.slug, { vol: n, on: true })) : null,
+        !hasSnd ? cxItem(`Demander le son à ${vocalName(t.slug)}`, () => { const ok = FV().requestSound(t.slug); vctxClose(); vocalToast(ok ? `Demande envoyée à ${vocalName(t.slug)}` : 'Demande impossible pour le moment', ok); }, 'vol') : null,
+        !hasSnd ? h('p', { class: 'cx-note' }, `${vocalName(t.slug)} ne partage pas le son de son PC.`) : null,
+        cxSep(),
+        vid && document.pictureInPictureEnabled ? cxItem('Ouvrir le stream dans une petite fenêtre', () => { vctxClose(); vid.requestPictureInPicture().catch(() => {}); }, 'focus') : null,
+        cxItem('Plein écran', () => { vctxClose(); fullscreen(box); }, 'full'),
+        cxSep(),
+        cxCheck('Atténuation du stream', v.cfg.duck !== false, () => { FV().setCfg({ duck: v.cfg.duck === false }); setTimeout(paint, 50); }, 'Réduit automatiquement le volume du stream lorsque les gens parlent.'),
+        v.cfg.duck !== false ? cxRange('Force d’atténuation du stream', v.cfg.duckAmt ?? 0.5, 0, 1, (n) => FV().setCfg({ duckAmt: n })) : null
+      ];
+    });
+  }
+  function personMenu(t, x, y) {
+    vctxOpen(x, y, (paint) => {
+      const v = FV().state();
+      const lm = !!v.lmute[t.slug];
+      return [
+        h('div', { class: 'cx-head' }, vocalName(t.slug)),
+        cxRange('Volume', v.vols[t.slug] ?? 1, 0, 2, (n) => FV().setVol(t.slug, n)),
+        cxCheck('Rendre muet pour moi', lm, () => { FV().setLocalMute(t.slug, !lm); setTimeout(paint, 50); })
+      ];
+    });
+  }
+  // Quelqu'un demande le son de mon partage d'écran : je choisis.
+  function soundAsk(from) {
+    let zone = document.getElementById('vtoasts');
+    if (!zone) { zone = h('div', { id: 'vtoasts' }); document.body.append(zone); }
+    const t = h('div', { class: 'vtoast ask' }, h('span', { class: 'dot' }), h('span', null, `${vocalName(from)} voudrait entendre le son de ton stream.`),
+      h('button', { class: 'vm-btn', onclick: () => { t.remove(); FV().addScreenSound(); } }, 'Partager le son'),
+      h('button', { class: 'vs-btn', onclick: () => t.remove() }, 'Non'));
+    zone.append(t);
+    setTimeout(() => { if (t.isConnected) t.remove(); }, 25000);
+  }
   function vocalToast(text, up) {
     let zone = document.getElementById('vtoasts');
     if (!zone) { zone = h('div', { id: 'vtoasts' }); document.body.append(zone); }
@@ -2004,7 +2069,9 @@
     const ringScreen = load('fire.vocal.screenring', false);
     const pip = load('fire.vocal.pip', false);
     const pipOf = (slug) => (pip && screens.some((x) => x.slug === slug) ? camOf(slug) : null);
-    const allTiles = screens.map((x) => ({ ...x, kind: 'screen', pipCam: pipOf(x.slug) }))
+    // Streams que j'ai arrêté de regarder : une case « Regarder » à la place.
+    const off = v.members.filter((m) => m.ok && m.remote && m.remote.screen && (v.unwatch || []).includes(m.slug)).map((m) => ({ key: m.slug + ':off', slug: m.slug, kind: 'screenoff' }));
+    const allTiles = screens.map((x) => ({ ...x, kind: 'screen', pipCam: pipOf(x.slug) })).concat(off)
       .concat(people.filter((p) => !pipOf(p.slug)).map((p) => ({ key: p.slug + ':p', slug: p.slug, kind: 'person', p, stream: camOf(p.slug), mine: p.slug === me })));
     // « Afficher les participants sans vidéo » décoché : seules les vidéos restent (s'il y en a).
     const hideNoVid = !load('fire.vocal.novideo', true) && allTiles.some((t) => t.stream);
@@ -2018,13 +2085,19 @@
     if (layout === 'focus' && !VX.focus) VX.focus = (screens[0] || tiles[0]).key;
     const setLayout = (l, key) => { save('fire.vocal.layout', l); VX.focus = key || null; renderVocal(); };
     const tileEl = (t, small) => {
+      if (t.kind === 'screenoff') {
+        return h('div', { class: 'vt screenoff' + (small ? ' small' : '') },
+          h('div', { class: 'vt-off' }, vi('screen'), h('b', null, `${vocalName(t.slug)} partage son écran`),
+            h('button', { class: 'vm-btn', onclick: (e) => { e.stopPropagation(); FV().watchStream(t.slug, true); } }, 'Regarder')));
+      }
       const r = (t.p && t.p.remote) || {};
       const pl = playerOf(t.slug);
       const f = (pl.fonds || [])[0];
       const lm = !!v.lmute[t.slug];
       const vol = v.vols[t.slug] ?? 1;
       const box = h('div', { class: 'vt ' + t.kind + (small ? ' small' : '') + (t.stream ? ' has-video' : '') + (lm ? ' lm' : ''), 'data-vslug': t.kind === 'person' || (t.kind === 'screen' && ringScreen) ? t.slug : null,
-        ondblclick: () => fullscreen(box), onclick: (e) => { if (e.target.closest('.vt-menu, .vt-tools')) return; if (layout === 'focus' && VX.focus === t.key) setLayout('grid'); else setLayout('focus', t.key); } });
+        ondblclick: () => fullscreen(box), onclick: (e) => { if (e.target.closest('.vt-menu, .vt-tools')) return; if (layout === 'focus' && VX.focus === t.key) setLayout('grid'); else setLayout('focus', t.key); },
+        oncontextmenu: (e) => { if (t.mine) return; e.preventDefault(); if (t.kind === 'screen') streamMenu(t, box, e.clientX, e.clientY); else if (t.kind === 'person') personMenu(t, e.clientX, e.clientY); } });
       // Vidéo (caméra ou écran) : elle prend toute la case, sans initiales par-dessus.
       // Pas de vidéo : le skin préféré en fond et les initiales.
       if (t.stream) box.append(vidEl(t.kind === 'screen' ? t.key : t.slug + ':cam', t.stream, t.mine && t.kind === 'person'));
@@ -2047,7 +2120,7 @@
         h('button', { title: 'Plein écran (Échap pour sortir)', onclick: () => fullscreen(box) }, vi('full')),
         t.kind === 'person' && !t.mine ? h('button', { title: 'Volume', onclick: () => { VX.menu = VX.menu === t.slug ? null : t.slug; renderVocal(); } }, vi('vol')) : null,
         hasSnd ? h('button', { title: sndOn ? 'Couper le son du stream' : 'Entendre le son du stream', class: sndOn ? '' : 'off', onclick: () => FV().setStreamSound(t.slug, { on: !sndOn }) }, vi(sndOn ? 'vol' : 'headOff')) : null,
-        hasSnd ? h('button', { title: 'Volume du stream', onclick: () => { VX.menu = VX.menu === t.key ? null : t.key; renderVocal(); } }, vi('gear')) : null);
+        t.kind === 'screen' && !t.mine ? h('button', { title: 'Options du stream (ou clic droit)', onclick: (e) => { const r = e.currentTarget.getBoundingClientRect(); streamMenu(t, box, r.left - 200, r.bottom + 6); } }, vi('more')) : null);
       box.append(tools);
       if (VX.menu === t.key && hasSnd) {
         box.append(h('div', { class: 'vt-menu' },

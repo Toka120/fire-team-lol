@@ -1460,3 +1460,25 @@ kbd{font:600 11px/1 ui-monospace,Consolas,monospace;padding:4px 7px;border-radiu
 .vt-st.snd{background:rgba(61,220,132,.85);color:#062214}
 .vt-tools button.off{background:rgba(239,90,90,.85)}
 .vc-pick-snd{margin:4px 0 10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+
+/* Menu clic droit du salon (stream, participant) */
+#vctx{position:fixed;z-index:1100;width:280px;padding:6px;border-radius:12px;background:#111214;border:1px solid rgba(255,255,255,.1);box-shadow:0 18px 44px rgba(0,0,0,.6);animation:vsFade .1s ease}
+.cx-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;border-radius:7px;background:none;color:var(--fg);font:inherit;font-size:14px;font-weight:600;text-align:left;cursor:pointer}
+.cx-item:hover{background:#5865f2;color:#fff}
+.cx-item .vi{width:18px;height:18px}
+.cx-chk{justify-content:space-between}
+.cx-l{display:flex;flex-direction:column;gap:3px}
+.cx-l small{font-size:12px;font-weight:500;color:var(--muted);line-height:1.35}
+.cx-item:hover .cx-l small{color:rgba(255,255,255,.85)}
+.cx-range{padding:6px 10px 8px;display:flex;flex-direction:column;gap:6px}
+.cx-range label{font-size:14px;font-weight:600}
+.cx-range input{accent-color:#5865f2}
+.cx-sep{height:1px;margin:4px 6px;background:rgba(255,255,255,.08)}
+.cx-head{padding:8px 10px 4px;font-weight:800;font-size:14px}
+.cx-note{margin:0 10px 6px;font-size:12px;color:var(--muted)}
+.vt.screenoff{cursor:default;background:repeating-linear-gradient(135deg,#141214 0 14px,#161417 14px 28px)}
+.vt-off{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;color:var(--muted)}
+.vt-off .vi{width:30px;height:30px}
+.vt-off b{color:var(--fg)}
+.vtoast.ask{pointer-events:auto;gap:10px}
+.vtoast.ask .dot{background:#5865f2}

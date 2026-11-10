@@ -9,7 +9,7 @@
   'use strict';
   const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }];
   const CFG_KEY = 'fire.vocal.cfg', VOL_KEY = 'fire.vocal.vols', LMUTE_KEY = 'fire.vocal.lmute';
-  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, vad: 'auto', recvQ: 'auto', streamSound: true, ec: true, agc: true, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15 };
+  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, vad: 'auto', recvQ: 'auto', streamSound: true, duck: true, duckAmt: 0.5, ec: true, agc: true, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15 };
   const rd = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   const wr = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
 
@@ -171,6 +171,7 @@
       set(V.me, !V.mute && V.gateOpen && V.level > 25);
       for (const [s, k] of Object.entries(V.conns)) set(s, !!(k.out && !V.lmute[s] && k.out.level() > 9));
     }
+    duckTick();
     if (ch) emit();
   }
   function startTick() { if (!V.timer) V.timer = setInterval(tick, 20); }
@@ -185,6 +186,10 @@
     k.ctl = dc;
     dc.on('open', () => { try { dc.send(myState()); } catch (e) { /* */ } });
     dc.on('data', (msg) => {
+      // Un spectateur demande le son de mon partage d'écran : c'est moi qui décide (fenêtre de confirmation).
+      if (msg && msg.t === 'snd?' && V.screen && V.onSndReq) { V.onSndReq(slug); return; }
+      // Un spectateur qui avait arrêté de regarder veut revoir mon écran : on lui renvoie le flux.
+      if (msg && msg.t === 'resend' && V.screen) { closeVout(slug, 'screen'); setTimeout(() => sendVideo(slug, 'screen'), 300); return; }
       const kk = V.conns[slug]; if (!kk || !msg || msg.t !== 'st') return;
       const qBefore = kk.remote && kk.remote.q;
       kk.remote = { mute: !!msg.mute, deaf: !!msg.deaf, cam: !!msg.cam, screen: !!msg.screen, q: ['auto', 'high', 'medium', 'low'].includes(msg.q) ? msg.q : 'auto' };
@@ -208,10 +213,43 @@
     const slug = key.split(':')[0];
     const o = V.svol[slug] || {};
     const on = o.on == null ? V.cfg.streamSound !== false : o.on;
-    return V.deaf || !on ? 0 : (o.vol ?? 0.8);
+    return V.deaf || !on ? 0 : (o.vol ?? 0.8) * (V.duckF || 1);
+  }
+  // Atténuation : quand quelqu'un parle dans le salon, le son des streams baisse (réglable), puis remonte doucement.
+  V.duckF = 1;
+  function duckTick() {
+    const talking = V.cfg.duck !== false && Object.values(V.speaking).some(Boolean);
+    const target = talking ? 1 - Math.max(0, Math.min(1, V.cfg.duckAmt ?? 0.5)) : 1;
+    if (Math.abs(target - V.duckF) < 0.01) return;
+    V.duckF = target;
+    for (const [k, v] of Object.entries(V.vin)) if (v.snd && V.ctx) v.snd.g.gain.setTargetAtTime(streamGain(k), V.ctx.currentTime, talking ? 0.08 : 0.4);
+  }
+  // Arrêter de regarder un stream (on ne le reçoit plus du tout) ou le regarder de nouveau.
+  V.unwatch = {};
+  function watchStream(slug, on) {
+    if (on) {
+      delete V.unwatch[slug];
+      const k = V.conns[slug];
+      if (k && k.ctl && k.ctl.open) { try { k.ctl.send({ t: 'resend' }); } catch (e) { /* */ } }
+    } else { V.unwatch[slug] = true; closeVin(slug, 'screen'); }
+    emit();
   }
   function dropSnd(v) { if (v && v.snd) { try { v.snd.src.disconnect(); v.snd.g.disconnect(); v.snd.el.srcObject = null; } catch (e) { /* */ } v.snd = null; } }
   function applyStreamGains() { for (const [k, v] of Object.entries(V.vin)) if (v.snd) v.snd.g.gain.value = streamGain(k); }
+  // Demander le son du stream à celui qui partage (il doit accepter).
+  function requestSound(slug) {
+    const k = V.conns[slug];
+    if (!k || !k.ctl || !k.ctl.open) return false;
+    try { k.ctl.send({ t: 'snd?' }); return true; } catch (e) { return false; }
+  }
+  // Ajoute le son du PC à mon partage en cours : on relance la capture du même écran, avec le son.
+  async function addScreenSound() {
+    if (!V.screen || V.screen.getAudioTracks().length) return;
+    const src = V.screenSrc;
+    stopScreen();
+    await new Promise((r) => setTimeout(r, 300));
+    await startScreen(src, true);
+  }
   function setStreamSound(slug, patch) { V.svol[slug] = Object.assign({}, V.svol[slug] || {}, patch); wr(SV_KEY, V.svol); applyStreamGains(); emit(); }
   function closeVout(slug, kind) {
     for (const key of Object.keys(V.vout)) {
@@ -333,7 +371,7 @@
     call.on('error', gone);
   }
   function takeVideo(from, kind, call) {
-    if (!V.conns[from]) { try { call.close(); } catch (e) { /* */ } return; }
+    if (!V.conns[from] || (kind === 'screen' && V.unwatch[from])) { try { call.close(); } catch (e) { /* */ } return; }
     const key = from + ':' + kind;
     if (V.vin[key]) { try { V.vin[key].call.close(); } catch (e) { /* */ } }
     V.vin[key] = { call, stream: null };
@@ -383,7 +421,7 @@
       const fps = V.cfg.screenFps || 15;
       const st = await navigator.mediaDevices.getDisplayMedia({ audio, video: { frameRate: { ideal: fps, max: fps }, width: { max: 1920 }, height: { max: 1080 } } });
       st.getVideoTracks().forEach((t) => { t.contentHint = fps > 20 ? 'motion' : 'detail'; t.onended = stopScreen; });
-      V.screen = st; shareAll('screen'); broadcast(); emit();
+      V.screen = st; V.screenSrc = sourceId; shareAll('screen'); broadcast(); emit();
     } catch (e) { if (!(e && e.name === 'AbortError')) { V.err = 'partage d’écran impossible'; emit(); } }
   }
   function stopScreen() {
@@ -511,7 +549,7 @@
     stopCam(); stopScreen();
     Object.keys(V.conns).forEach((s) => drop(s, false));
     if (V.peer) { try { V.peer.destroy(); } catch (e) { /* */ } }
-    V.peer = null; V.on = false; V.speaking = {};
+    V.peer = null; V.on = false; V.speaking = {}; V.unwatch = {};
     if (!V.monitor) { closeMic(); clearInterval(V.timer); V.timer = null; V.level = 0; }
   }
   function leave() { if (!V.on) return; blip(false); clearInterval(L.beat); beacon(false); cleanup(); emit(); }
@@ -530,7 +568,7 @@
     }
     if (c.ai !== old.ai) wireMic();
     if (c.recvQ !== old.recvQ) broadcast();
-    if (c.streamSound !== old.streamSound) applyStreamGains();
+    if (c.streamSound !== old.streamSound || c.duck !== old.duck || c.duckAmt !== old.duckAmt) applyStreamGains();
     if (V.g && c.vad !== old.vad) V.g.delay.delayTime.value = c.vad === 'off' ? 0 : 0.08;
     if (V.raw && (c.mic !== old.mic || c.ns !== old.ns || c.ec !== old.ec || c.agc !== old.agc)) {
       try { await openMic(); } catch (e) { V.err = 'ce micro ne répond pas'; }
@@ -631,7 +669,8 @@
   }
 
   window.FireVoice = {
-    join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, setStreamSound, lobby, invite,
+    join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, setStreamSound, requestSound, addScreenSound, watchStream,
+    onSoundRequest: (f) => { V.onSndReq = f; }, lobby, invite,
     clearErr: () => { V.err = ''; emit(); },
     // Définition et images/s de chaque écran partagé que je reçois (affichées sur la vidéo).
     recvInfo: async () => {
@@ -671,6 +710,7 @@
       room: V.room,
       videos: Object.entries(V.vin).filter(([, v]) => v.stream).map(([key, v]) => ({ slug: key.split(':')[0], kind: key.split(':')[1], stream: v.stream, sound: !!v.snd })),
       screenAudio: !!(V.screen && V.screen.getAudioTracks().length),
+      unwatch: Object.keys(V.unwatch),
       svol: Object.assign({}, V.svol)
     })
   };
