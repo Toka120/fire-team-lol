@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.45",
+   "date": "2026-11-10",
+   "titre": "Menu ⋯ du salon vocal et invitations",
+   "items": [
+    [
+     "new",
+     "Nouveau menu ⋯ en bas à droite du salon, comme sur Discord : inviter dans le salon vocal, affichage en grille, afficher ma caméra, afficher les participants sans vidéo, afficher les arrivées et départs, et paramètres vocaux et vidéo."
+    ],
+    [
+     "new",
+     "Inviter dans le salon vocal : choisis un coéquipier (ou « Inviter tout le monde »). Il reçoit une notification Windows « X t'invite dans le salon vocal », même si FIRE est réduit près de l'horloge. FIRE indique qui a bien reçu l'invitation et chez qui FIRE est fermé."
+    ],
+    [
+     "improve",
+     "Quand quelqu'un rejoint ou quitte le salon, une petite bulle s'affiche quelques secondes en haut à droite (désactivable dans le menu ⋯)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.44",
    "date": "2026-11-10",
    "titre": "Nouveau salon vocal",

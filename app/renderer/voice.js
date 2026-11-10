@@ -378,8 +378,47 @@
     } catch (e) { return { mics: [], outs: [], cams: [] }; }
   }
 
+  // ---------- Invitations : chaque FIRE ouvert garde une petite adresse « hall » pour recevoir une invitation ----------
+  const L = { peer: null, prefix: '', me: null, ids: [], onInvite: null, last: {}, timer: null };
+  const lid = (slug) => L.prefix + 'hall' + slug.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
+  async function lobby(opts) {
+    if (!window.Peer || !opts || !opts.me) return;
+    const prefix = 'firelol-' + (await sha('FIRE-vocal:' + opts.code.trim().toUpperCase())).slice(0, 24) + '-';
+    L.ids = [...new Set(opts.ids.concat(opts.me))]; L.onInvite = opts.onInvite || L.onInvite;
+    if (L.peer && !L.peer.destroyed && L.me === opts.me && L.prefix === prefix) return;
+    if (L.peer) { try { L.peer.destroy(); } catch (e) { /* */ } }
+    L.prefix = prefix; L.me = opts.me;
+    const start = () => {
+      const p = L.peer = new window.Peer(lid(L.me), { debug: 0, config: { iceServers: ICE } });
+      p.on('connection', (dc) => {
+        const from = L.ids.find((x) => lid(x) === dc.peer);
+        if (!from || from === L.me) { try { dc.close(); } catch (e) { /* */ } return; }
+        dc.on('data', (m) => { if (m && m.t === 'invite' && L.onInvite) L.onInvite(from); setTimeout(() => { try { dc.close(); } catch (e) { /* */ } }, 500); });
+      });
+      p.on('disconnected', () => { setTimeout(() => { try { if (L.peer === p && !p.destroyed) p.reconnect(); } catch (e) { /* */ } }, 3000); });
+      // Adresse encore prise (relance rapide) ou serveur coupé : on réessaie un peu plus tard.
+      p.on('error', (e) => { if (e.type === 'unavailable-id' || e.type === 'network' || e.type === 'server-error') { clearTimeout(L.timer); L.timer = setTimeout(() => { if (L.peer === p) { try { p.destroy(); } catch (x) { /* */ } start(); } }, 15000); } });
+    };
+    start();
+  }
+  // Envoie une invitation : renvoie 'ok', 'off' (FIRE fermé chez lui) ou 'wait' (déjà invité il y a moins de 30 s).
+  function invite(slug) {
+    return new Promise((ok) => {
+      if (!L.peer || L.peer.destroyed || !L.peer.open) return ok('off');
+      if (Date.now() - (L.last[slug] || 0) < 30000) return ok('wait');
+      L.last[slug] = Date.now();
+      let done = false;
+      const end = (r) => { if (!done) { done = true; ok(r); } };
+      const onErr = (e) => { if (e && e.type === 'peer-unavailable' && String(e.message || '').includes(lid(slug))) end('off'); };
+      L.peer.on('error', onErr);
+      const dc = L.peer.connect(lid(slug), { reliable: true });
+      dc.on('open', () => { try { dc.send({ t: 'invite' }); } catch (e) { /* */ } end('ok'); setTimeout(() => { try { dc.close(); } catch (e) { /* */ } }, 1500); });
+      setTimeout(() => { L.peer && L.peer.off && L.peer.off('error', onErr); end('off'); }, 8000);
+    });
+  }
+
   window.FireVoice = {
-    join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue,
+    join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, lobby, invite,
     clearErr: () => { V.err = ''; emit(); },
     level: () => V.level, gateOpen: () => V.gateOpen,
     onChange: (f) => V.listeners.push(f),
