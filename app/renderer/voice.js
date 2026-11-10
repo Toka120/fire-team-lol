@@ -9,13 +9,13 @@
   'use strict';
   const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }];
   const CFG_KEY = 'fire.vocal.cfg', VOL_KEY = 'fire.vocal.vols', LMUTE_KEY = 'fire.vocal.lmute';
-  const DEF = { mic: '', out: '', cam: '', ns: true, ec: true, agc: true, hp: true, gain: 1, gate: 0, outVol: 1, sounds: true, screenFps: 15 };
+  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, vad: 'auto', ec: true, agc: true, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15 };
   const rd = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   const wr = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
 
   const V = {
     on: false, joining: false, err: '', me: null, prefix: '', ids: [], peer: null,
-    cfg: Object.assign({}, DEF, rd(CFG_KEY, {})), vols: rd(VOL_KEY, {}), lmute: rd(LMUTE_KEY, {}),
+    cfg: (() => { const c = Object.assign({}, DEF, rd(CFG_KEY, {})); if (!c.vad) { c.vad = 'auto'; c.gate = 20; } return c; })(), vols: rd(VOL_KEY, {}), lmute: rd(LMUTE_KEY, {}),
     mute: false, deaf: false, monitor: false, level: 0, gateOpen: false, gateUntil: 0,
     conns: {}, vout: {}, vin: {}, cam: null, screen: null, speaking: {}, listeners: [],
     ctx: null, g: null, raw: null, rawSrc: null, timer: null, probe: null
@@ -30,18 +30,27 @@
   const slugOf = (id) => V.ids.find((s) => pid(s) === id) || null;
 
   // ---------- Audio ----------
+  // Chaîne du micro : [suppression du bruit par IA (RNNoise)] → filtre anti-souffle → volume → (analyse)
+  //                    → petit retard de 80 ms → porte de bruit → envoi.
+  // Le retard laisse le temps de reconnaître une voix avant d'ouvrir la porte : le début des phrases n'est pas coupé,
+  // et un clic de clavier (trop court pour être une voix) ne l'ouvre pas.
   function audioCtx() {
     if (!V.ctx) {
-      const c = V.ctx = new AudioContext();
+      let c;
+      try { c = new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' }); } catch (e) { c = new AudioContext(); }
+      V.ctx = c;
       const g = V.g = {};
       g.master = c.createGain(); g.master.gain.value = V.cfg.outVol; g.master.connect(c.destination);
       g.hp = c.createBiquadFilter(); g.hp.type = 'highpass'; g.hp.frequency.value = V.cfg.hp ? 90 : 1;
       g.inGain = c.createGain(); g.inGain.gain.value = V.cfg.gain;
+      g.delay = c.createDelay(0.5); g.delay.delayTime.value = V.cfg.vad === 'off' ? 0 : 0.08;
       g.gate = c.createGain(); g.gate.gain.value = 0;
-      g.an = c.createAnalyser(); g.an.fftSize = 512; g.buf = new Uint8Array(512);
+      g.an = c.createAnalyser(); g.an.fftSize = 1024; g.an.smoothingTimeConstant = 0;
+      g.td = new Float32Array(1024); g.fd = new Float32Array(512);
       g.send = c.createMediaStreamDestination();
-      g.hp.connect(g.inGain); g.inGain.connect(g.an); g.inGain.connect(g.gate); g.gate.connect(g.send);
+      g.hp.connect(g.inGain); g.inGain.connect(g.an); g.inGain.connect(g.delay); g.delay.connect(g.gate); g.gate.connect(g.send);
       if (V.cfg.out && c.setSinkId) c.setSinkId(V.cfg.out).catch(() => {});
+      loadAi();
     }
     if (V.ctx.state === 'suspended') V.ctx.resume().catch(() => {});
     return V.ctx;
@@ -80,10 +89,38 @@
       deviceId: c.mic ? { exact: c.mic } : undefined, echoCancellation: c.ec, noiseSuppression: c.ns, autoGainControl: c.agc, channelCount: 1 } });
     if (V.rawSrc) { try { V.rawSrc.disconnect(); } catch (e) { /* */ } }
     if (V.raw) V.raw.getTracks().forEach((t) => t.stop());
-    V.raw = raw; V.rawSrc = V.ctx.createMediaStreamSource(raw); V.rawSrc.connect(V.g.hp);
+    V.raw = raw; V.rawSrc = V.ctx.createMediaStreamSource(raw);
+    wireMic();
+  }
+  // ---------- Suppression du bruit par IA (RNNoise, comme dans Jitsi) : efface clavier, souris, ventilateur ----------
+  const AI = { ready: false, loading: null, node: null, wasm: null };
+  function xhrBuf(url) {
+    return new Promise((ok, ko) => { const x = new XMLHttpRequest(); x.open('GET', url); x.responseType = 'arraybuffer'; x.onload = () => (x.status === 0 || x.status === 200 ? ok(x.response) : ko(new Error('HTTP ' + x.status))); x.onerror = () => ko(new Error('chargement')); x.send(); });
+  }
+  function loadAi() {
+    if (AI.loading || !V.ctx || !V.ctx.audioWorklet) return AI.loading;
+    const simd = WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11]));
+    AI.loading = Promise.all([xhrBuf(simd ? 'vendor/rnnoise_simd.wasm' : 'vendor/rnnoise.wasm'), V.ctx.audioWorklet.addModule('vendor/rnnoise-worklet.js')])
+      .then(([wasm]) => { AI.wasm = wasm; AI.ready = true; wireMic(); })
+      .catch(() => { AI.ready = false; });
+    return AI.loading;
+  }
+  // Branche le micro sur la chaîne, avec ou sans l'IA selon le réglage.
+  function wireMic() {
+    if (!V.rawSrc || !V.g) return;
+    try { V.rawSrc.disconnect(); } catch (e) { /* */ }
+    if (AI.node) { try { AI.node.disconnect(); AI.node.port.postMessage('destroy'); } catch (e) { /* */ } AI.node = null; }
+    if (V.cfg.ai && AI.ready && V.ctx.sampleRate === 48000) {
+      try {
+        AI.node = new AudioWorkletNode(V.ctx, '@sapphi-red/web-noise-suppressor/rnnoise', { processorOptions: { maxChannels: 1, wasmBinary: AI.wasm.slice(0) } });
+        V.rawSrc.connect(AI.node); AI.node.connect(V.g.hp); return;
+      } catch (e) { AI.node = null; }
+    }
+    V.rawSrc.connect(V.g.hp);
   }
   function closeMic() {
     if (V.rawSrc) { try { V.rawSrc.disconnect(); } catch (e) { /* */ } }
+    if (AI.node) { try { AI.node.disconnect(); AI.node.port.postMessage('destroy'); } catch (e) { /* */ } AI.node = null; }
     if (V.raw) V.raw.getTracks().forEach((t) => t.stop());
     V.raw = V.rawSrc = null;
   }
@@ -99,24 +136,44 @@
   function applyGains() { for (const [s, k] of Object.entries(V.conns)) if (k.out) k.out.g.gain.value = remoteGain(s); }
 
   // Porte de bruit, niveau du micro et pastilles « parle » : toutes les 50 ms.
+  // Détection de la voix, toutes les 20 ms :
+  // - niveau RMS (énergie réelle, pas le pic : un clic de clavier a un gros pic mais peu d'énergie) ;
+  // - part de l'énergie dans les fréquences de la voix (250-3500 Hz) : le clavier est surtout dans les aigus ;
+  // - il faut 3 mesures de suite (60 ms) pour ouvrir : un clic dure moins longtemps qu'une syllabe ;
+  // - en automatique, le seuil suit le bruit de fond de la pièce.
+  const VAD = { run: 0, nf: -70 };
   function tick() {
     if (!V.g || !V.raw) return;
-    const g = V.g; g.an.getByteTimeDomainData(g.buf);
-    let m = 0; for (const v of g.buf) m = Math.max(m, Math.abs(v - 128));
-    V.level = m;
+    const g = V.g, c = V.cfg;
+    g.an.getFloatTimeDomainData(g.td);
+    let sq = 0; for (const x of g.td) sq += x * x;
+    const db = 10 * Math.log10(sq / g.td.length + 1e-12);
+    V.level = Math.max(0, Math.min(128, (db + 60) / 60 * 128));
+    g.an.getFloatFrequencyData(g.fd);
+    const hz = V.ctx.sampleRate / g.an.fftSize;
+    let voice = 0, all = 0;
+    for (let i = 1; i < g.fd.length; i++) { const f = i * hz; if (f < 100 || f > 12000) continue; const p = Math.pow(10, g.fd[i] / 10); all += p; if (f >= 250 && f <= 3500) voice += p; }
+    const ratio = all > 0 ? voice / all : 0;
+    // Bruit de fond : descend vite vers les moments calmes, remonte très lentement.
+    if (db < VAD.nf) VAD.nf = VAD.nf * 0.7 + db * 0.3; else VAD.nf = Math.min(db, VAD.nf + 0.04);
     const now = performance.now();
-    if (V.cfg.gate > 0) { if (m >= V.cfg.gate) V.gateUntil = now + 350; V.gateOpen = now < V.gateUntil; } else V.gateOpen = true;
+    let speech;
+    if (c.vad === 'manual') speech = db > -60 + (c.gate || 0) && ratio > 0.45;
+    else speech = db > Math.max(VAD.nf + 11, -58) && ratio > 0.55;
+    VAD.run = speech ? VAD.run + 1 : 0;
+    if (c.vad === 'off') V.gateOpen = true;
+    else { if (VAD.run >= 3) V.gateUntil = now + 450; V.gateOpen = now < V.gateUntil; }
     const target = V.mute ? 0 : V.gateOpen ? 1 : 0;
-    g.gate.gain.setTargetAtTime(target, V.ctx.currentTime, target ? 0.005 : 0.04);
+    g.gate.gain.setTargetAtTime(target, V.ctx.currentTime, target ? 0.004 : 0.05);
     let ch = false;
     const set = (k, v) => { if (!!V.speaking[k] !== v) { V.speaking[k] = v; ch = true; } };
     if (V.on) {
-      set(V.me, !V.mute && V.gateOpen && m > 9);
+      set(V.me, !V.mute && V.gateOpen && V.level > 25);
       for (const [s, k] of Object.entries(V.conns)) set(s, !!(k.out && !V.lmute[s] && k.out.level() > 9));
     }
     if (ch) emit();
   }
-  function startTick() { if (!V.timer) V.timer = setInterval(tick, 50); }
+  function startTick() { if (!V.timer) V.timer = setInterval(tick, 20); }
 
   // ---------- Contrôle (micro coupé, caméra, écran…) : un petit canal de données par membre ----------
   function myState() { return { t: 'st', mute: V.mute, deaf: V.deaf, cam: !!V.cam, screen: !!V.screen }; }
@@ -393,6 +450,8 @@
       V.g.inGain.gain.value = c.gain; V.g.master.gain.value = c.outVol; V.g.hp.frequency.value = c.hp ? 90 : 1;
       if (c.out !== old.out && V.ctx.setSinkId) V.ctx.setSinkId(c.out || '').catch(() => {});
     }
+    if (c.ai !== old.ai) wireMic();
+    if (V.g && c.vad !== old.vad) V.g.delay.delayTime.value = c.vad === 'off' ? 0 : 0.08;
     if (V.raw && (c.mic !== old.mic || c.ns !== old.ns || c.ec !== old.ec || c.agc !== old.agc)) {
       try { await openMic(); } catch (e) { V.err = 'ce micro ne répond pas'; }
     }
@@ -516,7 +575,7 @@
     state: () => ({
       on: V.on, joining: V.joining, err: V.err, me: V.me, mute: V.mute, deaf: V.deaf, monitor: V.monitor,
       cfg: Object.assign({}, V.cfg), vols: Object.assign({}, V.vols), lmute: Object.assign({}, V.lmute), speaking: Object.assign({}, V.speaking),
-      cam: V.cam, screen: V.screen,
+      cam: V.cam, screen: V.screen, ai: !!AI.node,
       members: Object.entries(V.conns).map(([s, k]) => ({ slug: s, ok: !!k.out, remote: k.remote || {} })),
       here: Object.keys(L.here).filter((x) => x !== V.me && L.here[x].t > Date.now()),
       rooms: Object.fromEntries(Object.entries(L.here).filter(([x, e]) => x !== V.me && e.t > Date.now()).map(([x, e]) => [x, e.room])),

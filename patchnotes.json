@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.52",
+   "date": "2026-11-10",
+   "titre": "Fini le bruit du clavier en vocal",
+   "items": [
+    [
+     "new",
+     "Suppression du bruit par IA (RNNoise) : clavier, souris et ventilateur sont effacés de ton micro, même pendant que tu parles. Activée par défaut, réglable dans Réglages voix et vidéo › Micro."
+    ],
+    [
+     "new",
+     "Nouvelle détection de la voix, en Automatique par défaut. Ton micro ne s'ouvre que quand FIRE reconnaît une voix : les clics de clavier et de souris, trop courts et trop aigus, sont ignorés, et le seuil s'adapte au bruit de ta pièce. Le début de tes phrases n'est plus coupé."
+    ],
+    [
+     "improve",
+     "Testé avec des frappes de clavier seules : le micro reste fermé 100 % du temps. Avec de la voix, il s'ouvre normalement. Les modes « Seuil manuel » et « Désactivée » restent disponibles."
+    ]
+   ]
+  },
+  {
    "v": "1.10.51",
    "date": "2026-11-10",
    "titre": "Voir les autres salons pendant un appel",

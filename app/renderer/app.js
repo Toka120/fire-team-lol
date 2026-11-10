@@ -1886,7 +1886,7 @@
     const range = (k, min, max, step, fmt) => { const out = h('span', { class: 'vs-rv' }, fmt(c[k]));
       return h('div', { class: 'vs-range' }, h('input', { type: 'range', min, max, step, value: c[k], onchange: done, oninput: (e) => { out.textContent = fmt(Number(e.target.value)); set(k)(e); } }), out); };
     const field = (lab, ...kids) => h('div', { class: 'vs-field' }, h('label', null, lab), ...kids);
-    const gateMark = c.gate > 0 ? h('div', { class: 'vc-meter-mark', style: `left:${Math.min(100, c.gate / 1.28)}%` }) : null;
+    const gateMark = c.vad === 'manual' ? h('div', { class: 'vc-meter-mark', style: `left:${Math.min(100, (c.gate || 0) / 0.6)}%` }) : null;
     const K = vkeys();
     const bad = VX.keyBad || [];
     return h('div', { class: 'vs-body' },
@@ -1894,8 +1894,13 @@
         field('Appareil', sel('mic', D.mics, 'Micro par défaut de Windows', 'Micro')),
         field('Volume du micro', range('gain', 0, 2, 0.05, pct)),
         h('div', { class: 'vc-meter' }, h('div', { class: 'vc-meter-fill' }), gateMark),
-        field('Seuil de détection de la voix', range('gate', 0, 60, 1, (x) => (x ? String(x) : 'auto'))),
-        h('p', { class: 'vs-hint' }, '0 = micro toujours ouvert. Monte-le si on entend ton clavier entre tes phrases : la barre doit dépasser le trait orange quand tu parles.'),
+        field('Détection de la voix', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ vad: e.target.value }); done(e); renderVocal(); } },
+          [['auto', 'Automatique (recommandé)'], ['manual', 'Seuil manuel'], ['off', 'Désactivée : micro toujours ouvert']].map(([k, t]) => h('option', { value: k, selected: (c.vad || 'auto') === k ? true : null }, t)))),
+        c.vad === 'manual' ? field('Seuil', range('gate', 0, 60, 1, (x) => `${x - 60} dB`)) : null,
+        h('p', { class: 'vs-hint' }, c.vad === 'manual' ? 'La barre doit dépasser le trait orange quand tu parles, et rester dessous quand tu tapes au clavier.'
+          : c.vad === 'off' ? 'Tout ce que capte ton micro est envoyé, même entre tes phrases.'
+            : 'FIRE n’ouvre ton micro que quand il reconnaît une voix : les clics de clavier et de souris, trop courts et trop aigus, sont ignorés. Le seuil s’adapte au bruit de ta pièce.'),
+        sw('ai', 'Suppression du bruit par IA', v.ai ? 'Active : efface clavier, souris, ventilateur pendant que tu parles.' : 'Efface clavier, souris, ventilateur pendant que tu parles (RNNoise).'),
         h('button', { class: 'vs-btn' + (v.monitor ? ' on' : ''), onclick: () => FV().setMonitor(!v.monitor) }, v.monitor ? '⏹ Arrêter le test' : '🎧 Tester mon micro (tu t’entends)')),
       h('section', { class: 'vs-sec' }, h('h3', null, vi('vol'), 'Traitement de la voix'),
         sw('ns', 'Réduction de bruit', 'Ventilateur, clavier, bruits de fond.'),
