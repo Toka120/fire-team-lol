@@ -1,20 +1,21 @@
 {
   "name": "fire-lol",
   "productName": "FIRE LoL",
-  "version": "1.10.29",
+  "version": "1.10.30",
   "description": "FIRE LoL - les stats de l'équipe, à jour depuis dpm.lol",
   "main": "main.js",
   "author": "Toka120",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "vendor": "node -e \"const fs=require('fs');fs.mkdirSync('renderer/vendor',{recursive:true});fs.copyFileSync('node_modules/d3/dist/d3.min.js','renderer/vendor/d3.min.js')\"",
+    "vendor": "node -e \"const fs=require('fs');fs.mkdirSync('renderer/vendor',{recursive:true});fs.copyFileSync('node_modules/d3/dist/d3.min.js','renderer/vendor/d3.min.js');fs.copyFileSync('node_modules/peerjs/dist/peerjs.min.js','renderer/vendor/peerjs.min.js')\"",
     "start": "npm run vendor && electron .",
     "dist": "npm run vendor && electron-builder --win nsis portable --publish never",
     "store": "npm run vendor && electron-builder --win appx --publish never"
   },
   "devDependencies": {
     "d3": "7.9.0",
+    "peerjs": "1.5.5",
     "electron": "33.2.1",
     "electron-builder": "25.1.8"
   },

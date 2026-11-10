@@ -99,6 +99,7 @@ function createMainWindow(forceShow) {
     ensureTray();
     if (!trayHintShown) { trayHintShown = true; notify('FIRE LoL reste ouvert', "Tu recevras les notifications ici. Clic droit sur l'icône FIRE près de l'horloge pour quitter."); }
   });
+  hideAdSlots(mainWin.webContents);
   mainWin.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   // Les liens externes (dpm.lol, GitHub) s'ouvrent dans le navigateur par défaut.
   mainWin.webContents.setWindowOpenHandler(({ url }) => {
@@ -116,6 +117,34 @@ function lockPermissions() {
   const ok = (perm, url) => /^file:\/\//.test(url || '') || perm === 'fullscreen' || perm === 'pointerLock';
   session.defaultSession.setPermissionRequestHandler((wc, perm, cb, details) => cb(ok(perm, details && details.requestingUrl)));
   session.defaultSession.setPermissionCheckHandler((wc, perm, origin, details) => ok(perm, (details && details.requestingUrl) || origin));
+}
+
+// Pas de pubs dans les jeux intégrés (onglet Micro, League of Listen) : les régies publicitaires sont bloquées
+// et les emplacements vides masqués. Le reste du site (le jeu) se charge normalement.
+const AD_HOSTS = ['googlesyndication.com', 'doubleclick.net', 'googleadservices.com', 'adservice.google.com', 'adservice.google.fr',
+  'googletagservices.com', 'imasdk.googleapis.com', 'pagead2.googlesyndication.com', 'tpc.googlesyndication.com', 'fundingchoicesmessages.google.com',
+  'adinplay.com', 'amazon-adsystem.com', 'adnxs.com', 'criteo.com', 'criteo.net', 'taboola.com', 'outbrain.com', 'pubmatic.com',
+  'rubiconproject.com', 'openx.net', 'casalemedia.com', 'smartadserver.com', 'teads.tv', 'moatads.com', '2mdn.net', 'adsrvr.org',
+  'yieldmo.com', 'sharethrough.com', 'media.net', 'lijit.com', 'sovrn.com', '33across.com', 'id5-sync.com', 'quantserve.com',
+  'cookielaw.org', 'quantcast.com', 'consensu.org', 'snigelweb.com', 'ezoic.net', 'venatusmedia.com', 'playwire.com', 'nitropay.com'];
+const isAdHost = (h) => AD_HOSTS.some((d) => h === d || h.endsWith('.' + d));
+const AD_CSS = 'ins.adsbygoogle,.adsbygoogle,[id*="-com_300x250"],[id*="-com_728x90"],[id*="-com_160x600"],[id*="_300x250"],[id*="_728x90"],[id*="_160x600"],[class*="ad-container"],[id^="aip_"],iframe[src*="googlesyndication"],iframe[src*="doubleclick"]{display:none!important}';
+function blockAds() {
+  session.defaultSession.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
+    let host = '';
+    try { host = new URL(d.url).hostname; } catch (e) { /* adresse illisible */ }
+    cb({ cancel: !!host && isAdHost(host) });
+  });
+}
+function hideAdSlots(wc) {
+  wc.on('did-frame-finish-load', (e, isMain, pid, rid) => {
+    if (isMain) return;
+    try {
+      const { webFrameMain } = require('electron');
+      const f = webFrameMain.fromId(pid, rid);
+      if (f && /^https:\/\//.test(f.url)) f.executeJavaScript(`(() => { const s = document.createElement('style'); s.textContent = ${JSON.stringify(AD_CSS)}; (document.head || document.documentElement).append(s); })()`).catch(() => {});
+    } catch (e) { /* cadre fermé entre-temps */ }
+  });
 }
 
 // ---------- Configuration (liste des joueurs, code d'équipe) ----------
@@ -491,6 +520,6 @@ if (!single) {
   // La version Store a déjà son identité Windows (notifications) : on ne la remplace pas.
   if (process.platform === 'win32' && !store) app.setAppUserModelId('lol.fire.team');
   app.on('second-instance', () => showMain());
-  app.whenReady().then(() => { lockPermissions(); createMainWindow(); setupUpdater(); });
+  app.whenReady().then(() => { lockPermissions(); blockAds(); createMainWindow(); setupUpdater(); });
   app.on('window-all-closed', () => { if (!bgPrefs().bg || quitting) app.quit(); });
 }

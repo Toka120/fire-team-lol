@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "1.10.30",
+   "date": "2026-11-10",
+   "titre": "Salon vocal et Micro sans pubs",
+   "items": [
+    [
+     "new",
+     "Nouvel onglet 🎙️ Vocal : un salon vocal pour toute l'équipe, directement dans FIRE. Tout le monde tape le même code de salon (donné par le coach) et rejoint en un clic."
+    ],
+    [
+     "new",
+     "Dans le salon : la pastille de celui qui parle s'allume, chacun a son réglage de volume (jusqu'à 200 %), tu peux couper ton micro ou le son, et choisir ton micro. Ctrl+Maj+M coupe ou rallume le micro."
+    ],
+    [
+     "improve",
+     "Tu restes dans le salon en changeant d'onglet ou en réduisant FIRE près de l'horloge : une petite barre en bas à droite montre qui est là et garde les boutons micro, son et quitter."
+    ],
+    [
+     "improve",
+     "Les voix passent directement d'un PC à l'autre, chiffrées. Sans le code du salon, personne ne peut entrer ni écouter."
+    ],
+    [
+     "improve",
+     "Onglet 🎯 Micro : les publicités des sites d'entraînement sont bloquées et leurs emplacements masqués."
+    ]
+   ]
+  },
+  {
    "v": "1.10.29",
    "date": "2026-11-10",
    "titre": "Entraînement micro",

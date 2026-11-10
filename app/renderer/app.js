@@ -595,7 +595,7 @@
     renderNav();
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -606,6 +606,7 @@
     else if (S.section === 'patch') renderPatch();
     else if (S.section === 'lolpatch') renderLolPatch();
     else if (S.section === 'train') renderTrain();
+    else if (S.section === 'vocal') renderVocal();
     else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
     else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
     else if (S.view === 'player') renderPlayer();
@@ -1296,6 +1297,7 @@
     if (sec === 'planning') { S.planEdit = null; loadPlanning(); }
     if (sec === 'patch') { loadPatch(); markPatchSeen(); }
     if (sec === 'lolpatch') loadLolPatch();
+    if (sec === 'vocal') VX.mics = null;
     if (sec === 'jeux') loadJeux();
     if (sec === 'worlds') { loadJeux(); loadWorlds(W.year); }
     render();
@@ -1464,6 +1466,96 @@
     box.append(...[...doc.body.childNodes].map((n) => document.importNode(n, true)));
     return box;
   }
+  // ----- Salon vocal de l'équipe (voir voice.js) -----
+  const VX = { sig: '', mics: null };
+  const vocalMe = () => S.moi || (S.coachState && S.coachState.coach ? 'coach' : null);
+  const vocalName = (slug) => slug === 'coach' ? 'Coach' : shortName((S.players.find((p) => p.slug === slug) || {}).pseudo || slug);
+  const vocalIds = () => S.players.map((p) => p.slug).filter(Boolean).concat('coach');
+  function vocalBadge() { const v = window.FireVoice && window.FireVoice.state(); return v && v.on ? String(1 + v.members.filter((m) => m.ok).length) : null; }
+  function vocalSig(v) { return JSON.stringify([v.on, v.joining, v.err, v.mute, v.deaf, v.members.filter((m) => m.ok).map((m) => m.slug).sort()]); }
+  function vocalJoin() {
+    const code = String(load('fire.vocal.code', '') || '').trim();
+    if (!code) return;
+    window.FireVoice.join({ me: vocalMe(), ids: vocalIds(), code, mic: load('fire.vocal.mic', '') || '' });
+  }
+  function vocalSpeak() {
+    const v = window.FireVoice.state();
+    document.querySelectorAll('[data-vslug]').forEach((el) => el.classList.toggle('talk', !!v.speaking[el.dataset.vslug]));
+  }
+  // Petite barre en bas à droite quand on est dans le salon et ailleurs dans l'app.
+  function vocalBar() {
+    let bar = document.getElementById('vbar');
+    const v = window.FireVoice.state();
+    if (!v.on || S.section === 'vocal') { if (bar) bar.remove(); return; }
+    if (!bar) { bar = h('div', { id: 'vbar' }); document.body.append(bar); }
+    const ppl = [v.me].concat(v.members.filter((m) => m.ok).map((m) => m.slug));
+    bar.replaceChildren(
+      h('button', { class: 'vb-go', title: 'Ouvrir le salon vocal', onclick: () => go('vocal') }, '🎙️ ', h('b', null, 'Vocal'), ' · ', String(ppl.length)),
+      h('span', { class: 'vb-ppl' }, ppl.map((s) => h('span', { class: 'vb-p', 'data-vslug': s, title: vocalName(s) }, vocalName(s).slice(0, 2).toUpperCase()))),
+      h('button', { class: 'vb-btn' + (v.mute ? ' off' : ''), title: v.mute ? 'Réactiver le micro (Ctrl+Maj+M)' : 'Couper le micro (Ctrl+Maj+M)', onclick: () => window.FireVoice.setMute(!v.mute) }, v.mute ? '🔇' : '🎤'),
+      h('button', { class: 'vb-btn' + (v.deaf ? ' off' : ''), title: v.deaf ? 'Réactiver le son' : 'Couper le son', onclick: () => window.FireVoice.setDeaf(!v.deaf) }, v.deaf ? '🔕' : '🎧'),
+      h('button', { class: 'vb-btn leave', title: 'Quitter le salon', onclick: () => window.FireVoice.leave() }, '📞'));
+    vocalSpeak();
+  }
+  if (window.FireVoice) {
+    window.FireVoice.onChange(() => {
+      const v = window.FireVoice.state();
+      const sig = vocalSig(v);
+      if (sig !== VX.sig) {
+        VX.sig = sig;
+        renderNav();
+        if (S.section === 'vocal' && !(typing() && v.on)) renderVocal();
+      }
+      vocalBar(); vocalSpeak();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'M' || e.key === 'm') && window.FireVoice.state().on) { e.preventDefault(); window.FireVoice.setMute(!window.FireVoice.state().mute); }
+    });
+  }
+  function renderVocal() {
+    const view = $('view');
+    vocalBar();
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎙️'), h('div', null, h('h1', { class: 'title' }, 'Salon vocal'),
+      h('p', { class: 'muted' }, "Parle avec l'équipe en direct, depuis FIRE. Les voix passent directement d'un PC à l'autre, chiffrées.")));
+    if (!window.FireVoice || !window.Peer) { view.replaceChildren(hero, h('div', { class: 'card' }, h('p', { class: 'bad' }, '⚠ Le module vocal n’est pas chargé. Réinstalle la dernière version de FIRE.'))); return; }
+    const v = window.FireVoice.state();
+    const me = vocalMe();
+    if (!me) { view.replaceChildren(hero, h('div', { class: 'card empty-state' }, 'Choisis d’abord ton pseudo (en haut, « Qui es-tu ? ») pour entrer dans le salon.')); return; }
+    if (!VX.mics) { VX.mics = []; window.FireVoice.mics().then((m) => { VX.mics = m; if (S.section === 'vocal' && !typing()) renderVocal(); }); }
+    const code = String(load('fire.vocal.code', '') || '');
+    const codeIn = h('input', { class: 'inp vc-code', type: 'password', value: code, placeholder: 'Code du salon', autocomplete: 'off', disabled: v.on || v.joining ? true : null,
+      oninput: (e) => save('fire.vocal.code', e.target.value.trim()), onkeydown: (e) => { if (e.key === 'Enter') { save('fire.vocal.code', e.target.value.trim()); vocalJoin(); } } });
+    const micSel = h('select', { class: 'inp', disabled: v.on || v.joining ? true : null, onchange: (e) => save('fire.vocal.mic', e.target.value) },
+      h('option', { value: '' }, 'Micro par défaut de Windows'),
+      (VX.mics || []).filter((m) => m.deviceId && m.deviceId !== 'default').map((m, i) => h('option', { value: m.deviceId, selected: load('fire.vocal.mic', '') === m.deviceId ? true : null }, m.label || `Micro ${i + 1}`)));
+    const people = v.on ? [{ slug: me, ok: true }].concat(v.members.filter((m) => m.ok)) : [];
+    const card = (p) => {
+      const isMe = p.slug === me;
+      const vol = v.vols[p.slug] ?? 1;
+      return h('div', { class: 'vc-p', 'data-vslug': p.slug },
+        h('div', { class: 'vc-av' }, vocalName(p.slug).slice(0, 2).toUpperCase()),
+        h('b', null, vocalName(p.slug) + (isMe ? ' (toi)' : '')),
+        isMe ? h('span', { class: 'muted small' }, v.mute ? '🔇 micro coupé' : v.deaf ? '🔕 son coupé' : '🎤 micro ouvert')
+          : h('label', { class: 'vc-vol muted small' }, '🔊 ', h('input', { type: 'range', min: 0, max: 2, step: 0.05, value: vol, oninput: (e) => window.FireVoice.setVol(p.slug, Number(e.target.value)) }), ' ', Math.round(vol * 100) + ' %'));
+    };
+    view.replaceChildren(...[hero,
+      h('div', { class: 'card vc-ctl' },
+        h('div', { class: 'vc-row' },
+          h('label', null, h('span', { class: 'muted small' }, 'Code du salon'), codeIn),
+          h('label', null, h('span', { class: 'muted small' }, 'Micro'), micSel),
+          v.on ? h('div', { class: 'vc-btns' },
+            h('button', { class: 'btn-ghost' + (v.mute ? ' vc-off' : ''), onclick: () => window.FireVoice.setMute(!v.mute) }, v.mute ? '🔇 Réactiver le micro' : '🎤 Couper le micro'),
+            h('button', { class: 'btn-ghost' + (v.deaf ? ' vc-off' : ''), onclick: () => window.FireVoice.setDeaf(!v.deaf) }, v.deaf ? '🔕 Réactiver le son' : '🎧 Couper le son'),
+            h('button', { class: 'btn-fire vc-leave', onclick: () => window.FireVoice.leave() }, '📞 Quitter'))
+            : h('div', { class: 'vc-btns' }, h('button', { class: 'btn-fire', disabled: v.joining ? true : null, onclick: () => { save('fire.vocal.code', codeIn.value.trim()); vocalJoin(); } }, v.joining ? 'Connexion…' : '🎙️ Rejoindre le salon'))),
+        v.err ? h('p', { class: 'bad' }, '⚠ ' + v.err) : null,
+        !v.on ? h('p', { class: 'muted small' }, "Toute l'équipe tape le même code (le coach le donne, en privé). Sans le code, personne ne peut entrer ni écouter. Ctrl+Maj+M coupe ou rallume ton micro.") : null),
+      v.on ? h('div', { class: 'vc-grid' }, people.map(card)) : null,
+      v.on && people.length === 1 ? h('p', { class: 'muted' }, 'Tu es seul pour le moment : les autres apparaîtront ici dès qu’ils rejoignent le salon avec le même code.') : null,
+      v.on ? h('p', { class: 'muted small' }, 'Tu peux changer d’onglet : tu restes dans le salon (petite barre en bas à droite). Réduire FIRE près de l’horloge te garde aussi connecté.') : null].filter(Boolean));
+    vocalSpeak();
+  }
+
   // ----- Entraînement micro : les modes de loldodgegame.com (jeu fan-made de swompy), joués dans l'app -----
   const TRAIN = [
     ['dodge', '/dodge/', '🏃', 'Esquive', 'Survis le plus longtemps possible en esquivant les skillshots qui arrivent de partout.', 'Tous les rôles'],
@@ -1561,7 +1653,7 @@
     const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
-    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('train', '🎯 Micro'), b('worlds', '🏆 E-sport'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('lolpatch', '📜 Patchs LoL', lolUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('train', '🎯 Micro'), b('vocal', '🎙️ Vocal', vocalBadge()), b('worlds', '🏆 E-sport'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('lolpatch', '📜 Patchs LoL', lolUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
   }
 
   function newsBanner() {

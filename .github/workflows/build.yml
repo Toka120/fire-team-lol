@@ -54,6 +54,14 @@ jobs:
       # Paquet pour le Microsoft Store (le Store le signe et gère les mises à jour).
       # Les 3 valeurs viennent de Partner Center › Identité du produit, enregistrées dans
       # Settings › Secrets and variables › Actions › Variables du dépôt.
+      # Le salon vocal utilise le micro : le paquet Store doit le déclarer (electron-builder n'a pas d'option pour ça).
+      - name: Micro dans le manifeste Store
+        continue-on-error: true
+        shell: bash
+        run: >
+          node -e "const fs=require('fs');const f='node_modules/app-builder-lib/templates/appx/appxmanifest.xml';let s=fs.readFileSync(f,'utf8');
+          if(!s.includes('DeviceCapability Name=\"microphone\"')){s=s.replace('<rescap:Capability Name=\"runFullTrust\"/>','<rescap:Capability Name=\"runFullTrust\"/>\n    <DeviceCapability Name=\"microphone\"/>');fs.writeFileSync(f,s);}
+          console.log(s.includes('microphone')?'micro declare':'ECHEC')"
       - name: Paquet Microsoft Store
         continue-on-error: true
         shell: bash
