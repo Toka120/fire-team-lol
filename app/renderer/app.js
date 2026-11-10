@@ -1587,13 +1587,17 @@
     const ppl = v && !v.on ? v.here : [];
     if (!ppl.length || S.section === 'vocal' || !vocalMe()) { if (el) el.remove(); return; }
     if (!el) { el = h('div', { id: 'vlive' }); $('view').before(el); }
-    const names = ppl.map(vocalName);
-    const txt = names.length === 1 ? `${names[0]} est en vocal` : `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]} sont en vocal`;
+    const list = (xs) => (xs.length === 1 ? xs[0] : `${xs.slice(0, -1).join(', ')} et ${xs[xs.length - 1]}`);
+    const byRoom = ROOMS.map((r) => [r, ppl.filter((x) => (v.rooms || {})[x] === r.id || (!(v.rooms || {})[x] && r.id === 'equipe'))]).filter(([, xs]) => xs.length);
+    const txt = byRoom.length === 1
+      ? `${list(byRoom[0][1].map(vocalName))} ${byRoom[0][1].length > 1 ? 'sont' : 'est'} en vocal · ${byRoom[0][0].name}`
+      : byRoom.map(([r, xs]) => `${r.name} : ${list(xs.map(vocalName))}`).join('   ·   ');
+    const target = (byRoom.find(([r]) => r.id === 'equipe') || byRoom[0] || [ROOMS[0]])[0].id;
     el.replaceChildren(
       h('span', { class: 'vl-live' }, h('span', { class: 'dot' }), 'EN DIRECT'),
       h('span', { class: 'vl-av' }, ppl.slice(0, 6).map((x) => h('span', { class: 'vc-av mini', title: vocalName(x) }, ini(x)))),
       h('b', { class: 'vl-txt' }, '🎙️ ', txt),
-      h('button', { class: 'vl-join', onclick: () => { go('vocal'); vocalJoin(); } }, 'Rejoindre'),
+      h('button', { class: 'vl-join', onclick: () => { go('vocal'); vocalJoin(target); } }, byRoom.length > 1 ? 'Rejoindre l’équipe' : 'Rejoindre'),
       h('button', { class: 'vl-see', onclick: () => go('vocal') }, 'Voir le salon'));
   }
   function vocalSig(v) {
@@ -1601,7 +1605,35 @@
       v.members.filter((m) => m.ok).map((m) => [m.slug, m.remote]).sort(), v.videos.map((x) => x.slug + x.kind).sort()]);
   }
   // Salon libre : toute l'équipe arrive dans le même salon, sans code.
-  function vocalJoin() { if (vocalMe()) FV().join({ me: vocalMe(), ids: vocalIds(), code: 'FIRE-salon-equipe' }); }
+  // Plusieurs salons : le salon de l'équipe, deux salons duo et un salon de coaching perso (2 places).
+  const ROOMS = [
+    { id: 'equipe', ico: '🔊', name: 'Salon de l’équipe', sub: 'Toute l’équipe', max: 0 },
+    { id: 'duo1', ico: '🎧', name: 'Duo 1', sub: '2 places', max: 2 },
+    { id: 'duo2', ico: '🎧', name: 'Duo 2', sub: '2 places', max: 2 },
+    { id: 'coaching', ico: '🎓', name: 'Coaching perso', sub: '2 places · en tête-à-tête', max: 2 }
+  ];
+  const roomOf = (id) => ROOMS.find((r) => r.id === id) || ROOMS[0];
+  // Le salon de l'équipe garde son adresse d'avant : les versions précédentes de FIRE s'y retrouvent.
+  const roomCode = (id) => (id === 'equipe' ? 'FIRE-salon-equipe' : 'FIRE-salon-' + id);
+  // Qui est dans chaque salon, d'après ce que les autres FIRE annoncent (et moi si je suis dedans).
+  function roomPeople(id) {
+    const v = FV().state();
+    const out = Object.entries(v.rooms || {}).filter(([, r]) => r === id).map(([x]) => x);
+    if (v.on && v.room === id) out.unshift(v.me);
+    return [...new Set(out)];
+  }
+  function vocalJoin(roomId) {
+    if (!vocalMe()) return;
+    const v = FV().state();
+    const id = roomOf(typeof roomId === 'string' ? roomId : (VX.room || load('fire.vocal.room', 'equipe'))).id;
+    const r = roomOf(id);
+    const there = roomPeople(id).filter((x) => x !== vocalMe());
+    if (r.max && there.length >= r.max) { VX.roomErr = `${r.name} est complet (${there.map(vocalName).join(' et ')}).`; renderVocal(); return; }
+    VX.roomErr = '';
+    VX.room = id; save('fire.vocal.room', id);
+    const go2 = () => FV().join({ me: vocalMe(), ids: vocalIds(), code: roomCode(id), room: id });
+    if (v.on && v.room !== id) { FV().leave(); setTimeout(go2, 600); } else if (!v.on) go2();
+  }
   function vocalSpeak() {
     const v = FV().state();
     document.querySelectorAll('[data-vslug]').forEach((el) => el.classList.toggle('talk', !!v.speaking[el.dataset.vslug]));
@@ -1768,8 +1800,12 @@
         }
         VX.prevHere = v.here.slice();
       }
-      const hs = vocalPeople().slice().sort().join('|');
-      if (hs !== VX.hereSig) { VX.hereSig = hs; renderNav(); if (S.section === 'stats' && S.view === 'hub' && !typing()) render(); }
+      const hs = vocalPeople().slice().sort().join('|') + '#' + Object.entries(v.rooms || {}).map((e) => e.join(':')).sort().join('|');
+      if (hs !== VX.hereSig) {
+        VX.hereSig = hs; renderNav();
+        if (S.section === 'stats' && S.view === 'hub' && !typing()) render();
+        if (S.section === 'vocal' && !typing() && !document.fullscreenElement) renderVocal();
+      }
     });
     if (window.fire.keys) { window.fire.keys.on(keyAction); setTimeout(() => syncKeys(true), 1500); }
     // Jauge du micro (et rendu remis à plus tard pendant qu'on règle un curseur).
@@ -1780,9 +1816,11 @@
       document.querySelectorAll('.vc-meter-fill').forEach((f) => { f.style.width = Math.min(100, l / 1.28) + '%'; f.classList.toggle('open', open); });
     }, 80);
     // Hall des invitations : FIRE reste joignable pour qu'un coéquipier puisse t'inviter dans le salon.
-    const onInvite = (from) => {
+    const onInvite = (from, room) => {
       if (FV().state().on) return;
-      const t = '🎙️ Invitation au salon vocal', b = `${vocalName(from)} t’invite dans le salon vocal.`;
+      const r = roomOf(room);
+      VX.room = r.id; save('fire.vocal.room', r.id);
+      const t = '🎙️ Invitation au salon vocal', b = `${vocalName(from)} t’invite dans « ${r.name} ».`;
       const np = notifPrefs();
       if (np.app) popup(t, b, 'vocal');
       if (np.on && window.fire.notify) window.fire.notify({ title: t, body: b, section: 'vocal' }).catch(() => {});
@@ -1906,13 +1944,24 @@
       view.replaceChildren(...[h('div', { class: 'vc-lobby' },
         f ? h('div', { class: 'vc-lobby-bg', style: `background-image:url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${f.champ}_${f.skin}.jpg')` }) : null,
         h('div', { class: 'vc-lobby-in' },
-          h('div', { class: 'vc-live-pill' }, h('span', { class: 'dot' }), 'Salon de l’équipe'),
+          h('div', { class: 'vc-live-pill' }, h('span', { class: 'dot' }), 'Salons vocaux FIRE'),
           h('h1', null, 'Salon vocal'),
-          h('p', { class: 'muted' }, 'Voix, caméra et partage d’écran avec toute l’équipe. Tout passe directement d’un PC à l’autre, chiffré.'),
+          h('p', { class: 'muted' }, 'Choisis ton salon : toute l’équipe, un duo, ou un coaching en tête-à-tête. Voix, caméra et écran passent directement d’un PC à l’autre, chiffrés.'),
+          h('div', { class: 'vc-rooms' }, ROOMS.map((r) => {
+            const there = roomPeople(r.id);
+            const full = r.max && there.length >= r.max;
+            const sel = (VX.room || load('fire.vocal.room', 'equipe')) === r.id;
+            return h('button', { class: 'vr-card' + (sel ? ' sel' : '') + (full ? ' full' : '') + (there.length ? ' busy' : ''), onclick: () => { VX.room = r.id; save('fire.vocal.room', r.id); VX.roomErr = ''; renderVocal(); }, ondblclick: () => vocalJoin(r.id) },
+              h('span', { class: 'vr-ico' }, r.ico),
+              h('span', { class: 'vr-t' }, h('b', null, r.name), h('small', null, there.length ? `${there.length}${r.max ? '/' + r.max : ''} en ligne` : r.sub)),
+              h('span', { class: 'vr-av' }, there.slice(0, 4).map((x) => h('span', { class: 'vc-av mini', title: vocalName(x) }, ini(x)))),
+              full ? h('span', { class: 'vr-full' }, 'Complet') : null);
+          })),
+          VX.roomErr ? h('p', { class: 'bad' }, '⚠ ' + VX.roomErr) : null,
           h('div', { class: 'vc-lobby-me' }, h('div', { class: 'vc-av big' }, ini(me)), h('div', null, h('b', null, vocalName(me)), h('small', { class: 'muted' }, v.monitor ? 'Test du micro en cours' : 'Prêt à rejoindre')),
             h('div', { class: 'vc-meter slim' }, h('div', { class: 'vc-meter-fill' }))),
           h('div', { class: 'vc-lobby-act' },
-            h('button', { class: 'vc-join', disabled: v.joining ? true : null, onclick: vocalJoin }, v.joining ? 'Connexion…' : 'Rejoindre le salon'),
+            h('button', { class: 'vc-join', disabled: v.joining ? true : null, onclick: () => vocalJoin() }, v.joining ? 'Connexion…' : `Rejoindre « ${roomOf(VX.room || load('fire.vocal.room', 'equipe')).name} »`),
             h('button', { class: 'vc-ghost', onclick: () => FV().setMonitor(!v.monitor) }, v.monitor ? '⏹ Arrêter le test' : '🎧 Tester mon micro'),
             gearBtn('vc-ghost icon')),
           v.err ? h('p', { class: 'bad' }, '⚠ ' + v.err, ' ', h('button', { class: 'linkbtn small', onclick: () => FV().clearErr() }, 'OK')) : null,
@@ -1979,7 +2028,7 @@
     }
     const cbtn = (on, icOn, icOff, title, fn, cls) => h('button', { class: 'cb ' + (cls || '') + (on ? ' on' : ''), title, onclick: fn }, vi(on ? icOn : icOff));
     const bar = h('div', { class: 'vc-bar' },
-      h('div', { class: 'vc-bar-l' }, h('span', { class: 'vc-live-pill' }, h('span', { class: 'dot' }), `${people.length} dans le salon`)),
+      h('div', { class: 'vc-bar-l' }, h('span', { class: 'vc-live-pill' }, h('span', { class: 'dot' }), `${roomOf(v.room).ico} ${roomOf(v.room).name} · ${people.length}`)),
       h('div', { class: 'vc-bar-c' },
         cbtn(v.mute, 'micOff', 'mic', `${v.mute ? 'Réactiver' : 'Couper'} le micro (${keyTxt(K.mute)})`, () => FV().setMute(!v.mute), 'warn'),
         cbtn(v.deaf, 'headOff', 'head', `${v.deaf ? 'Réactiver' : 'Couper'} le son (${keyTxt(K.deaf)})`, () => FV().setDeaf(!v.deaf), 'warn'),
@@ -1994,9 +2043,17 @@
         n > 1 ? h('div', { class: 'vc-seg' },
           h('button', { class: layout !== 'focus' ? 'on' : '', title: 'Côte à côte : tout est visible', onclick: () => setLayout('grid') }, vi('grid')),
           h('button', { class: layout === 'focus' ? 'on' : '', title: 'Focus : une vidéo en grand', onclick: () => setLayout('focus', VX.focus || (screens[0] || tiles[0]).key) }, vi('focus'))) : null));
+    const switcher = h('div', { class: 'vc-switch' }, ROOMS.map((r) => {
+      const there = roomPeople(r.id);
+      const mine = r.id === v.room;
+      const full = r.max && there.filter((x) => x !== me).length >= r.max;
+      return h('button', { class: 'vs-room' + (mine ? ' on' : ''), disabled: mine || full ? true : null, title: mine ? 'Tu es ici' : full ? 'Complet' : 'Aller dans ce salon', onclick: () => vocalJoin(r.id) },
+        r.ico, ' ', r.name, there.length && !mine ? h('span', { class: 'vs-n' }, String(there.length)) : null, full && !mine ? h('span', { class: 'vs-n full' }, 'complet') : null);
+    }));
     view.replaceChildren(...[h('div', { class: 'vc-room' },
       v.err ? h('p', { class: 'bad vc-err' }, '⚠ ' + v.err, ' ', h('button', { class: 'linkbtn small', onclick: () => FV().clearErr() }, 'OK')) : null,
-      stage, bar,
+      VX.roomErr ? h('p', { class: 'bad vc-err' }, '⚠ ' + VX.roomErr) : null,
+      switcher, stage, bar,
       people.length === 1 ? h('p', { class: 'vc-alone' }, 'Tu es seul pour le moment : invite tes coéquipiers avec le menu ⋯ en bas à droite.') : null,
       hidden ? h('p', { class: 'vc-alone' }, `${hidden} participant${hidden > 1 ? 's' : ''} sans vidéo masqué${hidden > 1 ? 's' : ''} (menu ⋯).`) : null), drawer].filter(Boolean));
     resumeVideos();

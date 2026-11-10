@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.49",
+   "date": "2026-11-10",
+   "titre": "Plusieurs salons vocaux",
+   "items": [
+    [
+     "new",
+     "Quatre salons vocaux : Salon de l'équipe (pour tout le monde), Duo 1 et Duo 2 (2 places chacun) et Coaching perso (2 places, en tête-à-tête)."
+    ],
+    [
+     "new",
+     "Avant d'entrer, chaque salon montre qui est dedans (avatars et nombre de places prises). Un salon duo plein affiche « Complet »."
+    ],
+    [
+     "new",
+     "Dans un salon, les autres sont en haut de l'écran : un clic suffit pour changer de salon. Les invitations indiquent le salon (« X t'invite dans Duo 1 ») et l'ouvrent directement."
+    ],
+    [
+     "improve",
+     "Le bandeau EN DIRECT indique qui est dans quel salon. Le salon de l'équipe reste le même qu'avant, donc les versions précédentes de FIRE s'y retrouvent."
+    ]
+   ]
+  },
+  {
    "v": "1.10.48",
    "date": "2026-11-10",
    "titre": "Partage d'écran plus fluide",

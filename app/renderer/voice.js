@@ -324,7 +324,7 @@
     V.joining = true; V.err = ''; emit();
     try {
       if (!window.Peer) throw new Error('module vocal absent');
-      V.me = opts.me; V.ids = [...new Set(opts.ids.concat(opts.me))];
+      V.me = opts.me; V.ids = [...new Set(opts.ids.concat(opts.me))]; V.room = opts.room || 'equipe';
       V.prefix = 'firelol-' + (await sha('FIRE-vocal:' + opts.code.trim().toUpperCase())).slice(0, 24) + '-';
       if (!V.raw) await openMic();
       startTick();
@@ -432,8 +432,8 @@
   // Chaque membre en appel prévient les autres toutes les 20 s ; sans nouvelle depuis 60 s, on le considère parti.
   function onHall(from, m) {
     if (!m) return;
-    if (m.t === 'invite' && L.onInvite) L.onInvite(from);
-    if (m.t === 'here') { if (m.on) L.here[from] = Date.now() + 60000; else delete L.here[from]; emit(); }
+    if (m.t === 'invite' && L.onInvite) L.onInvite(from, String(m.room || 'equipe').slice(0, 20));
+    if (m.t === 'here') { if (m.on) L.here[from] = { t: Date.now() + 60000, room: String(m.room || 'equipe').slice(0, 20) }; else delete L.here[from]; emit(); }
   }
   function link(slug) {
     const cur = L.links[slug];
@@ -448,13 +448,14 @@
   }
   async function beacon(on) {
     const others = L.ids.filter((x) => x !== L.me);
-    await Promise.all(others.map(async (x) => { const dc = await link(x); if (dc) { try { dc.send({ t: 'here', on }); } catch (e) { /* */ } } }));
+    const room = V.room;
+    await Promise.all(others.map(async (x) => { const dc = await link(x); if (dc) { try { dc.send({ t: 'here', on, room }); } catch (e) { /* */ } } }));
   }
   function presenceLoop() {
     clearInterval(L.beat);
     if (V.on) { beacon(true); L.beat = setInterval(() => { if (V.on) beacon(true); }, 20000); }
   }
-  setInterval(() => { const now = Date.now(); let ch = false; for (const [k, t] of Object.entries(L.here)) if (t < now) { delete L.here[k]; ch = true; } if (ch) emit(); }, 5000);
+  setInterval(() => { const now = Date.now(); let ch = false; for (const [k, x] of Object.entries(L.here)) if (x.t < now) { delete L.here[k]; ch = true; } if (ch) emit(); }, 5000);
   const lid = (slug) => L.prefix + 'hall' + slug.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
   async function lobby(opts) {
     if (!window.Peer || !opts || !opts.me) return;
@@ -486,7 +487,7 @@
       L.last[slug] = Date.now();
       let done = false;
       const end = (r) => { if (!done) { done = true; ok(r); } };
-      link(slug).then((dc) => { if (!dc) return end('off'); try { dc.send({ t: 'invite' }); end('ok'); } catch (e) { end('off'); } });
+      link(slug).then((dc) => { if (!dc) return end('off'); try { dc.send({ t: 'invite', room: V.room || 'equipe' }); end('ok'); } catch (e) { end('off'); } });
     });
   }
 
@@ -517,7 +518,9 @@
       cfg: Object.assign({}, V.cfg), vols: Object.assign({}, V.vols), lmute: Object.assign({}, V.lmute), speaking: Object.assign({}, V.speaking),
       cam: V.cam, screen: V.screen,
       members: Object.entries(V.conns).map(([s, k]) => ({ slug: s, ok: !!k.out, remote: k.remote || {} })),
-      here: Object.keys(L.here).filter((x) => x !== V.me && L.here[x] > Date.now()),
+      here: Object.keys(L.here).filter((x) => x !== V.me && L.here[x].t > Date.now()),
+      rooms: Object.fromEntries(Object.entries(L.here).filter(([x, e]) => x !== V.me && e.t > Date.now()).map(([x, e]) => [x, e.room])),
+      room: V.room,
       videos: Object.entries(V.vin).filter(([, v]) => v.stream).map(([key, v]) => ({ slug: key.split(':')[0], kind: key.split(':')[1], stream: v.stream }))
     })
   };
