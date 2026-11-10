@@ -1,7 +1,7 @@
 {
   "name": "fire-lol",
   "productName": "FIRE LoL",
-  "version": "1.10.27",
+  "version": "1.10.28",
   "description": "FIRE LoL - les stats de l'équipe, à jour depuis dpm.lol",
   "main": "main.js",
   "author": "Toka120",
@@ -73,15 +73,17 @@
     "appx": {
       "applicationId": "FIRELoL",
       "displayName": "FIRE LoL",
-      "identityName": "FIRE.LoL.Test",
-      "publisher": "CN=FIRE-Test",
-      "publisherDisplayName": "Toka120",
+      "identityName": "Toks42o.FIRELoL",
+      "publisher": "CN=B8EFAA3A-8B5A-4888-81D9-772E2A6DFB2C",
+      "publisherDisplayName": "Toks42o",
       "languages": [
         "fr-FR"
       ],
       "backgroundColor": "#0f0d0c",
       "showNameOnTiles": true,
-      "artifactName": "FIRE-LoL-Store.appx"
+      "artifactName": "FIRE-LoL-Store.appx",
+      "minVersion": "10.0.17763.0",
+      "maxVersionTested": "10.0.26100.0"
     }
   },
   "dependencies": {

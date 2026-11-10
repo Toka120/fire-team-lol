@@ -61,9 +61,9 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: >
           npx electron-builder --win appx --publish never
-          -c.appx.identityName="${{ vars.STORE_IDENTITY_NAME || 'FIRE.LoL.Test' }}"
-          -c.appx.publisher="${{ vars.STORE_PUBLISHER || 'CN=FIRE-Test' }}"
-          -c.appx.publisherDisplayName="${{ vars.STORE_PUBLISHER_NAME || 'Toka120' }}"
+          -c.appx.identityName="${{ vars.STORE_IDENTITY_NAME || 'Toks42o.FIRELoL' }}"
+          -c.appx.publisher="${{ vars.STORE_PUBLISHER || 'CN=B8EFAA3A-8B5A-4888-81D9-772E2A6DFB2C' }}"
+          -c.appx.publisherDisplayName="${{ vars.STORE_PUBLISHER_NAME || 'Toks42o' }}"
       - uses: actions/upload-artifact@v4
         if: always()
         continue-on-error: true

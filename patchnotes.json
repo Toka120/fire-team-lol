@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.28",
+   "date": "2026-11-10",
+   "titre": "Paquet Microsoft Store",
+   "items": [
+    [
+     "improve",
+     "Le paquet pour le Microsoft Store utilise maintenant l'identité officielle de FIRE LoL dans le Store."
+    ]
+   ]
+  },
+  {
    "v": "1.10.27",
    "date": "2026-11-10",
    "titre": "Le coach ajoute des games obligatoires",
