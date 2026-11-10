@@ -1229,3 +1229,14 @@ button.dr-row:hover{border-color:var(--line);background:var(--panel2)}
 .plan-date{flex-wrap:wrap}
 .plan-note{margin-left:10px;padding:6px 14px;border-radius:10px;font-size:19px;font-weight:800;letter-spacing:.01em;color:#ffd27a;background:rgba(255,179,71,.12);border:1px solid rgba(255,179,71,.55);box-shadow:0 0 18px rgba(255,140,40,.12)}
 .plan-day.past .plan-note{opacity:.6}
+
+/* Skins préférés en fond (carte et profil du joueur), en fondu enchaîné */
+.has-skin{position:relative;overflow:hidden;isolation:isolate}
+.skin-bg{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.skin-bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%;opacity:0;transition:opacity 1.6s ease;transform:scale(1.04)}
+.skin-bg img.on{opacity:1}
+.skin-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,10,9,.35) 0%,rgba(12,10,9,.62) 50%,rgba(12,10,9,.88) 100%)}
+.pcard.has-skin{background:var(--panel)}
+.hero.has-skin{padding:22px 24px;border-radius:18px;border:1px solid var(--line)}
+.hero.has-skin .skin-bg::after{background:linear-gradient(90deg,rgba(12,10,9,.94) 0%,rgba(12,10,9,.82) 45%,rgba(12,10,9,.35) 100%)}
+.hero.has-skin .skin-bg img{object-position:center 20%}

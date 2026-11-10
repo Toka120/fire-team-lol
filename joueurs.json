@@ -113,7 +113,17 @@
       "bandeau": {
         "texte": "⚔️ Monstre OTP Irelia",
         "theme": "blade"
-      }
+      },
+      "fonds": [
+        {
+          "champ": "Irelia",
+          "skin": 26
+        },
+        {
+          "champ": "Irelia",
+          "skin": 6
+        }
+      ]
     },
     {
       "role": "ADC",

@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.41",
+   "date": "2026-11-10",
+   "titre": "Skins préférés en fond",
+   "items": [
+    [
+     "new",
+     "Les skins préférés d'un joueur défilent en fond de sa carte et de son profil, avec un fondu toutes les 7 secondes."
+    ],
+    [
+     "new",
+     "ShadowReaper : Irelia Sentinelle et Irelia à l'épée divine en alternance."
+    ]
+   ]
+  },
+  {
    "v": "1.10.40",
    "date": "2026-11-10",
    "titre": "Un suppléant pour le mid",
