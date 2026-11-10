@@ -318,7 +318,9 @@ ipcMain.handle('dpm:team', async (e, reqs) => {
 // se mettre à jour seule : elle affiche un lien de téléchargement.
 
 const portable = !!process.env.PORTABLE_EXECUTABLE_DIR;
-const canAutoUpdate = () => !!autoUpdater && app.isPackaged && !portable;
+// Version Microsoft Store : c'est le Store qui installe les mises à jour (règle du Store), FIRE ne se met pas à jour tout seul.
+const store = !!process.windowsStore;
+const canAutoUpdate = () => !!autoUpdater && app.isPackaged && !portable && !store;
 let updateState = { state: 'idle' };
 function sendUpdate(m) {
   updateState = { ...updateState, ...m };
@@ -386,9 +388,9 @@ async function latestTag() {
     return String(j.tag_name || '').replace(/^v/, '') || null;
   } catch (e) { return null; }
 }
-ipcMain.handle('update:state', async () => ({ ...updateState, auto: canAutoUpdate(), portable, latest: await latestTag() }));
+ipcMain.handle('update:state', async () => ({ ...updateState, auto: canAutoUpdate(), portable, store, latest: store ? null : await latestTag() }));
 ipcMain.handle('notify', (e, m) => notify(String((m && m.title) || 'FIRE LoL').slice(0, 120), String((m && m.body) || '').slice(0, 300), m && m.section));
-ipcMain.handle('bg:get', () => ({ ...bgPrefs(), startup: startupOn(), canStartup: app.isPackaged && process.platform !== 'linux', notif: Notification.isSupported() }));
+ipcMain.handle('bg:get', () => ({ ...bgPrefs(), startup: startupOn(), canStartup: app.isPackaged && process.platform !== 'linux' && !store, notif: Notification.isSupported() }));
 ipcMain.handle('bg:set', (e, m) => {
   const cur = bgPrefs();
   if (m && typeof m.bg === 'boolean') {
@@ -399,7 +401,7 @@ ipcMain.handle('bg:set', (e, m) => {
   if (m && typeof m.startup === 'boolean' && app.isPackaged) {
     try { app.setLoginItemSettings({ openAtLogin: m.startup, path: exePath(), args: ['--hidden'] }); } catch (err) { /* ignore */ }
   }
-  return { ...bgPrefs(), startup: startupOn(), canStartup: app.isPackaged && process.platform !== 'linux', notif: Notification.isSupported() };
+  return { ...bgPrefs(), startup: startupOn(), canStartup: app.isPackaged && process.platform !== 'linux' && !store, notif: Notification.isSupported() };
 });
 app.on('before-quit', () => { quitting = true; });
 
@@ -410,6 +412,7 @@ ipcMain.handle('update:install', () => {
 // Bouton « Installer la dernière version » de l'onglet Paramètres.
 ipcMain.handle('update:check', async () => {
   const latest = await latestTag();
+  if (store) return { ok: true, auto: false, store: true, latest: null };
   if (!canAutoUpdate()) return { ok: true, auto: false, latest };
   if (['ready', 'progress', 'available', 'checking', 'retry'].includes(updateState.state) || checking) return { ok: true, auto: true, latest, state: updateState.state };
   // Le bouton relance aussi après une erreur de fichier bloqué : on repart d'un dossier de préparation vide.
@@ -426,7 +429,8 @@ if (!single) {
   app.quit();
 } else {
   // Windows n'affiche les notifications que si l'application a un identifiant (le même que l'installeur).
-  if (process.platform === 'win32') app.setAppUserModelId('lol.fire.team');
+  // La version Store a déjà son identité Windows (notifications) : on ne la remplace pas.
+  if (process.platform === 'win32' && !store) app.setAppUserModelId('lol.fire.team');
   app.on('second-instance', () => showMain());
   app.whenReady().then(() => { createMainWindow(); setupUpdater(); });
   app.on('window-all-closed', () => { if (!bgPrefs().bg || quitting) app.quit(); });

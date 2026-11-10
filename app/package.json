@@ -1,7 +1,7 @@
 {
   "name": "fire-lol",
   "productName": "FIRE LoL",
-  "version": "1.10.23",
+  "version": "1.10.24",
   "description": "FIRE LoL - les stats de l'équipe, à jour depuis dpm.lol",
   "main": "main.js",
   "author": "Toka120",
@@ -10,7 +10,8 @@
   "scripts": {
     "vendor": "node -e \"const fs=require('fs');fs.mkdirSync('renderer/vendor',{recursive:true});fs.copyFileSync('node_modules/d3/dist/d3.min.js','renderer/vendor/d3.min.js')\"",
     "start": "npm run vendor && electron .",
-    "dist": "npm run vendor && electron-builder --win nsis portable --publish never"
+    "dist": "npm run vendor && electron-builder --win nsis portable --publish never",
+    "store": "npm run vendor && electron-builder --win appx --publish never"
   },
   "devDependencies": {
     "d3": "7.9.0",
@@ -68,7 +69,20 @@
         "repo": "fire-team-lol",
         "releaseType": "release"
       }
-    ]
+    ],
+    "appx": {
+      "applicationId": "FIRELoL",
+      "displayName": "FIRE LoL",
+      "identityName": "FIRE.LoL.Test",
+      "publisher": "CN=FIRE-Test",
+      "publisherDisplayName": "Toka120",
+      "languages": [
+        "fr-FR"
+      ],
+      "backgroundColor": "#0f0d0c",
+      "showNameOnTiles": true,
+      "artifactName": "FIRE-LoL-Store.appx"
+    }
   },
   "dependencies": {
     "electron-updater": "6.3.9"

@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.24",
+   "date": "2026-11-10",
+   "titre": "Prêt pour le Microsoft Store",
+   "items": [
+    [
+     "new",
+     "FIRE se prépare à arriver sur le Microsoft Store : installé depuis le Store, il est signé par Microsoft et n'est plus bloqué par le Contrôle intelligent des applications de Windows."
+    ],
+    [
+     "improve",
+     "Version Store : les mises à jour arrivent par le Store, sans téléchargement manuel."
+    ],
+    [
+     "improve",
+     "Paramètres › À propos : lien vers la politique de confidentialité et mention légale Riot Games."
+    ]
+   ]
+  },
+  {
    "v": "1.10.23",
    "date": "2026-11-10",
    "titre": "Le vrai League of Listen",

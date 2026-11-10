@@ -110,6 +110,7 @@
   const SETUP_URL = 'https://github.com/Toka120/fire-team-lol/releases/latest/download/FIRE-LoL-Setup.exe';
   function updateNode() {
     const u = S.upd || {};
+    if (u.store) return null; // Version Microsoft Store : le Store installe les mises à jour.
     let v = S.cfg && S.cfg.derniere_version;
     if (u.latest && (!v || newer(u.latest, v))) v = u.latest;
     if (!v || !newer(v, S.version)) return null;
@@ -157,7 +158,7 @@
     S.upd = { state: 'idle' };
     if (window.fire.update) {
       window.fire.update.on((m) => { S.upd = { ...S.upd, ...m }; renderUpdate(); });
-      window.fire.update.state().then((m) => { S.upd = { ...m, ...S.upd, auto: m.auto, portable: m.portable }; renderUpdate(); }).catch(() => {});
+      window.fire.update.state().then((m) => { S.upd = { ...m, ...S.upd, auto: m.auto, portable: m.portable, store: m.store }; renderUpdate(); }).catch(() => {});
     }
     if (window.fire.onNotifyGo) window.fire.onNotifyGo((sec) => { if (sec) go(sec); });
     if (window.fire.background) window.fire.background.get().then((b) => { S.bg = b; if (S.section === 'settings' && !typing()) renderSettings(); }).catch(() => {});
@@ -280,6 +281,7 @@
   }
   function notifUpdate() {
     const u = S.upd || {};
+    if (u.store) return;
     let v = null, body = '';
     if (u.auto && u.state === 'ready' && u.version) { v = u.version; body = `La version ${v} est téléchargée. Ouvre FIRE et clique sur « Redémarrer et installer » dans Paramètres.`; }
     else if (!u.auto) {
@@ -362,6 +364,7 @@
     S.updChecking = false;
     if (r && r.latest) S.upd = { ...S.upd, latest: r.latest };
     if (!r || !r.ok) S.updMsg = '⚠ Vérification impossible : ' + ((r && r.error) || 'pas de connexion');
+    else if (r.store) S.updMsg = 'Les mises à jour arrivent par le Microsoft Store ✓';
     else if (!r.auto) S.updMsg = (r.latest && newer(r.latest, S.version)) ? `La version ${r.latest} est disponible : télécharge-la avec le bouton ci-dessous.` : 'Tu as déjà la dernière version ✓';
     else if (r.state === 'ready') S.updMsg = 'La nouvelle version est prête : clique sur « Redémarrer et installer ».';
     else if (r.state === 'progress' || r.state === 'available') S.updMsg = 'Téléchargement déjà en cours…';
@@ -407,7 +410,7 @@
     if (S.section !== 'settings') return;
     const u = S.upd || {};
     const view = $('view');
-    const latest = u.latest || (S.cfg && S.cfg.derniere_version) || null;
+    const latest = u.store ? null : (u.latest || (S.cfg && S.cfg.derniere_version) || null);
     const behind = latest && newer(latest, S.version);
     const row = (k, v) => h('div', { class: 'srow' }, h('span', { class: 'muted' }, k), h('span', { class: 'sval' }, v));
     let state = '';
@@ -417,6 +420,7 @@
     else if (u.auto && u.state === 'retry') state = u.error || 'Nouvel essai en cours…';
     else if (u.auto && u.state === 'error') state = u.error || 'La dernière vérification a échoué.';
     else if (u.auto) state = behind ? 'Nouvelle version disponible' : 'À jour ✓';
+    else if (u.store) state = 'Mises à jour par le Microsoft Store ✓';
     else state = u.portable ? 'Version portable : mise à jour manuelle' : (behind ? 'Nouvelle version disponible' : 'À jour ✓');
 
     const buttons = [];
@@ -425,6 +429,7 @@
       buttons.push(h('button', { class: 'btn-fire small-btn', disabled: (S.updChecking || u.state === 'progress' || u.state === 'available' || u.state === 'retry') ? true : null, onclick: checkUpdate }, u.state === 'error' ? '🔄 Réessayer la mise à jour' : '⬇ Installer la dernière version'));
       if (u.state === 'error') buttons.push(h('a', { class: 'btn-ghost linklike', href: SETUP_URL, target: '_blank' }, '⬇ Télécharger l’installeur'));
     }
+    else if (u.store) { /* rien : le Store s'en charge */ }
     else {
       buttons.push(h('button', { class: 'btn-ghost', disabled: S.updChecking ? true : null, onclick: checkUpdate }, 'Vérifier'));
       buttons.push(h('a', { class: 'btn-fire small-btn linklike', href: SETUP_URL, target: '_blank' }, '⬇ Télécharger la dernière version'));
@@ -437,11 +442,13 @@
       h('div', { class: 'card settings-card' },
         h('h2', null, "🔄 Version de l'application"),
         row('Version installée', 'v' + S.version),
-        row('Dernière version publiée', latest ? 'v' + latest : '…'),
+        u.store ? null : row('Dernière version publiée', latest ? 'v' + latest : '…'),
         row('État', state),
         h('div', { class: 'row' }, buttons),
         S.updMsg ? h('p', { class: 'small' }, S.updMsg) : null,
-        h('p', { class: 'muted small' }, u.portable
+        h('p', { class: 'muted small' }, u.store
+          ? "Installé depuis le Microsoft Store : les nouvelles versions arrivent toutes seules par le Store (Bibliothèque › Obtenir les mises à jour)."
+          : u.portable
           ? "La version portable ne peut pas s'installer toute seule : télécharge FIRE-LoL-Setup.exe, qui se mettra ensuite à jour automatiquement."
           : "L'application cherche aussi les nouvelles versions toute seule, à chaque ouverture et toutes les 30 minutes.")),
       h('div', { class: 'card settings-card' },
@@ -467,7 +474,9 @@
       h('div', { class: 'card settings-card' },
         h('h2', null, 'ℹ️ À propos'),
         h('p', { class: 'small' }, 'FIRE LoL · ', h('a', { href: 'https://toka120.github.io/fire-team-lol/', target: '_blank' }, 'page de téléchargement'), ' · ',
-          h('a', { href: 'https://github.com/Toka120/fire-team-lol/releases', target: '_blank' }, 'toutes les versions'))));
+          h('a', { href: 'https://github.com/Toka120/fire-team-lol/releases', target: '_blank' }, 'toutes les versions'), ' · ',
+          h('a', { href: 'https://toka120.github.io/fire-team-lol/confidentialite.html', target: '_blank' }, 'confidentialité')),
+        h('p', { class: 'muted small' }, "FIRE LoL n'est pas approuvé par Riot Games et ne reflète pas les opinions de Riot Games ni de quiconque officiellement impliqué dans la production ou la gestion des propriétés de Riot Games. Riot Games et toutes les propriétés associées sont des marques commerciales ou des marques déposées de Riot Games, Inc.")));
   }
 
   // ---------- Lecture dpm.lol ----------
@@ -1390,7 +1399,7 @@
     const n = unseen().length;
     const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
-    const upd = (u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version)) ? '1' : null;
+    const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('worlds', '🏆 E-sport'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
   }
 
