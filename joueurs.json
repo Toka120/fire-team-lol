@@ -57,22 +57,6 @@
       "dpm": "https://dpm.lol/Toks42o%20-TTV"
     },
     {
-      "role": "Jungle (Bench)",
-      "role_id": "jungle",
-      "pseudo": "Kayn Effect#NuhUh",
-      "slug": "Kayn%20Effect-NuhUh",
-      "puuid": "1pXWvrFlOQJmF1_1Nqy9NJdihHWA6Im5WGWVV1GMWwuddKe4dzYVNsrtwwuPqBCk7cmtEB7g57Bjhw",
-      "pool_ids": [
-        "DrMundo",
-        "Pantheon",
-        "Poppy",
-        "Amumu"
-      ],
-      "pool": "Dr. Mundo · Pantheon · Poppy · Amumu",
-      "tableau": "https://claude.ai/artifact/VrcMRtvwkwUyayahfqqWNe",
-      "dpm": "https://dpm.lol/Kayn%20Effect-NuhUh"
-    },
-    {
       "role": "Mid",
       "role_id": "mid",
       "pseudo": "xena#6814",

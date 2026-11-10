@@ -292,12 +292,12 @@
     }
    ],
    "diapo": {
-    "titre": "Le carnet du jungler · Toks42o · Kayn Effect",
-    "resume": "Les notes du coach pour Toks42o et Kayn Effect : ta classe, ton départ, le carapateur, les ganks, en mode quête.",
+    "titre": "Le carnet du jungler · Toks42o",
+    "resume": "Les notes du coach pour Toks42o : ta classe, ton départ, le carapateur, les ganks, en mode quête.",
     "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-jungle/",
     "slides": [
      {
-      "img": "slide-01.jpg?v=4",
+      "img": "slide-01.jpg?v=5",
       "titre": "Le carnet du jungler"
      },
      {

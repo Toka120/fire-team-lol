@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.19",
+   "date": "2026-11-10",
+   "titre": "Effectif",
+   "items": [
+    [
+     "improve",
+     "Kayn Effect ne fait plus partie des joueurs suivis."
+    ]
+   ]
+  },
+  {
    "v": "1.10.18",
    "date": "2026-11-10",
    "titre": "Emoji et Ombre",

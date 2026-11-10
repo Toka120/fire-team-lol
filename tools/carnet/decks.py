@@ -4,7 +4,7 @@ from blocks import *
 # ================================================================ JUNGLE
 def jungle():
     L = 'jungle'
-    s = [dict(kind='cover', who='Le carnet du jungler', players='Toks42o · Kayn Effect', icon='🌲'),
+    s = [dict(kind='cover', who='Le carnet du jungler', players='Toks42o', icon='🌲'),
          dict(kind='quest', levels=['Le rôle', 'Ta classe', 'Ton départ', 'Le carapateur', 'Les ganks',
                                     'Les buffs', 'Les vagues, vite fait', 'Fights et mindset', 'Entraînement et data'])]
     s += role(L, 1, 'Jarvan IV')
