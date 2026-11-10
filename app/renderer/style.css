@@ -956,3 +956,4 @@ html[data-theme=gris]  { --bg:#1b1c1f; --panel:#25272b; --panel2:#2e3035; --line
 .ll-ico{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.25);font-size:18px}
 .ll-btn.playing .ll-ico{animation:ll-pulse 1s ease-in-out infinite}
 @keyframes ll-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.ll-diff{justify-content:center;margin:6px 0 0}

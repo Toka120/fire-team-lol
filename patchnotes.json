@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.22",
+   "date": "2026-11-10",
+   "titre": "Listen : difficulté",
+   "items": [
+    [
+     "new",
+     "Détente › 🎧 Listen : choix de difficulté. Facile : tous les bruitages. Difficile : un seul extrait court, à peu près un seul sort, et la voix seulement après 5 essais ratés."
+    ]
+   ]
+  },
+  {
    "v": "1.10.21",
    "date": "2026-11-10",
    "titre": "League of Listen",

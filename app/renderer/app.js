@@ -2336,6 +2336,7 @@
     if (mode === 'listen') {
       r.sfx = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-sfx-audios/${c.key}.ogg`;
       r.vo = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/fr_fr/v1/champion-choose-vo/${c.key}.ogg`;
+      r.cut = Math.random(); // en difficile : où commence l'extrait d'un seul sort
     }
     if (mode === 'emoji') r.emo = [...new Intl.Segmenter('fr', { granularity: 'grapheme' }).segment(c.emo)].map((x) => x.segment);
     if (mode === 'ombre') { const sk = c.skins.filter((x) => x.num > 0); r.skin = Math.random() < 0.5 || !sk.length ? (c.skins[0] || { num: 0 }) : pick(sk); }
@@ -2430,19 +2431,40 @@
         h('p', { class: 'muted small' }, r.done ? `${r.spell.name} (${r.spell.key})` : wrong >= 2 ? 'Remis à l’endroit.' : 'Tourné, en noir et blanc : il s’éclaircit à chaque essai.'));
     }
     if (mode === 'listen') {
-      const play = (src, btn, label) => {
+      const hard = load('fire.listen.diff', 'facile') === 'difficile';
+      const CLIP = 1.6;
+      // Joue le son ; en difficile, seulement un court extrait (≈ un seul sort), toujours le même pour la manche.
+      const play = (src, btn, label, clip) => {
+        if (J.audio) { try { J.audio.pause(); } catch (e) { /* rien */ } }
+        clearTimeout(J.audioStop);
         if (!J.audio || J.audio.dataset.src !== src) { J.audio = new Audio(src); J.audio.dataset.src = src; J.audio.volume = 0.8; }
-        J.audio.currentTime = 0;
-        btn.classList.add('playing');
-        J.audio.onended = () => btn.classList.remove('playing');
-        J.audio.play().then(() => { btn.querySelector('.ll-l').textContent = label; }).catch(() => { btn.classList.remove('playing'); btn.querySelector('.ll-l').textContent = '⚠ Son indisponible'; });
+        const a = J.audio;
+        const go = () => {
+          a.currentTime = clip ? Math.max(0, r.cut * Math.max(0, (a.duration || 4) - CLIP)) : 0;
+          btn.classList.add('playing');
+          a.onended = () => btn.classList.remove('playing');
+          a.play().then(() => {
+            btn.querySelector('.ll-l').textContent = label;
+            if (clip) J.audioStop = setTimeout(() => { a.pause(); btn.classList.remove('playing'); }, CLIP * 1000);
+          }).catch(() => { btn.classList.remove('playing'); btn.querySelector('.ll-l').textContent = '⚠ Son indisponible'; });
+        };
+        if (a.readyState >= 1) go(); else a.addEventListener('loadedmetadata', go, { once: true });
+        if (a.readyState < 1) a.load();
       };
-      const voiceOk = wrong >= 3 || r.done;
+      const voiceAt = hard ? 5 : 3;
+      const voiceOk = wrong >= voiceAt || r.done;
+      const clip = hard && !r.done;
+      const setDiff = (d) => { save('fire.listen.diff', d); jNew('listen'); };
       clue = h('div', { class: 'card jeu-clue' }, h('h3', null, '🎧 League of Listen : à quel champion appartiennent ces bruitages ?'),
+        h('div', { class: 'chips ll-diff' },
+          h('button', { class: 'chip', 'aria-pressed': String(!hard), onclick: () => setDiff('facile') }, '😊 Facile : tous les bruitages'),
+          h('button', { class: 'chip', 'aria-pressed': String(hard), onclick: () => setDiff('difficile') }, '😈 Difficile : un seul sort')),
         h('div', { class: 'll-row' },
-          h('button', { class: 'll-btn', onclick: (e) => play(r.sfx, e.currentTarget, 'Réécouter les bruitages') }, h('span', { class: 'll-ico' }, '▶'), h('span', { class: 'll-l' }, 'Écouter les bruitages')),
-          voiceOk ? h('button', { class: 'll-btn voice', onclick: (e) => play(r.vo, e.currentTarget, 'Réécouter sa voix') }, h('span', { class: 'll-ico' }, '🗣️'), h('span', { class: 'll-l' }, 'Indice : sa voix')) : null),
-        h('p', { class: 'muted small' }, r.done ? `${t.name} · les bruitages de son écran de sélection.` : voiceOk ? 'Indice débloqué : écoute sa voix.' : `Ses sorts et ses attaques, sans un mot. Sa voix se débloque après 3 essais ratés (encore ${3 - wrong}).`));
+          h('button', { class: 'll-btn', onclick: (e) => play(r.sfx, e.currentTarget, clip ? 'Réécouter l’extrait' : 'Réécouter les bruitages', clip) }, h('span', { class: 'll-ico' }, '▶'), h('span', { class: 'll-l' }, clip ? 'Écouter l’extrait' : 'Écouter les bruitages')),
+          voiceOk ? h('button', { class: 'll-btn voice', onclick: (e) => play(r.vo, e.currentTarget, 'Réécouter sa voix', false) }, h('span', { class: 'll-ico' }, '🗣️'), h('span', { class: 'll-l' }, 'Indice : sa voix')) : null),
+        h('p', { class: 'muted small' }, r.done ? `${t.name} · les bruitages de son écran de sélection${hard ? ' (tu peux maintenant tout écouter)' : ''}.`
+          : voiceOk ? 'Indice débloqué : écoute sa voix.'
+          : `${hard ? 'Un extrait d’1,6 s, à peu près un seul sort.' : 'Ses sorts et ses attaques, sans un mot.'} Sa voix se débloque après ${voiceAt} essais ratés (encore ${voiceAt - wrong}).`));
     }
     if (mode === 'emoji') {
       // 2 emojis au départ, 1 de plus après 2 puis 4 essais ratés.
