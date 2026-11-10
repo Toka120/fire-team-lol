@@ -336,14 +336,14 @@ function dpmSession() {
 }
 
 // Exécutée DANS la page dpm.lol (même origine que son API). Doit rester autonome.
-async function grab(puuid, cutoff) {
+async function grab(puuid, cutoff, maxPages) {
   const F = ['championName', 'win', 'opponentChampionName', 'lane', 'kills', 'deaths', 'assists', 'killParticipation',
     'totalMinionsKilled', 'neutralMinionsKilled', 'goldPerMinute', 'damagePerMinute', 'teamDamagePercentage',
     'visionScorePerMinute', 'controlWardsPlaced', 'stealthWardsPlaced', 'wardTakedowns', 'csDiffAt15', 'goldDiffAt15',
     'xpDiffAt15', 'jungleCsBefore10Minutes', 'laneMinionsFirst10Minutes', 'scuttleCrabKills', 'soloKills',
     'turretPlatesTaken', 'dragon', 'horde', 'dpmScore'];
   const matches = [];
-  for (let page = 1; page <= 14; page++) {
+  for (let page = 1; page <= (maxPages || 14); page++) {
     // Pas de paramètre en plus dans l'URL : dpm.lol refuse toute propriété inconnue (erreur 422).
     // cache: 'no-store' suffit pour avoir les dernières games.
     const r = await fetch(`/v1/players/${puuid}/match-history?size=15&page=${page}`, { cache: 'no-store' });
@@ -406,7 +406,9 @@ async function fetchPlayer(player, days) {
     })()`).catch(() => false);
     if (clicked) await sleep(9000);
     const cutoff = Date.now() - days * 86400000;
-    const data = await win.webContents.executeJavaScript(`(${grab.toString()})(${JSON.stringify(puuid)}, ${cutoff})`);
+    // Jusqu'à 70 pages de 15 games pour un joueur dont on veut toute l'année (stats_depuis), 14 sinon.
+    const pages = Math.max(1, Math.min(70, Number(player.pages) || 14));
+    const data = await win.webContents.executeJavaScript(`(${grab.toString()})(${JSON.stringify(puuid)}, ${cutoff}, ${pages})`);
     return { ok: true, puuid, at: Date.now(), ...data };
   } catch (e) {
     return { ok: false, error: String((e && e.message) || e) };

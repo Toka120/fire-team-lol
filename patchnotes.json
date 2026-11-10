@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.42",
+   "date": "2026-11-10",
+   "titre": "Toute l'année pour ShadowReaper",
+   "items": [
+    [
+     "new",
+     "ShadowReaper vient d'arriver : sur la période « depuis le début », ses stats remontent au 1er janvier 2026 au lieu du 27 octobre. FIRE lit toutes ses games classées de l'année sur dpm.lol (jusqu'à environ 1 000)."
+    ],
+    [
+     "improve",
+     "Les autres joueurs gardent la période de l'équipe. L'objectif de la semaine ne change pas."
+    ]
+   ]
+  },
+  {
    "contenu": true,
    "id": "c-2026-11-10-fond-theworld",
    "date": "2026-11-10",

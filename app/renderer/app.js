@@ -118,7 +118,11 @@
   const hideTip = () => { tip.hidden = true; };
 
   // ---------- Période ----------
-  function periodStart() {
+  // « stats_depuis » (joueurs.json) : pour un joueur arrivé en cours de route, la période « depuis le début »
+  // remonte à cette date (ex. le début de l'année) au lieu du début de l'équipe.
+  const ownStart = (p) => (p && /^\d{4}-\d{2}-\d{2}$/.test(p.stats_depuis || '') && S.period === 'debut' && S.debut ? p.stats_depuis : null);
+  function periodStart(p) {
+    if (ownStart(p)) return new Date(ownStart(p) + 'T00:00:00').getTime();
     if (S.period === 'debut' && S.debut) return new Date(S.debut + 'T00:00:00').getTime();
     if (S.period === 'obj' && S.obj) return new Date(S.obj.debut + 'T00:00:00').getTime();
     if (S.period === 'since' && S.since) return new Date(S.since + 'T00:00:00').getTime();
@@ -126,7 +130,8 @@
     const n = S.period === 'since' ? 7 : Number(S.period);
     return Date.now() - n * 86400000;
   }
-  function periodLabel() {
+  function periodLabel(p) {
+    if (ownStart(p)) return `depuis le ${dateFr(ownStart(p))} ${ownStart(p).slice(0, 4)}`;
     if (S.period === 'debut' && S.debut) return `depuis le ${dateFr(S.debut)}`;
     if (S.period === 'obj' && S.obj) return `cette semaine (depuis le ${dateFr(S.obj.debut)})`;
     if (S.period === 'since' && S.since) { const d = new Date(S.since + 'T00:00:00'); return `depuis le ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`; }
@@ -591,7 +596,8 @@
     const older = list.find((a) => a !== now && a.rank) || {};
     return { ok: true, matches, champs: mergeChamps(list.map((a) => a.champs)), rank: now.rank || (older.rank ? older.rank + ' (ancien compte)' : ''), record: now.rank ? now.record : older.record || '', at: Math.max(...list.map((a) => a.at || 0)), acc };
   }
-  function fetchDays() {
+  function fetchDays(p) {
+    if (p && /^\d{4}-\d{2}-\d{2}$/.test(p.stats_depuis || '')) return Math.min(400, Math.max(fetchDays(), Math.ceil((Date.now() - new Date(p.stats_depuis + 'T00:00:00').getTime()) / 86400000) + 1));
     let n = FETCH_DAYS;
     if (S.obj) n = Math.max(n, Math.ceil((Date.now() - new Date(S.obj.debut + 'T00:00:00').getTime()) / 86400000) + 1);
     if (S.debut) n = Math.max(n, Math.ceil((Date.now() - new Date(S.debut + 'T00:00:00').getTime()) / 86400000) + 1);
@@ -616,7 +622,7 @@
         if (S.section === 'stats' && S.view === 'hub') render();
         let res;
         if (Array.isArray(p.comptes) && p.comptes.length) res = await fetchAccounts(p);
-        else { try { res = await window.fire.fetchPlayer({ slug: p.slug, puuid: p.puuid || null }, fetchDays()); } catch (e) { res = { ok: false, error: String(e) }; } }
+        else { try { res = await window.fire.fetchPlayer({ slug: p.slug, puuid: p.puuid || null, pages: p.stats_depuis ? 70 : 14 }, fetchDays(p)); } catch (e) { res = { ok: false, error: String(e) }; } }
         if (res && res.ok) {
           S.data[p.slug] = { matches: res.matches, champs: res.champs, rank: res.rank, record: res.record, at: res.at, acc: res.acc };
           save('fire.data', S.data);
@@ -742,11 +748,11 @@
     if (p.pool) card.append(h('div', { class: 'muted small' }, '🎯 ' + p.pool));
     if ((p.maitrise_ids || []).length) card.append(h('div', { class: 'muted small' }, '⭐ ' + p.maitrise_ids.map(FC.champName).join(' · ')));
     if (d) {
-      const s = FC.stats(FC.toRows(p, d.matches, start));
+      const s = FC.stats(FC.toRows(p, d.matches, periodStart(p)));
       const box = h('div');
       card.append(h('div', { class: 'mini' }, box, h('div', { class: 'mini-info' },
         h('div', null, s.games ? `${pl(s.wins, 'victoire', 'victoires')} · ${pl(s.losses, 'défaite', 'défaites')}` : 'Aucune game'),
-        h('div', { class: 'muted small' }, s.games ? `KDA ${fr(s.kda, 2)} · ${fr(s.morts_moy, 1)} morts/game` : periodLabel()),
+        h('div', { class: 'muted small' }, s.games ? `KDA ${fr(s.kda, 2)} · ${fr(s.morts_moy, 1)} morts/game` : periodLabel(p)),
         d.rank ? h('div', { class: 'muted small' }, d.rank) : null)));
       later(() => ring(box, s, 84));
       const o = objFor(p, d);
@@ -754,7 +760,7 @@
       if (S.coachState.coach && S.obj) card.append(bonusCtl(p, true));
       const cb = s.games ? catBar({ oblig: s.oblig, maitrise: s.maitrise_g, autres: s.autres }) : null;
       if (cb) { cb.classList.add('compact'); card.append(cb); }
-      const pills = hubPills(p, FC.toRows(p, d.matches, start), s, o);
+      const pills = hubPills(p, FC.toRows(p, d.matches, periodStart(p)), s, o);
       if (pills.length) card.append(h('div', { class: 'hpills' }, pills));
     }
     const lg = lastGame(d);
@@ -980,7 +986,7 @@
       view.replaceChildren(h('div', { class: 'empty-state' }, st && st.state === 'error' ? `Impossible de lire dpm.lol pour ${p.pseudo} (${st.error}). Réessaie avec « Mettre à jour ».` : `Lecture des stats de ${p.pseudo} sur dpm.lol…`));
       return;
     }
-    const rows = FC.toRows(p, d.matches, periodStart());
+    const rows = FC.toRows(p, d.matches, periodStart(p));
     const s = FC.stats(rows);
     const days = FC.byDay(rows);
     const champs = FC.byChamp(rows);
@@ -994,7 +1000,7 @@
         h('div', { class: 'tags' }, bandeau(p) ? h('span', { class: 'tag tag-cap b-' + bandeau(p).theme }, bandeau(p).texte) : null, tag(`${R.ico} ${p.role || R.label}`), d.rank ? tag(d.rank) : null,
           S.more ? [tag('Classé Solo/Duo'), p.pool ? tag('🎯 ' + p.pool) : null, (p.maitrise_ids || []).length ? tag('⭐ ' + p.maitrise_ids.map(FC.champName).join(' · ')) : null] : null),
         h('h1', { class: 'title' }, p.pseudo),
-        h('p', { class: 'muted small' }, S.more ? `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · stats dpm.lol de ${hm(d.at)} · ${lastGame(d) || 'aucune game Solo/Duo'} · ` : `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · `,
+        h('p', { class: 'muted small' }, S.more ? `${cap(periodLabel(p))} · ${pl(s.games, 'game', 'games')} · stats dpm.lol de ${hm(d.at)} · ${lastGame(d) || 'aucune game Solo/Duo'} · ` : `${cap(periodLabel(p))} · ${pl(s.games, 'game', 'games')} · `,
           h('a', { href: 'https://dpm.lol/' + curAccount(p).slug, target: '_blank' }, 'voir sur dpm.lol')),
         accountsOf(p).length > 1 ? h('p', { class: 'muted small' }, '🔁 ', accountsOf(p).map((c) => c.jusqu_au
           ? h('span', null, 'ancien compte ', h('a', { href: 'https://dpm.lol/' + c.slug, target: '_blank' }, c.pseudo || decodeURIComponent(c.slug)), ` (games jusqu’au ${dateFr(c.jusqu_au)})`)
@@ -1108,7 +1114,7 @@
     if (!rows.length) { page.append(h('div', { class: 'empty-state' }, 'Aucune game classée Solo/Duo sur cette période.')); return; }
     const item = (lab, v) => h('div', { class: 'it' }, h('span', { class: 'lab' }, lab), h('span', { class: 'v' }, v));
     page.append(h('div', { class: 'card' }, h('div', { class: 'banner' },
-      h('div', { class: 'it' }, h('span', { class: 'lab' }, 'Période'), h('span', { class: 'big' }, cap(periodLabel()))),
+      h('div', { class: 'it' }, h('span', { class: 'lab' }, 'Période'), h('span', { class: 'big' }, cap(periodLabel(p)))),
       item('Victoires', fr(s.wins)), item('Défaites', fr(s.losses)), item('Win rate', fr(s.wr, 1) + ' %'),
       item('KDA', fr(s.kda, 2)), item('Morts / game', fr(s.morts_moy, 1)), item('Golds @15', sg(s.gold15)))));
     page.append(h('p', { class: 'muted small' }, 'Clique sur une semaine pour voir ses jours, puis sur un jour pour voir ses games. Bordure verte : victoire, rouge : défaite. Les flèches comparent chaque game à sa moyenne sur la période.'));
@@ -1173,7 +1179,7 @@
     S.tab = 'jours'; S.jour = g.jour;
     const p = S.players.find((x) => x.slug === S.player);
     if (p) {
-      const days = FC.byDay(FC.toRows(p, (S.data[p.slug] || {}).matches || [], periodStart()));
+      const days = FC.byDay(FC.toRows(p, (S.data[p.slug] || {}).matches || [], periodStart(p)));
       const w = weekGroups(days, (d) => d.jour).find((x) => x.items.some((d) => d.jour === g.jour));
       if (w) S.openFold['w:' + p.slug + ':' + w.n] = true;
       S.openFold['j:' + p.slug + ':' + g.jour] = true;
@@ -1221,7 +1227,7 @@
       later(() => ring(box, c, 84));
       });
     }
-    page.append(h('div', { class: 'card' }, h('h2', null, `Tous ses champions ${periodLabel()}`), h('p', { class: 'muted small' }, 'Le cercle montre le win rate. Moyennes par game. Classés en 🎯 obligatoires, ⭐ maîtrisés et ❔ autres.'),
+    page.append(h('div', { class: 'card' }, h('h2', null, `Tous ses champions ${periodLabel(p)}`), h('p', { class: 'muted small' }, 'Le cercle montre le win rate. Moyennes par game. Classés en 🎯 obligatoires, ⭐ maîtrisés et ❔ autres.'),
       champs.length ? grid : h('p', { class: 'muted' }, 'Aucune game sur la période.')));
   }
 
