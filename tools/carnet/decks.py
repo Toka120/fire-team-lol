@@ -397,7 +397,7 @@ def mid():
     s += [dict(kind='std', niv=1, kick='Ta prio aide ton jungler', title='Ta prio compte', champ='Orianna',
         bullets=["Pour le carapateur, ton jungler regarde toujours ta prio mid.",
                  "Tu as la prio ? Il pousse le carapateur vers toi : décale vite pour l'aider.",
-                 "Un objectif à deux avec ton jungler ? Ton ADC peut prendre tes camps.",
+                 "Un objectif à deux avec ton jungler ? Ton ADC peut prendre tes sbires.",
                  f"Règle générale : {bold('rapproche-toi de tes alliés')}."])]
     s += farm_tour(2) + cs_defi(L, 2) + trading(L, 3) + patterns(L, 3) + deny(L, 3) + after_kill(L, 3) + waves_full(L, 4)
     s += back_mid(L, 5) + tracking(L, 5) + vision(L, 5) + ward_why(L, 5) + counting(L, 5) + anticip_comms(L, 5) + sides(L, 5) + cover(L, 5) + tempo(L, 5) + structures(L, 5) + obj_prep(L, 5) + sidelanes(5)

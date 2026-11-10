@@ -1,6 +1,18 @@
 {
  "versions": [
   {
+   "contenu": true,
+   "id": "c-2026-11-10-mid-sbires",
+   "date": "2026-11-10",
+   "titre": "Carnet du mid : correction",
+   "items": [
+    [
+     "fix",
+     "Carnet du mid, diapo « Ta prio compte » : ton ADC peut prendre tes sbires (et non tes camps) pendant que tu joues un objectif avec ton jungler."
+    ]
+   ]
+  },
+  {
    "v": "1.10.28",
    "date": "2026-11-10",
    "titre": "Paquet Microsoft Store",
