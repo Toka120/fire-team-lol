@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.35",
+   "date": "2026-11-10",
+   "titre": "Chef d'équipe",
+   "items": [
+    [
+     "new",
+     "Frost tham (xena) est chef d'équipe : bandeau doré « 👑 Chef d'équipe » sur sa carte, badge sur son profil et couronne dans le salon vocal."
+    ]
+   ]
+  },
+  {
    "v": "1.10.34",
    "date": "2026-11-10",
    "titre": "Changement de compte d'un joueur",

@@ -1213,3 +1213,9 @@ button.dr-row:hover{border-color:var(--line);background:var(--panel2)}
 .dr-perk{display:flex;align-items:center;gap:8px;font-size:13px}
 .dr-perk img{width:24px;height:24px}
 .dr-acts .btn-fire,.dr-acts .btn-ghost{width:auto}
+
+/* Chef d'équipe */
+.pcard.captain{position:relative;overflow:hidden;padding-top:42px;border-color:#e8b64c;box-shadow:0 0 0 1px rgba(232,182,76,.35),0 8px 26px rgba(232,182,76,.12)}
+.pcard.captain:hover,.pcard.captain:focus-visible{border-color:#f5c542;box-shadow:0 10px 30px rgba(245,197,66,.22)}
+.pcap{position:absolute;top:0;left:0;right:0;padding:6px 12px;text-align:center;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#2a1a05;background:linear-gradient(90deg,#f5c542,#e8902a,#f5c542)}
+.tag.tag-cap{border-color:#e8b64c;background:linear-gradient(90deg,#f5c542,#e8902a);color:#2a1a05;font-weight:800}

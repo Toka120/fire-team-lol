@@ -709,8 +709,8 @@
     }
     const d = S.data[p.slug];
     const st = S.status[p.slug];
-    const card = h('article', { class: 'pcard', tabindex: '0', onclick: () => openPlayer(p.slug), onkeydown: (e) => { if (e.key === 'Enter') openPlayer(p.slug); } },
-      roleLine(p, R), h('div', { class: 'pname' }, p.pseudo));
+    const card = h('article', { class: 'pcard' + (p.capitaine ? ' captain' : ''), tabindex: '0', onclick: () => openPlayer(p.slug), onkeydown: (e) => { if (e.key === 'Enter') openPlayer(p.slug); } },
+      p.capitaine ? h('div', { class: 'pcap' }, '👑 Chef d’équipe') : null, roleLine(p, R), h('div', { class: 'pname' }, p.pseudo));
     // Vue compacte : rôle, pseudo et objectif de games. Le reste avec « Plus de détails » ou sur le profil.
     if (!S.hubMore) {
       if (d) card.append(progress(objFor(p, d)));
@@ -969,7 +969,7 @@
     const ringBox = h('div', { class: 'ring' });
     view.replaceChildren(h('header', { class: 'hero' },
       h('div', { class: 'hero-txt' },
-        h('div', { class: 'tags' }, tag(`${R.ico} ${p.role || R.label}`), d.rank ? tag(d.rank) : null,
+        h('div', { class: 'tags' }, p.capitaine ? h('span', { class: 'tag tag-cap' }, '👑 Chef d’équipe') : null, tag(`${R.ico} ${p.role || R.label}`), d.rank ? tag(d.rank) : null,
           S.more ? [tag('Classé Solo/Duo'), p.pool ? tag('🎯 ' + p.pool) : null, (p.maitrise_ids || []).length ? tag('⭐ ' + p.maitrise_ids.map(FC.champName).join(' · ')) : null] : null),
         h('h1', { class: 'title' }, p.pseudo),
         h('p', { class: 'muted small' }, S.more ? `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · stats dpm.lol de ${hm(d.at)} · ${lastGame(d) || 'aucune game Solo/Duo'} · ` : `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · `,
@@ -1701,7 +1701,7 @@
       const icons = [r.mute ? '🔇' : null, r.deaf ? '🔕' : null, r.cam ? '📷' : null, r.screen ? '🖥️' : null].filter(Boolean).join(' ');
       return h('div', { class: 'vc-p' + (lm ? ' lm' : ''), 'data-vslug': p.slug },
         h('div', { class: 'vc-av' }, ini(p.slug)),
-        h('b', null, vocalName(p.slug) + (isMe ? ' (toi)' : '')),
+        h('b', null, ((S.players.find((x) => x.slug === p.slug) || {}).capitaine ? '👑 ' : '') + vocalName(p.slug) + (isMe ? ' (toi)' : '')),
         h('span', { class: 'muted small vc-ic' }, icons || (isMe ? '🎤 micro ouvert' : '')),
         isMe ? null : h('div', { class: 'vc-vol muted small' }, '🔊 ', h('input', { type: 'range', min: 0, max: 2, step: 0.05, value: vol, disabled: lm ? true : null, onchange: (e) => e.target.blur(),
           oninput: (e) => { FV().setVol(p.slug, Number(e.target.value)); e.target.nextSibling.textContent = ' ' + Math.round(e.target.value * 100) + ' %'; } }), ' ' + Math.round(vol * 100) + ' %'),
