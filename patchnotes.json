@@ -1,6 +1,22 @@
 {
  "versions": [
   {
+   "contenu": true,
+   "id": "c-2026-11-10-bandeaux-2",
+   "date": "2026-11-10",
+   "titre": "Nouveaux bandeaux",
+   "items": [
+    [
+     "new",
+     "lebrésilien reçoit le bandeau « 🛡️ Le pilier » (rubis) : solide, l'équipe peut compter sur lui en top."
+    ],
+    [
+     "improve",
+     "Le bandeau de TheM3talDrakonar devient « 📈 En progression » (émeraude), pour tous les progrès qu'il fait."
+    ]
+   ]
+  },
+  {
    "v": "1.10.38",
    "date": "2026-11-10",
    "titre": "L'infatigable",

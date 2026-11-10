@@ -39,7 +39,11 @@
       "pool": "Renekton · Zaahen · Gwen · Yone",
       "tableau": "",
       "dpm": "https://dpm.lol/lebr%C3%A9silien%20-931",
-      "puuid": "dgZW-YImN2kdzaa-9fiJ7dT7A4-LAu6FTsA0jacL7RVTbhaEiWxjzmRmvkzlj6GjAhwpeubS1MGDdA"
+      "puuid": "dgZW-YImN2kdzaa-9fiJ7dT7A4-LAu6FTsA0jacL7RVTbhaEiWxjzmRmvkzlj6GjAhwpeubS1MGDdA",
+      "bandeau": {
+        "texte": "🛡️ Le pilier",
+        "theme": "ruby"
+      }
     },
     {
       "role": "Jungle",
@@ -124,7 +128,7 @@
       "tableau": "https://claude.ai/artifact/9HJf1RfQVZUcL4oBFhh8hV",
       "dpm": "https://dpm.lol/TheM3talDrakonar-EUW",
       "bandeau": {
-        "texte": "💪 L'infatigable",
+        "texte": "📈 En progression",
         "theme": "emerald"
       }
     }
