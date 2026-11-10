@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.43",
+   "date": "2026-11-10",
+   "titre": "Partage d'écran en 60 et 120 images/s",
+   "items": [
+    [
+     "new",
+     "Salon vocal › Réglages › Partage d'écran : deux nouveaux modes, Ultra fluide (60 images/s) et Maximum (120 images/s)."
+    ],
+    [
+     "improve",
+     "Le débit envoyé s'adapte au mode choisi pour garder une image nette (jusqu'à 8 Mbit/s par personne en 120 images/s). Avec plusieurs personnes dans le salon, il faut une bonne connexion en envoi."
+    ]
+   ]
+  },
+  {
    "v": "1.10.42",
    "date": "2026-11-10",
    "titre": "Toute l'année pour ShadowReaper",

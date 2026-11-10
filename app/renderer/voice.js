@@ -152,7 +152,9 @@
     const call = V.peer.call(pid(slug), stream, { metadata: { s: V.me, k: kind } });
     if (!call) return;
     V.vout[key] = call;
-    capBitrate(call, kind === 'cam' ? 450000 : 1800000);
+    // Débit max par personne : plus d'images par seconde demande plus de débit pour rester net.
+    const fps = V.cfg.screenFps || 15;
+    capBitrate(call, kind === 'cam' ? 450000 : fps >= 120 ? 8000000 : fps >= 60 ? 5000000 : fps >= 30 ? 3000000 : 1800000);
     call.on('close', () => { if (V.vout[key] === call) delete V.vout[key]; });
     call.on('error', () => { if (V.vout[key] === call) delete V.vout[key]; });
   }

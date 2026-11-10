@@ -1689,8 +1689,10 @@
           sel('cam', D.cams, 'Caméra par défaut', 'Caméra'),
           h('p', { class: 'muted small' }, 'Partage d’écran'),
           h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ screenFps: Number(e.target.value) }); done(e); } },
-            h('option', { value: 15, selected: c.screenFps !== 30 ? true : null }, 'Net (15 images/s) : texte, replays, builds'),
-            h('option', { value: 30, selected: c.screenFps === 30 ? true : null }, 'Fluide (30 images/s) : partie en direct')),
+            h('option', { value: 15, selected: ![30, 60, 120].includes(c.screenFps) ? true : null }, 'Net (15 images/s) : texte, replays, builds'),
+            h('option', { value: 30, selected: c.screenFps === 30 ? true : null }, 'Fluide (30 images/s) : partie en direct'),
+            h('option', { value: 60, selected: c.screenFps === 60 ? true : null }, 'Ultra fluide (60 images/s) : bonne connexion conseillée'),
+            h('option', { value: 120, selected: c.screenFps === 120 ? true : null }, 'Maximum (120 images/s) : fibre et écran 120 Hz')),
           h('label', { class: 'vc-sw' }, h('input', { type: 'checkbox', checked: load('fire.vocal.auto', false) ? true : null, onchange: (e) => { save('fire.vocal.auto', e.target.checked); done(e); } }),
             h('span', null, h('b', null, 'Rejoindre le salon au lancement de FIRE'), h('span', { class: 'muted small' }, 'Tu arrives directement dans le vocal quand tu ouvres l’app.'))))));
   }
