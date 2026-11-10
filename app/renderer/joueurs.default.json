@@ -99,7 +99,11 @@
       ],
       "pool": "Zeri · Miss Fortune · Xayah",
       "tableau": "",
-      "dpm": "https://dpm.lol/The%20World-1065"
+      "dpm": "https://dpm.lol/The%20World-1065",
+      "bandeau": {
+        "texte": "🌠 Étoile montante",
+        "theme": "star"
+      }
     },
     {
       "role": "Support",

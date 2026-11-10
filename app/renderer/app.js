@@ -45,6 +45,10 @@
   const hm = (t) => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
   const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   const tag = (t) => h('span', { class: 'tag' }, t);
+  // Bandeau d'un joueur (joueurs.json) : « capitaine » ou un bandeau libre { texte, theme : gold | star | fire }.
+  // Ajouter ou changer un bandeau ne demande pas de nouvelle version de l'app.
+  const bandeau = (p) => p.capitaine ? { texte: '👑 Chef d’équipe', theme: 'gold' }
+    : p.bandeau && p.bandeau.texte ? { texte: String(p.bandeau.texte).slice(0, 40), theme: ['gold', 'star', 'fire'].includes(p.bandeau.theme) ? p.bandeau.theme : 'fire' } : null;
   const dateFr = (ymd) => { const d = new Date(ymd + 'T00:00:00'); return `${d.getDate() === 1 ? '1er' : d.getDate()} ${d.toLocaleDateString('fr-FR', { month: 'long' })}`; };
   // Games obligatoires ajoutées par le coach à un joueur pour la semaine en cours (lundi → dimanche).
   const bonusFor = (slug) => (((S.bonus || {})[mondayOf(todayYmd())] || {})[slug]) || 0;
@@ -709,8 +713,9 @@
     }
     const d = S.data[p.slug];
     const st = S.status[p.slug];
-    const card = h('article', { class: 'pcard' + (p.capitaine ? ' captain' : ''), tabindex: '0', onclick: () => openPlayer(p.slug), onkeydown: (e) => { if (e.key === 'Enter') openPlayer(p.slug); } },
-      p.capitaine ? h('div', { class: 'pcap' }, '👑 Chef d’équipe') : null, roleLine(p, R), h('div', { class: 'pname' }, p.pseudo));
+    const bd = bandeau(p);
+    const card = h('article', { class: 'pcard' + (bd ? ' banded b-' + bd.theme : ''), tabindex: '0', onclick: () => openPlayer(p.slug), onkeydown: (e) => { if (e.key === 'Enter') openPlayer(p.slug); } },
+      bd ? h('div', { class: 'pcap' }, bd.texte) : null, roleLine(p, R), h('div', { class: 'pname' }, p.pseudo));
     // Vue compacte : rôle, pseudo et objectif de games. Le reste avec « Plus de détails » ou sur le profil.
     if (!S.hubMore) {
       if (d) card.append(progress(objFor(p, d)));
@@ -969,7 +974,7 @@
     const ringBox = h('div', { class: 'ring' });
     view.replaceChildren(h('header', { class: 'hero' },
       h('div', { class: 'hero-txt' },
-        h('div', { class: 'tags' }, p.capitaine ? h('span', { class: 'tag tag-cap' }, '👑 Chef d’équipe') : null, tag(`${R.ico} ${p.role || R.label}`), d.rank ? tag(d.rank) : null,
+        h('div', { class: 'tags' }, bandeau(p) ? h('span', { class: 'tag tag-cap b-' + bandeau(p).theme }, bandeau(p).texte) : null, tag(`${R.ico} ${p.role || R.label}`), d.rank ? tag(d.rank) : null,
           S.more ? [tag('Classé Solo/Duo'), p.pool ? tag('🎯 ' + p.pool) : null, (p.maitrise_ids || []).length ? tag('⭐ ' + p.maitrise_ids.map(FC.champName).join(' · ')) : null] : null),
         h('h1', { class: 'title' }, p.pseudo),
         h('p', { class: 'muted small' }, S.more ? `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · stats dpm.lol de ${hm(d.at)} · ${lastGame(d) || 'aucune game Solo/Duo'} · ` : `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · `,

@@ -1214,11 +1214,14 @@ button.dr-row:hover{border-color:var(--line);background:var(--panel2)}
 .dr-perk img{width:24px;height:24px}
 .dr-acts .btn-fire,.dr-acts .btn-ghost{width:auto}
 
-/* Chef d'équipe */
-.pcard.captain{position:relative;overflow:hidden;padding-top:42px;border-color:#e8b64c;box-shadow:0 0 0 1px rgba(232,182,76,.35),0 8px 26px rgba(232,182,76,.12)}
-.pcard.captain:hover,.pcard.captain:focus-visible{border-color:#f5c542;box-shadow:0 10px 30px rgba(245,197,66,.22)}
-.pcap{position:absolute;top:0;left:0;right:0;padding:6px 12px;text-align:center;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#2a1a05;background:linear-gradient(90deg,#f5c542,#e8902a,#f5c542)}
-.tag.tag-cap{border-color:#e8b64c;background:linear-gradient(90deg,#f5c542,#e8902a);color:#2a1a05;font-weight:800}
+/* Bandeaux des joueurs (chef d'équipe, étoile montante…) */
+.pcard.banded{position:relative;overflow:hidden;padding-top:42px;--b1:#ff9a3c;--b2:#ff5e3a;--bt:#2a0f05;--bg:rgba(255,94,58,.35)}
+.pcard.b-gold,.tag.tag-cap.b-gold{--b1:#f5c542;--b2:#e8902a;--bt:#2a1a05;--bg:rgba(232,182,76,.4)}
+.pcard.b-star,.tag.tag-cap.b-star{--b1:#7fd3ff;--b2:#9b6bff;--bt:#0b1030;--bg:rgba(127,160,255,.45)}
+.pcard.banded{border-color:var(--b1);box-shadow:0 0 0 1px var(--bg),0 8px 26px rgba(0,0,0,.25)}
+.pcard.banded:hover,.pcard.banded:focus-visible{border-color:var(--b1);box-shadow:0 10px 30px var(--bg)}
+.pcap{position:absolute;top:0;left:0;right:0;padding:6px 12px;text-align:center;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--bt);background:linear-gradient(90deg,var(--b1),var(--b2),var(--b1))}
+.tag.tag-cap{--b1:#ff9a3c;--b2:#ff5e3a;--bt:#2a0f05;border-color:var(--b1);background:linear-gradient(90deg,var(--b1),var(--b2));color:var(--bt);font-weight:800}
 /* Note du coach sur un jour du planning : en gros, à côté de la date */
 .plan-date{flex-wrap:wrap}
 .plan-note{margin-left:10px;padding:6px 14px;border-radius:10px;font-size:19px;font-weight:800;letter-spacing:.01em;color:#ffd27a;background:rgba(255,179,71,.12);border:1px solid rgba(255,179,71,.55);box-shadow:0 0 18px rgba(255,140,40,.12)}

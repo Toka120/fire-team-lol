@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.37",
+   "date": "2026-11-10",
+   "titre": "Étoile montante",
+   "items": [
+    [
+     "new",
+     "The World reçoit le bandeau « 🌠 Étoile montante » (bleu et violet) : il est en pleine montée et apprend énormément. Le bandeau est sur sa carte et sur son profil."
+    ],
+    [
+     "improve",
+     "Les bandeaux des joueurs (chef d'équipe, étoile montante…) se règlent maintenant sans nouvelle version de l'app."
+    ]
+   ]
+  },
+  {
    "v": "1.10.36",
    "date": "2026-11-10",
    "titre": "Planning : la note du coach en gros",
