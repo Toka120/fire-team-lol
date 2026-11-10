@@ -1,6 +1,18 @@
 {
  "versions": [
   {
+   "contenu": true,
+   "id": "c-2026-11-10-fond-frost",
+   "date": "2026-11-10",
+   "titre": "Skin en fond pour Frost tham",
+   "items": [
+    [
+     "new",
+     "Frost tham a maintenant Diana manifestation éternelle en fond de sa carte et de son profil."
+    ]
+   ]
+  },
+  {
    "v": "1.10.41",
    "date": "2026-11-10",
    "titre": "Skins préférés en fond",

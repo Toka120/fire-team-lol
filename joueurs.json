@@ -96,7 +96,13 @@
           "depuis": "2026-11-10"
         }
       ],
-      "capitaine": true
+      "capitaine": true,
+      "fonds": [
+        {
+          "champ": "Diana",
+          "skin": 76
+        }
+      ]
     },
     {
       "role": "Mid (Remplaçant)",
