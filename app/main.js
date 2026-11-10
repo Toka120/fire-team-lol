@@ -178,13 +178,15 @@ ipcMain.handle('screen:sources', async () => {
     return list.filter((x) => x.name && !x.thumbnail.isEmpty()).map((x) => ({ id: x.id, name: x.name, screen: x.id.startsWith('screen:'), thumb: x.thumbnail.toDataURL() }));
   } catch (e) { return []; }
 });
-ipcMain.handle('screen:pick', (e, id) => { screenPick = typeof id === 'string' ? id : null; return true; });
+ipcMain.handle('screen:pick', (e, id, audio) => { screenPick = typeof id === 'string' ? { id, audio: !!audio } : null; return true; });
 function screenShare() {
   session.defaultSession.setDisplayMediaRequestHandler((req, cb) => {
     const fromApp = /^file:\/\//.test((req.frame && req.frame.url) || req.securityOrigin || '');
-    const id = screenPick; screenPick = null;
+    const pick = screenPick; screenPick = null;
+    const id = pick && pick.id;
     if (!fromApp || !id) return cb({});
-    screenSources().then((list) => { const src = list.find((x) => x.id === id); cb(src ? { video: src } : {}); }).catch(() => cb({}));
+    // Son du PC (« loopback ») seulement si le joueur l'a coché et que la page l'a demandé.
+    screenSources().then((list) => { const src = list.find((x) => x.id === id); cb(src ? (pick.audio && req.audioRequested ? { video: src, audio: 'loopback' } : { video: src }) : {}); }).catch(() => cb({}));
   });
 }
 

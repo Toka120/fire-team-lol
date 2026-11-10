@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.55",
+   "date": "2026-11-10",
+   "titre": "Le son des streams",
+   "items": [
+    [
+     "new",
+     "Partage d'écran avec le son : dans la fenêtre « Que veux-tu montrer ? », coche « Partager aussi le son de mon PC » pour que les autres entendent le jeu ou la vidéo. Désactivé par défaut."
+    ],
+    [
+     "new",
+     "Chaque spectateur choisit s'il entend le son d'un stream : bouton 🔊 sur la vidéo pour couper ou remettre le son, et réglage du volume du stream (⚙ sur la vidéo). Un réglage « Entendre le son des streams » s'applique par défaut."
+    ],
+    [
+     "improve",
+     "Une pastille verte 🔊 indique les streams qui partagent du son. Couper le son (casque) coupe aussi le son des streams."
+    ]
+   ]
+  },
+  {
    "v": "1.10.54",
    "date": "2026-11-10",
    "titre": "Mises à jour : jamais par-dessus un jeu",

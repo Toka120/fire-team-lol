@@ -9,7 +9,7 @@
   'use strict';
   const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }];
   const CFG_KEY = 'fire.vocal.cfg', VOL_KEY = 'fire.vocal.vols', LMUTE_KEY = 'fire.vocal.lmute';
-  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, vad: 'auto', recvQ: 'auto', ec: true, agc: true, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15 };
+  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, vad: 'auto', recvQ: 'auto', streamSound: true, ec: true, agc: true, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15 };
   const rd = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   const wr = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
 
@@ -199,8 +199,20 @@
   // ---------- Vidéo : un appel à part par flux (caméra, écran), lancé par celui qui montre ----------
   function closeVin(slug, kind) {
     const key = slug + ':' + kind; const v = V.vin[key]; if (!v) return;
-    delete V.vin[key]; try { v.call.close(); } catch (e) { /* */ } emit();
+    dropSnd(v); delete V.vin[key]; try { v.call.close(); } catch (e) { /* */ } emit();
   }
+  // Son des streams : chacun choisit s'il l'entend (réglage par défaut) et son volume, stream par stream.
+  const SV_KEY = 'fire.vocal.svol';
+  V.svol = rd(SV_KEY, {});
+  function streamGain(key) {
+    const slug = key.split(':')[0];
+    const o = V.svol[slug] || {};
+    const on = o.on == null ? V.cfg.streamSound !== false : o.on;
+    return V.deaf || !on ? 0 : (o.vol ?? 0.8);
+  }
+  function dropSnd(v) { if (v && v.snd) { try { v.snd.src.disconnect(); v.snd.g.disconnect(); v.snd.el.srcObject = null; } catch (e) { /* */ } v.snd = null; } }
+  function applyStreamGains() { for (const [k, v] of Object.entries(V.vin)) if (v.snd) v.snd.g.gain.value = streamGain(k); }
+  function setStreamSound(slug, patch) { V.svol[slug] = Object.assign({}, V.svol[slug] || {}, patch); wr(SV_KEY, V.svol); applyStreamGains(); emit(); }
   function closeVout(slug, kind) {
     for (const key of Object.keys(V.vout)) {
       const [s, k] = key.split(':');
@@ -326,8 +338,22 @@
     if (V.vin[key]) { try { V.vin[key].call.close(); } catch (e) { /* */ } }
     V.vin[key] = { call, stream: null };
     call.answer(undefined, { sdpTransform: preferH264 });
-    call.on('stream', (st) => { lowLatency(call); if (V.vin[key] && V.vin[key].call === call) { V.vin[key].stream = st; emit(); } });
-    const done = () => { if (V.vin[key] && V.vin[key].call === call) { delete V.vin[key]; emit(); } };
+    call.on('stream', (st) => {
+      lowLatency(call);
+      const vin = V.vin[key];
+      if (!vin || vin.call !== call) return;
+      vin.stream = st;
+      // Son du stream (si celui qui partage a coché « son de mon PC ») : il passe par son propre volume.
+      if (st.getAudioTracks().length && !vin.snd) {
+        const c = audioCtx();
+        const el = new Audio(); el.muted = true; el.srcObject = st; el.play().catch(() => {});
+        const src = c.createMediaStreamSource(st); const g = c.createGain();
+        g.gain.value = streamGain(key); src.connect(g); g.connect(V.g.master);
+        vin.snd = { el, src, g };
+      }
+      emit();
+    });
+    const done = () => { if (V.vin[key] && V.vin[key].call === call) { dropSnd(V.vin[key]); delete V.vin[key]; emit(); } };
     call.on('close', done); call.on('error', done);
     const pc = call.peerConnection;
     if (pc) pc.addEventListener('iceconnectionstatechange', () => { if (/failed|closed/.test(pc.iceConnectionState)) done(); });
@@ -349,12 +375,13 @@
     closeVout(null, 'cam'); broadcast(); emit();
   }
   // Partage d'écran : l'app choisit l'écran ou la fenêtre (window.fire.screen), puis le navigateur capture.
-  async function startScreen(sourceId) {
+  async function startScreen(sourceId, withAudio) {
     if (!V.on || V.screen) return;
     try {
-      if (window.fire && window.fire.screen && sourceId) await window.fire.screen.pick(sourceId);
+      const audio = !!withAudio && !!(window.fire && window.fire.screen);
+      if (window.fire && window.fire.screen && sourceId) await window.fire.screen.pick(sourceId, audio);
       const fps = V.cfg.screenFps || 15;
-      const st = await navigator.mediaDevices.getDisplayMedia({ audio: false, video: { frameRate: { ideal: fps, max: fps }, width: { max: 1920 }, height: { max: 1080 } } });
+      const st = await navigator.mediaDevices.getDisplayMedia({ audio, video: { frameRate: { ideal: fps, max: fps }, width: { max: 1920 }, height: { max: 1080 } } });
       st.getVideoTracks().forEach((t) => { t.contentHint = fps > 20 ? 'motion' : 'detail'; t.onended = stopScreen; });
       V.screen = st; shareAll('screen'); broadcast(); emit();
     } catch (e) { if (!(e && e.name === 'AbortError')) { V.err = 'partage d’écran impossible'; emit(); } }
@@ -491,7 +518,7 @@
 
   // ---------- Réglages ----------
   function setMute(m) { V.mute = !!m; if (!V.mute && V.deaf) { V.deaf = false; applyGains(); } broadcast(); emit(); }
-  function setDeaf(d) { V.deaf = !!d; V.mute = V.deaf; applyGains(); broadcast(); emit(); }
+  function setDeaf(d) { V.deaf = !!d; V.mute = V.deaf; applyGains(); applyStreamGains(); broadcast(); emit(); }
   function setVol(slug, v) { V.vols[slug] = v; wr(VOL_KEY, V.vols); applyGains(); emit(); }
   function setLocalMute(slug, m) { if (m) V.lmute[slug] = true; else delete V.lmute[slug]; wr(LMUTE_KEY, V.lmute); applyGains(); emit(); }
   async function setCfg(patch) {
@@ -503,6 +530,7 @@
     }
     if (c.ai !== old.ai) wireMic();
     if (c.recvQ !== old.recvQ) broadcast();
+    if (c.streamSound !== old.streamSound) applyStreamGains();
     if (V.g && c.vad !== old.vad) V.g.delay.delayTime.value = c.vad === 'off' ? 0 : 0.08;
     if (V.raw && (c.mic !== old.mic || c.ns !== old.ns || c.ec !== old.ec || c.agc !== old.agc)) {
       try { await openMic(); } catch (e) { V.err = 'ce micro ne répond pas'; }
@@ -603,7 +631,7 @@
   }
 
   window.FireVoice = {
-    join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, lobby, invite,
+    join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, setStreamSound, lobby, invite,
     clearErr: () => { V.err = ''; emit(); },
     // Définition et images/s de chaque écran partagé que je reçois (affichées sur la vidéo).
     recvInfo: async () => {
@@ -641,7 +669,9 @@
       here: Object.keys(L.here).filter((x) => x !== V.me && L.here[x].t > Date.now()),
       rooms: Object.fromEntries(Object.entries(L.here).filter(([x, e]) => x !== V.me && e.t > Date.now()).map(([x, e]) => [x, e.room])),
       room: V.room,
-      videos: Object.entries(V.vin).filter(([, v]) => v.stream).map(([key, v]) => ({ slug: key.split(':')[0], kind: key.split(':')[1], stream: v.stream }))
+      videos: Object.entries(V.vin).filter(([, v]) => v.stream).map(([key, v]) => ({ slug: key.split(':')[0], kind: key.split(':')[1], stream: v.stream, sound: !!v.snd })),
+      screenAudio: !!(V.screen && V.screen.getAudioTracks().length),
+      svol: Object.assign({}, V.svol)
     })
   };
   window.addEventListener('beforeunload', () => { try { if (V.on) beacon(false); V.monitor = false; cleanup(); } catch (e) { /* */ } });

@@ -1604,7 +1604,7 @@
   }
   function vocalSig(v) {
     return JSON.stringify([v.on, v.joining, v.err, v.mute, v.deaf, v.monitor, !!v.cam, !!v.screen, v.lmute,
-      v.members.filter((m) => m.ok).map((m) => [m.slug, m.remote]).sort(), v.videos.map((x) => x.slug + x.kind).sort()]);
+      v.members.filter((m) => m.ok).map((m) => [m.slug, m.remote]).sort(), v.videos.map((x) => x.slug + x.kind + (x.sound ? 's' : '')).sort(), v.svol, v.cfg.streamSound, v.screenAudio]);
   }
   // Salon libre : toute l'équipe arrive dans le même salon, sans code.
   // Plusieurs salons : le salon de l'équipe, deux salons duo et un salon de coaching perso (2 places).
@@ -1677,12 +1677,14 @@
       const L = VX.picker && VX.picker.list;
       box.replaceChildren(h('div', { class: 'card vc-pick-in' },
         h('div', { class: 'row vc-pick-head' }, h('b', null, '🖥️ Que veux-tu montrer ?'), h('button', { class: 'btn-ghost', onclick: close }, '✕ Annuler')),
+        h('label', { class: 'vs-sw vc-pick-snd' }, h('span', null, h('b', null, '🔊 Partager aussi le son de mon PC'), h('small', null, 'Le son du jeu, d’une vidéo… Mets un casque : sinon les voix du salon repassent dans le son et les autres s’entendent en écho.')),
+          h('input', { type: 'checkbox', class: 'vs-tog', checked: load('fire.vocal.sharesound', false) ? true : null, onchange: (e) => save('fire.vocal.sharesound', e.target.checked) })),
         !L ? h('p', { class: 'muted' }, 'Recherche des écrans et des fenêtres…')
           : !L.length ? h('p', { class: 'bad' }, '⚠ Aucun écran trouvé (autorise la capture d’écran dans Windows si besoin).')
             : ['Écrans', 'Fenêtres'].map((t, k) => {
               const part = L.filter((x) => x.screen === (k === 0));
               return part.length ? h('div', null, h('p', { class: 'muted small vc-pick-t' }, t), h('div', { class: 'vc-pick-grid' }, part.map((x) =>
-                h('button', { class: 'vc-src', onclick: () => { close(); FV().startScreen(x.id); } }, h('img', { src: x.thumb, alt: '' }), h('span', null, x.name))))) : null;
+                h('button', { class: 'vc-src', onclick: () => { close(); FV().startScreen(x.id, load('fire.vocal.sharesound', false)); } }, h('img', { src: x.thumb, alt: '' }), h('span', null, x.name))))) : null;
             })));
     };
     paint(); document.body.append(box);
@@ -1736,7 +1738,7 @@
     if (!window.fire.screen) return FV().startScreen(null);
     const list = await window.fire.screen.sources().catch(() => []);
     const scr = list.find((x) => x.screen) || list[0];
-    if (scr) FV().startScreen(scr.id);
+    if (scr) FV().startScreen(scr.id, load('fire.vocal.sharesound', false));
   }
   function keyAction(a) {
     const v = FV().state();
@@ -1925,6 +1927,7 @@
           [['auto', 'Auto : s’adapte à ma connexion (recommandé)'], ['high', 'Haute : la meilleure image possible'], ['medium', 'Moyenne : 720p, 30 images/s max'], ['low', 'Petite connexion : 480p, très peu de retard']].map(([k, t]) =>
             h('option', { value: k, selected: (c.recvQ || 'auto') === k ? true : null }, t)))),
         h('p', { class: 'vs-hint' }, 'Chaque spectateur reçoit sa propre image : la qualité baisse seulement pour toi si ta connexion est petite, pas pour les autres.'),
+        sw('streamSound', 'Entendre le son des streams', 'Quand quelqu’un partage le son de son PC. Tu peux aussi le couper stream par stream (bouton 🔊 sur la vidéo).'),
         field('Qualité de mon partage d’écran', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ screenFps: Number(e.target.value) }); done(e); } },
           [[15, 'Net · 15 images/s (texte, replays)'], [30, 'Fluide · 30 images/s'], [60, 'Ultra fluide · 60 images/s'], [120, 'Maximum · 120 images/s (fibre)']].map(([n, t]) =>
             h('option', { value: n, selected: (c.screenFps || 15) === n ? true : null }, t)))),
@@ -1994,7 +1997,7 @@
     const camOf = (slug) => (slug === me ? (load('fire.vocal.selfcam', true) ? v.cam : null) : (v.videos.find((x) => x.slug === slug && x.kind === 'cam') || {}).stream);
     const screens = [];
     if (v.screen) screens.push({ key: 'me:screen', slug: me, stream: v.screen, mine: true });
-    v.videos.filter((x) => x.kind === 'screen').forEach((x) => screens.push({ key: x.slug + ':screen', slug: x.slug, stream: x.stream }));
+    v.videos.filter((x) => x.kind === 'screen').forEach((x) => screens.push({ key: x.slug + ':screen', slug: x.slug, stream: x.stream, sound: x.sound }));
     // Options d'affichage (désactivées par défaut, chacun choisit dans le menu ⋯) :
     // - contour vert sur le partage d'écran quand son auteur parle ;
     // - sa caméra incrustée dans un coin de son partage d'écran (jamais en plein écran), au lieu d'une case à part.
@@ -2029,13 +2032,28 @@
         box.append(h('div', { class: 'vc-av' }, ini(t.slug)));
       }
       if (t.kind === 'screen' && !t.mine) box.append(h('span', { class: 'vt-q', 'data-q': t.key }));
+      const so = (v.svol || {})[t.slug] || {};
+      const sndOn = so.on == null ? v.cfg.streamSound !== false : so.on;
+      const sndVol = so.vol ?? 0.8;
+      const hasSnd = t.kind === 'screen' && !t.mine && t.sound;
       box.append(h('div', { class: 'vt-name' }, t.kind === 'screen' ? vi('screen') : null, (t.kind === 'screen' ? 'Écran de ' : '') + (t.mine ? (t.kind === 'screen' ? 'toi' : vocalName(t.slug) + ' (toi)') : ((pl.capitaine ? '👑 ' : '') + vocalName(t.slug))),
         t.kind === 'person' && r.mute ? h('span', { class: 'vt-st bad' }, vi('micOff')) : null,
-        t.kind === 'person' && r.deaf ? h('span', { class: 'vt-st bad' }, vi('headOff')) : null));
+        t.kind === 'person' && r.deaf ? h('span', { class: 'vt-st bad' }, vi('headOff')) : null,
+        hasSnd ? h('span', { class: 'vt-st ' + (sndOn ? 'snd' : 'bad') }, vi(sndOn ? 'vol' : 'headOff')) : null,
+        t.kind === 'screen' && t.mine && v.screenAudio ? h('span', { class: 'vt-st snd', title: 'Le son de ton PC est partagé' }, vi('vol')) : null));
       const tools = h('div', { class: 'vt-tools' },
         h('button', { title: 'Plein écran (Échap pour sortir)', onclick: () => fullscreen(box) }, vi('full')),
-        t.kind === 'person' && !t.mine ? h('button', { title: 'Volume', onclick: () => { VX.menu = VX.menu === t.slug ? null : t.slug; renderVocal(); } }, vi('vol')) : null);
+        t.kind === 'person' && !t.mine ? h('button', { title: 'Volume', onclick: () => { VX.menu = VX.menu === t.slug ? null : t.slug; renderVocal(); } }, vi('vol')) : null,
+        hasSnd ? h('button', { title: sndOn ? 'Couper le son du stream' : 'Entendre le son du stream', class: sndOn ? '' : 'off', onclick: () => FV().setStreamSound(t.slug, { on: !sndOn }) }, vi(sndOn ? 'vol' : 'headOff')) : null,
+        hasSnd ? h('button', { title: 'Volume du stream', onclick: () => { VX.menu = VX.menu === t.key ? null : t.key; renderVocal(); } }, vi('gear')) : null);
       box.append(tools);
+      if (VX.menu === t.key && hasSnd) {
+        box.append(h('div', { class: 'vt-menu' },
+          h('b', null, 'Son du stream de ' + vocalName(t.slug)),
+          h('div', { class: 'vs-range' }, h('input', { type: 'range', min: 0, max: 1.5, step: 0.05, value: sndVol, onchange: (e) => e.target.blur(),
+            oninput: (e) => { FV().setStreamSound(t.slug, { vol: Number(e.target.value), on: true }); e.target.nextSibling.textContent = Math.round(e.target.value * 100) + ' %'; } }), h('span', { class: 'vs-rv' }, Math.round(sndVol * 100) + ' %')),
+          h('button', { class: 'vs-btn', onclick: () => FV().setStreamSound(t.slug, { on: !sndOn }) }, sndOn ? '🔇 Couper le son du stream' : '🔊 Entendre le son du stream')));
+      }
       if (VX.menu === t.slug && t.kind === 'person' && !t.mine) {
         box.append(h('div', { class: 'vt-menu' },
           h('b', null, 'Volume de ' + vocalName(t.slug)),
