@@ -1,7 +1,7 @@
 // FIRE LoL - application de bureau (Electron).
 // Lit les stats des joueurs sur dpm.lol dans une fenêtre cachée, puis les affiche.
 
-const { app, BrowserWindow, ipcMain, session, shell, Notification, Tray, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, session, shell, Notification, Tray, Menu, desktopCapturer } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -144,6 +144,26 @@ function hideAdSlots(wc) {
       const f = webFrameMain.fromId(pid, rid);
       if (f && /^https:\/\//.test(f.url)) f.executeJavaScript(`(() => { const s = document.createElement('style'); s.textContent = ${JSON.stringify(AD_CSS)}; (document.head || document.documentElement).append(s); })()`).catch(() => {});
     } catch (e) { /* cadre fermé entre-temps */ }
+  });
+}
+
+// Partage d'écran du salon vocal : l'app affiche ses propres vignettes (écrans et fenêtres),
+// puis le choix est donné ici au navigateur. Seule l'app elle-même peut demander une capture.
+let screenPick = null;
+const screenSources = () => desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: { width: 320, height: 180 }, fetchWindowIcons: false });
+ipcMain.handle('screen:sources', async () => {
+  try {
+    const list = await screenSources();
+    return list.filter((x) => x.name && !x.thumbnail.isEmpty()).map((x) => ({ id: x.id, name: x.name, screen: x.id.startsWith('screen:'), thumb: x.thumbnail.toDataURL() }));
+  } catch (e) { return []; }
+});
+ipcMain.handle('screen:pick', (e, id) => { screenPick = typeof id === 'string' ? id : null; return true; });
+function screenShare() {
+  session.defaultSession.setDisplayMediaRequestHandler((req, cb) => {
+    const fromApp = /^file:\/\//.test((req.frame && req.frame.url) || req.securityOrigin || '');
+    const id = screenPick; screenPick = null;
+    if (!fromApp || !id) return cb({});
+    screenSources().then((list) => { const src = list.find((x) => x.id === id); cb(src ? { video: src } : {}); }).catch(() => cb({}));
   });
 }
 
@@ -520,6 +540,6 @@ if (!single) {
   // La version Store a déjà son identité Windows (notifications) : on ne la remplace pas.
   if (process.platform === 'win32' && !store) app.setAppUserModelId('lol.fire.team');
   app.on('second-instance', () => showMain());
-  app.whenReady().then(() => { lockPermissions(); blockAds(); createMainWindow(); setupUpdater(); });
+  app.whenReady().then(() => { lockPermissions(); blockAds(); screenShare(); createMainWindow(); setupUpdater(); });
   app.on('window-all-closed', () => { if (!bgPrefs().bg || quitting) app.quit(); });
 }

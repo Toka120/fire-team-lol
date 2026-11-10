@@ -1297,7 +1297,7 @@
     if (sec === 'planning') { S.planEdit = null; loadPlanning(); }
     if (sec === 'patch') { loadPatch(); markPatchSeen(); }
     if (sec === 'lolpatch') loadLolPatch();
-    if (sec === 'vocal') VX.mics = null;
+    if (sec === 'vocal') VX.dev = null;
     if (sec === 'jeux') loadJeux();
     if (sec === 'worlds') { loadJeux(); loadWorlds(W.year); }
     render();
@@ -1466,93 +1466,197 @@
     box.append(...[...doc.body.childNodes].map((n) => document.importNode(n, true)));
     return box;
   }
-  // ----- Salon vocal de l'équipe (voir voice.js) -----
-  const VX = { sig: '', mics: null };
+  // ----- Salon vocal de l'équipe (voir voice.js) : voix, caméra, partage d'écran, réglages -----
+  const VX = { sig: '', dev: null, pending: false, vids: {}, picker: null };
+  const FV = () => window.FireVoice;
   const vocalMe = () => S.moi || (S.coachState && S.coachState.coach ? 'coach' : null);
   const vocalName = (slug) => slug === 'coach' ? 'Coach' : shortName((S.players.find((p) => p.slug === slug) || {}).pseudo || slug);
   const vocalIds = () => S.players.map((p) => p.slug).filter(Boolean).concat('coach');
-  function vocalBadge() { const v = window.FireVoice && window.FireVoice.state(); return v && v.on ? String(1 + v.members.filter((m) => m.ok).length) : null; }
-  function vocalSig(v) { return JSON.stringify([v.on, v.joining, v.err, v.mute, v.deaf, v.members.filter((m) => m.ok).map((m) => m.slug).sort()]); }
-  function vocalJoin() {
-    const code = String(load('fire.vocal.code', '') || '').trim();
-    if (!code) return;
-    window.FireVoice.join({ me: vocalMe(), ids: vocalIds(), code, mic: load('fire.vocal.mic', '') || '' });
+  const ini = (slug) => vocalName(slug).slice(0, 2).toUpperCase();
+  function vocalBadge() { const v = FV() && FV().state(); return v && v.on ? String(1 + v.members.filter((m) => m.ok).length) : null; }
+  function vocalSig(v) {
+    return JSON.stringify([v.on, v.joining, v.err, v.mute, v.deaf, v.monitor, !!v.cam, !!v.screen, v.lmute,
+      v.members.filter((m) => m.ok).map((m) => [m.slug, m.remote]).sort(), v.videos.map((x) => x.slug + x.kind).sort()]);
   }
+  // Salon libre : toute l'équipe arrive dans le même salon, sans code.
+  function vocalJoin() { if (vocalMe()) FV().join({ me: vocalMe(), ids: vocalIds(), code: 'FIRE-salon-equipe' }); }
   function vocalSpeak() {
-    const v = window.FireVoice.state();
+    const v = FV().state();
     document.querySelectorAll('[data-vslug]').forEach((el) => el.classList.toggle('talk', !!v.speaking[el.dataset.vslug]));
   }
-  // Petite barre en bas à droite quand on est dans le salon et ailleurs dans l'app.
+  // Élément vidéo gardé d'un rendu à l'autre : l'image ne clignote pas.
+  function vidEl(key, stream, mirror) {
+    let el = VX.vids[key];
+    if (!el) { el = VX.vids[key] = h('video', { autoplay: true, playsinline: true }); el.muted = true; }
+    if (el.srcObject !== stream) { el.srcObject = stream; el.play().catch(() => {}); }
+    el.classList.toggle('mirror', !!mirror);
+    return el;
+  }
   function vocalBar() {
     let bar = document.getElementById('vbar');
-    const v = window.FireVoice.state();
+    const v = FV().state();
     if (!v.on || S.section === 'vocal') { if (bar) bar.remove(); return; }
     if (!bar) { bar = h('div', { id: 'vbar' }); document.body.append(bar); }
     const ppl = [v.me].concat(v.members.filter((m) => m.ok).map((m) => m.slug));
+    const live = v.videos.length;
     bar.replaceChildren(
-      h('button', { class: 'vb-go', title: 'Ouvrir le salon vocal', onclick: () => go('vocal') }, '🎙️ ', h('b', null, 'Vocal'), ' · ', String(ppl.length)),
-      h('span', { class: 'vb-ppl' }, ppl.map((s) => h('span', { class: 'vb-p', 'data-vslug': s, title: vocalName(s) }, vocalName(s).slice(0, 2).toUpperCase()))),
-      h('button', { class: 'vb-btn' + (v.mute ? ' off' : ''), title: v.mute ? 'Réactiver le micro (Ctrl+Maj+M)' : 'Couper le micro (Ctrl+Maj+M)', onclick: () => window.FireVoice.setMute(!v.mute) }, v.mute ? '🔇' : '🎤'),
-      h('button', { class: 'vb-btn' + (v.deaf ? ' off' : ''), title: v.deaf ? 'Réactiver le son' : 'Couper le son', onclick: () => window.FireVoice.setDeaf(!v.deaf) }, v.deaf ? '🔕' : '🎧'),
-      h('button', { class: 'vb-btn leave', title: 'Quitter le salon', onclick: () => window.FireVoice.leave() }, '📞'));
+      h('button', { class: 'vb-go', title: 'Ouvrir le salon vocal', onclick: () => go('vocal') }, '🎙️ ', h('b', null, 'Vocal'), ' · ', String(ppl.length), live ? h('span', { class: 'vb-live' }, ' · 🔴 ' + live + ' en direct') : null),
+      h('span', { class: 'vb-ppl' }, ppl.map((s) => h('span', { class: 'vb-p', 'data-vslug': s, title: vocalName(s) }, ini(s)))),
+      h('button', { class: 'vb-btn' + (v.mute ? ' off' : ''), title: v.mute ? 'Réactiver le micro (Ctrl+Maj+M)' : 'Couper le micro (Ctrl+Maj+M)', onclick: () => FV().setMute(!v.mute) }, v.mute ? '🔇' : '🎤'),
+      h('button', { class: 'vb-btn' + (v.deaf ? ' off' : ''), title: v.deaf ? 'Réactiver le son (Ctrl+Maj+D)' : 'Couper le son (Ctrl+Maj+D)', onclick: () => FV().setDeaf(!v.deaf) }, v.deaf ? '🔕' : '🎧'),
+      h('button', { class: 'vb-btn leave', title: 'Quitter le salon', onclick: () => FV().leave() }, '📞'));
     vocalSpeak();
   }
+  async function openScreenPicker() {
+    VX.picker = { list: null };
+    const box = h('div', { class: 'vc-pick', onclick: (e) => { if (e.target === box) close(); } });
+    const close = () => { box.remove(); VX.picker = null; };
+    const paint = () => {
+      const L = VX.picker && VX.picker.list;
+      box.replaceChildren(h('div', { class: 'card vc-pick-in' },
+        h('div', { class: 'row vc-pick-head' }, h('b', null, '🖥️ Que veux-tu montrer ?'), h('button', { class: 'btn-ghost', onclick: close }, '✕ Annuler')),
+        !L ? h('p', { class: 'muted' }, 'Recherche des écrans et des fenêtres…')
+          : !L.length ? h('p', { class: 'bad' }, '⚠ Aucun écran trouvé (autorise la capture d’écran dans Windows si besoin).')
+            : ['Écrans', 'Fenêtres'].map((t, k) => {
+              const part = L.filter((x) => x.screen === (k === 0));
+              return part.length ? h('div', null, h('p', { class: 'muted small vc-pick-t' }, t), h('div', { class: 'vc-pick-grid' }, part.map((x) =>
+                h('button', { class: 'vc-src', onclick: () => { close(); FV().startScreen(x.id); } }, h('img', { src: x.thumb, alt: '' }), h('span', null, x.name))))) : null;
+            })));
+    };
+    paint(); document.body.append(box);
+    if (window.fire && window.fire.screen) VX.picker.list = await window.fire.screen.sources().catch(() => []);
+    else { close(); FV().startScreen(null); return; }
+    if (VX.picker) paint();
+  }
+  function fullscreen(el) { (el.requestFullscreen ? el.requestFullscreen() : Promise.reject()).catch(() => {}); }
   if (window.FireVoice) {
-    window.FireVoice.onChange(() => {
-      const v = window.FireVoice.state();
+    FV().onChange(() => {
+      const v = FV().state();
       const sig = vocalSig(v);
       if (sig !== VX.sig) {
         VX.sig = sig;
         renderNav();
-        if (S.section === 'vocal' && !(typing() && v.on)) renderVocal();
+        if (S.section === 'vocal') { if (typing()) VX.pending = true; else renderVocal(); }
       }
       vocalBar(); vocalSpeak();
     });
+    // Jauge du micro (et rendu remis à plus tard pendant qu'on règle un curseur).
+    setInterval(() => {
+      if (S.section !== 'vocal') return;
+      if (VX.pending && !typing()) { VX.pending = false; renderVocal(); }
+      const f = document.querySelector('.vc-meter-fill');
+      if (f) { const l = FV().level(); f.style.width = Math.min(100, l / 1.28) + '%'; f.classList.toggle('open', FV().gateOpen() && !FV().state().mute); }
+    }, 80);
     document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.shiftKey && (e.key === 'M' || e.key === 'm') && window.FireVoice.state().on) { e.preventDefault(); window.FireVoice.setMute(!window.FireVoice.state().mute); }
+      if (!e.ctrlKey || !e.shiftKey || !FV().state().on) return;
+      const k = e.key.toLowerCase();
+      if (k === 'm') { e.preventDefault(); FV().setMute(!FV().state().mute); }
+      if (k === 'd') { e.preventDefault(); FV().setDeaf(!FV().state().deaf); }
     });
+    // Rejoindre tout seul au lancement, si le joueur l'a demandé.
+    let tries = 0;
+    const auto = setInterval(() => {
+      if (++tries > 20 || !load('fire.vocal.auto', false)) return clearInterval(auto);
+      if (S.players.length && vocalMe()) { clearInterval(auto); if (!FV().state().on) vocalJoin(); }
+    }, 1500);
+  }
+  function vocalSettings(v) {
+    const c = v.cfg, D = VX.dev || { mics: [], outs: [], cams: [] };
+    const set = (k) => (e) => FV().setCfg({ [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? Number(e.target.value) : e.target.value });
+    const done = (e) => e.target.blur();
+    const sel = (k, list, def, lab) => h('select', { class: 'inp', onchange: (e) => { set(k)(e); done(e); } }, h('option', { value: '' }, def),
+      list.map((d, i) => h('option', { value: d.deviceId, selected: c[k] === d.deviceId ? true : null }, d.label || `${lab} ${i + 1}`)));
+    const sw = (k, label, hint) => h('label', { class: 'vc-sw' }, h('input', { type: 'checkbox', checked: c[k] ? true : null, onchange: (e) => { set(k)(e); done(e); } }), h('span', null, h('b', null, label), hint ? h('span', { class: 'muted small' }, hint) : null));
+    const pct = (val) => Math.round(val * 100) + ' %';
+    const range = (k, min, max, step, fmt) => { const out = h('span', { class: 'muted small vc-rv' }, fmt(c[k]));
+      return h('div', { class: 'vc-range' }, h('input', { type: 'range', min, max, step, value: c[k], onchange: done, oninput: (e) => { out.textContent = fmt(Number(e.target.value)); set(k)(e); } }), out); };
+    const gateMark = c.gate > 0 ? h('div', { class: 'vc-meter-mark', style: `left:${Math.min(100, c.gate / 1.28)}%` }) : null;
+    const open = load('fire.vocal.setopen', false);
+    return h('details', { class: 'card vc-set', open: open ? true : null, ontoggle: (e) => save('fire.vocal.setopen', e.target.open) },
+      h('summary', null, '⚙️ Réglages voix et vidéo'),
+      h('div', { class: 'vc-set-grid' },
+        h('section', null, h('h3', null, '🎤 Micro'),
+          sel('mic', D.mics, 'Micro par défaut de Windows', 'Micro'),
+          h('p', { class: 'muted small' }, 'Volume du micro'), range('gain', 0, 2, 0.05, pct),
+          h('div', { class: 'vc-meter' }, h('div', { class: 'vc-meter-fill' }), gateMark),
+          h('p', { class: 'muted small' }, 'Seuil de détection de la voix ', h('span', { class: 'muted' }, '(0 = micro toujours ouvert ; monte-le si on entend ton clavier)')),
+          range('gate', 0, 60, 1, (x) => x ? String(x) : 'auto'),
+          h('div', { class: 'vc-btns-l' }, h('button', { class: 'btn-ghost' + (v.monitor ? ' vc-on' : ''), onclick: () => FV().setMonitor(!v.monitor) }, v.monitor ? '⏹ Arrêter le test' : '🎧 Tester mon micro (tu t’entends)'))),
+        h('section', null, h('h3', null, '🎛️ Traitement de la voix'),
+          sw('ns', 'Réduction de bruit', 'Efface ventilateur, clavier, bruits de fond.'),
+          sw('ec', 'Annulation d’écho', 'Indispensable si tu joues sur haut-parleurs.'),
+          sw('agc', 'Gain automatique', 'Garde ta voix au même volume, que tu parles fort ou bas.'),
+          sw('hp', 'Filtre anti-souffle', 'Coupe les sons très graves (souffle, chocs sur le bureau).')),
+        h('section', null, h('h3', null, '🎧 Casque / haut-parleurs'),
+          sel('out', D.outs, 'Sortie par défaut de Windows', 'Sortie'),
+          h('p', { class: 'muted small' }, 'Volume général du salon'), range('outVol', 0, 2, 0.05, pct),
+          sw('sounds', 'Sons d’arrivée et de départ', 'Un petit son quand quelqu’un rejoint ou quitte.')),
+        h('section', null, h('h3', null, '📷 Vidéo et écran'),
+          sel('cam', D.cams, 'Caméra par défaut', 'Caméra'),
+          h('p', { class: 'muted small' }, 'Partage d’écran'),
+          h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ screenFps: Number(e.target.value) }); done(e); } },
+            h('option', { value: 15, selected: c.screenFps !== 30 ? true : null }, 'Net (15 images/s) : texte, replays, builds'),
+            h('option', { value: 30, selected: c.screenFps === 30 ? true : null }, 'Fluide (30 images/s) : partie en direct')),
+          h('label', { class: 'vc-sw' }, h('input', { type: 'checkbox', checked: load('fire.vocal.auto', false) ? true : null, onchange: (e) => { save('fire.vocal.auto', e.target.checked); done(e); } }),
+            h('span', null, h('b', null, 'Rejoindre le salon au lancement de FIRE'), h('span', { class: 'muted small' }, 'Tu arrives directement dans le vocal quand tu ouvres l’app.'))))));
   }
   function renderVocal() {
     const view = $('view');
     vocalBar();
     const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎙️'), h('div', null, h('h1', { class: 'title' }, 'Salon vocal'),
-      h('p', { class: 'muted' }, "Parle avec l'équipe en direct, depuis FIRE. Les voix passent directement d'un PC à l'autre, chiffrées.")));
+      h('p', { class: 'muted' }, "Parle avec l'équipe, montre ton écran ou ta caméra. Tout passe directement d'un PC à l'autre, chiffré.")));
     if (!window.FireVoice || !window.Peer) { view.replaceChildren(hero, h('div', { class: 'card' }, h('p', { class: 'bad' }, '⚠ Le module vocal n’est pas chargé. Réinstalle la dernière version de FIRE.'))); return; }
-    const v = window.FireVoice.state();
+    const v = FV().state();
     const me = vocalMe();
     if (!me) { view.replaceChildren(hero, h('div', { class: 'card empty-state' }, 'Choisis d’abord ton pseudo (en haut, « Qui es-tu ? ») pour entrer dans le salon.')); return; }
-    if (!VX.mics) { VX.mics = []; window.FireVoice.mics().then((m) => { VX.mics = m; if (S.section === 'vocal' && !typing()) renderVocal(); }); }
-    const code = String(load('fire.vocal.code', '') || '');
-    const codeIn = h('input', { class: 'inp vc-code', type: 'password', value: code, placeholder: 'Code du salon', autocomplete: 'off', disabled: v.on || v.joining ? true : null,
-      oninput: (e) => save('fire.vocal.code', e.target.value.trim()), onkeydown: (e) => { if (e.key === 'Enter') { save('fire.vocal.code', e.target.value.trim()); vocalJoin(); } } });
-    const micSel = h('select', { class: 'inp', disabled: v.on || v.joining ? true : null, onchange: (e) => save('fire.vocal.mic', e.target.value) },
-      h('option', { value: '' }, 'Micro par défaut de Windows'),
-      (VX.mics || []).filter((m) => m.deviceId && m.deviceId !== 'default').map((m, i) => h('option', { value: m.deviceId, selected: load('fire.vocal.mic', '') === m.deviceId ? true : null }, m.label || `Micro ${i + 1}`)));
-    const people = v.on ? [{ slug: me, ok: true }].concat(v.members.filter((m) => m.ok)) : [];
+    if (!VX.dev) { VX.dev = { mics: [], outs: [], cams: [] }; FV().devices().then((d) => { VX.dev = d; if (S.section === 'vocal') { if (typing()) VX.pending = true; else renderVocal(); } }); }
+    const people = v.on ? [{ slug: me, ok: true, remote: { mute: v.mute, deaf: v.deaf, cam: !!v.cam, screen: !!v.screen } }].concat(v.members.filter((m) => m.ok)) : [];
+    // Les vidéos : la mienne (aperçu) puis celles des autres ; l'écran partagé passe en grand.
+    const tiles = [];
+    if (v.on) {
+      if (v.screen) tiles.push({ key: 'me:screen', slug: me, kind: 'screen', stream: v.screen, mine: true });
+      v.videos.filter((x) => x.kind === 'screen').forEach((x) => tiles.push({ key: x.slug + ':screen', ...x }));
+      if (v.cam) tiles.push({ key: 'me:cam', slug: me, kind: 'cam', stream: v.cam, mine: true });
+      v.videos.filter((x) => x.kind === 'cam').forEach((x) => tiles.push({ key: x.slug + ':cam', ...x }));
+    }
+    for (const k of Object.keys(VX.vids)) if (!tiles.some((t) => t.key === k)) { VX.vids[k].srcObject = null; delete VX.vids[k]; }
+    const tile = (t) => {
+      const el = vidEl(t.key, t.stream, t.mine && t.kind === 'cam');
+      const box = h('div', { class: 'vc-tile ' + t.kind, 'data-vslug': t.kind === 'cam' ? t.slug : null }, el,
+        h('span', { class: 'vc-tl' }, (t.kind === 'screen' ? '🖥️ Écran de ' : '📷 ') + (t.mine ? 'toi' : vocalName(t.slug))),
+        h('button', { class: 'vc-fs', title: 'Plein écran (Échap pour sortir)', onclick: () => fullscreen(box) }, '⛶'));
+      box.ondblclick = () => fullscreen(box);
+      return box;
+    };
+    const ctlBtn = (on, offTxt, onTxt, cls, fn, title) => h('button', { class: 'btn-ghost ' + cls + (on ? ' vc-on' : ''), title, onclick: fn }, on ? onTxt : offTxt);
     const card = (p) => {
-      const isMe = p.slug === me;
-      const vol = v.vols[p.slug] ?? 1;
-      return h('div', { class: 'vc-p', 'data-vslug': p.slug },
-        h('div', { class: 'vc-av' }, vocalName(p.slug).slice(0, 2).toUpperCase()),
+      const isMe = p.slug === me, r = p.remote || {};
+      const vol = v.vols[p.slug] ?? 1, lm = !!v.lmute[p.slug];
+      const icons = [r.mute ? '🔇' : null, r.deaf ? '🔕' : null, r.cam ? '📷' : null, r.screen ? '🖥️' : null].filter(Boolean).join(' ');
+      return h('div', { class: 'vc-p' + (lm ? ' lm' : ''), 'data-vslug': p.slug },
+        h('div', { class: 'vc-av' }, ini(p.slug)),
         h('b', null, vocalName(p.slug) + (isMe ? ' (toi)' : '')),
-        isMe ? h('span', { class: 'muted small' }, v.mute ? '🔇 micro coupé' : v.deaf ? '🔕 son coupé' : '🎤 micro ouvert')
-          : h('label', { class: 'vc-vol muted small' }, '🔊 ', h('input', { type: 'range', min: 0, max: 2, step: 0.05, value: vol, oninput: (e) => window.FireVoice.setVol(p.slug, Number(e.target.value)) }), ' ', Math.round(vol * 100) + ' %'));
+        h('span', { class: 'muted small vc-ic' }, icons || (isMe ? '🎤 micro ouvert' : '')),
+        isMe ? null : h('div', { class: 'vc-vol muted small' }, '🔊 ', h('input', { type: 'range', min: 0, max: 2, step: 0.05, value: vol, disabled: lm ? true : null, onchange: (e) => e.target.blur(),
+          oninput: (e) => { FV().setVol(p.slug, Number(e.target.value)); e.target.nextSibling.textContent = ' ' + Math.round(e.target.value * 100) + ' %'; } }), ' ' + Math.round(vol * 100) + ' %'),
+        isMe ? null : h('button', { class: 'linkbtn small', onclick: () => FV().setLocalMute(p.slug, !lm) }, lm ? '🔈 Réentendre' : '🔇 Rendre muet pour moi'));
     };
     view.replaceChildren(...[hero,
       h('div', { class: 'card vc-ctl' },
-        h('div', { class: 'vc-row' },
-          h('label', null, h('span', { class: 'muted small' }, 'Code du salon'), codeIn),
-          h('label', null, h('span', { class: 'muted small' }, 'Micro'), micSel),
-          v.on ? h('div', { class: 'vc-btns' },
-            h('button', { class: 'btn-ghost' + (v.mute ? ' vc-off' : ''), onclick: () => window.FireVoice.setMute(!v.mute) }, v.mute ? '🔇 Réactiver le micro' : '🎤 Couper le micro'),
-            h('button', { class: 'btn-ghost' + (v.deaf ? ' vc-off' : ''), onclick: () => window.FireVoice.setDeaf(!v.deaf) }, v.deaf ? '🔕 Réactiver le son' : '🎧 Couper le son'),
-            h('button', { class: 'btn-fire vc-leave', onclick: () => window.FireVoice.leave() }, '📞 Quitter'))
-            : h('div', { class: 'vc-btns' }, h('button', { class: 'btn-fire', disabled: v.joining ? true : null, onclick: () => { save('fire.vocal.code', codeIn.value.trim()); vocalJoin(); } }, v.joining ? 'Connexion…' : '🎙️ Rejoindre le salon'))),
-        v.err ? h('p', { class: 'bad' }, '⚠ ' + v.err) : null,
-        !v.on ? h('p', { class: 'muted small' }, "Toute l'équipe tape le même code (le coach le donne, en privé). Sans le code, personne ne peut entrer ni écouter. Ctrl+Maj+M coupe ou rallume ton micro.") : null),
+        v.on ? h('div', { class: 'vc-btns' },
+          ctlBtn(v.mute, '🎤 Couper le micro', '🔇 Réactiver le micro', 'vc-off-on', () => FV().setMute(!v.mute), 'Ctrl+Maj+M'),
+          ctlBtn(v.deaf, '🎧 Couper le son', '🔕 Réactiver le son', 'vc-off-on', () => FV().setDeaf(!v.deaf), 'Ctrl+Maj+D'),
+          ctlBtn(!!v.cam, '📷 Caméra', '📷 Couper la caméra', 'vc-live', () => (v.cam ? FV().stopCam() : FV().startCam())),
+          ctlBtn(!!v.screen, '🖥️ Partager mon écran', '🖥️ Arrêter le partage', 'vc-live', () => (v.screen ? FV().stopScreen() : openScreenPicker())),
+          h('button', { class: 'btn-fire vc-leave', onclick: () => FV().leave() }, '📞 Quitter'))
+          : h('div', { class: 'vc-btns' }, h('button', { class: 'btn-fire', disabled: v.joining ? true : null, onclick: vocalJoin }, v.joining ? 'Connexion…' : '🎙️ Rejoindre le salon')),
+        v.err ? h('p', { class: 'bad' }, '⚠ ' + v.err, ' ', h('button', { class: 'linkbtn small', onclick: () => FV().clearErr() }, 'OK')) : null,
+        !v.on ? h('p', { class: 'muted small' }, "Un clic et tu es dans le salon de l'équipe, avec tous ceux qui sont déjà connectés. Raccourcis quand FIRE est au premier plan : Ctrl+Maj+M (micro), Ctrl+Maj+D (son).") : null),
+      tiles.length ? h('div', { class: 'vc-stage' + (tiles.some((t) => t.kind === 'screen') ? ' has-screen' : '') }, tiles.map(tile)) : null,
       v.on ? h('div', { class: 'vc-grid' }, people.map(card)) : null,
-      v.on && people.length === 1 ? h('p', { class: 'muted' }, 'Tu es seul pour le moment : les autres apparaîtront ici dès qu’ils rejoignent le salon avec le même code.') : null,
-      v.on ? h('p', { class: 'muted small' }, 'Tu peux changer d’onglet : tu restes dans le salon (petite barre en bas à droite). Réduire FIRE près de l’horloge te garde aussi connecté.') : null].filter(Boolean));
+      v.on && people.length === 1 ? h('p', { class: 'muted' }, 'Tu es seul pour le moment : les autres apparaîtront ici dès qu’ils rejoignent le salon.') : null,
+      v.on ? h('p', { class: 'muted small' }, 'Tu peux changer d’onglet : tu restes dans le salon (petite barre en bas à droite). Réduire FIRE près de l’horloge te garde aussi connecté.') : null,
+      vocalSettings(v)].filter(Boolean));
     vocalSpeak();
   }
 

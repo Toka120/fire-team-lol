@@ -1,13 +1,24 @@
-// FIRE LoL - salon vocal de l'équipe.
-// Les voix passent directement d'un PC à l'autre (WebRTC, chiffré), sans serveur à nous.
-// Le serveur public PeerJS sert seulement à se trouver : chaque membre a une adresse dérivée du code
-// du salon et de son pseudo. Sans le code, impossible de deviner les adresses, donc d'entrer.
+// FIRE LoL - salon vocal de l'équipe, avec caméra et partage d'écran.
+// Voix et images passent directement d'un PC à l'autre (WebRTC, chiffré), sans serveur à nous.
+// Le serveur public PeerJS sert seulement à se trouver : chaque membre a une adresse dérivée du nom
+// du salon et de son pseudo.
+//
+// Le micro passe par une petite chaîne Web Audio (filtre, gain, porte de bruit) avant d'être envoyé :
+// on peut changer de micro ou de réglage en plein appel sans couper les autres.
 (function () {
   'use strict';
   const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }];
+  const CFG_KEY = 'fire.vocal.cfg', VOL_KEY = 'fire.vocal.vols', LMUTE_KEY = 'fire.vocal.lmute';
+  const DEF = { mic: '', out: '', cam: '', ns: true, ec: true, agc: true, hp: true, gain: 1, gate: 0, outVol: 1, sounds: true, screenFps: 15 };
+  const rd = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
+  const wr = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
+
   const V = {
-    on: false, joining: false, err: '', me: null, prefix: '', ids: [], peer: null, stream: null,
-    mute: false, deaf: false, conns: {}, vols: {}, speaking: {}, listeners: [], ctx: null, timer: null, probe: null
+    on: false, joining: false, err: '', me: null, prefix: '', ids: [], peer: null,
+    cfg: Object.assign({}, DEF, rd(CFG_KEY, {})), vols: rd(VOL_KEY, {}), lmute: rd(LMUTE_KEY, {}),
+    mute: false, deaf: false, monitor: false, level: 0, gateOpen: false, gateUntil: 0,
+    conns: {}, vout: {}, vin: {}, cam: null, screen: null, speaking: {}, listeners: [],
+    ctx: null, g: null, raw: null, rawSrc: null, timer: null, probe: null
   };
   const emit = () => V.listeners.forEach((f) => { try { f(); } catch (e) { /* vue */ } });
 
@@ -18,42 +29,189 @@
   const pid = (slug) => V.prefix + slug.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
   const slugOf = (id) => V.ids.find((s) => pid(s) === id) || null;
 
-  // Un petit son quand quelqu'un arrive ou part (comme Discord), généré sans fichier.
+  // ---------- Audio ----------
+  function audioCtx() {
+    if (!V.ctx) {
+      const c = V.ctx = new AudioContext();
+      const g = V.g = {};
+      g.master = c.createGain(); g.master.gain.value = V.cfg.outVol; g.master.connect(c.destination);
+      g.hp = c.createBiquadFilter(); g.hp.type = 'highpass'; g.hp.frequency.value = V.cfg.hp ? 90 : 1;
+      g.inGain = c.createGain(); g.inGain.gain.value = V.cfg.gain;
+      g.gate = c.createGain(); g.gate.gain.value = 0;
+      g.an = c.createAnalyser(); g.an.fftSize = 512; g.buf = new Uint8Array(512);
+      g.send = c.createMediaStreamDestination();
+      g.hp.connect(g.inGain); g.inGain.connect(g.an); g.inGain.connect(g.gate); g.gate.connect(g.send);
+      if (V.cfg.out && c.setSinkId) c.setSinkId(V.cfg.out).catch(() => {});
+    }
+    if (V.ctx.state === 'suspended') V.ctx.resume().catch(() => {});
+    return V.ctx;
+  }
   function blip(up) {
+    if (!V.cfg.sounds) return;
     try {
       const c = audioCtx(); const o = c.createOscillator(); const g = c.createGain();
       o.frequency.setValueAtTime(up ? 520 : 660, c.currentTime); o.frequency.linearRampToValueAtTime(up ? 780 : 440, c.currentTime + 0.14);
       g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.exponentialRampToValueAtTime(0.12, c.currentTime + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.22);
-      o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + 0.25);
+      o.connect(g); g.connect(V.g.master); o.start(); o.stop(c.currentTime + 0.25);
     } catch (e) { /* pas de son */ }
   }
-  function audioCtx() { if (!V.ctx) V.ctx = new AudioContext(); if (V.ctx.state === 'suspended') V.ctx.resume().catch(() => {}); return V.ctx; }
-
-  // Niveau sonore : sert à allumer la pastille de celui qui parle.
   function meter(stream) {
     const c = audioCtx(); const src = c.createMediaStreamSource(stream); const an = c.createAnalyser();
-    an.fftSize = 512; src.connect(an); const buf = new Uint8Array(an.fftSize);
+    an.fftSize = 512; src.connect(an); const buf = new Uint8Array(512);
     return () => { an.getByteTimeDomainData(buf); let m = 0; for (const v of buf) m = Math.max(m, Math.abs(v - 128)); return m; };
   }
-
+  // (Re)branche le micro. Le flux envoyé aux autres ne change pas : pas besoin de les rappeler.
+  async function openMic() {
+    audioCtx();
+    const c = V.cfg;
+    const raw = await navigator.mediaDevices.getUserMedia({ video: false, audio: {
+      deviceId: c.mic ? { exact: c.mic } : undefined, echoCancellation: c.ec, noiseSuppression: c.ns, autoGainControl: c.agc, channelCount: 1 } });
+    if (V.rawSrc) { try { V.rawSrc.disconnect(); } catch (e) { /* */ } }
+    if (V.raw) V.raw.getTracks().forEach((t) => t.stop());
+    V.raw = raw; V.rawSrc = V.ctx.createMediaStreamSource(raw); V.rawSrc.connect(V.g.hp);
+  }
+  function closeMic() {
+    if (V.rawSrc) { try { V.rawSrc.disconnect(); } catch (e) { /* */ } }
+    if (V.raw) V.raw.getTracks().forEach((t) => t.stop());
+    V.raw = V.rawSrc = null;
+  }
+  function remoteGain(slug) { return V.deaf || V.lmute[slug] ? 0 : (V.vols[slug] ?? 1); }
   function playRemote(slug, stream) {
     const c = audioCtx();
     // Chrome ne fait circuler un flux WebRTC dans Web Audio que s'il est aussi branché sur un élément audio.
     const el = new Audio(); el.muted = true; el.srcObject = stream; el.play().catch(() => {});
     const src = c.createMediaStreamSource(stream); const g = c.createGain();
-    g.gain.value = V.deaf ? 0 : (V.vols[slug] ?? 1); src.connect(g); g.connect(c.destination);
+    g.gain.value = remoteGain(slug); src.connect(g); g.connect(V.g.master);
     return { el, src, g, level: meter(stream) };
   }
+  function applyGains() { for (const [s, k] of Object.entries(V.conns)) if (k.out) k.out.g.gain.value = remoteGain(s); }
 
+  // Porte de bruit, niveau du micro et pastilles « parle » : toutes les 50 ms.
+  function tick() {
+    if (!V.g || !V.raw) return;
+    const g = V.g; g.an.getByteTimeDomainData(g.buf);
+    let m = 0; for (const v of g.buf) m = Math.max(m, Math.abs(v - 128));
+    V.level = m;
+    const now = performance.now();
+    if (V.cfg.gate > 0) { if (m >= V.cfg.gate) V.gateUntil = now + 350; V.gateOpen = now < V.gateUntil; } else V.gateOpen = true;
+    const target = V.mute ? 0 : V.gateOpen ? 1 : 0;
+    g.gate.gain.setTargetAtTime(target, V.ctx.currentTime, target ? 0.005 : 0.04);
+    let ch = false;
+    const set = (k, v) => { if (!!V.speaking[k] !== v) { V.speaking[k] = v; ch = true; } };
+    if (V.on) {
+      set(V.me, !V.mute && V.gateOpen && m > 9);
+      for (const [s, k] of Object.entries(V.conns)) set(s, !!(k.out && !V.lmute[s] && k.out.level() > 9));
+    }
+    if (ch) emit();
+  }
+  function startTick() { if (!V.timer) V.timer = setInterval(tick, 50); }
+
+  // ---------- Contrôle (micro coupé, caméra, écran…) : un petit canal de données par membre ----------
+  function myState() { return { t: 'st', mute: V.mute, deaf: V.deaf, cam: !!V.cam, screen: !!V.screen }; }
+  function broadcast() { for (const k of Object.values(V.conns)) if (k.ctl && k.ctl.open) { try { k.ctl.send(myState()); } catch (e) { /* */ } } }
+  function bindCtl(slug, dc) {
+    const k = V.conns[slug];
+    if (!k) { try { dc.close(); } catch (e) { /* */ } return; }
+    if (k.ctl && k.ctl !== dc) { try { k.ctl.close(); } catch (e) { /* */ } }
+    k.ctl = dc;
+    dc.on('open', () => { try { dc.send(myState()); } catch (e) { /* */ } });
+    dc.on('data', (msg) => {
+      const kk = V.conns[slug]; if (!kk || !msg || msg.t !== 'st') return;
+      kk.remote = { mute: !!msg.mute, deaf: !!msg.deaf, cam: !!msg.cam, screen: !!msg.screen };
+      if (!msg.cam) closeVin(slug, 'cam');
+      if (!msg.screen) closeVin(slug, 'screen');
+      emit();
+    });
+    dc.on('close', () => { const kk = V.conns[slug]; if (kk && kk.ctl === dc) kk.ctl = null; });
+  }
+
+  // ---------- Vidéo : un appel à part par flux (caméra, écran), lancé par celui qui montre ----------
+  function closeVin(slug, kind) {
+    const key = slug + ':' + kind; const v = V.vin[key]; if (!v) return;
+    delete V.vin[key]; try { v.call.close(); } catch (e) { /* */ } emit();
+  }
+  function closeVout(slug, kind) {
+    for (const key of Object.keys(V.vout)) {
+      const [s, k] = key.split(':');
+      if ((slug == null || s === slug) && (kind == null || k === kind)) { try { V.vout[key].close(); } catch (e) { /* */ } delete V.vout[key]; }
+    }
+  }
+  function capBitrate(call, bps) {
+    const pc = call.peerConnection; if (!pc) return;
+    const apply = () => pc.getSenders().forEach((s) => {
+      if (!s.track || s.track.kind !== 'video') return;
+      const p = s.getParameters(); p.encodings = p.encodings && p.encodings.length ? p.encodings : [{}];
+      p.encodings[0].maxBitrate = bps; s.setParameters(p).catch(() => {});
+    });
+    pc.addEventListener('connectionstatechange', () => { if (pc.connectionState === 'connected') apply(); });
+  }
+  function sendVideo(slug, kind) {
+    const stream = kind === 'cam' ? V.cam : V.screen;
+    const key = slug + ':' + kind;
+    if (!stream || V.vout[key] || !V.conns[slug] || !V.conns[slug].out) return;
+    const call = V.peer.call(pid(slug), stream, { metadata: { s: V.me, k: kind } });
+    if (!call) return;
+    V.vout[key] = call;
+    capBitrate(call, kind === 'cam' ? 450000 : 1800000);
+    call.on('close', () => { if (V.vout[key] === call) delete V.vout[key]; });
+    call.on('error', () => { if (V.vout[key] === call) delete V.vout[key]; });
+  }
+  function takeVideo(from, kind, call) {
+    if (!V.conns[from]) { try { call.close(); } catch (e) { /* */ } return; }
+    const key = from + ':' + kind;
+    if (V.vin[key]) { try { V.vin[key].call.close(); } catch (e) { /* */ } }
+    V.vin[key] = { call, stream: null };
+    call.answer();
+    call.on('stream', (st) => { if (V.vin[key] && V.vin[key].call === call) { V.vin[key].stream = st; emit(); } });
+    const done = () => { if (V.vin[key] && V.vin[key].call === call) { delete V.vin[key]; emit(); } };
+    call.on('close', done); call.on('error', done);
+    const pc = call.peerConnection;
+    if (pc) pc.addEventListener('iceconnectionstatechange', () => { if (/failed|closed/.test(pc.iceConnectionState)) done(); });
+  }
+  function shareAll(kind) { for (const [s, k] of Object.entries(V.conns)) if (k.out) sendVideo(s, kind); }
+
+  async function startCam() {
+    if (!V.on || V.cam) return;
+    try {
+      const st = await navigator.mediaDevices.getUserMedia({ audio: false, video: {
+        deviceId: V.cfg.cam ? { exact: V.cfg.cam } : undefined, width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 24, max: 30 } } });
+      V.cam = st; st.getVideoTracks().forEach((t) => { t.onended = stopCam; });
+      shareAll('cam'); broadcast(); emit();
+    } catch (e) { V.err = e && e.name === 'NotAllowedError' ? 'accès à la caméra refusé (Windows › Confidentialité › Caméra)' : e && e.name === 'NotFoundError' ? 'aucune caméra trouvée' : 'caméra indisponible'; emit(); }
+  }
+  function stopCam() {
+    if (!V.cam) return;
+    V.cam.getTracks().forEach((t) => t.stop()); V.cam = null;
+    closeVout(null, 'cam'); broadcast(); emit();
+  }
+  // Partage d'écran : l'app choisit l'écran ou la fenêtre (window.fire.screen), puis le navigateur capture.
+  async function startScreen(sourceId) {
+    if (!V.on || V.screen) return;
+    try {
+      if (window.fire && window.fire.screen && sourceId) await window.fire.screen.pick(sourceId);
+      const fps = V.cfg.screenFps || 15;
+      const st = await navigator.mediaDevices.getDisplayMedia({ audio: false, video: { frameRate: { ideal: fps, max: fps }, width: { max: 1920 }, height: { max: 1080 } } });
+      st.getVideoTracks().forEach((t) => { t.contentHint = fps > 20 ? 'motion' : 'detail'; t.onended = stopScreen; });
+      V.screen = st; shareAll('screen'); broadcast(); emit();
+    } catch (e) { if (!(e && e.name === 'AbortError')) { V.err = 'partage d’écran impossible'; emit(); } }
+  }
+  function stopScreen() {
+    if (!V.screen) return;
+    V.screen.getTracks().forEach((t) => t.stop()); V.screen = null;
+    closeVout(null, 'screen'); broadcast(); emit();
+  }
+
+  // ---------- Connexions voix ----------
   function drop(slug, sound) {
     const k = V.conns[slug]; if (!k) return;
     delete V.conns[slug]; delete V.speaking[slug];
     try { k.call.close(); } catch (e) { /* déjà fermé */ }
+    if (k.ctl) { try { k.ctl.close(); } catch (e) { /* */ } }
     if (k.out) { try { k.out.src.disconnect(); k.out.g.disconnect(); k.out.el.srcObject = null; } catch (e) { /* */ } }
-    if (sound) blip(false);
+    closeVout(slug, null); closeVin(slug, 'cam'); closeVin(slug, 'screen');
+    if (sound && k.out) blip(false);
     emit();
   }
-
   function watch(slug, call) {
     const pc = call.peerConnection;
     let lost = null;
@@ -62,17 +220,21 @@
       const st = pc && pc.iceConnectionState;
       if (st === 'failed' || st === 'closed') drop(slug, true);
       else if (st === 'disconnected') { clearTimeout(lost); lost = setTimeout(() => { if (pc.iceConnectionState === 'disconnected') drop(slug, true); }, 6000); }
-      else if (st === 'connected' || st === 'completed') { clearTimeout(lost); if (V.conns[slug]) { V.conns[slug].ok = true; emit(); } }
+      else if (st === 'connected' || st === 'completed') clearTimeout(lost);
     };
     if (pc) pc.addEventListener('iceconnectionstatechange', check);
     call.on('stream', (st) => {
       const k = V.conns[slug]; if (!k || k.call !== call || k.out) return;
-      k.out = playRemote(slug, st); k.ok = true; blip(true); emit();
+      k.out = playRemote(slug, st); blip(true);
+      // Le plus petit pseudo ouvre le canal de contrôle ; on envoie aussi nos vidéos en cours au nouvel arrivant.
+      if (V.me < slug && !k.ctl) bindCtl(slug, V.peer.connect(pid(slug), { metadata: { s: V.me, k: 'ctl' }, reliable: true }));
+      if (V.cam) sendVideo(slug, 'cam');
+      if (V.screen) sendVideo(slug, 'screen');
+      emit();
     });
     call.on('close', () => { if (V.conns[slug] && V.conns[slug].call === call) drop(slug, true); });
     call.on('error', () => { if (V.conns[slug] && V.conns[slug].call === call) drop(slug, false); });
   }
-
   // Deux membres qui arrivent en même temps s'appellent l'un l'autre : on garde l'appel lancé par le plus petit pseudo.
   function keep(slug, call, outgoing) {
     const cur = V.conns[slug];
@@ -83,13 +245,12 @@
       if (cur.out || (outgoing && !mineWins) || (!outgoing && mineWins)) { try { call.close(); } catch (e) { /* */ } return false; }
       drop(slug, false);
     }
-    V.conns[slug] = { call, ok: false, out: null, mine: outgoing, t: Date.now() };
+    V.conns[slug] = { call, out: null, mine: outgoing, t: Date.now(), ctl: null, remote: {} };
     watch(slug, call); emit();
     // Membre absent (ou PC injoignable) : pas de voix au bout de 25 s, on libère la place pour réessayer plus tard.
     setTimeout(() => { const k = V.conns[slug]; if (k && k.call === call && !k.out) drop(slug, false); }, 25000);
     return true;
   }
-
   // Membre pas connecté : le serveur répond tout de suite, on libère sa place pour pouvoir l'accueillir quand il arrive.
   function unavailable(e) {
     const m = String((e && e.message) || '').match(/firelol-[a-f0-9]+-[A-Za-z0-9]+/);
@@ -98,7 +259,7 @@
   }
   function ring(slug) {
     if (!V.on || slug === V.me || V.conns[slug]) return;
-    const call = V.peer.call(pid(slug), V.stream, { metadata: { s: V.me } });
+    const call = V.peer.call(pid(slug), V.g.send.stream, { metadata: { s: V.me, k: 'voice' } });
     if (call) keep(slug, call, true);
   }
 
@@ -109,11 +270,8 @@
       if (!window.Peer) throw new Error('module vocal absent');
       V.me = opts.me; V.ids = [...new Set(opts.ids.concat(opts.me))];
       V.prefix = 'firelol-' + (await sha('FIRE-vocal:' + opts.code.trim().toUpperCase())).slice(0, 24) + '-';
-      V.stream = await navigator.mediaDevices.getUserMedia({
-        audio: { deviceId: opts.mic ? { exact: opts.mic } : undefined, echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false
-      });
-      V.stream.getAudioTracks().forEach((t) => { t.enabled = !V.mute; });
-      const myLevel = meter(V.stream);
+      if (!V.raw) await openMic();
+      startTick();
       V.peer = await new Promise((ok, ko) => {
         const p = new window.Peer(pid(V.me), { debug: 0, config: { iceServers: ICE } });
         const t = setTimeout(() => ko(new Error('serveur de connexion injoignable')), 15000);
@@ -121,7 +279,7 @@
         p.on('error', (e) => {
           clearTimeout(t);
           if (e.type === 'unavailable-id') ko(new Error('tu es déjà dans le salon depuis un autre PC ou une autre fenêtre'));
-          else if (e.type === 'peer-unavailable') { unavailable(e); }
+          else if (e.type === 'peer-unavailable') unavailable(e);
           else if (!V.on) ko(new Error(e.type === 'network' || e.type === 'server-error' ? 'serveur de connexion injoignable' : (e.message || e.type)));
         });
       });
@@ -129,19 +287,19 @@
       V.peer.on('call', (call) => {
         const from = slugOf(call.peer);
         if (!from || from === V.me) { try { call.close(); } catch (e) { /* */ } return; }
-        if (keep(from, call, false)) call.answer(V.stream);
+        const kind = call.metadata && call.metadata.k;
+        if (kind === 'cam' || kind === 'screen') return takeVideo(from, kind, call);
+        if (keep(from, call, false)) call.answer(V.g.send.stream);
+      });
+      V.peer.on('connection', (dc) => {
+        const from = slugOf(dc.peer);
+        if (!from || from === V.me) { try { dc.close(); } catch (e) { /* */ } return; }
+        bindCtl(from, dc);
       });
       V.peer.on('disconnected', () => { if (V.on) setTimeout(() => { try { if (V.on && V.peer && V.peer.disconnected) V.peer.reconnect(); } catch (e) { /* */ } }, 2000); });
       V.ids.forEach(ring);
       // Toutes les 20 s, on rappelle ceux qui ne sont pas là : un membre qui revient après une coupure est retrouvé.
       V.probe = setInterval(() => V.ids.forEach(ring), 20000);
-      V.timer = setInterval(() => {
-        let ch = false;
-        const set = (k, v) => { if (!!V.speaking[k] !== v) { V.speaking[k] = v; ch = true; } };
-        set(V.me, !V.mute && myLevel() > 9);
-        for (const [s, k] of Object.entries(V.conns)) set(s, !!(k.out && k.out.level() > 9));
-        if (ch) emit();
-      }, 150);
       blip(true);
     } catch (e) {
       V.err = (e && e.name === 'NotAllowedError') ? 'accès au micro refusé (Windows › Paramètres › Confidentialité › Microphone)' : (e && e.name === 'NotFoundError') ? 'aucun micro trouvé' : (e && e.message) || String(e);
@@ -149,35 +307,68 @@
     }
     V.joining = false; emit();
   }
-
   function cleanup() {
-    clearInterval(V.timer); clearInterval(V.probe); V.timer = V.probe = null;
+    clearInterval(V.probe); V.probe = null;
+    stopCam(); stopScreen();
     Object.keys(V.conns).forEach((s) => drop(s, false));
     if (V.peer) { try { V.peer.destroy(); } catch (e) { /* */ } }
-    if (V.stream) V.stream.getTracks().forEach((t) => t.stop());
-    V.peer = V.stream = null; V.on = false; V.speaking = {};
+    V.peer = null; V.on = false; V.speaking = {};
+    if (!V.monitor) { closeMic(); clearInterval(V.timer); V.timer = null; V.level = 0; }
   }
   function leave() { if (!V.on) return; blip(false); cleanup(); emit(); }
 
-  function setMute(m) { V.mute = !!m; if (V.stream) V.stream.getAudioTracks().forEach((t) => { t.enabled = !V.mute; }); emit(); }
-  function setDeaf(d) {
-    V.deaf = !!d;
-    for (const [s, k] of Object.entries(V.conns)) if (k.out) k.out.g.gain.value = V.deaf ? 0 : (V.vols[s] ?? 1);
+  // ---------- Réglages ----------
+  function setMute(m) { V.mute = !!m; if (!V.mute && V.deaf) { V.deaf = false; applyGains(); } broadcast(); emit(); }
+  function setDeaf(d) { V.deaf = !!d; V.mute = V.deaf; applyGains(); broadcast(); emit(); }
+  function setVol(slug, v) { V.vols[slug] = v; wr(VOL_KEY, V.vols); applyGains(); emit(); }
+  function setLocalMute(slug, m) { if (m) V.lmute[slug] = true; else delete V.lmute[slug]; wr(LMUTE_KEY, V.lmute); applyGains(); emit(); }
+  async function setCfg(patch) {
+    const old = V.cfg; V.cfg = Object.assign({}, old, patch); wr(CFG_KEY, V.cfg);
+    const c = V.cfg;
+    if (V.g) {
+      V.g.inGain.gain.value = c.gain; V.g.master.gain.value = c.outVol; V.g.hp.frequency.value = c.hp ? 90 : 1;
+      if (c.out !== old.out && V.ctx.setSinkId) V.ctx.setSinkId(c.out || '').catch(() => {});
+    }
+    if (V.raw && (c.mic !== old.mic || c.ns !== old.ns || c.ec !== old.ec || c.agc !== old.agc)) {
+      try { await openMic(); } catch (e) { V.err = 'ce micro ne répond pas'; }
+    }
+    if (V.cam && c.cam !== old.cam) { stopCam(); startCam(); }
     emit();
   }
-  function setVol(slug, v) { V.vols[slug] = v; const k = V.conns[slug]; if (k && k.out && !V.deaf) k.out.g.gain.value = v; emit(); }
-
-  async function mics() {
-    try { return (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput'); } catch (e) { return []; }
+  // « Tester mon micro » : tu t'entends (avec les réglages), même hors du salon.
+  async function setMonitor(on) {
+    try {
+      if (on) {
+        if (!V.raw) await openMic();
+        startTick(); V.g.gate.connect(V.g.master); V.monitor = true;
+      } else if (V.monitor) {
+        try { V.g.gate.disconnect(V.g.master); } catch (e) { /* */ }
+        V.monitor = false;
+        if (!V.on) { closeMic(); clearInterval(V.timer); V.timer = null; V.level = 0; }
+      }
+    } catch (e) { V.err = e && e.name === 'NotAllowedError' ? 'accès au micro refusé (Windows › Paramètres › Confidentialité › Microphone)' : 'micro indisponible'; V.monitor = false; }
+    emit();
+  }
+  async function devices() {
+    try {
+      const d = await navigator.mediaDevices.enumerateDevices();
+      const f = (k) => d.filter((x) => x.kind === k && x.deviceId && x.deviceId !== 'default' && x.deviceId !== 'communications');
+      return { mics: f('audioinput'), outs: f('audiooutput'), cams: f('videoinput') };
+    } catch (e) { return { mics: [], outs: [], cams: [] }; }
   }
 
   window.FireVoice = {
-    join, leave, setMute, setDeaf, setVol, mics,
+    join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen,
+    clearErr: () => { V.err = ''; emit(); },
+    level: () => V.level, gateOpen: () => V.gateOpen,
     onChange: (f) => V.listeners.push(f),
     state: () => ({
-      on: V.on, joining: V.joining, err: V.err, me: V.me, mute: V.mute, deaf: V.deaf, vols: { ...V.vols },
-      speaking: { ...V.speaking }, members: Object.entries(V.conns).map(([s, k]) => ({ slug: s, ok: k.ok && !!k.out }))
+      on: V.on, joining: V.joining, err: V.err, me: V.me, mute: V.mute, deaf: V.deaf, monitor: V.monitor,
+      cfg: Object.assign({}, V.cfg), vols: Object.assign({}, V.vols), lmute: Object.assign({}, V.lmute), speaking: Object.assign({}, V.speaking),
+      cam: V.cam, screen: V.screen,
+      members: Object.entries(V.conns).map(([s, k]) => ({ slug: s, ok: !!k.out, remote: k.remote || {} })),
+      videos: Object.entries(V.vin).filter(([, v]) => v.stream).map(([key, v]) => ({ slug: key.split(':')[0], kind: key.split(':')[1], stream: v.stream }))
     })
   };
-  window.addEventListener('beforeunload', () => { try { cleanup(); } catch (e) { /* */ } });
+  window.addEventListener('beforeunload', () => { try { V.monitor = false; cleanup(); } catch (e) { /* */ } });
 })();

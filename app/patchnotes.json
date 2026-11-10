@@ -1,6 +1,41 @@
 {
  "versions": [
   {
+   "v": "1.10.31",
+   "date": "2026-11-10",
+   "titre": "Vocal : écran, caméra et réglages",
+   "items": [
+    [
+     "new",
+     "Salon vocal libre : plus de code, un clic sur « Rejoindre le salon » et tu es avec l'équipe."
+    ],
+    [
+     "new",
+     "Partage d'écran : choisis un écran ou une fenêtre, avec un mode Net (15 images/s, pour lire le texte) ou Fluide (30 images/s, pour une partie). L'écran partagé s'affiche en grand, et ⛶ le passe en plein écran."
+    ],
+    [
+     "new",
+     "Caméra : allume-la si tu veux, chacun voit les caméras des autres dans le salon."
+    ],
+    [
+     "new",
+     "Réglages voix : choix du micro et du casque, volume du micro et volume général, jauge du micro, seuil de détection de la voix (coupe le bruit du clavier entre deux phrases), et un bouton « Tester mon micro » pour t'entendre."
+    ],
+    [
+     "new",
+     "Traitement de la voix à activer ou couper : réduction de bruit, annulation d'écho, gain automatique, filtre anti-souffle."
+    ],
+    [
+     "improve",
+     "Tu vois qui a coupé son micro ou son son, et qui partage sa caméra ou son écran. « Rendre muet pour moi » coupe une personne seulement chez toi. Les volumes de chacun sont gardés."
+    ],
+    [
+     "improve",
+     "Ctrl+Maj+D coupe ou rallume le son (Ctrl+Maj+M pour le micro). Option pour rejoindre le salon tout seul au lancement de FIRE. Les sons d'arrivée et de départ peuvent être coupés."
+    ]
+   ]
+  },
+  {
    "v": "1.10.30",
    "date": "2026-11-10",
    "titre": "Salon vocal et Micro sans pubs",
