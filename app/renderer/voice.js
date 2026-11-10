@@ -55,6 +55,18 @@
       o.connect(g); g.connect(V.g.master); o.start(); o.stop(c.currentTime + 0.25);
     } catch (e) { /* pas de son */ }
   }
+  // Petit signal sonore quand on change un réglage au clavier (utile en pleine partie, sans regarder FIRE).
+  function cue(on) {
+    try {
+      const c = audioCtx();
+      [0, 0.09].forEach((d, k) => {
+        const o = c.createOscillator(); const g = c.createGain(); const t = c.currentTime + d;
+        o.frequency.value = on ? (k ? 880 : 660) : (k ? 440 : 600);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.1, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+        o.connect(g); g.connect(V.g.master); o.start(t); o.stop(t + 0.1);
+      });
+    } catch (e) { /* pas de son */ }
+  }
   function meter(stream) {
     const c = audioCtx(); const src = c.createMediaStreamSource(stream); const an = c.createAnalyser();
     an.fftSize = 512; src.connect(an); const buf = new Uint8Array(512);
@@ -274,17 +286,24 @@
       V.prefix = 'firelol-' + (await sha('FIRE-vocal:' + opts.code.trim().toUpperCase())).slice(0, 24) + '-';
       if (!V.raw) await openMic();
       startTick();
-      V.peer = await new Promise((ok, ko) => {
+      // Après un plantage ou une relance rapide, l'ancienne connexion peut garder notre adresse quelques secondes : on réessaie.
+      const open = () => new Promise((ok, ko) => {
         const p = new window.Peer(pid(V.me), { debug: 0, config: { iceServers: ICE } });
         const t = setTimeout(() => ko(new Error('serveur de connexion injoignable')), 15000);
         p.on('open', () => { clearTimeout(t); ok(p); });
         p.on('error', (e) => {
           clearTimeout(t);
-          if (e.type === 'unavailable-id') ko(new Error('tu es déjà dans le salon depuis un autre PC ou une autre fenêtre'));
+          if (e.type === 'unavailable-id') { try { p.destroy(); } catch (x) { /* */ } ko(new Error('tu es déjà dans le salon depuis un autre PC ou une autre fenêtre')); }
           else if (e.type === 'peer-unavailable') unavailable(e);
           else if (!V.on) ko(new Error(e.type === 'network' || e.type === 'server-error' ? 'serveur de connexion injoignable' : (e.message || e.type)));
         });
       });
+      for (let k = 0; ; k++) {
+        try { V.peer = await open(); break; } catch (e) {
+          if (k >= 4 || !/autre PC/.test(e.message)) throw e;
+          await new Promise((r) => setTimeout(r, 4000));
+        }
+      }
       V.on = true;
       V.peer.on('call', (call) => {
         const from = slugOf(call.peer);
@@ -360,7 +379,7 @@
   }
 
   window.FireVoice = {
-    join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen,
+    join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue,
     clearErr: () => { V.err = ''; emit(); },
     level: () => V.level, gateOpen: () => V.gateOpen,
     onChange: (f) => V.listeners.push(f),

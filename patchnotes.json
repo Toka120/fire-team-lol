@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "1.10.44",
+   "date": "2026-11-10",
+   "titre": "Nouveau salon vocal",
+   "items": [
+    [
+     "new",
+     "Salon vocal entièrement redessiné : un hall d'accueil avant d'entrer, puis une scène où chaque participant a sa tuile (avec son skin préféré en fond), et une barre de contrôle ronde en bas : micro, casque, caméra, écran, réglages, raccrocher."
+    ],
+    [
+     "new",
+     "Plusieurs partages d'écran côte à côte : en mode « Côte à côte », tous les écrans et caméras sont visibles en même temps, à la même taille. En mode « Focus », une vidéo s'affiche en grand et les autres sur le côté. Clique sur une tuile pour la passer en grand, double-clique pour le plein écran."
+    ],
+    [
+     "new",
+     "Raccourcis clavier qui marchent même en pleine partie : Ctrl+Alt+M (micro), Ctrl+Alt+D (casque), Ctrl+Alt+C (caméra), Ctrl+Alt+S (partager l'écran principal ou arrêter), Ctrl+Alt+V (rejoindre ou quitter). Un petit bip confirme chaque changement. Ils se changent dans les réglages."
+    ],
+    [
+     "improve",
+     "Les réglages s'ouvrent dans un panneau à droite avec de vrais interrupteurs. Le volume de chacun et « muet pour moi » sont dans le menu 🔊 de sa tuile."
+    ],
+    [
+     "fix",
+     "Si FIRE est relancé juste après un plantage, il réessaie tout seul de rejoindre le salon au lieu d'afficher « déjà dans le salon »."
+    ]
+   ]
+  },
+  {
    "contenu": true,
    "id": "c-2026-11-10-fond-support",
    "date": "2026-11-10",

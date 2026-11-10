@@ -1,7 +1,7 @@
 // FIRE LoL - application de bureau (Electron).
 // Lit les stats des joueurs sur dpm.lol dans une fenêtre cachée, puis les affiche.
 
-const { app, BrowserWindow, ipcMain, session, shell, Notification, Tray, Menu, desktopCapturer } = require('electron');
+const { app, BrowserWindow, ipcMain, session, shell, Notification, Tray, Menu, desktopCapturer, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -201,6 +201,22 @@ ipcMain.handle('lcu:stats', (e, url) => {
   statsWin.show(); statsWin.focus();
   return true;
 });
+
+// Raccourcis clavier du salon vocal : enregistrés auprès de Windows, ils marchent aussi en pleine partie.
+// L'app ne les réserve que pendant un appel (sauf « rejoindre »), pour ne pas bloquer ces touches ailleurs.
+ipcMain.handle('keys:set', (e, map) => {
+  globalShortcut.unregisterAll();
+  const bad = [];
+  for (const [act, acc] of Object.entries(map || {})) {
+    if (!acc || typeof acc !== 'string' || !/^[A-Za-z0-9+]{1,40}$/.test(acc)) continue;
+    try {
+      const ok = globalShortcut.register(acc, () => { if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('keys:hit', act); });
+      if (!ok) bad.push(act);
+    } catch (err) { bad.push(act); }
+  }
+  return { ok: true, bad };
+});
+app.on('will-quit', () => { try { globalShortcut.unregisterAll(); } catch (e) { /* déjà fermé */ } });
 
 // ---------- Configuration (liste des joueurs, code d'équipe) ----------
 

@@ -1596,8 +1596,8 @@
     bar.replaceChildren(
       h('button', { class: 'vb-go', title: 'Ouvrir le salon vocal', onclick: () => go('vocal') }, '🎙️ ', h('b', null, 'Vocal'), ' · ', String(ppl.length), live ? h('span', { class: 'vb-live' }, ' · 🔴 ' + live + ' en direct') : null),
       h('span', { class: 'vb-ppl' }, ppl.map((s) => h('span', { class: 'vb-p', 'data-vslug': s, title: vocalName(s) }, ini(s)))),
-      h('button', { class: 'vb-btn' + (v.mute ? ' off' : ''), title: v.mute ? 'Réactiver le micro (Ctrl+Maj+M)' : 'Couper le micro (Ctrl+Maj+M)', onclick: () => FV().setMute(!v.mute) }, v.mute ? '🔇' : '🎤'),
-      h('button', { class: 'vb-btn' + (v.deaf ? ' off' : ''), title: v.deaf ? 'Réactiver le son (Ctrl+Maj+D)' : 'Couper le son (Ctrl+Maj+D)', onclick: () => FV().setDeaf(!v.deaf) }, v.deaf ? '🔕' : '🎧'),
+      h('button', { class: 'vb-btn' + (v.mute ? ' off' : ''), title: (v.mute ? 'Réactiver le micro' : 'Couper le micro') + ` (${keyTxt(vkeys().mute)})`, onclick: () => FV().setMute(!v.mute) }, v.mute ? '🔇' : '🎤'),
+      h('button', { class: 'vb-btn' + (v.deaf ? ' off' : ''), title: (v.deaf ? 'Réactiver le son' : 'Couper le son') + ` (${keyTxt(vkeys().deaf)})`, onclick: () => FV().setDeaf(!v.deaf) }, v.deaf ? '🔕' : '🎧'),
       h('button', { class: 'vb-btn leave', title: 'Quitter le salon', onclick: () => FV().leave() }, '📞'));
     vocalSpeak();
   }
@@ -1623,6 +1623,82 @@
     if (VX.picker) paint();
   }
   function fullscreen(el) { (el.requestFullscreen ? el.requestFullscreen() : Promise.reject()).catch(() => {}); }
+  // Icônes du salon (traits fins, comme dans les apps de voix).
+  const VICO = {
+    mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
+    micOff: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/><line x1="3" x2="21" y1="3" y2="21"/>',
+    head: '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
+    headOff: '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/><line x1="3" x2="21" y1="3" y2="21"/>',
+    cam: '<path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
+    camOff: '<path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/><line x1="2" x2="22" y1="2" y2="22"/>',
+    screen: '<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
+    gear: '<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>',
+    phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+    grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    focus: '<rect x="2" y="3" width="14" height="18" rx="1.5"/><rect x="18" y="3" width="4" height="5" rx="1"/><rect x="18" y="10" width="4" height="5" rx="1"/><rect x="18" y="17" width="4" height="4" rx="1"/>',
+    full: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+    vol: '<path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6A1.4 1.4 0 0 1 5.4 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.4 18.4a9 9 0 0 0 0-12.8"/>',
+    keys: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/>',
+    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
+  };
+  const vi = (name) => { const sp = document.createElement('span'); sp.className = 'vi'; sp.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${VICO[name]}</svg>`; return sp; };
+
+  // ----- Raccourcis clavier (globaux : ils marchent aussi en pleine partie) -----
+  const VKEY_DEF = { join: 'Ctrl+Alt+V', mute: 'Ctrl+Alt+M', deaf: 'Ctrl+Alt+D', cam: 'Ctrl+Alt+C', screen: 'Ctrl+Alt+S' };
+  const VKEY_LAB = { join: 'Rejoindre / quitter le salon', mute: 'Couper / rallumer le micro', deaf: 'Couper / rallumer le son (casque)', cam: 'Allumer / couper la caméra', screen: 'Partager / arrêter ton écran' };
+  const vkeys = () => ({ ...VKEY_DEF, ...load('fire.vocal.keys', {}) });
+  const keyTxt = (a) => (a ? a.replace(/\+/g, ' + ').replace('Ctrl', 'Ctrl').replace('Shift', 'Maj') : '—');
+  function syncKeys(force) {
+    if (!window.fire.keys) return;
+    const k = vkeys();
+    // Hors appel, seul « rejoindre » est réservé ; pendant un enregistrement de touche, rien.
+    const map = VX.rec ? {} : FV().state().on ? k : { join: k.join };
+    const sig = JSON.stringify(map);
+    if (!force && sig === VX.keySig) return;
+    VX.keySig = sig;
+    window.fire.keys.set(map).then((r) => {
+      const bad = (r && r.bad) || [];
+      if (JSON.stringify(bad) !== JSON.stringify(VX.keyBad || [])) { VX.keyBad = bad; if (S.section === 'vocal' && VX.drawer) renderVocal(); }
+    }).catch(() => {});
+  }
+  async function primaryScreen() {
+    if (!window.fire.screen) return FV().startScreen(null);
+    const list = await window.fire.screen.sources().catch(() => []);
+    const scr = list.find((x) => x.screen) || list[0];
+    if (scr) FV().startScreen(scr.id);
+  }
+  function keyAction(a) {
+    const v = FV().state();
+    if (a === 'join') { if (v.on) FV().leave(); else vocalJoin(); return; }
+    if (!v.on) return;
+    if (a === 'mute') { FV().setMute(!v.mute); FV().cue(v.mute); }
+    if (a === 'deaf') { FV().setDeaf(!v.deaf); FV().cue(v.deaf); }
+    if (a === 'cam') { if (v.cam) FV().stopCam(); else FV().startCam(); FV().cue(!v.cam); }
+    if (a === 'screen') { if (v.screen) FV().stopScreen(); else primaryScreen(); FV().cue(!v.screen); }
+  }
+  // Enregistre une nouvelle touche : on appuie sur la combinaison voulue (Échap annule, Retour arrière efface).
+  function recordKey(act) {
+    VX.rec = act; syncKeys(); renderVocal();
+    const done = (val) => {
+      document.removeEventListener('keydown', onKey, true);
+      if (val !== undefined) { const k = load('fire.vocal.keys', {}); k[act] = val; save('fire.vocal.keys', k); }
+      VX.rec = null; syncKeys(true); renderVocal();
+    };
+    const onKey = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (e.key === 'Escape') return done();
+      if (e.key === 'Backspace' || e.key === 'Delete') return done('');
+      const c = e.code || '';
+      const key = /^Key[A-Z]$/.test(c) ? c.slice(3) : /^Digit\d$/.test(c) ? c.slice(5) : /^F\d{1,2}$/.test(c) ? c : /^Numpad\d$/.test(c) ? 'num' + c.slice(6) : null;
+      if (!key) return; // on attend la touche principale (lettre, chiffre ou F1…F24)
+      const mods = [e.ctrlKey ? 'Ctrl' : null, e.altKey ? 'Alt' : null, e.shiftKey ? 'Shift' : null].filter(Boolean);
+      if (!mods.length && !/^F\d/.test(key)) { VX.recMsg = 'Ajoute Ctrl, Alt ou Maj (ou prends une touche F1 à F24).'; renderVocal(); return; }
+      VX.recMsg = '';
+      done(mods.concat(key).join('+'));
+    };
+    document.addEventListener('keydown', onKey, true);
+  }
+
   if (window.FireVoice) {
     FV().onChange(() => {
       const v = FV().state();
@@ -1630,23 +1706,19 @@
       if (sig !== VX.sig) {
         VX.sig = sig;
         renderNav();
+        syncKeys();
         if (S.section === 'vocal') { if (typing()) VX.pending = true; else renderVocal(); }
       }
       vocalBar(); vocalSpeak();
     });
+    if (window.fire.keys) { window.fire.keys.on(keyAction); setTimeout(() => syncKeys(true), 1500); }
     // Jauge du micro (et rendu remis à plus tard pendant qu'on règle un curseur).
     setInterval(() => {
       if (S.section !== 'vocal') return;
       if (VX.pending && !typing()) { VX.pending = false; renderVocal(); }
-      const f = document.querySelector('.vc-meter-fill');
-      if (f) { const l = FV().level(); f.style.width = Math.min(100, l / 1.28) + '%'; f.classList.toggle('open', FV().gateOpen() && !FV().state().mute); }
+      const l = FV().level(), open = FV().gateOpen() && !FV().state().mute;
+      document.querySelectorAll('.vc-meter-fill').forEach((f) => { f.style.width = Math.min(100, l / 1.28) + '%'; f.classList.toggle('open', open); });
     }, 80);
-    document.addEventListener('keydown', (e) => {
-      if (!e.ctrlKey || !e.shiftKey || !FV().state().on) return;
-      const k = e.key.toLowerCase();
-      if (k === 'm') { e.preventDefault(); FV().setMute(!FV().state().mute); }
-      if (k === 'd') { e.preventDefault(); FV().setDeaf(!FV().state().deaf); }
-    });
     // Rejoindre tout seul au lancement, si le joueur l'a demandé.
     let tries = 0;
     const auto = setInterval(() => {
@@ -1654,105 +1726,165 @@
       if (S.players.length && vocalMe()) { clearInterval(auto); if (!FV().state().on) vocalJoin(); }
     }, 1500);
   }
+
+  // ----- Réglages (panneau latéral) -----
   function vocalSettings(v) {
     const c = v.cfg, D = VX.dev || { mics: [], outs: [], cams: [] };
     const set = (k) => (e) => FV().setCfg({ [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? Number(e.target.value) : e.target.value });
     const done = (e) => e.target.blur();
     const sel = (k, list, def, lab) => h('select', { class: 'inp', onchange: (e) => { set(k)(e); done(e); } }, h('option', { value: '' }, def),
       list.map((d, i) => h('option', { value: d.deviceId, selected: c[k] === d.deviceId ? true : null }, d.label || `${lab} ${i + 1}`)));
-    const sw = (k, label, hint) => h('label', { class: 'vc-sw' }, h('input', { type: 'checkbox', checked: c[k] ? true : null, onchange: (e) => { set(k)(e); done(e); } }), h('span', null, h('b', null, label), hint ? h('span', { class: 'muted small' }, hint) : null));
+    const sw = (k, label, hint) => h('label', { class: 'vs-sw' }, h('span', null, h('b', null, label), hint ? h('small', null, hint) : null),
+      h('input', { type: 'checkbox', class: 'vs-tog', checked: c[k] ? true : null, onchange: (e) => { set(k)(e); done(e); } }));
     const pct = (val) => Math.round(val * 100) + ' %';
-    const range = (k, min, max, step, fmt) => { const out = h('span', { class: 'muted small vc-rv' }, fmt(c[k]));
-      return h('div', { class: 'vc-range' }, h('input', { type: 'range', min, max, step, value: c[k], onchange: done, oninput: (e) => { out.textContent = fmt(Number(e.target.value)); set(k)(e); } }), out); };
+    const range = (k, min, max, step, fmt) => { const out = h('span', { class: 'vs-rv' }, fmt(c[k]));
+      return h('div', { class: 'vs-range' }, h('input', { type: 'range', min, max, step, value: c[k], onchange: done, oninput: (e) => { out.textContent = fmt(Number(e.target.value)); set(k)(e); } }), out); };
+    const field = (lab, ...kids) => h('div', { class: 'vs-field' }, h('label', null, lab), ...kids);
     const gateMark = c.gate > 0 ? h('div', { class: 'vc-meter-mark', style: `left:${Math.min(100, c.gate / 1.28)}%` }) : null;
-    const open = load('fire.vocal.setopen', false);
-    return h('details', { class: 'card vc-set', open: open ? true : null, ontoggle: (e) => save('fire.vocal.setopen', e.target.open) },
-      h('summary', null, '⚙️ Réglages voix et vidéo'),
-      h('div', { class: 'vc-set-grid' },
-        h('section', null, h('h3', null, '🎤 Micro'),
-          sel('mic', D.mics, 'Micro par défaut de Windows', 'Micro'),
-          h('p', { class: 'muted small' }, 'Volume du micro'), range('gain', 0, 2, 0.05, pct),
-          h('div', { class: 'vc-meter' }, h('div', { class: 'vc-meter-fill' }), gateMark),
-          h('p', { class: 'muted small' }, 'Seuil de détection de la voix ', h('span', { class: 'muted' }, '(0 = micro toujours ouvert ; monte-le si on entend ton clavier)')),
-          range('gate', 0, 60, 1, (x) => x ? String(x) : 'auto'),
-          h('div', { class: 'vc-btns-l' }, h('button', { class: 'btn-ghost' + (v.monitor ? ' vc-on' : ''), onclick: () => FV().setMonitor(!v.monitor) }, v.monitor ? '⏹ Arrêter le test' : '🎧 Tester mon micro (tu t’entends)'))),
-        h('section', null, h('h3', null, '🎛️ Traitement de la voix'),
-          sw('ns', 'Réduction de bruit', 'Efface ventilateur, clavier, bruits de fond.'),
-          sw('ec', 'Annulation d’écho', 'Indispensable si tu joues sur haut-parleurs.'),
-          sw('agc', 'Gain automatique', 'Garde ta voix au même volume, que tu parles fort ou bas.'),
-          sw('hp', 'Filtre anti-souffle', 'Coupe les sons très graves (souffle, chocs sur le bureau).')),
-        h('section', null, h('h3', null, '🎧 Casque / haut-parleurs'),
-          sel('out', D.outs, 'Sortie par défaut de Windows', 'Sortie'),
-          h('p', { class: 'muted small' }, 'Volume général du salon'), range('outVol', 0, 2, 0.05, pct),
-          sw('sounds', 'Sons d’arrivée et de départ', 'Un petit son quand quelqu’un rejoint ou quitte.')),
-        h('section', null, h('h3', null, '📷 Vidéo et écran'),
-          sel('cam', D.cams, 'Caméra par défaut', 'Caméra'),
-          h('p', { class: 'muted small' }, 'Partage d’écran'),
-          h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ screenFps: Number(e.target.value) }); done(e); } },
-            h('option', { value: 15, selected: ![30, 60, 120].includes(c.screenFps) ? true : null }, 'Net (15 images/s) : texte, replays, builds'),
-            h('option', { value: 30, selected: c.screenFps === 30 ? true : null }, 'Fluide (30 images/s) : partie en direct'),
-            h('option', { value: 60, selected: c.screenFps === 60 ? true : null }, 'Ultra fluide (60 images/s) : bonne connexion conseillée'),
-            h('option', { value: 120, selected: c.screenFps === 120 ? true : null }, 'Maximum (120 images/s) : fibre et écran 120 Hz')),
-          h('label', { class: 'vc-sw' }, h('input', { type: 'checkbox', checked: load('fire.vocal.auto', false) ? true : null, onchange: (e) => { save('fire.vocal.auto', e.target.checked); done(e); } }),
-            h('span', null, h('b', null, 'Rejoindre le salon au lancement de FIRE'), h('span', { class: 'muted small' }, 'Tu arrives directement dans le vocal quand tu ouvres l’app.'))))));
+    const K = vkeys();
+    const bad = VX.keyBad || [];
+    return h('div', { class: 'vs-body' },
+      h('section', { class: 'vs-sec' }, h('h3', null, vi('mic'), 'Micro'),
+        field('Appareil', sel('mic', D.mics, 'Micro par défaut de Windows', 'Micro')),
+        field('Volume du micro', range('gain', 0, 2, 0.05, pct)),
+        h('div', { class: 'vc-meter' }, h('div', { class: 'vc-meter-fill' }), gateMark),
+        field('Seuil de détection de la voix', range('gate', 0, 60, 1, (x) => (x ? String(x) : 'auto'))),
+        h('p', { class: 'vs-hint' }, '0 = micro toujours ouvert. Monte-le si on entend ton clavier entre tes phrases : la barre doit dépasser le trait orange quand tu parles.'),
+        h('button', { class: 'vs-btn' + (v.monitor ? ' on' : ''), onclick: () => FV().setMonitor(!v.monitor) }, v.monitor ? '⏹ Arrêter le test' : '🎧 Tester mon micro (tu t’entends)')),
+      h('section', { class: 'vs-sec' }, h('h3', null, vi('vol'), 'Traitement de la voix'),
+        sw('ns', 'Réduction de bruit', 'Ventilateur, clavier, bruits de fond.'),
+        sw('ec', 'Annulation d’écho', 'Indispensable sur haut-parleurs.'),
+        sw('agc', 'Gain automatique', 'Ta voix garde le même volume.'),
+        sw('hp', 'Filtre anti-souffle', 'Coupe les sons très graves.')),
+      h('section', { class: 'vs-sec' }, h('h3', null, vi('head'), 'Casque / haut-parleurs'),
+        field('Sortie', sel('out', D.outs, 'Sortie par défaut de Windows', 'Sortie')),
+        field('Volume général du salon', range('outVol', 0, 2, 0.05, pct)),
+        sw('sounds', 'Sons d’arrivée et de départ', 'Quand quelqu’un rejoint ou quitte.')),
+      h('section', { class: 'vs-sec' }, h('h3', null, vi('cam'), 'Caméra et écran'),
+        field('Caméra', sel('cam', D.cams, 'Caméra par défaut', 'Caméra')),
+        field('Qualité du partage d’écran', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ screenFps: Number(e.target.value) }); done(e); } },
+          [[15, 'Net · 15 images/s (texte, replays)'], [30, 'Fluide · 30 images/s'], [60, 'Ultra fluide · 60 images/s'], [120, 'Maximum · 120 images/s (fibre)']].map(([n, t]) =>
+            h('option', { value: n, selected: (c.screenFps || 15) === n ? true : null }, t)))),
+        h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Rejoindre au lancement de FIRE'), h('small', null, 'Tu arrives directement dans le salon.')),
+          h('input', { type: 'checkbox', class: 'vs-tog', checked: load('fire.vocal.auto', false) ? true : null, onchange: (e) => { save('fire.vocal.auto', e.target.checked); done(e); } }))),
+      h('section', { class: 'vs-sec' }, h('h3', null, vi('keys'), 'Raccourcis clavier'),
+        h('p', { class: 'vs-hint' }, 'Ils marchent partout, même en pleine partie. Un petit bip confirme chaque changement. Clique sur un raccourci pour le changer.'),
+        Object.keys(VKEY_DEF).map((a) => h('div', { class: 'vs-key' + (bad.includes(a) ? ' bad' : '') },
+          h('span', null, VKEY_LAB[a], bad.includes(a) ? h('small', null, 'déjà pris par une autre app : choisis-en un autre') : null),
+          h('button', { class: 'vs-kbd' + (VX.rec === a ? ' rec' : ''), onclick: () => (VX.rec ? null : recordKey(a)) }, VX.rec === a ? 'Appuie sur ta combinaison…' : keyTxt(K[a])))),
+        VX.recMsg ? h('p', { class: 'bad small' }, VX.recMsg) : null,
+        h('p', { class: 'vs-hint' }, 'Échap annule, Retour arrière efface. ', h('button', { class: 'linkbtn small', onclick: () => { save('fire.vocal.keys', {}); syncKeys(true); renderVocal(); } }, 'Remettre les raccourcis par défaut'))));
   }
+
+  // ----- Le salon : scène (vidéos et participants), barre de contrôle, réglages -----
   function renderVocal() {
     const view = $('view');
     vocalBar();
-    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎙️'), h('div', null, h('h1', { class: 'title' }, 'Salon vocal'),
-      h('p', { class: 'muted' }, "Parle avec l'équipe, montre ton écran ou ta caméra. Tout passe directement d'un PC à l'autre, chiffré.")));
-    if (!window.FireVoice || !window.Peer) { view.replaceChildren(hero, h('div', { class: 'card' }, h('p', { class: 'bad' }, '⚠ Le module vocal n’est pas chargé. Réinstalle la dernière version de FIRE.'))); return; }
+    if (!window.FireVoice || !window.Peer) { view.replaceChildren(h('div', { class: 'card' }, h('p', { class: 'bad' }, '⚠ Le module vocal n’est pas chargé. Réinstalle la dernière version de FIRE.'))); return; }
     const v = FV().state();
     const me = vocalMe();
-    if (!me) { view.replaceChildren(hero, h('div', { class: 'card empty-state' }, 'Choisis d’abord ton pseudo (en haut, « Qui es-tu ? ») pour entrer dans le salon.')); return; }
+    if (!me) { view.replaceChildren(h('div', { class: 'vc-lobby' }, h('div', { class: 'vc-lobby-in' }, h('h1', null, 'Salon vocal'), h('p', { class: 'muted' }, 'Choisis d’abord ton pseudo (en haut, « Qui es-tu ? ») pour entrer dans le salon.')))); return; }
     if (!VX.dev) { VX.dev = { mics: [], outs: [], cams: [] }; FV().devices().then((d) => { VX.dev = d; if (S.section === 'vocal') { if (typing()) VX.pending = true; else renderVocal(); } }); }
-    const people = v.on ? [{ slug: me, ok: true, remote: { mute: v.mute, deaf: v.deaf, cam: !!v.cam, screen: !!v.screen } }].concat(v.members.filter((m) => m.ok)) : [];
-    // Les vidéos : la mienne (aperçu) puis celles des autres ; l'écran partagé passe en grand.
-    const tiles = [];
-    if (v.on) {
-      if (v.screen) tiles.push({ key: 'me:screen', slug: me, kind: 'screen', stream: v.screen, mine: true });
-      v.videos.filter((x) => x.kind === 'screen').forEach((x) => tiles.push({ key: x.slug + ':screen', ...x }));
-      if (v.cam) tiles.push({ key: 'me:cam', slug: me, kind: 'cam', stream: v.cam, mine: true });
-      v.videos.filter((x) => x.kind === 'cam').forEach((x) => tiles.push({ key: x.slug + ':cam', ...x }));
+    const playerOf = (slug) => S.players.find((x) => x.slug === slug) || {};
+    const K = vkeys();
+    const drawer = VX.drawer ? h('div', { class: 'vs-drawer-wrap', onclick: (e) => { if (e.target.classList.contains('vs-drawer-wrap')) { VX.drawer = false; renderVocal(); } } },
+      h('aside', { class: 'vs-drawer' },
+        h('div', { class: 'vs-head' }, h('b', null, 'Réglages voix et vidéo'), h('button', { class: 'vs-x', title: 'Fermer', onclick: () => { VX.drawer = false; renderVocal(); } }, vi('x'))),
+        vocalSettings(v))) : null;
+    const gearBtn = (cls) => h('button', { class: cls, title: 'Réglages voix et vidéo', onclick: () => { VX.drawer = true; renderVocal(); } }, vi('gear'));
+
+    // Avant d'entrer : le hall.
+    if (!v.on) {
+      const p = playerOf(me);
+      const f = (p.fonds || [])[0];
+      view.replaceChildren(...[h('div', { class: 'vc-lobby' },
+        f ? h('div', { class: 'vc-lobby-bg', style: `background-image:url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${f.champ}_${f.skin}.jpg')` }) : null,
+        h('div', { class: 'vc-lobby-in' },
+          h('div', { class: 'vc-live-pill' }, h('span', { class: 'dot' }), 'Salon de l’équipe'),
+          h('h1', null, 'Salon vocal'),
+          h('p', { class: 'muted' }, 'Voix, caméra et partage d’écran avec toute l’équipe. Tout passe directement d’un PC à l’autre, chiffré.'),
+          h('div', { class: 'vc-lobby-me' }, h('div', { class: 'vc-av big' }, ini(me)), h('div', null, h('b', null, vocalName(me)), h('small', { class: 'muted' }, v.monitor ? 'Test du micro en cours' : 'Prêt à rejoindre')),
+            h('div', { class: 'vc-meter slim' }, h('div', { class: 'vc-meter-fill' }))),
+          h('div', { class: 'vc-lobby-act' },
+            h('button', { class: 'vc-join', disabled: v.joining ? true : null, onclick: vocalJoin }, v.joining ? 'Connexion…' : 'Rejoindre le salon'),
+            h('button', { class: 'vc-ghost', onclick: () => FV().setMonitor(!v.monitor) }, v.monitor ? '⏹ Arrêter le test' : '🎧 Tester mon micro'),
+            gearBtn('vc-ghost icon')),
+          v.err ? h('p', { class: 'bad' }, '⚠ ' + v.err, ' ', h('button', { class: 'linkbtn small', onclick: () => FV().clearErr() }, 'OK')) : null,
+          h('p', { class: 'vc-kbd-hint' }, h('kbd', null, keyTxt(K.join)), ' pour rejoindre ou quitter, même en jeu'))),
+      drawer].filter(Boolean));
+      return;
     }
-    for (const k of Object.keys(VX.vids)) if (!tiles.some((t) => t.key === k)) { VX.vids[k].srcObject = null; delete VX.vids[k]; }
-    const tile = (t) => {
-      const el = vidEl(t.key, t.stream, t.mine && t.kind === 'cam');
-      const box = h('div', { class: 'vc-tile ' + t.kind, 'data-vslug': t.kind === 'cam' ? t.slug : null }, el,
-        h('span', { class: 'vc-tl' }, (t.kind === 'screen' ? '🖥️ Écran de ' : '📷 ') + (t.mine ? 'toi' : vocalName(t.slug))),
-        h('button', { class: 'vc-fs', title: 'Plein écran (Échap pour sortir)', onclick: () => fullscreen(box) }, '⛶'));
-      box.ondblclick = () => fullscreen(box);
+
+    // Dans le salon.
+    const people = [{ slug: me, ok: true, remote: { mute: v.mute, deaf: v.deaf, cam: !!v.cam, screen: !!v.screen } }].concat(v.members.filter((m) => m.ok));
+    const camOf = (slug) => (slug === me ? v.cam : (v.videos.find((x) => x.slug === slug && x.kind === 'cam') || {}).stream);
+    const screens = [];
+    if (v.screen) screens.push({ key: 'me:screen', slug: me, stream: v.screen, mine: true });
+    v.videos.filter((x) => x.kind === 'screen').forEach((x) => screens.push({ key: x.slug + ':screen', slug: x.slug, stream: x.stream }));
+    const tiles = screens.map((x) => ({ ...x, kind: 'screen' })).concat(people.map((p) => ({ key: p.slug + ':p', slug: p.slug, kind: 'person', p, stream: camOf(p.slug), mine: p.slug === me })));
+    const keep = new Set(tiles.filter((t) => t.stream).map((t) => (t.kind === 'screen' ? t.key : t.slug + ':cam')));
+    for (const k of Object.keys(VX.vids)) if (!keep.has(k)) { VX.vids[k].srcObject = null; delete VX.vids[k]; }
+    // Disposition : « côte à côte » (tout visible, même taille) ou « focus » (une vidéo en grand, les autres à côté).
+    let layout = load('fire.vocal.layout', 'grid');
+    if (!tiles.some((t) => t.key === VX.focus)) VX.focus = null;
+    if (layout === 'focus' && !VX.focus) VX.focus = (screens[0] || tiles[0]).key;
+    const setLayout = (l, key) => { save('fire.vocal.layout', l); VX.focus = key || null; renderVocal(); };
+    const tileEl = (t, small) => {
+      const r = (t.p && t.p.remote) || {};
+      const pl = playerOf(t.slug);
+      const f = (pl.fonds || [])[0];
+      const lm = !!v.lmute[t.slug];
+      const vol = v.vols[t.slug] ?? 1;
+      const box = h('div', { class: 'vt ' + t.kind + (small ? ' small' : '') + (t.stream ? ' has-video' : '') + (lm ? ' lm' : ''), 'data-vslug': t.kind === 'person' ? t.slug : null,
+        ondblclick: () => fullscreen(box), onclick: (e) => { if (e.target.closest('.vt-menu, .vt-tools')) return; if (layout === 'focus' && VX.focus === t.key) setLayout('grid'); else setLayout('focus', t.key); } });
+      if (t.stream) box.append(vidEl(t.kind === 'screen' ? t.key : t.slug + ':cam', t.stream, t.mine && t.kind === 'person'));
+      else {
+        if (f) box.append(h('div', { class: 'vt-bg', style: `background-image:url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${f.champ}_${f.skin}.jpg')` }));
+        box.append(h('div', { class: 'vc-av' }, ini(t.slug)));
+      }
+      box.append(h('div', { class: 'vt-name' }, t.kind === 'screen' ? vi('screen') : null, (t.kind === 'screen' ? 'Écran de ' : '') + (t.mine ? (t.kind === 'screen' ? 'toi' : vocalName(t.slug) + ' (toi)') : ((pl.capitaine ? '👑 ' : '') + vocalName(t.slug))),
+        t.kind === 'person' && r.mute ? h('span', { class: 'vt-st bad' }, vi('micOff')) : null,
+        t.kind === 'person' && r.deaf ? h('span', { class: 'vt-st bad' }, vi('headOff')) : null));
+      const tools = h('div', { class: 'vt-tools' },
+        h('button', { title: 'Plein écran (Échap pour sortir)', onclick: () => fullscreen(box) }, vi('full')),
+        t.kind === 'person' && !t.mine ? h('button', { title: 'Volume', onclick: () => { VX.menu = VX.menu === t.slug ? null : t.slug; renderVocal(); } }, vi('vol')) : null);
+      box.append(tools);
+      if (VX.menu === t.slug && t.kind === 'person' && !t.mine) {
+        box.append(h('div', { class: 'vt-menu' },
+          h('b', null, 'Volume de ' + vocalName(t.slug)),
+          h('div', { class: 'vs-range' }, h('input', { type: 'range', min: 0, max: 2, step: 0.05, value: vol, disabled: lm ? true : null, onchange: (e) => e.target.blur(),
+            oninput: (e) => { FV().setVol(t.slug, Number(e.target.value)); e.target.nextSibling.textContent = Math.round(e.target.value * 100) + ' %'; } }), h('span', { class: 'vs-rv' }, Math.round(vol * 100) + ' %')),
+          h('button', { class: 'vs-btn', onclick: () => FV().setLocalMute(t.slug, !lm) }, lm ? '🔈 Réentendre' : '🔇 Rendre muet pour moi')));
+      }
       return box;
     };
-    const ctlBtn = (on, offTxt, onTxt, cls, fn, title) => h('button', { class: 'btn-ghost ' + cls + (on ? ' vc-on' : ''), title, onclick: fn }, on ? onTxt : offTxt);
-    const card = (p) => {
-      const isMe = p.slug === me, r = p.remote || {};
-      const vol = v.vols[p.slug] ?? 1, lm = !!v.lmute[p.slug];
-      const icons = [r.mute ? '🔇' : null, r.deaf ? '🔕' : null, r.cam ? '📷' : null, r.screen ? '🖥️' : null].filter(Boolean).join(' ');
-      return h('div', { class: 'vc-p' + (lm ? ' lm' : ''), 'data-vslug': p.slug },
-        h('div', { class: 'vc-av' }, ini(p.slug)),
-        h('b', null, ((S.players.find((x) => x.slug === p.slug) || {}).capitaine ? '👑 ' : '') + vocalName(p.slug) + (isMe ? ' (toi)' : '')),
-        h('span', { class: 'muted small vc-ic' }, icons || (isMe ? '🎤 micro ouvert' : '')),
-        isMe ? null : h('div', { class: 'vc-vol muted small' }, '🔊 ', h('input', { type: 'range', min: 0, max: 2, step: 0.05, value: vol, disabled: lm ? true : null, onchange: (e) => e.target.blur(),
-          oninput: (e) => { FV().setVol(p.slug, Number(e.target.value)); e.target.nextSibling.textContent = ' ' + Math.round(e.target.value * 100) + ' %'; } }), ' ' + Math.round(vol * 100) + ' %'),
-        isMe ? null : h('button', { class: 'linkbtn small', onclick: () => FV().setLocalMute(p.slug, !lm) }, lm ? '🔈 Réentendre' : '🔇 Rendre muet pour moi'));
-    };
-    view.replaceChildren(...[hero,
-      h('div', { class: 'card vc-ctl' },
-        v.on ? h('div', { class: 'vc-btns' },
-          ctlBtn(v.mute, '🎤 Couper le micro', '🔇 Réactiver le micro', 'vc-off-on', () => FV().setMute(!v.mute), 'Ctrl+Maj+M'),
-          ctlBtn(v.deaf, '🎧 Couper le son', '🔕 Réactiver le son', 'vc-off-on', () => FV().setDeaf(!v.deaf), 'Ctrl+Maj+D'),
-          ctlBtn(!!v.cam, '📷 Caméra', '📷 Couper la caméra', 'vc-live', () => (v.cam ? FV().stopCam() : FV().startCam())),
-          ctlBtn(!!v.screen, '🖥️ Partager mon écran', '🖥️ Arrêter le partage', 'vc-live', () => (v.screen ? FV().stopScreen() : openScreenPicker())),
-          h('button', { class: 'btn-fire vc-leave', onclick: () => FV().leave() }, '📞 Quitter'))
-          : h('div', { class: 'vc-btns' }, h('button', { class: 'btn-fire', disabled: v.joining ? true : null, onclick: vocalJoin }, v.joining ? 'Connexion…' : '🎙️ Rejoindre le salon')),
-        v.err ? h('p', { class: 'bad' }, '⚠ ' + v.err, ' ', h('button', { class: 'linkbtn small', onclick: () => FV().clearErr() }, 'OK')) : null,
-        !v.on ? h('p', { class: 'muted small' }, "Un clic et tu es dans le salon de l'équipe, avec tous ceux qui sont déjà connectés. Raccourcis quand FIRE est au premier plan : Ctrl+Maj+M (micro), Ctrl+Maj+D (son).") : null),
-      tiles.length ? h('div', { class: 'vc-stage' + (tiles.some((t) => t.kind === 'screen') ? ' has-screen' : '') }, tiles.map(tile)) : null,
-      v.on ? h('div', { class: 'vc-grid' }, people.map(card)) : null,
-      v.on && people.length === 1 ? h('p', { class: 'muted' }, 'Tu es seul pour le moment : les autres apparaîtront ici dès qu’ils rejoignent le salon.') : null,
-      v.on ? h('p', { class: 'muted small' }, 'Tu peux changer d’onglet : tu restes dans le salon (petite barre en bas à droite). Réduire FIRE près de l’horloge te garde aussi connecté.') : null,
-      vocalSettings(v)].filter(Boolean));
+    let stage;
+    const n = tiles.length;
+    if (layout === 'focus' && n > 1) {
+      const main = tiles.find((t) => t.key === VX.focus) || tiles[0];
+      stage = h('div', { class: 'vc-stage focus' }, h('div', { class: 'vc-main' }, tileEl(main)), h('div', { class: 'vc-strip' }, tiles.filter((t) => t !== main).map((t) => tileEl(t, true))));
+    } else {
+      const cols = n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4;
+      stage = h('div', { class: 'vc-stage grid', style: `--cols:${cols}` }, tiles.map((t) => tileEl(t)));
+    }
+    const cbtn = (on, icOn, icOff, title, fn, cls) => h('button', { class: 'cb ' + (cls || '') + (on ? ' on' : ''), title, onclick: fn }, vi(on ? icOn : icOff));
+    const bar = h('div', { class: 'vc-bar' },
+      h('div', { class: 'vc-bar-l' }, h('span', { class: 'vc-live-pill' }, h('span', { class: 'dot' }), `${people.length} dans le salon`)),
+      h('div', { class: 'vc-bar-c' },
+        cbtn(v.mute, 'micOff', 'mic', `${v.mute ? 'Réactiver' : 'Couper'} le micro (${keyTxt(K.mute)})`, () => FV().setMute(!v.mute), 'warn'),
+        cbtn(v.deaf, 'headOff', 'head', `${v.deaf ? 'Réactiver' : 'Couper'} le son (${keyTxt(K.deaf)})`, () => FV().setDeaf(!v.deaf), 'warn'),
+        cbtn(!!v.cam, 'cam', 'camOff', `${v.cam ? 'Couper' : 'Allumer'} la caméra (${keyTxt(K.cam)})`, () => (v.cam ? FV().stopCam() : FV().startCam()), 'live'),
+        cbtn(!!v.screen, 'screen', 'screen', `${v.screen ? 'Arrêter le partage' : 'Partager ton écran'} (${keyTxt(K.screen)})`, () => (v.screen ? FV().stopScreen() : openScreenPicker()), 'live'),
+        gearBtn('cb'),
+        h('button', { class: 'cb leave', title: `Quitter le salon (${keyTxt(K.join)})`, onclick: () => FV().leave() }, vi('phone'))),
+      h('div', { class: 'vc-bar-r' },
+        n > 1 ? h('div', { class: 'vc-seg' },
+          h('button', { class: layout !== 'focus' ? 'on' : '', title: 'Côte à côte : tout est visible', onclick: () => setLayout('grid') }, vi('grid')),
+          h('button', { class: layout === 'focus' ? 'on' : '', title: 'Focus : une vidéo en grand', onclick: () => setLayout('focus', VX.focus || (screens[0] || tiles[0]).key) }, vi('focus'))) : null));
+    view.replaceChildren(...[h('div', { class: 'vc-room' },
+      v.err ? h('p', { class: 'bad vc-err' }, '⚠ ' + v.err, ' ', h('button', { class: 'linkbtn small', onclick: () => FV().clearErr() }, 'OK')) : null,
+      stage, bar,
+      people.length === 1 ? h('p', { class: 'vc-alone' }, 'Tu es seul pour le moment : les autres apparaîtront ici dès qu’ils rejoignent.') : null), drawer].filter(Boolean));
     vocalSpeak();
   }
 
