@@ -34,6 +34,9 @@ function voiceList(key) {
   const v = VOICE[key] || {};
   return ['choose', 'ban'].filter((kind) => typeof v[kind] === 'string' && v[kind]).map((kind) => ({ kind, text: v[kind] }));
 }
+// Indices emoji (4 par champion, du plus vague au plus précis), écrits à la main.
+let EMOJI = {};
+try { EMOJI = require('./emojis.json'); } catch (e) { /* facultatif */ }
 let SPLASH = {};
 try { SPLASH = require('./splash.json').skins || {}; } catch (e) { /* facultatif */ }
 
@@ -69,7 +72,7 @@ async function data() {
   let version = null;
   try { version = (await get(`${DD}/api/versions.json`, 15000))[0]; } catch (e) { /* hors ligne */ }
   const cache = mem || readJson('jeux.json');
-  if (cache && cache.fmt === 6 && (!version || cache.version === version)) { mem = cache; return { ok: true, ...cache, offline: !version }; }
+  if (cache && cache.fmt === 7 && (!version || cache.version === version)) { mem = cache; return { ok: true, ...cache, offline: !version }; }
   if (!version) return cache ? { ok: true, ...cache, offline: true } : { ok: false, error: 'hors ligne : données des champions indisponibles' };
   try {
     const full = await get(`${DD}/cdn/${version}/data/fr_FR/championFull.json`, 60000);
@@ -92,6 +95,7 @@ async function data() {
         spells: (c.spells || []).map((s, i) => ({ key: 'QWER'[i], name: s.name, img: s.image.full })),
         skins: skinList(c),
         vo: voiceList(c.key),
+        emo: EMOJI[c.id] || null,
         lanes: LANES[c.id] || [],
         lore: c.lore, slug: u ? u.slug : c.id.toLowerCase(),
         region: reg && reg !== 'unaffiliated' ? (fac[reg] || FAC_FR[reg] || reg) : null,
@@ -100,7 +104,7 @@ async function data() {
       };
     }).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
     const factions = (uni.factions || []).map((f) => ({ slug: f.slug, name: f.name, desc: strip(f.description), img: f.image && f.image.uri ? f.image.uri : null }));
-    mem = { fmt: 6, version, champs, factions, at: Date.now() };
+    mem = { fmt: 7, version, champs, factions, at: Date.now() };
     writeJson('jeux.json', mem);
     return { ok: true, ...mem };
   } catch (e) {

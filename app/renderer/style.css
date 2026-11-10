@@ -939,3 +939,13 @@ html[data-theme=gris]  { --bg:#1b1c1f; --panel:#25272b; --panel2:#2e3035; --line
 .bug-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .bug-done{margin-left:auto}
 .bug-text{margin:0;white-space:pre-wrap;line-height:1.45}
+/* Détente : Emoji et Ombre */
+.jeu-emo{display:flex;justify-content:center;gap:18px;font-size:64px;line-height:1.1;margin:14px 0}
+.jeu-emo span{display:inline-grid;place-items:center;width:92px;height:92px;border-radius:18px;background:var(--panel2);border:2px solid var(--line);transition:transform .3s}
+.jeu-emo span.on{border-color:var(--fire1);animation:emo-pop .35s ease}
+.jeu-emo span.off{font-size:40px;opacity:.5}
+@keyframes emo-pop{from{transform:scale(.6)}to{transform:scale(1)}}
+.jeu-ombre{width:260px;aspect-ratio:308/560;margin:6px auto;border-radius:14px;overflow:hidden;border:3px solid var(--fire1);background:#000}
+.jeu-ombre img{width:100%;height:100%;object-fit:cover;transition:filter .6s}
+.navbtn { padding: 6px 9px; }
+#nav { gap: 4px; }

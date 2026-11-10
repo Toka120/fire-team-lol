@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.18",
+   "date": "2026-11-10",
+   "titre": "Emoji et Ombre",
+   "items": [
+    [
+     "new",
+     "Détente › 😀 Emoji : devine le champion avec ses emojis. 2 au départ, un de plus après 2 puis 4 essais ratés."
+    ],
+    [
+     "new",
+     "Détente › 🌑 Ombre : le champion (parfois dans un skin) est plongé dans le noir et s'éclaire à chaque essai."
+    ]
+   ]
+  },
+  {
    "v": "1.10.17",
    "date": "2026-11-09",
    "titre": "Signaler un bug",

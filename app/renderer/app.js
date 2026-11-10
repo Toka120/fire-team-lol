@@ -2281,7 +2281,7 @@
   // ----- Détente : devine le champion (comme Loldle, en illimité) et lore des champions -----
   const DD = 'https://ddragon.leagueoflegends.com';
   const J = { data: null, err: '', loading: false, tab: 'classique', r: {}, lore: {}, loreSel: null, loreQ: '', loreReg: '' };
-  const JMODES = [['classique', '🎯 Classique'], ['sort', '✨ Sort'], ['passif', '🔮 Passif'], ['phrase', '💬 Phrase'], ['splash', '🖼️ Splash'], ['lore', '📖 Lore']];
+  const JMODES = [['classique', '🎯 Classique'], ['sort', '✨ Sort'], ['passif', '🔮 Passif'], ['phrase', '💬 Phrase'], ['splash', '🖼️ Splash'], ['emoji', '😀 Emoji'], ['ombre', '🌑 Ombre'], ['lore', '📖 Lore']];
   const TAGFR = { Fighter: 'Combattant', Tank: 'Tank', Mage: 'Mage', Assassin: 'Assassin', Marksman: 'Tireur', Support: 'Support' };
   const jn = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
   const jimg = (type, f) => `${DD}/cdn/${J.data.version}/img/${type}/${f}`;
@@ -2319,12 +2319,14 @@
   }
 
   async function jNew(mode) {
-    const cs = J.data.champs;
+    const cs = mode === 'emoji' ? J.data.champs.filter((x) => x.emo) : J.data.champs;
     const prev = J.r[mode] && J.r[mode].target;
     let c = pick(cs);
     if (prev && cs.length > 1) while (c.id === prev.id) c = pick(cs);
     const r = { target: c, guesses: [], done: false, gaveUp: false, at: Date.now() };
     if (mode === 'sort') { r.spell = pick(c.spells); r.rot = pick([90, 180, 270]); }
+    if (mode === 'emoji') r.emo = [...new Intl.Segmenter('fr', { granularity: 'grapheme' }).segment(c.emo)].map((x) => x.segment);
+    if (mode === 'ombre') { const sk = c.skins.filter((x) => x.num > 0); r.skin = Math.random() < 0.5 || !sk.length ? (c.skins[0] || { num: 0 }) : pick(sk); }
     if (mode === 'splash') {
       const sk = c.skins.filter((x) => x.num > 0);
       r.skin = sk.length ? pick(sk) : c.skins[0];
@@ -2414,6 +2416,22 @@
       clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'À quel champion appartient ce sort ?'),
         h('img', { class: 'jeu-ico', src: jimg('spell', r.spell.img), alt: '', style: `transform:rotate(${r.done || wrong >= 2 ? 0 : r.rot}deg);filter:grayscale(${r.done || wrong >= 4 ? 0 : 1}) blur(${blur}px)` }),
         h('p', { class: 'muted small' }, r.done ? `${r.spell.name} (${r.spell.key})` : wrong >= 2 ? 'Remis à l’endroit.' : 'Tourné, en noir et blanc : il s’éclaircit à chaque essai.'));
+    }
+    if (mode === 'emoji') {
+      // 2 emojis au départ, 1 de plus après 2 puis 4 essais ratés.
+      const n = r.done ? 4 : Math.min(4, 2 + (wrong >= 2 ? 1 : 0) + (wrong >= 4 ? 1 : 0));
+      clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'Quel champion se cache derrière ces emojis ?'),
+        h('div', { class: 'jeu-emo' }, (r.emo || []).map((e, i) => h('span', { class: i < n ? 'on' : 'off' }, i < n ? e : '❔'))),
+        h('p', { class: 'muted small' }, r.done ? 'Tous les emojis sont révélés.' : n < 4 ? `Un emoji de plus après ${n === 2 ? 2 : 4} essais ratés (encore ${(n === 2 ? 2 : 4) - wrong}).` : 'Tous les emojis sont là !'));
+    }
+    if (mode === 'ombre') {
+      // Le champion sort de l'ombre : très sombre au début, il s'éclaire à chaque essai.
+      const L = [[0.2, 1.3, 1], [0.26, 1.25, 1], [0.34, 1.2, 1], [0.44, 1.15, 1], [0.58, 1.1, 0.6], [0.75, 1.05, 0.3], [0.9, 1, 0]];
+      const [br, ct, gs] = r.done ? [1, 1, 0] : L[Math.min(wrong, L.length - 1)];
+      clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'Qui sort de l’ombre ?'),
+        h('div', { class: 'jeu-ombre' }, h('img', { src: `${DD}/cdn/img/champion/loading/${t.id}_${r.skin ? r.skin.num : 0}.jpg`, alt: '',
+          style: `filter:grayscale(${gs}) brightness(${br}) contrast(${ct})`, onerror: (e) => { if (r.skin && r.skin.num) { r.skin = { num: 0 }; e.target.src = `${DD}/cdn/img/champion/loading/${t.id}_0.jpg`; } } })),
+        h('p', { class: 'muted small' }, r.done ? (r.skin && r.skin.name ? r.skin.name : t.name) : 'Il s’éclaire un peu plus à chaque essai.'));
     }
     if (mode === 'passif') {
       const blur = r.done ? 0 : Math.max(0, 14 - 3 * wrong);
