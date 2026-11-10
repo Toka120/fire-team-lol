@@ -122,7 +122,11 @@
       ],
       "pool": "Vel'Koz · Pyke · Nautilus",
       "tableau": "https://claude.ai/artifact/9HJf1RfQVZUcL4oBFhh8hV",
-      "dpm": "https://dpm.lol/TheM3talDrakonar-EUW"
+      "dpm": "https://dpm.lol/TheM3talDrakonar-EUW",
+      "bandeau": {
+        "texte": "💪 L'infatigable",
+        "theme": "emerald"
+      }
     }
   ],
   "debut_equipe": "2026-10-27"

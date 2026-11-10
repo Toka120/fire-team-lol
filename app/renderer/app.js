@@ -45,10 +45,10 @@
   const hm = (t) => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
   const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   const tag = (t) => h('span', { class: 'tag' }, t);
-  // Bandeau d'un joueur (joueurs.json) : « capitaine » ou un bandeau libre { texte, theme : gold | star | fire }.
+  // Bandeau d'un joueur (joueurs.json) : « capitaine » ou un bandeau libre { texte, theme : gold | star | fire | emerald | ruby }.
   // Ajouter ou changer un bandeau ne demande pas de nouvelle version de l'app.
   const bandeau = (p) => p.capitaine ? { texte: '👑 Chef d’équipe', theme: 'gold' }
-    : p.bandeau && p.bandeau.texte ? { texte: String(p.bandeau.texte).slice(0, 40), theme: ['gold', 'star', 'fire'].includes(p.bandeau.theme) ? p.bandeau.theme : 'fire' } : null;
+    : p.bandeau && p.bandeau.texte ? { texte: String(p.bandeau.texte).slice(0, 40), theme: ['gold', 'star', 'fire', 'emerald', 'ruby'].includes(p.bandeau.theme) ? p.bandeau.theme : 'fire' } : null;
   const dateFr = (ymd) => { const d = new Date(ymd + 'T00:00:00'); return `${d.getDate() === 1 ? '1er' : d.getDate()} ${d.toLocaleDateString('fr-FR', { month: 'long' })}`; };
   // Games obligatoires ajoutées par le coach à un joueur pour la semaine en cours (lundi → dimanche).
   const bonusFor = (slug) => (((S.bonus || {})[mondayOf(todayYmd())] || {})[slug]) || 0;

@@ -1218,6 +1218,8 @@ button.dr-row:hover{border-color:var(--line);background:var(--panel2)}
 .pcard.banded{position:relative;overflow:hidden;padding-top:42px;--b1:#ff9a3c;--b2:#ff5e3a;--bt:#2a0f05;--bg:rgba(255,94,58,.35)}
 .pcard.b-gold,.tag.tag-cap.b-gold{--b1:#f5c542;--b2:#e8902a;--bt:#2a1a05;--bg:rgba(232,182,76,.4)}
 .pcard.b-star,.tag.tag-cap.b-star{--b1:#7fd3ff;--b2:#9b6bff;--bt:#0b1030;--bg:rgba(127,160,255,.45)}
+.pcard.b-emerald,.tag.tag-cap.b-emerald{--b1:#5ee6a0;--b2:#1fae7a;--bt:#04241a;--bg:rgba(76,195,138,.45)}
+.pcard.b-ruby,.tag.tag-cap.b-ruby{--b1:#ff7aa8;--b2:#d6336c;--bt:#2a0614;--bg:rgba(214,51,108,.4)}
 .pcard.banded{border-color:var(--b1);box-shadow:0 0 0 1px var(--bg),0 8px 26px rgba(0,0,0,.25)}
 .pcard.banded:hover,.pcard.banded:focus-visible{border-color:var(--b1);box-shadow:0 10px 30px var(--bg)}
 .pcap{position:absolute;top:0;left:0;right:0;padding:6px 12px;text-align:center;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--bt);background:linear-gradient(90deg,var(--b1),var(--b2),var(--b1))}

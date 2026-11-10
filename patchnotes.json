@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.38",
+   "date": "2026-11-10",
+   "titre": "L'infatigable",
+   "items": [
+    [
+     "new",
+     "TheM3talDrakonar reçoit le bandeau « 💪 L'infatigable », en vert émeraude, pour tous les efforts qu'il fait."
+    ],
+    [
+     "improve",
+     "Deux nouvelles couleurs de bandeau : émeraude et rubis."
+    ]
+   ]
+  },
+  {
    "contenu": true,
    "id": "c-2026-11-10-bandeau-toks",
    "date": "2026-11-10",
