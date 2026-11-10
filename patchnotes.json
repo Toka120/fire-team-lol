@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.34",
+   "date": "2026-11-10",
+   "titre": "Changement de compte d'un joueur",
+   "items": [
+    [
+     "new",
+     "Un joueur peut changer de compte sans perdre son historique : FIRE lit ses deux comptes et rassemble les games sur le même profil."
+    ],
+    [
+     "improve",
+     "xena joue maintenant sur Frost tham#free. Ses games de xena#6814 restent sur son profil du mid (jusqu'au 10 novembre inclus) et celles du nouveau compte comptent à partir du 10 novembre. Planning, pool, objectifs et bonus du coach restent les siens."
+    ],
+    [
+     "improve",
+     "Le profil indique l'ancien et le nouveau compte, avec un lien dpm.lol pour chacun. Les flex en équipe sont reconnues sur les deux comptes."
+    ]
+   ]
+  },
+  {
    "v": "1.10.33",
    "date": "2026-11-10",
    "titre": "Draft en direct et runes du matchup",

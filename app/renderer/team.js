@@ -18,7 +18,7 @@
   const plural = (n, a, b) => `${n} ${n > 1 ? b : a}`;
 
   // Repère les parties Flex communes à partir de l'historique de chaque joueur (l'app le garde déjà).
-  // players : [{ slug, puuid }] ; data : { slug: { matches: [{ id, q, t, win }] } }
+  // players : [{ slug, puuid }] (une ligne par compte) ; data : { slug: { matches: [{ id, q, t, win, pu? }] } }
   function candidates(players, data) {
     const by = {};
     for (const p of players) {
@@ -26,7 +26,9 @@
       for (const m of (data[p.slug] && data[p.slug].matches) || []) {
         if (!QUEUES.includes(m.q) || !m.id) continue;
         const g = (by[m.id] = by[m.id] || { id: String(m.id), t: m.t, q: m.q, who: [] });
-        if (!g.who.includes(p.puuid)) g.who.push(p.puuid);
+        // m.pu : le compte qui a joué cette game (joueur qui a changé de compte).
+        const pu = m.pu || p.puuid;
+        if (!g.who.includes(pu)) g.who.push(pu);
       }
     }
     return Object.values(by).filter((g) => g.who.length >= 2).sort((a, b) => b.t - a.t);

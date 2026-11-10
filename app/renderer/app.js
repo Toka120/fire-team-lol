@@ -523,6 +523,55 @@
   }
 
   // ---------- Lecture dpm.lol ----------
+  // Un joueur peut changer de compte : « comptes » liste ses comptes, chacun avec ses dates.
+  // Un ancien compte (jusqu_au) garde toutes ses games jusqu'à ce jour inclus, le nouveau (depuis) compte à partir de ce jour.
+  // L'identité du joueur (slug) ne change pas : planning, pools, objectifs et réglages restent les siens.
+  const accountsOf = (p) => (Array.isArray(p.comptes) && p.comptes.length ? p.comptes : [{ slug: p.slug, puuid: p.puuid || null, pseudo: p.pseudo }]);
+  const curAccount = (p) => { const a = accountsOf(p); return a.find((c) => !c.jusqu_au) || a[a.length - 1]; };
+  const dayMs = (ymd) => new Date(ymd + 'T00:00:00').getTime();
+  const inAccount = (c, t) => !(c.depuis && t < dayMs(c.depuis)) && !(c.jusqu_au && t >= dayMs(c.jusqu_au) + 86400000);
+  function mergeChamps(lists) {
+    const by = {};
+    const W = ['kda', 'kills', 'deaths', 'assists', 'csm', 'gpm', 'dpm', 'kp', 'goldDiff'];
+    for (const list of lists) for (const c of list || []) {
+      const e = by[c.id];
+      if (!e) { by[c.id] = { ...c }; continue; }
+      const n1 = e.games || 0, n2 = c.games || 0, n = n1 + n2 || 1;
+      for (const k of W) if (typeof c[k] === 'number' && typeof e[k] === 'number') e[k] = (e[k] * n1 + c[k] * n2) / n;
+      e.games = n1 + n2; e.wins = (e.wins || 0) + (c.wins || 0);
+      e.recent = [].concat(e.recent || [], c.recent || []);
+    }
+    return Object.values(by).sort((a, b) => (b.games || 0) - (a.games || 0));
+  }
+  // Lit chaque compte du joueur et rassemble ses games. Un compte terminé garde aussi les games déjà connues
+  // (même sorties de la période lue), et si dpm.lol ne répond pas pour lui, on reprend la dernière lecture.
+  async function fetchAccounts(p) {
+    const accs = accountsOf(p);
+    const cur = S.data[p.slug] || {};
+    const prev = cur.acc || {};
+    if (!cur.acc && cur.matches && accs[0] && accs[0].jusqu_au) prev[accs[0].slug] = { matches: cur.matches, champs: cur.champs, rank: cur.rank, record: cur.record, at: cur.at };
+    const acc = {};
+    let ok = false, error = '';
+    for (const c of accs) {
+      let r;
+      try { r = await window.fire.fetchPlayer({ slug: c.slug, puuid: c.puuid || null }, fetchDays()); } catch (e) { r = { ok: false, error: String(e) }; }
+      const old = prev[c.slug];
+      if (r && r.ok) {
+        ok = true;
+        let ms = (r.matches || []).filter((m) => inAccount(c, m.t)).map((m) => ({ ...m, pu: r.puuid || c.puuid }));
+        if (c.jusqu_au && old) { const ids = new Set(ms.map((m) => m.id)); ms = ms.concat((old.matches || []).filter((m) => !ids.has(m.id) && inAccount(c, m.t)).map((m) => ({ pu: c.puuid, ...m }))); }
+        acc[c.slug] = { matches: ms, champs: r.champs, rank: r.rank, record: r.record, at: r.at };
+      } else if (old) acc[c.slug] = old;
+      else error = (r && r.error) || 'erreur inconnue';
+    }
+    if (!ok) return { ok: false, error };
+    const list = accs.map((c) => acc[c.slug]).filter(Boolean);
+    const seen = new Set();
+    const matches = list.flatMap((a) => a.matches || []).filter((m) => (seen.has(m.id) ? false : seen.add(m.id))).sort((a, b) => b.t - a.t);
+    const now = acc[curAccount(p).slug] || {};
+    const older = list.find((a) => a !== now && a.rank) || {};
+    return { ok: true, matches, champs: mergeChamps(list.map((a) => a.champs)), rank: now.rank || (older.rank ? older.rank + ' (ancien compte)' : ''), record: now.rank ? now.record : older.record || '', at: Math.max(...list.map((a) => a.at || 0)), acc };
+  }
   function fetchDays() {
     let n = FETCH_DAYS;
     if (S.obj) n = Math.max(n, Math.ceil((Date.now() - new Date(S.obj.debut + 'T00:00:00').getTime()) / 86400000) + 1);
@@ -547,9 +596,10 @@
         renderStatus();
         if (S.section === 'stats' && S.view === 'hub') render();
         let res;
-        try { res = await window.fire.fetchPlayer({ slug: p.slug, puuid: p.puuid || null }, fetchDays()); } catch (e) { res = { ok: false, error: String(e) }; }
+        if (Array.isArray(p.comptes) && p.comptes.length) res = await fetchAccounts(p);
+        else { try { res = await window.fire.fetchPlayer({ slug: p.slug, puuid: p.puuid || null }, fetchDays()); } catch (e) { res = { ok: false, error: String(e) }; } }
         if (res && res.ok) {
-          S.data[p.slug] = { matches: res.matches, champs: res.champs, rank: res.rank, record: res.record, at: res.at };
+          S.data[p.slug] = { matches: res.matches, champs: res.champs, rank: res.rank, record: res.record, at: res.at, acc: res.acc };
           save('fire.data', S.data);
           S.status[p.slug] = { state: 'ok', at: res.at };
         } else {
@@ -710,7 +760,8 @@
   }
 
   // ----- Stats de l'équipe : les flex jouées ensemble -----
-  const teamRoster = () => S.players.filter((p) => p.slug && p.puuid).map((p) => ({ slug: p.slug, pseudo: p.pseudo, puuid: p.puuid, role_id: p.role_id }));
+  // Un joueur avec plusieurs comptes apparaît une fois par compte (même slug) : ses flex sont reconnues sur chacun.
+  const teamRoster = () => S.players.filter((p) => p.slug).flatMap((p) => accountsOf(p).filter((c) => c.puuid).map((c) => ({ slug: p.slug, pseudo: p.pseudo, puuid: c.puuid, role_id: p.role_id })));
   const shortName = (p) => String(p || '').split('#')[0];
 
   // Repère les flex communes dans l'historique déjà lu, puis demande à dpm.lol le détail de celles qu'on n'a pas encore.
@@ -922,7 +973,10 @@
           S.more ? [tag('Classé Solo/Duo'), p.pool ? tag('🎯 ' + p.pool) : null, (p.maitrise_ids || []).length ? tag('⭐ ' + p.maitrise_ids.map(FC.champName).join(' · ')) : null] : null),
         h('h1', { class: 'title' }, p.pseudo),
         h('p', { class: 'muted small' }, S.more ? `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · stats dpm.lol de ${hm(d.at)} · ${lastGame(d) || 'aucune game Solo/Duo'} · ` : `${cap(periodLabel())} · ${pl(s.games, 'game', 'games')} · `,
-          h('a', { href: 'https://dpm.lol/' + p.slug, target: '_blank' }, 'voir sur dpm.lol')),
+          h('a', { href: 'https://dpm.lol/' + curAccount(p).slug, target: '_blank' }, 'voir sur dpm.lol')),
+        accountsOf(p).length > 1 ? h('p', { class: 'muted small' }, '🔁 ', accountsOf(p).map((c) => c.jusqu_au
+          ? h('span', null, 'ancien compte ', h('a', { href: 'https://dpm.lol/' + c.slug, target: '_blank' }, c.pseudo || decodeURIComponent(c.slug)), ` (games jusqu’au ${dateFr(c.jusqu_au)})`)
+          : h('span', null, 'compte actuel ', h('a', { href: 'https://dpm.lol/' + c.slug, target: '_blank' }, c.pseudo || decodeURIComponent(c.slug)), c.depuis ? ` (depuis le ${dateFr(c.depuis)})` : '')).reduce((a, x, i) => (i ? a.concat(' · ', x) : [x]), [])) : null,
         S.more ? h('p', { class: 'lead' }, FC.lead(p, s)) : null,
         progress(obj, S.more),
         S.coachState.coach && S.obj ? bonusCtl(p) : null,

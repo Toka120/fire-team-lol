@@ -59,9 +59,9 @@
     {
       "role": "Mid",
       "role_id": "mid",
-      "pseudo": "xena#6814",
+      "pseudo": "Frost tham#free",
       "slug": "xena%20-6814",
-      "puuid": "LjJDUJ7uA5ldpvZJCsHwlHRpfaxtKxSTgi0IKlW7TyLYkOMCBPnd6ME2JZ-XjjqfQ0d3u5lhuA7RkA",
+      "puuid": "-lWJ6cStDiCTdzE57d8tWbzxGqKtNPX71cl0D2YJDHZVgJHKa-SAJOUDoOuz77c4UZm5dxcCfWBd_A",
       "pool_ids": [
         "Hwei",
         "Orianna",
@@ -69,7 +69,21 @@
       ],
       "pool": "Hwei · Orianna · Syndra",
       "tableau": "https://claude.ai/artifact/XivkXHsysFaGjMgkRMnbiW",
-      "dpm": "https://dpm.lol/xena%20-6814"
+      "dpm": "https://dpm.lol/Frost%20tham-free",
+      "comptes": [
+        {
+          "pseudo": "xena#6814",
+          "slug": "xena%20-6814",
+          "puuid": "LjJDUJ7uA5ldpvZJCsHwlHRpfaxtKxSTgi0IKlW7TyLYkOMCBPnd6ME2JZ-XjjqfQ0d3u5lhuA7RkA",
+          "jusqu_au": "2026-11-10"
+        },
+        {
+          "pseudo": "Frost tham#free",
+          "slug": "Frost%20tham-free",
+          "puuid": "-lWJ6cStDiCTdzE57d8tWbzxGqKtNPX71cl0D2YJDHZVgJHKa-SAJOUDoOuz77c4UZm5dxcCfWBd_A",
+          "depuis": "2026-11-10"
+        }
+      ]
     },
     {
       "role": "ADC",
