@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.40",
+   "date": "2026-11-10",
+   "titre": "Un suppléant pour le mid",
+   "items": [
+    [
+     "new",
+     "ShadowReaper鬼#Ionia rejoint l'équipe comme suppléant du mid, avec Irelia comme pool. Ses stats dpm.lol, son objectif de la semaine et le planning sont actifs."
+    ],
+    [
+     "new",
+     "Son bandeau : « ⚔️ Monstre OTP Irelia », couleur lames d'Ionia (turquoise et acier)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.39",
    "date": "2026-11-10",
    "titre": "Le chef d'équipe gère le planning",

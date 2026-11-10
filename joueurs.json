@@ -99,6 +99,23 @@
       "capitaine": true
     },
     {
+      "role": "Mid (Remplaçant)",
+      "role_id": "mid",
+      "pseudo": "ShadowReaper鬼#Ionia",
+      "slug": "ShadowReaper%E9%AC%BC-Ionia",
+      "puuid": "tgG0oEk0X75Q4fM2oV42320LGYqVnnbanro895uE_JmouGB2sX8q9KjfuGoVwYuPgPDf759X5fSBnw",
+      "pool_ids": [
+        "Irelia"
+      ],
+      "pool": "Irelia",
+      "tableau": "",
+      "dpm": "https://dpm.lol/ShadowReaper%E9%AC%BC-Ionia",
+      "bandeau": {
+        "texte": "⚔️ Monstre OTP Irelia",
+        "theme": "blade"
+      }
+    },
+    {
       "role": "ADC",
       "role_id": "adc",
       "pseudo": "The World#1065",
