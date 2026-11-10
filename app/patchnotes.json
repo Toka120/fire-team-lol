@@ -1,6 +1,73 @@
 {
  "versions": [
   {
+   "v": "1.10.25",
+   "date": "2026-11-10",
+   "titre": "Quiz, défis et patchs officiels de LoL",
+   "items": [
+    [
+     "new",
+     "📜 Patchs LoL : nouvel onglet avec les notes de patch officielles de Riot, en français, dès leur sortie sur leagueoflegends.com (un « ! » apparaît quand un nouveau patch sort)."
+    ],
+    [
+     "new",
+     "Lanes et principes : à côté de chaque diaporama, un onglet ❓ Quiz avec 3 niveaux (simple, compliqué, ultra hardcore) et des questions « pourquoi ? » qui s'enchaînent."
+    ],
+    [
+     "new",
+     "Lanes et principes : un onglet 🎯 Défis à cocher (défi CS, avant chaque fight, avant la game, Boss final), gardés sur ton ordinateur."
+    ],
+    [
+     "improve",
+     "Les diaporamas ne contiennent plus les quiz ni les défis : ils sont dans leurs onglets."
+    ],
+    [
+     "improve",
+     "Patch notes : chaque mise à jour du contenu (diapos, quiz, guides) y apparaît aussi, même sans nouvelle version de l'app."
+    ]
+   ]
+  },
+  {
+   "contenu": true,
+   "id": "c-2026-11-10-support",
+   "date": "2026-11-10",
+   "titre": "Formation SUPPORT et notions communes",
+   "items": [
+    [
+     "new",
+     "Carnet du support refait en 6 niveaux : familles de supports, botlane (buissons, triangle, objet support, plaques), vision, roams, jeu collectif (objectifs, cibles, peel) et bilan."
+    ],
+    [
+     "new",
+     "Dans tous les carnets : compter les adversaires, « pourquoi je pose cette ward ? », anticiper et communiquer, préparer un objectif, cible prioritaire et tunnel vision."
+    ],
+    [
+     "new",
+     "Carnet ADC : le triangle et ce que ton support peut faire pour toi (charges d'objet, canons, plaques, farm sous tour)."
+    ]
+   ]
+  },
+  {
+   "contenu": true,
+   "id": "c-2026-11-10-top",
+   "date": "2026-11-10",
+   "titre": "Formation TOPLANE et notions communes",
+   "items": [
+    [
+     "new",
+     "Carnet du top refait en 6 niveaux : catégories de toplaners, tier list, matchups, phase de lane, informations, tempo, side lane et TP, quête de rôle 2026."
+    ],
+    [
+     "new",
+     "Dans les autres carnets : tempo, weakside / strongside, cover et countergank, jungle tracking, gold/XP denial, après un kill, structures, intentions."
+    ],
+    [
+     "fix",
+     "Carnet jungle : couverture corrigée (Kayn Effect retiré)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.24",
    "date": "2026-11-10",
    "titre": "Prêt pour le Microsoft Store",

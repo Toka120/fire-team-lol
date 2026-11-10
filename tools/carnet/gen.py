@@ -20,6 +20,10 @@ TITLES = {'top': 'Le carnet du top — Formation TOPLANE', 'support': 'Le carnet
 NAMES = {'jungle': 'Jungle', 'adc': 'ADC', 'top': 'Top', 'mid': 'Mid', 'support': 'Support'}
 
 
+# Hors du diaporama : les quiz et les défis (à cocher) ont leurs propres onglets dans l'app.
+OUTSIDE = ('quiz', 'defi', 'final')
+
+
 def expand(slides):
     out = []
     for s in slides:
@@ -64,7 +68,7 @@ def render(deck, s, i, skin, src, ico, tot):
             f'<p style="font-size:32px;color:#f3eee2">{E(t)}</p></div>' for n, t in enumerate(s['levels'], 1))
         inner = (kicker('La quête') + '\n' + h2('Tes niveaux à passer') + '\n'
                  f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 24px;width:1500px">\n{cells}\n</div>\n'
-                 + para('🎯 Défis à valider · ❓ Quiz : la réponse est sur la slide suivante · 🏆 Boss final à la fin', 28, 1500, '#e6dfcf'))
+                 + para('🎯 Les défis à cocher et ❓ les quiz sont dans leurs onglets, juste à côté du diaporama', 28, 1500, '#e6dfcf'))
         return sid, section(sid, inner, skin, src, g=30, mode='full'), 'La quête'
     if k == 'std':
         parts = [kicker(s['kick']), h2(title)]
@@ -317,7 +321,8 @@ def lanediag(s, ico, w=980, h=520):
 
 
 def build(deck, mode):
-    slides = expand(DECKS[deck]())
+    # Les quiz ne sont plus dans le diaporama : ils ont leur propre onglet « Quiz » dans l'app (quiz.json).
+    slides = expand([s for s in DECKS[deck]() if s['kind'] not in OUTSIDE])
     skins = assign(deck, slides)
     tot = max(s.get('niv', 0) for s in slides)
     if mode == 'local':
@@ -358,4 +363,18 @@ if __name__ == '__main__':
                          "rubik": {"family": "Rubik", "href": "https://fonts.googleapis.com/css2?family=Rubik:wght@400..700&display=swap"}},
                "designSystems": []}, open(f'{outdir}/deck.json', 'w', encoding='utf-8'), ensure_ascii=False)
     json.dump(titles, open(f'{outdir}/titles.json', 'w', encoding='utf-8'), ensure_ascii=False)
+    full = DECKS[deck]()
+    levels = next((s['levels'] for s in full if s['kind'] == 'quest'), [])
+    quiz = [dict(q=s['q'], ch=s['ch'], good=s['good'], why=s['why'],
+                 niveau=(f"Niveau {s['niv']} · {levels[s['niv'] - 1]}" if s.get('niv') and s['niv'] <= len(levels) else ''))
+            for s in full if s['kind'] == 'quiz']
+    # 3 niveaux : simple (les quiz du carnet), compliqué et ultra hardcore (quizplus.py, avec des « pourquoi ? »).
+    from quizplus import DUR, HARDCORE
+    for x in quiz: x['diff'] = 'simple'
+    quiz += [dict(x, diff='dur') for x in DUR.get(deck, [])] + [dict(x, diff='hardcore') for x in HARDCORE.get(deck, [])]
+    json.dump(quiz, open(f'{outdir}/quiz.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    lvl = lambda s: (f"Niveau {s['niv']} · {levels[s['niv'] - 1]}" if s.get('niv') and s['niv'] <= len(levels) else '')
+    defis = [dict(titre=s['title'], big=s.get('big', ''), sub=s.get('sub', ''), items=s['items'], niveau=lvl(s), boss=s['kind'] == 'final')
+             for s in full if s['kind'] in ('defi', 'final')]
+    json.dump(defis, open(f'{outdir}/defis.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print(deck, len(order), 'slides')

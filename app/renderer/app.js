@@ -170,6 +170,8 @@
     loadPools();
     loadPlanning();
     loadPatch();
+    loadLolPatch();
+    setInterval(() => loadLolPatch(true), 6 * 3600 * 1000);
     loadChampions();
     window.fire.team([]).then((r) => { if (r && r.games) { S.teamGames = r.games; if (S.section === 'stats' && !typing()) render(); } }).catch(() => {});
     refreshAll();
@@ -562,7 +564,7 @@
     renderNav();
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -571,6 +573,7 @@
     else if (S.section === 'jeux') renderJeux();
     else if (S.section === 'worlds') renderWorlds();
     else if (S.section === 'patch') renderPatch();
+    else if (S.section === 'lolpatch') renderLolPatch();
     else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
     else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
     else if (S.view === 'player') renderPlayer();
@@ -1256,7 +1259,8 @@
     if (sec === 'coach') S.ficheId = null;
     if (sec === 'stats') { S.view = 'hub'; S.player = null; }
     if (sec === 'planning') { S.planEdit = null; loadPlanning(); }
-    if (sec === 'patch') { loadPatch(); save('fire.patch.vu', S.version); }
+    if (sec === 'patch') { loadPatch(); markPatchSeen(); }
+    if (sec === 'lolpatch') loadLolPatch();
     if (sec === 'jeux') loadJeux();
     if (sec === 'worlds') { loadJeux(); loadWorlds(W.year); }
     render();
@@ -1264,11 +1268,16 @@
   }
 
   // ----- Patch notes -----
-  const patchUnseen = () => !!S.version && load('fire.patch.vu', '') !== S.version;
+  // Entrées « contenu » (diapos, guides, quiz…) : pas de numéro de version, juste une date et un identifiant.
+  const lastContent = () => (S.patch || []).find((x) => x.contenu);
+  const patchUnseen = () => (!!S.version && load('fire.patch.vu', '') !== S.version) || (!!lastContent() && load('fire.patch.cvu', '') !== lastContent().id);
+  const markPatchSeen = () => { save('fire.patch.vu', S.version); if (lastContent()) save('fire.patch.cvu', lastContent().id); };
   async function loadPatch() {
     try { const r = await window.fire.patchnotes(); if (r && Array.isArray(r.versions)) S.patch = r.versions; } catch (e) { /* hors ligne */ }
     if (!S.patch) S.patch = [];
+    if (S.section === 'patch') markPatchSeen();
     if (S.section === 'patch' && !typing()) render();
+    else if ($('nav').childElementCount) renderNav();
     patchPopup();
   }
   // Après une mise à jour : un pop-up propose de voir les nouveautés de la version installée.
@@ -1276,7 +1285,7 @@
     const last = load('fire.patch.version', null);
     save('fire.patch.version', S.version);
     if (!last || last === S.version || !S.patch) return;
-    const mine = S.patch.filter((x) => newer(x.v, last) && !newer(x.v, S.version));
+    const mine = S.patch.filter((x) => x.v && newer(x.v, last) && !newer(x.v, S.version));
     if (!mine.length) return;
     popup(`🆕 FIRE est passé en v${S.version}`, mine.slice(0, 3).map((x) => x.titre).join(' · ') + (mine.length > 3 ? '…' : ''), 'patch');
   }
@@ -1375,22 +1384,99 @@
         (x.images || []).length ? h('div', { class: 'bug-imgs' }, x.images.map((src, i) => h('div', { class: 'bug-thumb' }, h('img', { src, alt: '', onclick: () => zoom(src, `${x.qui} · capture ${i + 1}`) })))) : null)));
   }
 
+  // ----- Patchs officiels de League of Legends (leagueoflegends.com, en français) -----
+  const LP = { list: null, err: '', cur: null, art: {}, loading: false };
+  const lolUnseen = () => !!(LP.list && LP.list[0] && load('fire.lolpatch.vu', '') !== LP.list[0].url);
+  async function loadLolPatch(force) {
+    if (LP.loading || (LP.list && !force)) return;
+    LP.loading = true;
+    try { const r = await window.fire.lolpatch.list(); LP.list = r.items || []; LP.err = r.ok ? '' : (r.error || 'site indisponible'); }
+    catch (e) { LP.err = String(e); if (!LP.list) LP.list = []; }
+    LP.loading = false;
+    if (S.section === 'lolpatch') { if (!LP.cur && LP.list[0]) openLolPatch(LP.list[0].url); else render(); }
+    else if ($('nav').childElementCount) renderNav();
+  }
+  async function openLolPatch(url) {
+    LP.cur = url;
+    if (LP.list && LP.list[0] && url === LP.list[0].url) save('fire.lolpatch.vu', url);
+    render();
+    if (!LP.art[url] || !LP.art[url].ok) {
+      try { LP.art[url] = await window.fire.lolpatch.get(url); } catch (e) { LP.art[url] = { ok: false, error: String(e) }; }
+      if (S.section === 'lolpatch' && LP.cur === url) render();
+    }
+  }
+  // Le texte vient du site de Riot : on ne garde que les balises de mise en forme et les liens/images en https.
+  const LP_DROP = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'FORM', 'INPUT', 'BUTTON', 'TEXTAREA', 'SELECT', 'VIDEO', 'AUDIO', 'SOURCE', 'LINK', 'META', 'SVG', 'MATH', 'NOSCRIPT', 'TEMPLATE']);
+  const LP_KEEP = new Set(['DIV', 'P', 'H2', 'H3', 'H4', 'H5', 'UL', 'OL', 'LI', 'STRONG', 'B', 'I', 'EM', 'U', 'A', 'IMG', 'BR', 'HR', 'BLOCKQUOTE', 'SPAN', 'HEADER', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TD', 'TH', 'SUP', 'SUB', 'SECTION', 'FIGURE', 'FIGCAPTION']);
+  function lolHtml(html) {
+    const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+    const clean = (node) => {
+      [...node.children].forEach((el) => {
+        if (LP_DROP.has(el.tagName)) { el.remove(); return; }
+        clean(el);
+        if (!LP_KEEP.has(el.tagName)) { el.replaceWith(...el.childNodes); return; }
+        [...el.attributes].forEach((a) => {
+          const n = a.name.toLowerCase(), v = a.value.trim();
+          const ok = n === 'class' || n === 'alt' || n === 'colspan' || n === 'rowspan' || ((n === 'href' || n === 'src') && /^https:\/\//i.test(v));
+          if (!ok) el.removeAttribute(a.name);
+        });
+        if (el.tagName === 'A') { el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener noreferrer'); }
+        if (el.tagName === 'IMG') el.setAttribute('loading', 'lazy');
+      });
+    };
+    clean(doc.body);
+    const box = h('div', { class: 'lp-body' });
+    box.append(...[...doc.body.childNodes].map((n) => document.importNode(n, true)));
+    return box;
+  }
+  function renderLolPatch() {
+    const view = $('view');
+    if (!LP.list) loadLolPatch();
+    const list = LP.list || [];
+    if (!LP.cur && list[0]) { setTimeout(() => openLolPatch(list[0].url), 0); }
+    const a = LP.cur ? LP.art[LP.cur] : null;
+    const it = list.find((x) => x.url === LP.cur) || {};
+    const dateFr = (d) => d ? new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    const article = !LP.cur ? null
+      : !a ? h('div', { class: 'card empty-state' }, 'Chargement du patch…')
+        : !a.ok ? h('div', { class: 'card' }, h('p', { class: 'bad' }, '⚠ Impossible de lire ce patch pour le moment' + (a.error ? ` (${a.error})` : '') + '.'),
+          a.link ? h('a', { href: a.link, target: '_blank' }, 'Le lire sur leagueoflegends.com') : null)
+          : h('article', { class: 'card lp-art' },
+            a.banner || it.img ? h('img', { class: 'lp-banner', src: a.banner || it.img, alt: '' }) : null,
+            h('h2', { class: 'lp-title' }, a.title || it.title),
+            h('p', { class: 'muted small' }, dateFr(a.date || it.date), ' · ', h('a', { href: a.link, target: '_blank' }, 'Voir sur le site officiel')),
+            a.desc ? h('p', { class: 'lp-desc' }, a.desc.replace(/<[^>]+>/g, '')) : null,
+            lolHtml(a.html));
+    view.replaceChildren(
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📜'), h('div', null, h('h1', { class: 'title' }, 'Patchs de League of Legends'),
+        h('p', { class: 'muted' }, 'Les notes de patch officielles de Riot, en français, dès leur mise en ligne sur leagueoflegends.com.'))),
+      h('div', { class: 'lp-wrap' },
+        h('aside', { class: 'lp-list' },
+          h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: LP.loading ? true : null, onclick: () => loadLolPatch(true) }, LP.loading ? 'Chargement…' : '⟳ Actualiser')),
+          LP.err ? h('p', { class: 'muted small' }, '⚠ Site de Riot indisponible : liste enregistrée affichée.') : null,
+          !LP.list ? h('p', { class: 'muted small' }, 'Chargement des patchs…') : !list.length ? h('p', { class: 'muted small' }, 'Aucun patch trouvé pour le moment.') : null,
+          list.map((x, i) => h('button', { class: 'lp-item' + (x.url === LP.cur ? ' on' : ''), onclick: () => { openLolPatch(x.url); window.scrollTo(0, 0); } },
+            x.img ? h('img', { src: x.img, alt: '' }) : null,
+            h('span', null, h('b', null, x.title.replace(/ de League of Legends$/, '')), h('span', { class: 'muted small' }, dateFr(x.date) + (i === 0 ? ' · le plus récent' : '')))))),
+        h('div', { class: 'lp-main' }, article || h('div', { class: 'card empty-state' }, 'Choisis un patch dans la liste.'))));
+  }
+
   const PATCH_KIND = { new: ['🆕', 'Nouveau'], improve: ['✨', 'Amélioré'], fix: ['🛠️', 'Corrigé'] };
   function renderPatch() {
     const view = $('view');
     const list = S.patch || [];
     view.replaceChildren(...[
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🆕'), h('div', null, h('h1', { class: 'title' }, 'Patch notes'),
-        h('p', { class: 'muted' }, `Tout ce qui change dans FIRE, et un bouton pour signaler un bug. Tu as la v${S.version}.`))),
+        h('p', { class: 'muted' }, `Tout ce qui change dans FIRE : les versions de l'app et chaque mise à jour du contenu (diapos, quiz, guides…). Tu as la v${S.version}.`))),
       bugCard(),
       S.coachState.coach ? bugInbox() : null,
       h('h2', { class: 'team-h' }, '📜 Les versions'),
       !S.patch ? h('div', { class: 'empty-state' }, 'Chargement des patch notes…') : null,
-      h('div', { class: 'patch-list' }, list.map((x, i) => h('article', { class: 'card patch' + (x.v === S.version ? ' cur' : '') + (newer(x.v, S.version) ? ' soon' : '') },
+      h('div', { class: 'patch-list' }, list.map((x, i) => h('article', { class: 'card patch' + (x.contenu ? ' content' : '') + (x.v && x.v === S.version ? ' cur' : '') + (x.v && newer(x.v, S.version) ? ' soon' : '') },
         h('div', { class: 'patch-h' },
-          h('span', { class: 'patch-v' }, 'v' + x.v),
+          h('span', { class: 'patch-v' + (x.contenu ? ' content' : '') }, x.contenu ? '📚 Contenu' : 'v' + x.v),
           h('span', { class: 'patch-t' }, x.titre),
-          x.v === S.version ? h('span', { class: 'pill-new' }, 'Ta version') : newer(x.v, S.version) ? h('span', { class: 'pill-new soon' }, 'À installer') : null,
+          x.contenu ? h('span', { class: 'muted small' }, 'Sans mise à jour à installer') : x.v === S.version ? h('span', { class: 'pill-new' }, 'Ta version') : newer(x.v, S.version) ? h('span', { class: 'pill-new soon' }, 'À installer') : null,
           h('span', { class: 'muted small patch-d' }, x.date ? dayFr(x.date, { day: 'numeric', month: 'long', year: 'numeric' }) : '')),
         h('ul', { class: 'patch-items' }, (x.items || []).map(([k, t]) => h('li', { class: 'pk-' + k }, h('span', { class: 'pk-tag' }, (PATCH_KIND[k] || ['•', '']).join(' ')), h('span', null, t)))))))].filter(Boolean));
   }
@@ -1400,7 +1486,7 @@
     const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
-    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('worlds', '🏆 E-sport'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('worlds', '🏆 E-sport'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('lolpatch', '📜 Patchs LoL', lolUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
   }
 
   function newsBanner() {
@@ -1579,7 +1665,9 @@
     if (!c) { S.guideCat = null; renderCategories(); return; }
     view.replaceChildren(
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, c.ico), h('div', null, h('h1', { class: 'title' }, c.titre), h('p', { class: 'muted' }, c.intro))),
-      diapoCard(c),
+      (c.diapo && ((c.diapo.quiz || []).length || (c.diapo.defis || []).length))
+        ? h('div', { class: 'diapo-row' }, diapoCard(c), h('div', { class: 'diapo-side' }, (c.diapo.quiz || []).length ? quizCard(c) : null, (c.diapo.defis || []).length ? defisCard(c) : null))
+        : diapoCard(c),
       h('div', { class: 'cat-list' }, c.themes.map((x, i) => {
         const t = themeOf(x.id);
         if (!t) return null;
@@ -1608,6 +1696,137 @@
         h('p', { class: 'muted small' }, d.resume || ''),
         h('div', { class: 'diapo-strip' }, d.slides.slice(1, 6).map((sl) => h('img', { src: slideUrl(d, sl), alt: '' }))),
         h('span', { class: 'diapo-go' }, `▶ Voir les ${d.slides.length} slides`)));
+  }
+
+  // ----- Quiz d'une lane : les questions du carnet, une par une, avec l'explication du coach -----
+  const quizName = (c) => (c.diapo && c.diapo.quizTitre) || ('Quiz · ' + c.titre);
+  const QDIFF = [['simple', '🙂 Simple', 'Les questions du carnet'], ['dur', '🧠 Compliqué', 'Des situations, avec des « pourquoi ? »'], ['hardcore', '💀 Ultra hardcore', 'Les décisions les plus fines']];
+  const qOf = (c, d) => ((c.diapo && c.diapo.quiz) || []).filter((x) => (x.diff || 'simple') === d);
+  const qTotal = (qs) => qs.reduce((n, x) => n + 1 + (x.suite ? 1 : 0), 0);
+  function quizCard(c) {
+    const qs = (c.diapo && c.diapo.quiz) || [];
+    const bests = QDIFF.map(([d, l]) => { const b = load(`fire.quiz.${c.id}.${d}`, null); return b ? `${l.split(' ')[0]} ${b.ok}/${b.n}` : null; }).filter(Boolean);
+    return h('button', { class: 'diapo-card quiz-card', onclick: () => openQuiz(c) },
+      h('div', { class: 'diapo-info' },
+        h('div', { class: 'diapo-kick' }, '❓ Quiz'),
+        h('div', { class: 'diapo-t' }, quizName(c)),
+        h('p', { class: 'muted small' }, `3 niveaux : simple, compliqué et ultra hardcore · ${qs.length} situations.`),
+        bests.length ? h('p', { class: 'small' }, '🏆 ' + bests.join(' · ')) : null,
+        h('span', { class: 'diapo-go' }, '▶ Lancer le quiz')));
+  }
+
+  function openQuiz(c) {
+    let diff = null, qs = [], i = 0, ok = 0, picked = null, step = 'main';
+    const body = h('div', { class: 'qz-body' });
+    const close = () => { box.remove(); document.removeEventListener('keydown', key); if (S.section === 'guides') render(); };
+    const key = (e) => { if (e.key === 'Escape') close(); };
+    const begin = (d) => { diff = d; qs = qOf(c, d); i = 0; ok = 0; picked = null; step = 'main'; draw(); };
+    const draw = () => {
+      if (!diff) {
+        body.replaceChildren(h('h2', { class: 'qz-q' }, 'Choisis ton niveau'),
+          h('div', { class: 'qz-levels' }, QDIFF.map(([d, l, sub]) => {
+            const n = qOf(c, d).length, b = load(`fire.quiz.${c.id}.${d}`, null);
+            return h('button', { class: 'qz-level lv-' + d, disabled: n ? null : true, onclick: () => begin(d) },
+              h('b', null, l), h('span', { class: 'muted small' }, sub), h('span', { class: 'small' }, n ? `${n} question${n > 1 ? 's' : ''}` + (b ? ` · 🏆 ${b.ok}/${b.n}` : '') : 'Bientôt'));
+          })));
+        return;
+      }
+      const total = qTotal(qs);
+      if (i >= qs.length) {
+        const k = `fire.quiz.${c.id}.${diff}`, prev = load(k, null);
+        if (!prev || ok > prev.ok || prev.n !== total) save(k, { ok, n: total });
+        const all = ok === total;
+        body.replaceChildren(
+          h('div', { class: 'qz-end' }, h('div', { class: 'qz-big' }, all ? '🏆' : ok >= total / 2 ? '🔥' : '💪'),
+            h('h2', null, `${ok} / ${total} bonnes réponses`),
+            h('p', { class: 'muted' }, all ? (diff === 'hardcore' ? 'Ultra hardcore sans faute. Respect.' : 'Sans faute : passe au niveau au-dessus !') : 'Revois les slides du diaporama, puis retente ta chance.'),
+            h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => begin(diff) }, '🔄 Recommencer'),
+              h('button', { class: 'btn-ghost', onclick: () => { diff = null; draw(); } }, 'Changer de niveau'),
+              h('button', { class: 'btn-ghost', onclick: close }, 'Fermer'))));
+        return;
+      }
+      const base = qs[i], q = step === 'suite' ? base.suite : base;
+      const choices = q.ch.map((txt, k) => {
+        let cls = 'qz-ch';
+        if (picked !== null) cls += k === q.good ? ' good' : (k === picked ? ' bad' : ' dim');
+        return h('button', { class: cls, disabled: picked !== null ? true : null, onclick: () => { picked = k; if (k === q.good) ok++; draw(); } },
+          h('span', { class: 'qz-l' }, 'ABCDE'[k]), txt);
+      });
+      const next = () => { if (step === 'main' && base.suite) step = 'suite'; else { i++; step = 'main'; } picked = null; draw(); };
+      const last = i + 1 >= qs.length && (step === 'suite' || !base.suite);
+      body.replaceChildren(
+        h('div', { class: 'qz-meta muted small' }, `${QDIFF.find((x) => x[0] === diff)[1]} · Question ${i + 1} / ${qs.length}`, base.niveau ? ' · ' + base.niveau : ''),
+        h('div', { class: 'qz-bar' }, h('span', { style: `width:${Math.round(i / qs.length * 100)}%` })),
+        step === 'suite' ? h('div', { class: 'qz-follow' }, '🔎 Et maintenant : pourquoi ?') : null,
+        h('h2', { class: 'qz-q' }, q.q),
+        h('div', { class: 'qz-chs' }, choices),
+        picked !== null ? h('div', { class: 'qz-why ' + (picked === q.good ? 'good' : 'bad') },
+          h('b', null, picked === q.good ? '✅ Bonne réponse ! ' : '❌ Pas tout à fait. '), q.why) : null,
+        picked !== null ? h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: next },
+          step === 'main' && base.suite ? 'Pourquoi ? →' : last ? 'Voir mon score' : 'Question suivante →')) : null);
+    };
+    const box = h('div', { class: 'dv qz', onclick: (e) => { if (e.target === box) close(); } },
+      h('div', { class: 'dv-top' }, h('span', { class: 'dv-name' }, '❓ ' + quizName(c)), h('span', { class: 'dv-title' }), h('button', { class: 'btn-ghost', onclick: close }, '✕ Fermer')),
+      h('div', { class: 'qz-card' }, body));
+    document.body.append(box);
+    document.addEventListener('keydown', key);
+    draw();
+  }
+
+  // ----- Défis d'une lane : à cocher, gardés sur cet ordinateur -----
+  const defiKey = (c) => 'fire.defis.' + c.id;
+  const defiCount = (c) => {
+    const ds = (c.diapo && c.diapo.defis) || [], done = load(defiKey(c), {});
+    let n = 0, ok = 0;
+    ds.forEach((d, i) => d.items.forEach((x, k) => { n++; if (done[i + ':' + k]) ok++; }));
+    return { n, ok };
+  };
+  function defisCard(c) {
+    const ds = (c.diapo && c.diapo.defis) || [];
+    const { n, ok } = defiCount(c);
+    return h('button', { class: 'diapo-card defis-card', onclick: () => openDefis(c) },
+      h('div', { class: 'diapo-info' },
+        h('div', { class: 'diapo-kick' }, '🎯 Défis'),
+        h('div', { class: 'diapo-t' }, (c.diapo.quizTitre || '').replace(/^Quiz/, 'Défis') || 'Défis'),
+        h('p', { class: 'muted small' }, `${ds.length} défis et le Boss final, à cocher au fil de tes games.`),
+        h('div', { class: 'qz-bar' }, h('span', { style: `width:${n ? Math.round(ok / n * 100) : 0}%` })),
+        h('p', { class: 'small' }, `✅ ${ok} / ${n} cochés`),
+        h('span', { class: 'diapo-go' }, '▶ Voir mes défis')));
+  }
+
+  function openDefis(c) {
+    const ds = (c.diapo && c.diapo.defis) || [];
+    const body = h('div', { class: 'qz-body' });
+    const close = () => { box.remove(); document.removeEventListener('keydown', key); if (S.section === 'guides') render(); };
+    const key = (e) => { if (e.key === 'Escape') close(); };
+    const draw = () => {
+      const done = load(defiKey(c), {});
+      const { n, ok } = defiCount(c);
+      body.replaceChildren(
+        h('div', { class: 'qz-meta muted small' }, `✅ ${ok} / ${n} cochés · gardé sur cet ordinateur`),
+        h('div', { class: 'qz-bar' }, h('span', { style: `width:${n ? Math.round(ok / n * 100) : 0}%` })),
+        ...ds.map((d, i) => {
+          const all = d.items.every((x, k) => done[i + ':' + k]);
+          return h('div', { class: 'df-group' + (d.boss ? ' boss' : '') + (all ? ' done' : '') },
+            h('div', { class: 'df-head' }, h('span', { class: 'df-ico' }, d.boss ? '🏆' : '🎯'),
+              h('div', null, h('b', null, d.titre), h('div', { class: 'muted small' }, [d.big, d.sub].filter(Boolean).join(' · ') + (d.niveau ? (d.big || d.sub ? ' · ' : '') + d.niveau : ''))),
+              all ? h('span', { class: 'df-ok' }, d.boss ? 'Badge débloqué !' : 'Validé ✓') : null),
+            h('div', { class: 'df-items' }, d.items.map((x, k) => {
+              const id = i + ':' + k;
+              return h('label', { class: 'df-item' + (done[id] ? ' on' : '') },
+                h('input', { type: 'checkbox', checked: done[id] ? true : null, onchange: (e) => { const cur = load(defiKey(c), {}); if (e.target.checked) cur[id] = true; else delete cur[id]; save(defiKey(c), cur); draw(); } }),
+                h('span', null, x));
+            })));
+        }),
+        h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => { save(defiKey(c), {}); draw(); } }, '↺ Tout décocher'),
+          h('button', { class: 'btn-fire small-btn', onclick: close }, 'Fermer')));
+    };
+    const box = h('div', { class: 'dv qz', onclick: (e) => { if (e.target === box) close(); } },
+      h('div', { class: 'dv-top' }, h('span', { class: 'dv-name' }, '🎯 ' + ((c.diapo.quizTitre || '').replace(/^Quiz/, 'Défis') || 'Défis')), h('span', { class: 'dv-title' }), h('button', { class: 'btn-ghost', onclick: close }, '✕ Fermer')),
+      h('div', { class: 'qz-card df-card' }, body));
+    document.body.append(box);
+    document.addEventListener('keydown', key);
+    draw();
   }
 
   function openDiapo(d, start) {

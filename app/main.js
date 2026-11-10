@@ -144,6 +144,57 @@ ipcMain.handle('patchnotes', async () => {
   try { return require('./patchnotes.json'); } catch (e) { return { versions: [] }; }
 });
 
+// ---------- Patch notes officiels de League of Legends (leagueoflegends.com, en français) ----------
+// La page publique contient ses données en JSON (__NEXT_DATA__) : on en tire la liste des patchs et le texte de chaque patch.
+const RIOT_SITE = 'https://www.leagueoflegends.com';
+async function riotPage(p) {
+  const r = await fetch(RIOT_SITE + p, { headers: { 'User-Agent': 'Mozilla/5.0 (FIRE LoL)', 'Accept-Language': 'fr-FR,fr;q=0.9' } });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const m = (await r.text()).match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+  if (!m) throw new Error('page illisible');
+  return JSON.parse(m[1]);
+}
+ipcMain.handle('lolpatch:list', async () => {
+  try {
+    const j = await riotPage('/fr-fr/news/tags/patch-notes/');
+    const out = [], seen = new Set();
+    const walk = (o) => {
+      if (!o || typeof o !== 'object') return;
+      if (Array.isArray(o)) { o.forEach(walk); return; }
+      const url = o.action && o.action.payload && o.action.payload.url;
+      if (typeof o.title === 'string' && typeof url === 'string' && /^\/fr-fr\/news\/game-updates\/[a-z0-9-]+\/?$/.test(url) && /patch/i.test(o.title) && !seen.has(url)) {
+        seen.add(url);
+        out.push({ title: o.title, url, date: (o.analytics && o.analytics.publishDate) || o.publishedAt || '',
+          img: (o.media && o.media.url) || '', desc: (o.description && o.description.body) || '' });
+      }
+      for (const k of Object.keys(o)) walk(o[k]);
+    };
+    walk(j);
+    out.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    const items = out.slice(0, 30);
+    if (items.length) { try { fs.writeFileSync(cachePath('lolpatch.json'), JSON.stringify(items)); } catch (e) { /* ignore */ } }
+    return { ok: true, items };
+  } catch (e) {
+    let items = [];
+    try { items = JSON.parse(fs.readFileSync(cachePath('lolpatch.json'), 'utf8')); } catch (err) { /* rien en cache */ }
+    return { ok: false, error: String((e && e.message) || e).slice(0, 120), items };
+  }
+});
+ipcMain.handle('lolpatch:get', async (e, url) => {
+  if (typeof url !== 'string' || !/^\/fr-fr\/news\/game-updates\/[a-z0-9-]+\/?$/.test(url)) return { ok: false, error: 'lien invalide' };
+  try {
+    const j = await riotPage(url);
+    const blades = (((j.props || {}).pageProps || {}).page || {}).blades || [];
+    const head = blades.find((b) => b.type === 'articleMasthead') || {};
+    const rich = blades.find((b) => b.richText && b.richText.body);
+    if (!rich) return { ok: false, error: 'contenu introuvable', link: RIOT_SITE + url };
+    return { ok: true, title: head.title || '', date: head.publishDate || '', desc: (head.description && head.description.body) || '',
+      banner: (head.banner && head.banner.url) || '', html: rich.richText.body, link: RIOT_SITE + url };
+  } catch (err) {
+    return { ok: false, error: String((err && err.message) || err).slice(0, 120), link: RIOT_SITE + url };
+  }
+});
+
 coach.init(() => lastCfg || {});
 ipcMain.handle('unlock', (e, code) => coach.unlock(code));
 ipcMain.handle('unlocked', () => coach.isUnlocked());

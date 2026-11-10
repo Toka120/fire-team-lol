@@ -98,352 +98,600 @@
     "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-top/",
     "slides": [
      {
-      "img": "slide-01.jpg?v=7",
+      "img": "slide-01.jpg?v=8",
       "titre": "Le carnet du top"
      },
      {
-      "img": "slide-02.jpg?v=7",
+      "img": "slide-02.jpg?v=8",
       "titre": "La quête"
      },
      {
-      "img": "slide-03.jpg?v=7",
+      "img": "slide-03.jpg?v=8",
       "titre": "La lane du 1v1 pur"
      },
      {
-      "img": "slide-04.jpg?v=7",
+      "img": "slide-04.jpg?v=8",
       "titre": "Loin du bot, mais pas sans impact"
      },
      {
-      "img": "slide-05.jpg?v=7",
+      "img": "slide-05.jpg?v=8",
       "titre": "Ta prio compte"
      },
      {
-      "img": "slide-06.jpg?v=7",
+      "img": "slide-06.jpg?v=8",
       "titre": "Les 4 catégories de toplaners"
      },
      {
-      "img": "slide-07.jpg?v=7",
+      "img": "slide-07.jpg?v=8",
       "titre": "Des repères, pas des cases"
      },
      {
-      "img": "slide-08.jpg?v=7",
+      "img": "slide-08.jpg?v=8",
       "titre": "Quand ton champion est-il fort ?"
      },
      {
-      "img": "slide-09.jpg?v=7",
+      "img": "slide-09.jpg?v=8",
       "titre": "Ce que disent les matchups du top"
      },
      {
-      "img": "slide-10.jpg?v=7",
+      "img": "slide-10.jpg?v=8",
       "titre": "Un plan de lane, pas juste un counterpick"
      },
      {
-      "img": "slide-11.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-12.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-13.jpg?v=7",
+      "img": "slide-11.jpg?v=8",
       "titre": "Comprends ta draft et tes conditions de victoire"
      },
      {
-      "img": "slide-14.jpg?v=7",
+      "img": "slide-12.jpg?v=8",
       "titre": "D’abord ton propre jeu"
      },
      {
-      "img": "slide-15.jpg?v=7",
+      "img": "slide-13.jpg?v=8",
       "titre": "Solo queue et équipe : complémentaires"
      },
      {
-      "img": "slide-16.jpg?v=7",
+      "img": "slide-14.jpg?v=8",
       "titre": "Tu ne contrôles que toi"
      },
      {
-      "img": "slide-17.jpg?v=7",
+      "img": "slide-15.jpg?v=8",
       "titre": "Connais ton champion par cœur"
      },
      {
-      "img": "slide-18.jpg?v=7",
+      "img": "slide-16.jpg?v=8",
       "titre": "À quel moment j’utilise mon combo, et pourquoi ?"
      },
      {
-      "img": "slide-19.jpg?v=7",
+      "img": "slide-17.jpg?v=8",
       "titre": "Farmer sous ta tour"
      },
      {
-      "img": "slide-20.jpg?v=7",
-      "titre": "Le défi CS"
-     },
-     {
-      "img": "slide-21.jpg?v=7",
+      "img": "slide-18.jpg?v=8",
       "titre": "Taper en farmant"
      },
      {
-      "img": "slide-22.jpg?v=7",
+      "img": "slide-19.jpg?v=8",
       "titre": "Ce qui décide un échange"
      },
      {
-      "img": "slide-23.jpg?v=7",
+      "img": "slide-20.jpg?v=8",
       "titre": "Il s’avance pour un sbire : sois prêt"
      },
      {
-      "img": "slide-24.jpg?v=7",
+      "img": "slide-21.jpg?v=8",
       "titre": "La wave est un outil"
      },
      {
-      "img": "slide-25.jpg?v=7",
+      "img": "slide-22.jpg?v=8",
       "titre": "Le freeze"
      },
      {
-      "img": "slide-26.jpg?v=7",
+      "img": "slide-23.jpg?v=8",
       "titre": "Comment freeze devant la tour ?"
      },
      {
-      "img": "slide-27.jpg?v=7",
+      "img": "slide-24.jpg?v=8",
       "titre": "Quand éviter de freeze ?"
      },
      {
-      "img": "slide-28.jpg?v=7",
+      "img": "slide-25.jpg?v=8",
       "titre": "Le slow push"
      },
      {
-      "img": "slide-29.jpg?v=7",
+      "img": "slide-26.jpg?v=8",
       "titre": "Le fast push"
      },
      {
-      "img": "slide-30.jpg?v=7",
+      "img": "slide-27.jpg?v=8",
       "titre": "Le bounce"
      },
      {
-      "img": "slide-31.jpg?v=7",
+      "img": "slide-28.jpg?v=8",
       "titre": "Le reset"
      },
      {
-      "img": "slide-32.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-33.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-34.jpg?v=7",
+      "img": "slide-29.jpg?v=8",
       "titre": "Pourquoi la wave compte encore plus ici"
      },
      {
-      "img": "slide-35.jpg?v=7",
+      "img": "slide-30.jpg?v=8",
       "titre": "Utilise les buissons de la lane"
      },
      {
-      "img": "slide-36.jpg?v=7",
+      "img": "slide-31.jpg?v=8",
       "titre": "Priver l’adversaire de ressources"
      },
      {
-      "img": "slide-37.jpg?v=7",
+      "img": "slide-32.jpg?v=8",
       "titre": "Le meilleur compromis"
      },
      {
-      "img": "slide-38.jpg?v=7",
+      "img": "slide-33.jpg?v=8",
       "titre": "15 CS, c’est (à peu près) un kill"
      },
      {
-      "img": "slide-39.jpg?v=7",
+      "img": "slide-34.jpg?v=8",
       "titre": "Deux questions, tout de suite"
      },
      {
-      "img": "slide-40.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-41.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-42.jpg?v=7",
+      "img": "slide-35.jpg?v=8",
       "titre": "Où est son jungler ?"
      },
      {
-      "img": "slide-43.jpg?v=7",
+      "img": "slide-36.jpg?v=8",
       "titre": "Vu, supposé, dangereux"
      },
      {
-      "img": "slide-44.jpg?v=7",
+      "img": "slide-37.jpg?v=8",
       "titre": "Lire la vision, pas seulement poser des wards"
      },
      {
-      "img": "slide-45.jpg?v=7",
+      "img": "slide-38.jpg?v=8",
       "titre": "« Pourquoi je pose cette ward ? »"
      },
      {
-      "img": "slide-46.jpg?v=7",
+      "img": "slide-39.jpg?v=8",
       "titre": "Où sont les 5 ?"
      },
      {
-      "img": "slide-47.jpg?v=7",
+      "img": "slide-40.jpg?v=8",
       "titre": "Vu ou supposé ?"
      },
      {
-      "img": "slide-48.jpg?v=7",
+      "img": "slide-41.jpg?v=8",
       "titre": "Anticiper sans supposer"
      },
      {
-      "img": "slide-49.jpg?v=7",
+      "img": "slide-42.jpg?v=8",
       "titre": "Où l’équipe met ses ressources"
      },
      {
-      "img": "slide-50.jpg?v=7",
+      "img": "slide-43.jpg?v=8",
       "titre": "Deux plans de jeu possibles"
      },
      {
-      "img": "slide-51.jpg?v=7",
+      "img": "slide-44.jpg?v=8",
       "titre": "Savoir absorber la pression"
      },
      {
-      "img": "slide-52.jpg?v=7",
+      "img": "slide-45.jpg?v=8",
       "titre": "Gank, cover, countergank, aide au crash"
      },
      {
-      "img": "slide-53.jpg?v=7",
+      "img": "slide-46.jpg?v=8",
       "titre": "Le jungler sécurise ton crash"
      },
      {
-      "img": "slide-54.jpg?v=7",
+      "img": "slide-47.jpg?v=8",
       "titre": "Back au bon moment"
      },
      {
-      "img": "slide-55.jpg?v=7",
+      "img": "slide-48.jpg?v=8",
       "titre": "Push mid, puis fight"
      },
      {
-      "img": "slide-56.jpg?v=7",
+      "img": "slide-49.jpg?v=8",
       "titre": "Les bons timings pour bouger"
      },
      {
-      "img": "slide-57.jpg?v=7",
+      "img": "slide-50.jpg?v=8",
       "titre": "« Il faut être dans la tête de son adversaire »"
      },
      {
-      "img": "slide-58.jpg?v=7",
+      "img": "slide-51.jpg?v=8",
       "titre": "La tempo, c’est quoi ?"
      },
      {
-      "img": "slide-59.jpg?v=7",
+      "img": "slide-52.jpg?v=8",
       "titre": "Une bonne wave crée du temps"
      },
      {
-      "img": "slide-60.jpg?v=7",
+      "img": "slide-53.jpg?v=8",
       "titre": "Ta fenêtre, ou la leur ?"
      },
      {
-      "img": "slide-61.jpg?v=7",
+      "img": "slide-54.jpg?v=8",
       "titre": "Punir une erreur de tempo"
      },
      {
-      "img": "slide-62.jpg?v=7",
+      "img": "slide-55.jpg?v=8",
       "titre": "Ta quête de rôle : XP et Téléportation"
      },
      {
-      "img": "slide-63.jpg?v=7",
+      "img": "slide-56.jpg?v=8",
       "titre": "Jouer le 2e dragon avec la TP"
      },
      {
-      "img": "slide-64.jpg?v=7",
+      "img": "slide-57.jpg?v=8",
       "titre": "Le 2e dragon : ce que tu vérifies"
      },
      {
-      "img": "slide-65.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-66.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-67.jpg?v=7",
+      "img": "slide-58.jpg?v=8",
       "titre": "Ton rôle change"
      },
      {
-      "img": "slide-68.jpg?v=7",
+      "img": "slide-59.jpg?v=8",
       "titre": "« Les tours sont aussi des objectifs »"
      },
      {
-      "img": "slide-69.jpg?v=7",
+      "img": "slide-60.jpg?v=8",
       "titre": "Choisis selon tes conditions de victoire"
      },
      {
-      "img": "slide-70.jpg?v=7",
+      "img": "slide-61.jpg?v=8",
       "titre": "« Prendre la pression, c’est bien. Mais il ne faut pas mourir pour rien »"
      },
      {
-      "img": "slide-71.jpg?v=7",
+      "img": "slide-62.jpg?v=8",
       "titre": "Jouer à l’opposé de l’objectif"
      },
      {
-      "img": "slide-72.jpg?v=7",
+      "img": "slide-63.jpg?v=8",
       "titre": "Garde tes bons matchups en side"
      },
      {
-      "img": "slide-73.jpg?v=7",
+      "img": "slide-64.jpg?v=8",
       "titre": "Qui prend quelle side lane ?"
      },
      {
-      "img": "slide-74.jpg?v=7",
+      "img": "slide-65.jpg?v=8",
       "titre": "Gwen, Sion, Syndra et Mel : on échange ?"
      },
      {
-      "img": "slide-75.jpg?v=7",
+      "img": "slide-66.jpg?v=8",
       "titre": "Changer de matchup pour limiter un retard"
      },
      {
-      "img": "slide-76.jpg?v=7",
+      "img": "slide-67.jpg?v=8",
       "titre": "Un objectif se prépare avant de le taper"
      },
      {
-      "img": "slide-77.jpg?v=7",
+      "img": "slide-68.jpg?v=8",
       "titre": "Jamais de face check"
      },
      {
-      "img": "slide-78.jpg?v=7",
-      "titre": "Avant chaque fight"
-     },
-     {
-      "img": "slide-79.jpg?v=7",
+      "img": "slide-69.jpg?v=8",
       "titre": "Jouer front to back"
      },
      {
-      "img": "slide-80.jpg?v=7",
+      "img": "slide-70.jpg?v=8",
       "titre": "Cible prioritaire, pas tunnel vision"
      },
      {
-      "img": "slide-81.jpg?v=7",
+      "img": "slide-71.jpg?v=8",
       "titre": "Tout est relié"
+     }
+    ],
+    "quiz": [
+     {
+      "q": "Tu joues un splitpusher qui a besoin de 2 objets, contre un range. Ton plan ?",
+      "ch": [
+       "All-in niveau 1 pour gagner la lane",
+       "Limiter les pertes, farmer, prendre l'XP et atteindre mes timings",
+       "Aller roam au mid tout de suite"
+      ],
+      "good": 1,
+      "why": "Ton champion gagne plus tard : la lane sert à arriver à tes timings sans trop perdre, puis à mettre la pression en side.",
+      "niveau": "Niveau 1 · Comprendre son rôle",
+      "diff": "simple"
      },
      {
-      "img": "slide-82.jpg?v=7",
-      "titre": "Quiz"
+      "q": "Tu as mieux farmé, mais il passe niveau 3 avant toi. Pourquoi ?",
+      "ch": [
+       "Il a eu de la chance",
+       "Ta wave a bounce : tu l'avais trop crash",
+       "Il a pris un camp de jungle"
+      ],
+      "good": 1,
+      "why": "Le bounce : ses sbires et sa wave tuent vite, il prend l'XP pendant que toi tu es encore sous ta tour.",
+      "niveau": "Niveau 2 · Maîtriser sa phase de lane",
+      "diff": "simple"
      },
      {
-      "img": "slide-83.jpg?v=7",
-      "titre": "Réponse"
+      "q": "Tu viens de le tuer, ta wave est grosse et avance. Le jungler adverse a été vu de l'autre côté. Tu fais quoi ?",
+      "ch": [
+       "Je back tout de suite",
+       "Je crash la wave sous sa tour, puis je back",
+       "Je reste à côté de sa tour sans rien faire"
+      ],
+      "good": 1,
+      "why": "Il est mort et son jungler est loin : crash la wave fait perdre de l'XP et des golds à l'adversaire, puis tu back tranquille.",
+      "niveau": "Niveau 2 · Maîtriser sa phase de lane",
+      "diff": "simple"
      },
      {
-      "img": "slide-84.jpg?v=7",
-      "titre": "Quiz"
+      "q": "Le 2e dragon arrive. Ta wave n'est pas crash et ta TP est en recharge. Tu fais quoi ?",
+      "ch": [
+       "Je pars au dragon en marchant tout de suite",
+       "Je joue ma lane, je crash, et je dis à mon équipe que je ne viens pas",
+       "Je reste sans rien dire"
+      ],
+      "good": 1,
+      "why": "Sans crash ni TP, tu perdrais beaucoup pour arriver tard. Préviens ton équipe : elle décide en connaissant ta situation.",
+      "niveau": "Niveau 4 · Comprendre la tempo",
+      "diff": "simple"
      },
      {
-      "img": "slide-85.jpg?v=7",
-      "titre": "Réponse"
+      "q": "Quelle différence entre un gank et un cover ?",
+      "ch": [
+       "Aucune, c'est pareil",
+       "Le gank cherche un kill, le cover sécurise ton action",
+       "Le cover, c'est seulement pour le bot"
+      ],
+      "good": 1,
+      "why": "Le cover sécurise ton action (crash, back, déplacement), sans forcément chercher à tuer.",
+      "niveau": "Niveau 6 · Le bilan",
+      "diff": "simple"
      },
      {
-      "img": "slide-86.jpg?v=7",
-      "titre": "Avant la game"
+      "q": "Pourquoi une avance de 15 CS compte ?",
+      "ch": [
+       "Ça ne compte pas sans kill",
+       "C'est à peu près le gold d'un kill, sans avoir tué",
+       "Seulement pour le score"
+      ],
+      "good": 1,
+      "why": "15 CS ≈ 250-300 golds : à peu près un kill. Et s'il a perdu de l'XP en plus, l'avance est encore plus grande.",
+      "niveau": "Niveau 6 · Le bilan",
+      "diff": "simple"
      },
      {
-      "img": "slide-87.jpg?v=7",
-      "titre": "Boss final"
+      "q": "Ton adversaire casse ton slow push de 2 waves et reste au contact de ta grosse wave. Tu fais quoi ?",
+      "ch": [
+       "Je recule sous ma tour",
+       "Je joue agressif : je trade avec mes sbires",
+       "Je back tout de suite"
+      ],
+      "good": 1,
+      "why": "Tu as plus de sbires : ils tapent avec toi, il prend leur aggro. Les longs trades sont pour toi.",
+      "suite": {
+       "q": "Pourquoi tes trades sont meilleurs ici ?",
+       "ch": [
+        "Ses sorts sont forcément en recharge",
+        "Tes sbires tapent avec toi et il prend l'aggro de ta wave",
+        "Tu as plus de PV que lui"
+       ],
+       "good": 1,
+       "why": "C'est la wave qui fait la différence : sa wave est plus petite, la tienne t'aide."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Une wave canon arrive devant ta tour et tu veux freeze. Tu laisses vivre combien de sbires en face ?",
+      "ch": [
+       "3 casters",
+       "3 casters et 1 mêlée",
+       "Seulement le canon"
+      ],
+      "good": 1,
+      "why": "Wave canon : 3 casters + 1 mêlée. Wave normale : 3 casters full PV.",
+      "suite": {
+       "q": "Et si tu tues trop de sbires ?",
+       "ch": [
+        "La wave pousse ou bounce : tu perds ton freeze",
+        "Rien ne change",
+        "Tu gagnes plus d'XP sans risque"
+       ],
+       "good": 0,
+       "why": "Trop de dégâts : ta wave devient plus grosse que la sienne et le freeze casse."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Leur jungler a été vu au top side à 3:15. Il est 3:40, tu es en avance et ta wave pousse vers lui.",
+      "ch": [
+       "Je push pour prendre une plaque",
+       "Je ralentis et je respecte un gank possible",
+       "Je back sans crash"
+      ],
+      "good": 1,
+      "why": "Il a été vu près de toi il y a 25 s : la menace est réelle. Ne t'avance pas sans info.",
+      "suite": {
+       "q": "Ce que tu sais de son jungler, c'est…",
+       "ch": [
+        "Il est forcément au top",
+        "Une position supposée : il a pu bouger depuis",
+        "Il est mort"
+       ],
+       "good": 1,
+       "why": "Vu à 3:15, supposé ensuite. Une position supposée n'est pas une certitude."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Ton équipe joue côté bot : ton jungler y passe tout son temps. Tu es weakside contre un bruiser.",
+      "ch": [
+       "Je force les trades pour ne pas perdre",
+       "Je joue prudent, je garde mon XP et je ping les menaces",
+       "Je pars roam au bot"
+      ],
+      "good": 1,
+      "why": "Weakside : moins d'aide, donc moins de risques. Ton moment viendra.",
+      "suite": {
+       "q": "Weakside, ça veut dire…",
+       "ch": [
+        "Que tu es abandonné",
+        "Moins de ressources de ton côté, pas une lane perdue",
+        "Que tu dois mourir pour l'équipe"
+       ],
+       "good": 1,
+       "why": "Weakside ne veut pas dire abandonné : tu absorbes la pression pendant que l'équipe joue ailleurs."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Quête de rôle du top : jusqu'au niveau 3, tu farmes des sbires hors du top. Que se passe-t-il ?",
+      "ch": [
+       "Rien de spécial",
+       "Tu gagnes moins de gold et d'XP sur ces sbires",
+       "Tu perds ta Téléportation"
+      ],
+      "good": 1,
+      "why": "Jusqu'au niveau 3, rester sur ta lane te rapporte plus : la quête te pousse à jouer le top.",
+      "diff": "dur"
+     },
+     {
+      "q": "Ton équipe lance le Baron sans vision autour. Leur jungler n'est pas visible depuis 50 s. Tu as la TP.",
+      "ch": [
+       "Je TP au Baron tout de suite",
+       "Je dis d'arrêter : pas de vision, leur jungler peut smite ou engager",
+       "Je push ma side sans rien dire"
+      ],
+      "good": 1,
+      "why": "Un objectif se prépare avant de le taper. Sans vision, c'est un pari.",
+      "suite": {
+       "q": "Ce qu'il aurait fallu faire avant ?",
+       "ch": [
+        "Poser et retirer la vision, pousser les waves",
+        "Avoir plus de dégâts",
+        "Attendre le prochain Baron"
+       ],
+       "good": 0,
+       "why": "Vision, waves, accès contrôlés : puis on lance."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Tu es 2/0. Ton jungler veut les larves maintenant, mais 8 sbires vont crash sous ta tour.",
+      "ch": [
+       "Je pars, les larves passent avant tout",
+       "Je prends la wave sous tour, puis je bouge si c'est encore jouable, et je le dis",
+       "Je back"
+      ],
+      "good": 1,
+      "why": "8 sbires, c'est beaucoup de gold et d'XP. Compare toujours ce que tu gagnes et ce que tu perds.",
+      "suite": {
+       "q": "Ce que tu dis à ton jungler ?",
+       "ch": [
+        "« J'arrive après la wave, environ 15 s »",
+        "Rien",
+        "« Joue seul »"
+       ],
+       "good": 0,
+       "why": "Il décide mieux s'il sait quand tu arrives."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Tu joues un bruiser contre un Kennen qui poke. Quand trades-tu ?",
+      "ch": [
+       "Quand il s'avance pour last hit près de mes sbires",
+       "Dès que je peux",
+       "Jamais"
+      ],
+      "good": 0,
+      "why": "Il doit choisir : le sbire ou l'échange.",
+      "suite": {
+       "q": "Pourquoi ce moment ?",
+       "ch": [
+        "Il est occupé par le sbire et s'avance dans ta zone",
+        "Il est plus faible au niveau 1",
+        "Pour l'XP"
+       ],
+       "good": 0,
+       "why": "Le jeu d'échange : quand il farme, tu tapes."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Ton mid est en retard contre une Syndra. Tu es une Gwen en avance contre un Sion.",
+      "ch": [
+       "Gwen va contre Syndra, le mid prend Sion (un tank : il récupère ses waves)",
+       "Personne ne bouge",
+       "Gwen va jungler"
+      ],
+      "good": 0,
+      "why": "Le but : la meilleure répartition pour l'équipe, pas le confort d'un seul joueur.",
+      "suite": {
+       "q": "Ce qu'on vérifie avant d'échanger ?",
+       "ch": [
+        "Waveclear, risques de dive ou de 1v2, déplacements, objets",
+        "La couleur des skins",
+        "Rien"
+       ],
+       "good": 0,
+       "why": "Un swap se prépare comme le reste."
+      },
+      "diff": "hardcore"
+     }
+    ],
+    "quizTitre": "Quiz du top",
+    "defis": [
+     {
+      "titre": "Le défi CS",
+      "big": "7 CS / min",
+      "sub": "à 10 min · et encore à 20 min = 140 CS",
+      "items": [
+       "Un objectif à chaque game, et toujours s'améliorer",
+       "Objectif tenu (7-8 CS/min) ? Passe au suivant : les teamfights…",
+       "Lane ratée ? Pas grave : tu te rattrapes en farm",
+       "Mais pas matrixé par les CS : en fight, on a besoin de toi"
+      ],
+      "niveau": "Niveau 2 · Maîtriser sa phase de lane",
+      "boss": false
+     },
+     {
+      "titre": "Avant chaque fight",
+      "big": "Le check",
+      "sub": "R et flash, chez nous et chez eux",
+      "items": [
+       "Mes R et mes flashs, et ceux de mes alliés",
+       "Leurs R et leurs flashs",
+       "Sans R ou sans flash : je joue safe et je le call",
+       "Un ennemi sans flash ? On joue sur lui",
+       "Ma team prend un fight : est-ce un bon fight ?"
+      ],
+      "niveau": "Niveau 5 · Mid et late game",
+      "boss": false
+     },
+     {
+      "titre": "Avant la game",
+      "big": "Échauffement",
+      "sub": "5 à 10 min, selon ton temps",
+      "items": [
+       "Outil d'entraînement : ton farm",
+       "Shadow laning : imagine ta lane de A à Z, comme le shadow boxing",
+       "Ça marche aussi pour le roam : « jouer sans jouer »",
+       "Un objectif pour la game (par exemple : tes CS)"
+      ],
+      "niveau": "Niveau 6 · Le bilan",
+      "boss": false
+     },
+     {
+      "titre": "Boss final : la checklist du top",
+      "big": "",
+      "sub": "",
+      "items": [
+       "Je connais l'identité de mon champion et le moment où il est fort",
+       "Je sais quand utiliser mon combo, et pourquoi",
+       "Chaque wave a un but, et je crash avant de bouger",
+       "Je sais où est probablement le jungler adverse, sans le deviner",
+       "Weakside, j'absorbe ; strongside, je punis",
+       "Je joue la side lane avec ma TP, sans mourir pour rien",
+       "Après un kill : ma wave, et où est leur jungler ?"
+      ],
+      "niveau": "",
+      "boss": true
      }
     ]
    }
@@ -537,188 +785,403 @@
     "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-jungle/",
     "slides": [
      {
-      "img": "slide-01.jpg?v=7",
+      "img": "slide-01.jpg?v=8",
       "titre": "Le carnet du jungler"
      },
      {
-      "img": "slide-02.jpg?v=7",
+      "img": "slide-02.jpg?v=8",
       "titre": "La quête"
      },
      {
-      "img": "slide-03.jpg?v=7",
+      "img": "slide-03.jpg?v=8",
       "titre": "Farmer et ganker"
      },
      {
-      "img": "slide-04.jpg?v=7",
+      "img": "slide-04.jpg?v=8",
       "titre": "Choisis ta classe"
      },
      {
-      "img": "slide-05.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-06.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-07.jpg?v=7",
+      "img": "slide-05.jpg?v=8",
       "titre": "Monocible : start Blue"
      },
      {
-      "img": "slide-08.jpg?v=7",
+      "img": "slide-06.jpg?v=8",
       "titre": "Ganker AOE : start Red"
      },
      {
-      "img": "slide-09.jpg?v=7",
+      "img": "slide-07.jpg?v=8",
       "titre": "Combien de camps ?"
      },
      {
-      "img": "slide-10.jpg?v=7",
+      "img": "slide-08.jpg?v=8",
       "titre": "Une course de vitesse"
      },
      {
-      "img": "slide-11.jpg?v=7",
+      "img": "slide-09.jpg?v=8",
       "titre": "Les 2 voyants avant d’y aller"
      },
      {
-      "img": "slide-12.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-13.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-14.jpg?v=7",
+      "img": "slide-10.jpg?v=8",
       "titre": "Quelle lane ganker ?"
      },
      {
-      "img": "slide-15.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-16.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-17.jpg?v=7",
+      "img": "slide-11.jpg?v=8",
       "titre": "Ce que te donnent les buffs"
      },
      {
-      "img": "slide-18.jpg?v=7",
+      "img": "slide-12.jpg?v=8",
       "titre": "Où est son jungler ?"
      },
      {
-      "img": "slide-19.jpg?v=7",
+      "img": "slide-13.jpg?v=8",
       "titre": "Vu, supposé, dangereux"
      },
      {
-      "img": "slide-20.jpg?v=7",
+      "img": "slide-14.jpg?v=8",
       "titre": "Où sont les 5 ?"
      },
      {
-      "img": "slide-21.jpg?v=7",
+      "img": "slide-15.jpg?v=8",
       "titre": "Vu ou supposé ?"
      },
      {
-      "img": "slide-22.jpg?v=7",
+      "img": "slide-16.jpg?v=8",
       "titre": "Gank, cover, countergank, aide au crash"
      },
      {
-      "img": "slide-23.jpg?v=7",
+      "img": "slide-17.jpg?v=8",
       "titre": "Où l’équipe met ses ressources"
      },
      {
-      "img": "slide-24.jpg?v=7",
+      "img": "slide-18.jpg?v=8",
       "titre": "Deux plans de jeu possibles"
      },
      {
-      "img": "slide-25.jpg?v=7",
+      "img": "slide-19.jpg?v=8",
       "titre": "Les 5 mots des vagues"
      },
      {
-      "img": "slide-26.jpg?v=7",
+      "img": "slide-20.jpg?v=8",
       "titre": "La tempo, c’est quoi ?"
      },
      {
-      "img": "slide-27.jpg?v=7",
+      "img": "slide-21.jpg?v=8",
       "titre": "Une bonne wave crée du temps"
      },
      {
-      "img": "slide-28.jpg?v=7",
+      "img": "slide-22.jpg?v=8",
       "titre": "Ta fenêtre, ou la leur ?"
      },
      {
-      "img": "slide-29.jpg?v=7",
+      "img": "slide-23.jpg?v=8",
       "titre": "Punir une erreur de tempo"
      },
      {
-      "img": "slide-30.jpg?v=7",
+      "img": "slide-24.jpg?v=8",
       "titre": "« Les tours sont aussi des objectifs »"
      },
      {
-      "img": "slide-31.jpg?v=7",
+      "img": "slide-25.jpg?v=8",
       "titre": "Lire la vision, pas seulement poser des wards"
      },
      {
-      "img": "slide-32.jpg?v=7",
+      "img": "slide-26.jpg?v=8",
       "titre": "« Pourquoi je pose cette ward ? »"
      },
      {
-      "img": "slide-33.jpg?v=7",
+      "img": "slide-27.jpg?v=8",
       "titre": "Anticiper sans supposer"
      },
      {
-      "img": "slide-34.jpg?v=7",
+      "img": "slide-28.jpg?v=8",
       "titre": "Un objectif se prépare avant de le taper"
      },
      {
-      "img": "slide-35.jpg?v=7",
+      "img": "slide-29.jpg?v=8",
       "titre": "Cible prioritaire, pas tunnel vision"
      },
      {
-      "img": "slide-36.jpg?v=7",
+      "img": "slide-30.jpg?v=8",
       "titre": "Jamais de face check"
      },
      {
-      "img": "slide-37.jpg?v=7",
-      "titre": "Avant chaque fight"
-     },
-     {
-      "img": "slide-38.jpg?v=7",
+      "img": "slide-31.jpg?v=8",
       "titre": "À quel moment j’utilise mon combo, et pourquoi ?"
      },
      {
-      "img": "slide-39.jpg?v=7",
+      "img": "slide-32.jpg?v=8",
       "titre": "Solo queue et équipe : complémentaires"
      },
      {
-      "img": "slide-40.jpg?v=7",
+      "img": "slide-33.jpg?v=8",
       "titre": "Tu ne contrôles que toi"
      },
      {
-      "img": "slide-41.jpg?v=7",
+      "img": "slide-34.jpg?v=8",
       "titre": "Laisse les ressources"
      },
      {
-      "img": "slide-42.jpg?v=7",
+      "img": "slide-35.jpg?v=8",
       "titre": "D’abord ton propre jeu"
      },
      {
-      "img": "slide-43.jpg?v=7",
+      "img": "slide-36.jpg?v=8",
       "titre": "« Il faut être dans la tête de son adversaire »"
      },
      {
-      "img": "slide-44.jpg?v=7",
+      "img": "slide-37.jpg?v=8",
       "titre": "Runes et data"
+     }
+    ],
+    "quiz": [
+     {
+      "q": "Ton champion est fort en early et il a un CC. Tu es plutôt…",
+      "ch": [
+       "Un farmeur",
+       "Un ganker",
+       "Aucun des deux"
+      ],
+      "good": 1,
+      "why": "Regarde son kit de sorts : fort en early + CC = ganker. Faible en early mais clear rapide = farmeur.",
+      "niveau": "Niveau 2 · Ta classe",
+      "diff": "simple"
      },
      {
-      "img": "slide-45.jpg?v=7",
-      "titre": "Avant la game"
+      "q": "Tu veux le carapateur bot. Quelles prios tu regardes ?",
+      "ch": [
+       "Top + mid",
+       "Mid + bot",
+       "Seulement le bot"
+      ],
+      "good": 1,
+      "why": "Carapateur bot : prio mid et bot. Carapateur top : prio mid et top. Pas de prio : n'y va pas.",
+      "niveau": "Niveau 4 · Le carapateur",
+      "diff": "simple"
      },
      {
-      "img": "slide-46.jpg?v=7",
-      "titre": "Boss final"
+      "q": "Ganker, toutes les lanes sont gankables. Tu vas où ?",
+      "ch": [
+       "La plus proche de toi",
+       "La plus feed, ou celle où le kill est facile",
+       "Celle de ton duo"
+      ],
+      "good": 1,
+      "why": "La plus feed, ou la plus facile : allié avec grab ou stun, kill sûr, adversaire sans flash.",
+      "niveau": "Niveau 5 · Les ganks",
+      "diff": "simple"
+     },
+     {
+      "q": "Ton top freeze devant sa tour, leur top est avancé et sans flash.",
+      "ch": [
+       "Je gank top",
+       "Je farme mes camps",
+       "J'invade le bot"
+      ],
+      "good": 0,
+      "why": "C'est le gank idéal : loin de sa tour, sans flash, la wave est de votre côté.",
+      "suite": {
+       "q": "Ce qui rend ce gank bon :",
+       "ch": [
+        "Il est loin de sa tour, sans flash, la wave est chez vous",
+        "C'est le top",
+        "Il est niveau 1"
+       ],
+       "good": 0,
+       "why": "Distance, flash et position de la wave : les trois conditions d'un bon gank."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Tu veux le dragon. Ton bot n'a pas la prio, ton mid l'a.",
+      "ch": [
+       "Je le lance seul tout de suite",
+       "Je prépare : vision, attendre la prio bot ou jouer autre chose",
+       "Je le lance quand même, on verra"
+      ],
+      "good": 1,
+      "why": "Sans prio bot, leur duo arrive avant le tien. Prépare, ou échange.",
+      "suite": {
+       "q": "Ce qui manque pour le lancer ?",
+       "ch": [
+        "La prio bot et la vision autour",
+        "Plus de dégâts",
+        "Un niveau de plus"
+       ],
+       "good": 0,
+       "why": "Un objectif se prépare avant de le taper."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Ton mid veut roam, mais sa wave n'est pas crash.",
+      "ch": [
+       "Je couvre sa wave ou je l'aide à crash",
+       "Je ne fais rien",
+       "Je gank son adversaire"
+      ],
+      "good": 0,
+      "why": "Le jungler n'est pas là que pour tuer : aider au crash libère ton mid.",
+      "suite": {
+       "q": "« Couvrir », ça veut dire…",
+       "ch": [
+        "Sécuriser une action sans chercher le kill",
+        "Ganker",
+        "Prendre ses sbires"
+       ],
+       "good": 0,
+       "why": "Cover : tu protèges. Gank : tu cherches le kill."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Leur jungler a été vu au top à 3:20.",
+      "ch": [
+       "Il est forcément encore top",
+       "Il peut être au carapateur bot vers 3:50 : je préviens",
+       "Il est mort"
+      ],
+      "good": 1,
+      "why": "Tu connais les chemins possibles : donne l'info utile à tes laners.",
+      "suite": {
+       "q": "Ce que tu dis à ton bot ?",
+       "ch": [
+        "« Jungler vu top à 3:20, attention vers 3:50 côté rivière »",
+        "Rien",
+        "« Il est top, push »"
+       ],
+       "good": 0,
+       "why": "Une info avec un horaire aide tes laners à décider."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Les larves arrivent. Ton top est en retard, ton mid sans prio, ton bot avec la prio.",
+      "ch": [
+       "Je force les larves",
+       "Je joue l'opposé avec la prio bot : dragon ou carapateur",
+       "Je reste au milieu"
+      ],
+      "good": 1,
+      "why": "Sans prio en haut, tu échanges : tu prends de l'autre côté.",
+      "suite": {
+       "q": "Pourquoi échanger ?",
+       "ch": [
+        "Sans prio, leurs lanes arrivent avant : l'échange limite la perte",
+        "Les larves ne servent à rien",
+        "C'est obligatoire"
+       ],
+       "good": 0,
+       "why": "On joue là où on a la prio."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Avant le Baron : leur jungler est un tank, leur ADC est mal placé.",
+      "ch": [
+       "On tue le jungler à tout prix",
+       "On attrape leur ADC : plus rapide, et moins de dégâts pour contester",
+       "On lance sans rien faire"
+      ],
+      "good": 1,
+      "why": "Tuer un tank peut coûter tous vos sorts. La cible rentable, c'est l'ADC.",
+      "suite": {
+       "q": "Quand le jungler devient-il la bonne cible ?",
+       "ch": [
+        "Quand il est attrapable et meurt vite, par exemple sans flash",
+        "Toujours",
+        "Jamais"
+       ],
+       "good": 0,
+       "why": "Priorité oui, tunnel vision non."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Leur jungler vole ton red. Ton top et ton mid ont la prio.",
+      "ch": [
+       "Je conteste avec mes laners",
+       "Je le laisse faire",
+       "J'invade son blue seul"
+      ],
+      "good": 0,
+      "why": "Avec la prio, tes laners arrivent avant les siens.",
+      "suite": {
+       "q": "Et si tes lanes n'avaient pas la prio ?",
+       "ch": [
+        "J'échange : je prends ailleurs",
+        "Je conteste quand même",
+        "Je back"
+       ],
+       "good": 0,
+       "why": "Sans prio, un 2v1 devient un 3v1 pour eux."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Late game : ton ADC n'a pas fini son objet, un camp est prêt sur son chemin.",
+      "ch": [
+       "Je prends le camp",
+       "Je le lui laisse : il a besoin de gold",
+       "Personne ne le prend"
+      ],
+      "good": 1,
+      "why": "À ce moment de la game, les ressources vont aux laners qui scalent.",
+      "suite": {
+       "q": "L'exception ?",
+       "ch": [
+        "Si tu scales très fort ou qu'il te manque un objet clé",
+        "Jamais",
+        "Toujours"
+       ],
+       "good": 0,
+       "why": "Demande : « je te prends ça ? ». C'est du collectif."
+      },
+      "diff": "hardcore"
+     }
+    ],
+    "quizTitre": "Quiz du jungler",
+    "defis": [
+     {
+      "titre": "Avant chaque fight",
+      "big": "Le check",
+      "sub": "R et flash, chez nous et chez eux",
+      "items": [
+       "Mes R et mes flashs, et ceux de mes alliés",
+       "Leurs R et leurs flashs",
+       "Sans R ou sans flash : je joue safe et je le call",
+       "Un ennemi sans flash ? On joue sur lui",
+       "Ma team prend un fight : est-ce un bon fight ?"
+      ],
+      "niveau": "Niveau 8 · Fights et mindset",
+      "boss": false
+     },
+     {
+      "titre": "Avant la game",
+      "big": "Échauffement",
+      "sub": "5 à 10 min, selon ton temps",
+      "items": [
+       "Outil d'entraînement : ton clear de jungle",
+       "Shadow laning : imagine ta lane de A à Z, comme le shadow boxing",
+       "Ça marche aussi pour le roam : « jouer sans jouer »",
+       "Un objectif pour la game (par exemple : tes CS)"
+      ],
+      "niveau": "Niveau 9 · Entraînement et data",
+      "boss": false
+     },
+     {
+      "titre": "Boss final : la checklist du jungler",
+      "big": "",
+      "sub": "",
+      "items": [
+       "Je connais ma classe : ganker ou farmeur, monocible ou AOE",
+       "Je choisis mon start : Blue ou Red",
+       "Smite sur le Grump au bon moment, ward à l'opposé",
+       "Je regarde mes prios avant le carapateur",
+       "Je gank la bonne lane, je ne perds pas de temps",
+       "Je laisse les ressources quand il faut"
+      ],
+      "niveau": "",
+      "boss": true
      }
     ]
    }
@@ -812,232 +1275,452 @@
     "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-mid/",
     "slides": [
      {
-      "img": "slide-01.jpg?v=7",
+      "img": "slide-01.jpg?v=8",
       "titre": "Le carnet du mid"
      },
      {
-      "img": "slide-02.jpg?v=7",
+      "img": "slide-02.jpg?v=8",
       "titre": "La quête"
      },
      {
-      "img": "slide-03.jpg?v=7",
+      "img": "slide-03.jpg?v=8",
       "titre": "Au centre de tout"
      },
      {
-      "img": "slide-04.jpg?v=7",
+      "img": "slide-04.jpg?v=8",
       "titre": "Ta prio compte"
      },
      {
-      "img": "slide-05.jpg?v=7",
+      "img": "slide-05.jpg?v=8",
       "titre": "Farmer sous ta tour"
      },
      {
-      "img": "slide-06.jpg?v=7",
-      "titre": "Le défi CS"
-     },
-     {
-      "img": "slide-07.jpg?v=7",
+      "img": "slide-06.jpg?v=8",
       "titre": "Taper en farmant"
      },
      {
-      "img": "slide-08.jpg?v=7",
+      "img": "slide-07.jpg?v=8",
       "titre": "Ce qui décide un échange"
      },
      {
-      "img": "slide-09.jpg?v=7",
+      "img": "slide-08.jpg?v=8",
       "titre": "À quel moment j’utilise mon combo, et pourquoi ?"
      },
      {
-      "img": "slide-10.jpg?v=7",
+      "img": "slide-09.jpg?v=8",
       "titre": "Priver l’adversaire de ressources"
      },
      {
-      "img": "slide-11.jpg?v=7",
+      "img": "slide-10.jpg?v=8",
       "titre": "Le meilleur compromis"
      },
      {
-      "img": "slide-12.jpg?v=7",
+      "img": "slide-11.jpg?v=8",
       "titre": "15 CS, c’est (à peu près) un kill"
      },
      {
-      "img": "slide-13.jpg?v=7",
+      "img": "slide-12.jpg?v=8",
       "titre": "Deux questions, tout de suite"
      },
      {
-      "img": "slide-14.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-15.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-16.jpg?v=7",
+      "img": "slide-13.jpg?v=8",
       "titre": "La wave est un outil"
      },
      {
-      "img": "slide-17.jpg?v=7",
+      "img": "slide-14.jpg?v=8",
       "titre": "Le freeze"
      },
      {
-      "img": "slide-18.jpg?v=7",
+      "img": "slide-15.jpg?v=8",
       "titre": "Comment freeze devant la tour ?"
      },
      {
-      "img": "slide-19.jpg?v=7",
+      "img": "slide-16.jpg?v=8",
       "titre": "Quand éviter de freeze ?"
      },
      {
-      "img": "slide-20.jpg?v=7",
+      "img": "slide-17.jpg?v=8",
       "titre": "Le slow push"
      },
      {
-      "img": "slide-21.jpg?v=7",
+      "img": "slide-18.jpg?v=8",
       "titre": "Le fast push"
      },
      {
-      "img": "slide-22.jpg?v=7",
+      "img": "slide-19.jpg?v=8",
       "titre": "Le bounce"
      },
      {
-      "img": "slide-23.jpg?v=7",
+      "img": "slide-20.jpg?v=8",
       "titre": "Le reset"
      },
      {
-      "img": "slide-24.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-25.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-26.jpg?v=7",
+      "img": "slide-21.jpg?v=8",
       "titre": "Back au bon moment"
      },
      {
-      "img": "slide-27.jpg?v=7",
+      "img": "slide-22.jpg?v=8",
       "titre": "Push mid, puis fight"
      },
      {
-      "img": "slide-28.jpg?v=7",
+      "img": "slide-23.jpg?v=8",
       "titre": "Le swap mid / bot"
      },
      {
-      "img": "slide-29.jpg?v=7",
+      "img": "slide-24.jpg?v=8",
       "titre": "Où est son jungler ?"
      },
      {
-      "img": "slide-30.jpg?v=7",
+      "img": "slide-25.jpg?v=8",
       "titre": "Vu, supposé, dangereux"
      },
      {
-      "img": "slide-31.jpg?v=7",
+      "img": "slide-26.jpg?v=8",
       "titre": "Lire la vision, pas seulement poser des wards"
      },
      {
-      "img": "slide-32.jpg?v=7",
+      "img": "slide-27.jpg?v=8",
       "titre": "« Pourquoi je pose cette ward ? »"
      },
      {
-      "img": "slide-33.jpg?v=7",
+      "img": "slide-28.jpg?v=8",
       "titre": "Où sont les 5 ?"
      },
      {
-      "img": "slide-34.jpg?v=7",
+      "img": "slide-29.jpg?v=8",
       "titre": "Vu ou supposé ?"
      },
      {
-      "img": "slide-35.jpg?v=7",
+      "img": "slide-30.jpg?v=8",
       "titre": "Anticiper sans supposer"
      },
      {
-      "img": "slide-36.jpg?v=7",
+      "img": "slide-31.jpg?v=8",
       "titre": "Où l’équipe met ses ressources"
      },
      {
-      "img": "slide-37.jpg?v=7",
+      "img": "slide-32.jpg?v=8",
       "titre": "Deux plans de jeu possibles"
      },
      {
-      "img": "slide-38.jpg?v=7",
+      "img": "slide-33.jpg?v=8",
       "titre": "Gank, cover, countergank, aide au crash"
      },
      {
-      "img": "slide-39.jpg?v=7",
+      "img": "slide-34.jpg?v=8",
       "titre": "La tempo, c’est quoi ?"
      },
      {
-      "img": "slide-40.jpg?v=7",
+      "img": "slide-35.jpg?v=8",
       "titre": "Une bonne wave crée du temps"
      },
      {
-      "img": "slide-41.jpg?v=7",
+      "img": "slide-36.jpg?v=8",
       "titre": "Ta fenêtre, ou la leur ?"
      },
      {
-      "img": "slide-42.jpg?v=7",
+      "img": "slide-37.jpg?v=8",
       "titre": "Punir une erreur de tempo"
      },
      {
-      "img": "slide-43.jpg?v=7",
+      "img": "slide-38.jpg?v=8",
       "titre": "« Les tours sont aussi des objectifs »"
      },
      {
-      "img": "slide-44.jpg?v=7",
+      "img": "slide-39.jpg?v=8",
       "titre": "Un objectif se prépare avant de le taper"
      },
      {
-      "img": "slide-45.jpg?v=7",
+      "img": "slide-40.jpg?v=8",
       "titre": "Qui prend quelle side lane ?"
      },
      {
-      "img": "slide-46.jpg?v=7",
+      "img": "slide-41.jpg?v=8",
       "titre": "Gwen, Sion, Syndra et Mel : on échange ?"
      },
      {
-      "img": "slide-47.jpg?v=7",
+      "img": "slide-42.jpg?v=8",
       "titre": "Changer de matchup pour limiter un retard"
      },
      {
-      "img": "slide-48.jpg?v=7",
+      "img": "slide-43.jpg?v=8",
       "titre": "Jamais de face check"
      },
      {
-      "img": "slide-49.jpg?v=7",
-      "titre": "Avant chaque fight"
-     },
-     {
-      "img": "slide-50.jpg?v=7",
+      "img": "slide-44.jpg?v=8",
       "titre": "Jouer front to back"
      },
      {
-      "img": "slide-51.jpg?v=7",
+      "img": "slide-45.jpg?v=8",
       "titre": "Cible prioritaire, pas tunnel vision"
      },
      {
-      "img": "slide-52.jpg?v=7",
+      "img": "slide-46.jpg?v=8",
       "titre": "Solo queue et équipe : complémentaires"
      },
      {
-      "img": "slide-53.jpg?v=7",
+      "img": "slide-47.jpg?v=8",
       "titre": "Tu ne contrôles que toi"
      },
      {
-      "img": "slide-54.jpg?v=7",
+      "img": "slide-48.jpg?v=8",
       "titre": "D’abord ton propre jeu"
      },
      {
-      "img": "slide-55.jpg?v=7",
+      "img": "slide-49.jpg?v=8",
       "titre": "« Il faut être dans la tête de son adversaire »"
+     }
+    ],
+    "quiz": [
+     {
+      "q": "Tu viens de le tuer, ta wave est grosse et avance. Le jungler adverse a été vu de l'autre côté. Tu fais quoi ?",
+      "ch": [
+       "Je back tout de suite",
+       "Je crash la wave sous sa tour, puis je back",
+       "Je reste à côté de sa tour sans rien faire"
+      ],
+      "good": 1,
+      "why": "Il est mort et son jungler est loin : crash la wave fait perdre de l'XP et des golds à l'adversaire, puis tu back tranquille.",
+      "niveau": "Niveau 3 · Le trading",
+      "diff": "simple"
      },
      {
-      "img": "slide-56.jpg?v=7",
-      "titre": "Avant la game"
+      "q": "Tu as mieux farmé, mais il passe niveau 3 avant toi. Pourquoi ?",
+      "ch": [
+       "Il a eu de la chance",
+       "Ta wave a bounce : tu l'avais trop crash",
+       "Il a pris un camp de jungle"
+      ],
+      "good": 1,
+      "why": "Le bounce : ses sbires et sa wave tuent vite, il prend l'XP pendant que toi tu es encore sous ta tour.",
+      "niveau": "Niveau 4 · Les vagues",
+      "diff": "simple"
      },
      {
-      "img": "slide-57.jpg?v=7",
-      "titre": "Boss final"
+      "q": "Ta wave est crash sous sa tour, son jungler a été vu bot. Tu as la prio. Le meilleur choix ?",
+      "ch": [
+       "Rester au mid à attendre",
+       "Bouger : aider ton jungler, un carapateur, un roam",
+       "Back sans raison"
+      ],
+      "good": 1,
+      "why": "La prio te donne du temps : utilise-le avant qu'il revienne sur sa wave.",
+      "suite": {
+       "q": "Pourquoi c'est le bon moment ?",
+       "ch": [
+        "Il doit prendre sa wave, toi tu es libre",
+        "Tu as plus d'XP que lui",
+        "Son mid est mort"
+       ],
+       "good": 0,
+       "why": "Crash + prio = il est bloqué sur sa wave. C'est ta fenêtre."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Leur mid perd sa wave et disparaît. Tu fais quoi ?",
+      "ch": [
+       "Je continue de farmer sans rien dire",
+       "Je ping qu'il a disparu et je préviens",
+       "Je pars le chercher dans la jungle"
+      ],
+      "good": 1,
+      "why": "Une info utile, simple, au bon moment.",
+      "suite": {
+       "q": "Pourquoi le dire même si tu n'es pas sûr de où il va ?",
+       "ch": [
+        "Si tu vois quelque chose, les autres ne l'ont peut-être pas vu",
+        "Pour spammer les pings",
+        "C'est obligatoire"
+       ],
+       "good": 0,
+       "why": "Tes alliés ne regardent pas ta lane : l'info vient de toi."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Le dragon apparaît dans 40 s, ta wave arrive au milieu de la lane. Tu joues un mage.",
+      "ch": [
+       "Je pars au dragon tout de suite, je laisse la wave",
+       "Je push vite la wave, puis je pars avec la prio",
+       "Je reste au mid"
+      ],
+      "good": 1,
+      "why": "Push puis bouge : tu arrives avec la prio, lui doit prendre sa wave.",
+      "suite": {
+       "q": "Ce que ta prio mid apporte au dragon :",
+       "ch": [
+        "Tu arrives le premier, leur mid arrive en retard",
+        "Plus de dégâts sur le dragon",
+        "Rien du tout"
+       ],
+       "good": 0,
+       "why": "La prio mid, c'est du temps d'avance sur la rivière."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Mid game : tu prends une side lane avec ton mage.",
+      "ch": [
+       "Je reste longtemps seul sur la side",
+       "Je prends vite la wave et je reviens près de l'équipe",
+       "Je ne prends jamais de side"
+      ],
+      "good": 1,
+      "why": "Un mage ne joue pas une side comme un top : il prend sa wave et revient.",
+      "suite": {
+       "q": "Pourquoi ?",
+       "ch": [
+        "Un mage est fragile seul et utile en groupe",
+        "Les mages n'ont pas de dégâts",
+        "Parce que le top a la TP"
+       ],
+       "good": 0,
+       "why": "Seul, tu es une cible facile. Avec l'équipe, tu fais ton travail."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Leur jungler est inconnu depuis 45 s, leur support a quitté le bot. Ta wave pousse vers eux.",
+      "ch": [
+       "Je push au maximum pour la plaque",
+       "Je ralentis, je reste à hauteur de ma ward, côté opposé à la menace",
+       "Je roam bot"
+      ],
+      "good": 1,
+      "why": "Deux menaces invisibles : joue avec ce que tu sais, pas avec l'espoir.",
+      "suite": {
+       "q": "Combien d'adversaires peuvent arriver sur toi ?",
+       "ch": [
+        "1",
+        "3 : leur mid, leur jungler et leur support",
+        "0"
+       ],
+       "good": 1,
+       "why": "Compte : vus, supposés, et ceux qui peuvent venir."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Ton jungler veut invade leur red avec toi. Leur mid a la prio.",
+      "ch": [
+       "On y va",
+       "Non : sans prio, leur mid arrive avant moi",
+       "J'y vais seul"
+      ],
+      "good": 1,
+      "why": "Sans prio, tu arrives après eux : l'invade devient un 2 contre 3.",
+      "suite": {
+       "q": "Ce qui rendrait l'invade possible ?",
+       "ch": [
+        "La prio mid et bot, et savoir où est leur jungler",
+        "Plus de golds",
+        "Être niveau 6"
+       ],
+       "good": 0,
+       "why": "Prio et info d'abord, invade ensuite."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Teamfight : leur ADC est derrière leur tank et leur bruiser. Tu as ta R.",
+      "ch": [
+       "Je flash en avant pour R leur ADC",
+       "Je frappe ce qui est à portée et je garde de quoi répondre",
+       "Je recule sans rien faire"
+      ],
+      "good": 1,
+      "why": "Front to back : pas de tunnel vision sur une cible hors d'atteinte.",
+      "suite": {
+       "q": "Quand viser leur ADC ?",
+       "ch": [
+        "Quand il s'avance, ou qu'on peut l'atteindre sans tout traverser",
+        "Toujours en premier",
+        "Jamais"
+       ],
+       "good": 0,
+       "why": "La meilleure cible est celle qu'on peut vraiment atteindre."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Tu es 3/0 à 18 min. Rien ne se passe.",
+      "ch": [
+       "Je farme seul jusqu'au late",
+       "Je crée du jeu : prio, vision, objectif, pick avec l'équipe",
+       "Je split top seul"
+      ],
+      "good": 1,
+      "why": "Tes ressources doivent devenir des objectifs.",
+      "suite": {
+       "q": "Pourquoi ne pas attendre le late ?",
+       "ch": [
+        "Ton avance s'use si tu ne la transformes pas",
+        "Les mages sont faibles en late",
+        "Pour finir vite"
+       ],
+       "good": 0,
+       "why": "Feed et passif, c'est une avance gâchée."
+      },
+      "diff": "hardcore"
+     }
+    ],
+    "quizTitre": "Quiz du mid",
+    "defis": [
+     {
+      "titre": "Le défi CS",
+      "big": "7 CS / min",
+      "sub": "à 10 min · et encore à 20 min = 140 CS",
+      "items": [
+       "Un objectif à chaque game, et toujours s'améliorer",
+       "Objectif tenu (7-8 CS/min) ? Passe au suivant : les teamfights…",
+       "Lane ratée ? Pas grave : tu te rattrapes en farm",
+       "Mais pas matrixé par les CS : en fight, on a besoin de toi"
+      ],
+      "niveau": "Niveau 2 · Le farm",
+      "boss": false
+     },
+     {
+      "titre": "Avant chaque fight",
+      "big": "Le check",
+      "sub": "R et flash, chez nous et chez eux",
+      "items": [
+       "Mes R et mes flashs, et ceux de mes alliés",
+       "Leurs R et leurs flashs",
+       "Sans R ou sans flash : je joue safe et je le call",
+       "Un ennemi sans flash ? On joue sur lui",
+       "Ma team prend un fight : est-ce un bon fight ?"
+      ],
+      "niveau": "Niveau 6 · Les fights",
+      "boss": false
+     },
+     {
+      "titre": "Avant la game",
+      "big": "Échauffement",
+      "sub": "5 à 10 min, selon ton temps",
+      "items": [
+       "Outil d'entraînement : ton farm",
+       "Shadow laning : imagine ta lane de A à Z, comme le shadow boxing",
+       "Ça marche aussi pour le roam : « jouer sans jouer »",
+       "Un objectif pour la game (par exemple : tes CS)"
+      ],
+      "niveau": "Niveau 7 · Mindset et entraînement",
+      "boss": false
+     },
+     {
+      "titre": "Boss final : la checklist du mid",
+      "big": "",
+      "sub": "",
+      "items": [
+       "Je garde ma prio pour mon jungler",
+       "Je trade quand il va chercher un sbire",
+       "Chaque wave a un but : freeze, slow push, fast push, reset",
+       "Je crash ma wave avant de back",
+       "Mage ou pick : jamais de face check",
+       "Je check R et flash avant chaque fight"
+      ],
+      "niveau": "",
+      "boss": true
      }
     ]
    }
@@ -1055,304 +1738,536 @@
     "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-adc/",
     "slides": [
      {
-      "img": "slide-01.jpg?v=7",
+      "img": "slide-01.jpg?v=8",
       "titre": "Le carnet de l’ADC"
      },
      {
-      "img": "slide-02.jpg?v=7",
+      "img": "slide-02.jpg?v=8",
       "titre": "La quête"
      },
      {
-      "img": "slide-03.jpg?v=7",
+      "img": "slide-03.jpg?v=8",
       "titre": "La petite princesse"
      },
      {
-      "img": "slide-04.jpg?v=7",
+      "img": "slide-04.jpg?v=8",
       "titre": "Quel ADC tu joues ?"
      },
      {
-      "img": "slide-05.jpg?v=7",
+      "img": "slide-05.jpg?v=8",
       "titre": "Savoir farmer"
      },
      {
-      "img": "slide-06.jpg?v=7",
+      "img": "slide-06.jpg?v=8",
       "titre": "Identifier les menaces"
      },
      {
-      "img": "slide-07.jpg?v=7",
+      "img": "slide-07.jpg?v=8",
       "titre": "Anticiper : sois parano"
      },
      {
-      "img": "slide-08.jpg?v=7",
+      "img": "slide-08.jpg?v=8",
       "titre": "Se positionner"
      },
      {
-      "img": "slide-09.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-10.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-11.jpg?v=7",
+      "img": "slide-09.jpg?v=8",
       "titre": "Être patient"
      },
      {
-      "img": "slide-12.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-13.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-14.jpg?v=7",
+      "img": "slide-10.jpg?v=8",
       "titre": "Matchups et responsabilités"
      },
      {
-      "img": "slide-15.jpg?v=7",
+      "img": "slide-11.jpg?v=8",
       "titre": "Farmer sous ta tour"
      },
      {
-      "img": "slide-16.jpg?v=7",
-      "titre": "Le défi CS"
-     },
-     {
-      "img": "slide-17.jpg?v=7",
+      "img": "slide-12.jpg?v=8",
       "titre": "Taper en farmant"
      },
      {
-      "img": "slide-18.jpg?v=7",
+      "img": "slide-13.jpg?v=8",
       "titre": "Ce qui décide un échange"
      },
      {
-      "img": "slide-19.jpg?v=7",
+      "img": "slide-14.jpg?v=8",
       "titre": "Les petits plus de la bot"
      },
      {
-      "img": "slide-20.jpg?v=7",
+      "img": "slide-15.jpg?v=8",
       "titre": "À quel moment j’utilise mon combo, et pourquoi ?"
      },
      {
-      "img": "slide-21.jpg?v=7",
+      "img": "slide-16.jpg?v=8",
       "titre": "Priver l’adversaire de ressources"
      },
      {
-      "img": "slide-22.jpg?v=7",
+      "img": "slide-17.jpg?v=8",
       "titre": "Le meilleur compromis"
      },
      {
-      "img": "slide-23.jpg?v=7",
+      "img": "slide-18.jpg?v=8",
       "titre": "15 CS, c’est (à peu près) un kill"
      },
      {
-      "img": "slide-24.jpg?v=7",
+      "img": "slide-19.jpg?v=8",
       "titre": "Deux questions, tout de suite"
      },
      {
-      "img": "slide-25.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-26.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-27.jpg?v=7",
+      "img": "slide-20.jpg?v=8",
       "titre": "Deux contre un, pendant un instant"
      },
      {
-      "img": "slide-28.jpg?v=7",
+      "img": "slide-21.jpg?v=8",
       "titre": "Pris en triangle, ou bait ?"
      },
      {
-      "img": "slide-29.jpg?v=7",
+      "img": "slide-22.jpg?v=8",
       "titre": "Ce que ton support peut faire pour toi"
      },
      {
-      "img": "slide-30.jpg?v=7",
+      "img": "slide-23.jpg?v=8",
       "titre": "La wave est un outil"
      },
      {
-      "img": "slide-31.jpg?v=7",
+      "img": "slide-24.jpg?v=8",
       "titre": "Le freeze"
      },
      {
-      "img": "slide-32.jpg?v=7",
+      "img": "slide-25.jpg?v=8",
       "titre": "Comment freeze devant la tour ?"
      },
      {
-      "img": "slide-33.jpg?v=7",
+      "img": "slide-26.jpg?v=8",
       "titre": "Quand éviter de freeze ?"
      },
      {
-      "img": "slide-34.jpg?v=7",
+      "img": "slide-27.jpg?v=8",
       "titre": "Le slow push"
      },
      {
-      "img": "slide-35.jpg?v=7",
+      "img": "slide-28.jpg?v=8",
       "titre": "Le fast push"
      },
      {
-      "img": "slide-36.jpg?v=7",
+      "img": "slide-29.jpg?v=8",
       "titre": "Le bounce"
      },
      {
-      "img": "slide-37.jpg?v=7",
+      "img": "slide-30.jpg?v=8",
       "titre": "Le reset"
      },
      {
-      "img": "slide-38.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-39.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-40.jpg?v=7",
+      "img": "slide-31.jpg?v=8",
       "titre": "Le plan de jeu vient des vagues"
      },
      {
-      "img": "slide-41.jpg?v=7",
+      "img": "slide-32.jpg?v=8",
       "titre": "Feu, eau, nature"
      },
      {
-      "img": "slide-42.jpg?v=7",
+      "img": "slide-33.jpg?v=8",
       "titre": "Ce que fait chaque bot"
      },
      {
-      "img": "slide-43.jpg?v=7",
+      "img": "slide-34.jpg?v=8",
       "titre": "C’est le duo qui décide"
      },
      {
-      "img": "slide-44.jpg?v=7",
+      "img": "slide-35.jpg?v=8",
       "titre": "Chaque duo change la lane"
      },
      {
-      "img": "slide-45.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-46.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-47.jpg?v=7",
+      "img": "slide-36.jpg?v=8",
       "titre": "Back au bon moment"
      },
      {
-      "img": "slide-48.jpg?v=7",
+      "img": "slide-37.jpg?v=8",
       "titre": "Push mid, puis fight"
      },
      {
-      "img": "slide-49.jpg?v=7",
+      "img": "slide-38.jpg?v=8",
       "titre": "Le swap mid / bot"
      },
      {
-      "img": "slide-50.jpg?v=7",
+      "img": "slide-39.jpg?v=8",
       "titre": "Où est son jungler ?"
      },
      {
-      "img": "slide-51.jpg?v=7",
+      "img": "slide-40.jpg?v=8",
       "titre": "Vu, supposé, dangereux"
      },
      {
-      "img": "slide-52.jpg?v=7",
+      "img": "slide-41.jpg?v=8",
       "titre": "Lire la vision, pas seulement poser des wards"
      },
      {
-      "img": "slide-53.jpg?v=7",
+      "img": "slide-42.jpg?v=8",
       "titre": "« Pourquoi je pose cette ward ? »"
      },
      {
-      "img": "slide-54.jpg?v=7",
+      "img": "slide-43.jpg?v=8",
       "titre": "Où sont les 5 ?"
      },
      {
-      "img": "slide-55.jpg?v=7",
+      "img": "slide-44.jpg?v=8",
       "titre": "Vu ou supposé ?"
      },
      {
-      "img": "slide-56.jpg?v=7",
+      "img": "slide-45.jpg?v=8",
       "titre": "Anticiper sans supposer"
      },
      {
-      "img": "slide-57.jpg?v=7",
+      "img": "slide-46.jpg?v=8",
       "titre": "Où l’équipe met ses ressources"
      },
      {
-      "img": "slide-58.jpg?v=7",
+      "img": "slide-47.jpg?v=8",
       "titre": "Deux plans de jeu possibles"
      },
      {
-      "img": "slide-59.jpg?v=7",
+      "img": "slide-48.jpg?v=8",
       "titre": "Gank, cover, countergank, aide au crash"
      },
      {
-      "img": "slide-60.jpg?v=7",
+      "img": "slide-49.jpg?v=8",
       "titre": "La tempo, c’est quoi ?"
      },
      {
-      "img": "slide-61.jpg?v=7",
+      "img": "slide-50.jpg?v=8",
       "titre": "Une bonne wave crée du temps"
      },
      {
-      "img": "slide-62.jpg?v=7",
+      "img": "slide-51.jpg?v=8",
       "titre": "Ta fenêtre, ou la leur ?"
      },
      {
-      "img": "slide-63.jpg?v=7",
+      "img": "slide-52.jpg?v=8",
       "titre": "Punir une erreur de tempo"
      },
      {
-      "img": "slide-64.jpg?v=7",
+      "img": "slide-53.jpg?v=8",
       "titre": "« Les tours sont aussi des objectifs »"
      },
      {
-      "img": "slide-65.jpg?v=7",
+      "img": "slide-54.jpg?v=8",
       "titre": "Un objectif se prépare avant de le taper"
      },
      {
-      "img": "slide-66.jpg?v=7",
+      "img": "slide-55.jpg?v=8",
       "titre": "Jamais de face check"
      },
      {
-      "img": "slide-67.jpg?v=7",
-      "titre": "Avant chaque fight"
-     },
-     {
-      "img": "slide-68.jpg?v=7",
+      "img": "slide-56.jpg?v=8",
       "titre": "Jouer front to back"
      },
      {
-      "img": "slide-69.jpg?v=7",
+      "img": "slide-57.jpg?v=8",
       "titre": "Cible prioritaire, pas tunnel vision"
      },
      {
-      "img": "slide-70.jpg?v=7",
+      "img": "slide-58.jpg?v=8",
       "titre": "Solo queue et équipe : complémentaires"
      },
      {
-      "img": "slide-71.jpg?v=7",
+      "img": "slide-59.jpg?v=8",
       "titre": "Tu ne contrôles que toi"
      },
      {
-      "img": "slide-72.jpg?v=7",
+      "img": "slide-60.jpg?v=8",
       "titre": "D’abord ton propre jeu"
      },
      {
-      "img": "slide-73.jpg?v=7",
+      "img": "slide-61.jpg?v=8",
       "titre": "« Il faut être dans la tête de son adversaire »"
+     }
+    ],
+    "quiz": [
+     {
+      "q": "Fiddlesticks a été vu au top. Tu es au mid. Tu joues…",
+      "ch": [
+       "Vers le haut de la lane",
+       "Vers le bas de la lane",
+       "Au milieu, ça ne change rien"
+      ],
+      "good": 1,
+      "why": "Tu restes au mid, mais tu te places à l'opposé de la menace : vers le bas.",
+      "niveau": "Niveau 3 · Les fondamentaux",
+      "diff": "simple"
      },
      {
-      "img": "slide-74.jpg?v=7",
-      "titre": "Avant la game"
+      "q": "Tu es l'ADC et tu prends la bandelette d'Amumu, puis tu meurs. La faute de qui ?",
+      "ch": [
+       "Ton support",
+       "Ta team",
+       "La tienne"
+      ],
+      "good": 2,
+      "why": "Un ADC qui se fait stun puis meurt : c'est sa faute. Anticipe, reste à range.",
+      "niveau": "Niveau 3 · Les fondamentaux",
+      "diff": "simple"
      },
      {
-      "img": "slide-75.jpg?v=7",
-      "titre": "Boss final"
+      "q": "Tu viens de le tuer, ta wave est grosse et avance. Le jungler adverse a été vu de l'autre côté. Tu fais quoi ?",
+      "ch": [
+       "Je back tout de suite",
+       "Je crash la wave sous sa tour, puis je back",
+       "Je reste à côté de sa tour sans rien faire"
+      ],
+      "good": 1,
+      "why": "Il est mort et son jungler est loin : crash la wave fait perdre de l'XP et des golds à l'adversaire, puis tu back tranquille.",
+      "niveau": "Niveau 5 · Le trading",
+      "diff": "simple"
+     },
+     {
+      "q": "Tu as mieux farmé, mais il passe niveau 3 avant toi. Pourquoi ?",
+      "ch": [
+       "Il a eu de la chance",
+       "Ta wave a bounce : tu l'avais trop crash",
+       "Il a pris un camp de jungle"
+      ],
+      "good": 1,
+      "why": "Le bounce : ses sbires et sa wave tuent vite, il prend l'XP pendant que toi tu es encore sous ta tour.",
+      "niveau": "Niveau 6 · Les vagues",
+      "diff": "simple"
+     },
+     {
+      "q": "Shaco + Caitlyn en face. C'est une bot lane…",
+      "ch": [
+       "Poke",
+       "Prête à recevoir (un bait)",
+       "All-in"
+      ],
+      "good": 1,
+      "why": "À première vue ça poke, mais c'est un bait : c'est plutôt une bot lane qui reçoit.",
+      "niveau": "Niveau 7 · La bot lane en duo",
+      "diff": "simple"
+     },
+     {
+      "q": "Tu veux back sans perdre de sbires. La bonne séquence ?",
+      "ch": [
+       "Slow push la 1re, stack la 2e, fast push la 3e, puis back",
+       "Back tout de suite",
+       "Freeze puis back"
+      ],
+      "good": 0,
+      "why": "C'est le reset : la grosse wave crash, tu back pendant qu'il la gère.",
+      "suite": {
+       "q": "Pourquoi ça marche ?",
+       "ch": [
+        "Ta grosse wave crash sous sa tour : il perd du temps et du farm pendant que tu reviens",
+        "Les sbires attendent ton retour",
+        "Les tours ne tapent plus"
+       ],
+       "good": 0,
+       "why": "Il doit gérer ta wave sous sa tour. Toi, tu reviens sans rien perdre."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Un canon va mourir sous ta tour, ton support a une charge d'objet.",
+      "ch": [
+       "Je le laisse mourir",
+       "Le support l'achève avec sa charge : je touche le gold du canon",
+       "Je le tape même si je rate"
+      ],
+      "good": 1,
+      "why": "Avec une charge, le support achève le sbire et c'est toi qui touches son gold.",
+      "suite": {
+       "q": "Et le support, il gagne combien avec ça ?",
+       "ch": [
+        "La même somme que sur un autre sbire",
+        "Le double",
+        "Rien"
+       ],
+       "good": 0,
+       "why": "Pour lui, un canon vaut une charge comme les autres. L'intérêt, c'est ton gold."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Fiddlesticks n'est plus visible depuis une minute, une escarmouche commence au mid.",
+      "ch": [
+       "Je viens devant pour faire un maximum de dégâts",
+       "Je reste à portée maximale, loin de sa zone probable",
+       "Je ne viens jamais"
+      ],
+      "good": 1,
+      "why": "Contre Fiddlesticks, se rapprocher dans une escarmouche peut finir en one-shot.",
+      "suite": {
+       "q": "Pourquoi rester loin ?",
+       "ch": [
+        "Sa R peut te tuer si tu es proche et groupé",
+        "Il est support",
+        "Il est mort"
+       ],
+       "good": 0,
+       "why": "Tu restes utile à portée, sans offrir sa R."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Ton adversaire t'a tué, ta wave est sous sa tour. Tu reviens de base.",
+      "ch": [
+       "Je fonce reprendre ma wave seul",
+       "Je regarde où sont leur jungler et leur support avant d'avancer",
+       "Je reste en base"
+      ],
+      "good": 1,
+      "why": "Pas d'info, pas de face check : où sont-ils ? Sinon, attends ou fais-toi shadow.",
+      "suite": {
+       "q": "Si personne ne peut t'accompagner ?",
+       "ch": [
+        "J'attends la wave en sécurité",
+        "J'y vais quand même",
+        "Je vais jungle"
+       ],
+       "good": 0,
+       "why": "Ne va jamais chercher une wave seul face à un engage rapide."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "25e minute. Leur Amumu n'a pas sa R, leur Malphite l'a. Ton équipe veut fight.",
+      "ch": [
+       "Fight : Amumu n'a pas sa R",
+       "Malphite a toujours sa R : on fight espacés, toi à portée max",
+       "On fuit"
+      ],
+      "good": 1,
+      "why": "Une R de zone disponible : ne te regroupe jamais.",
+      "suite": {
+       "q": "Ta position contre la R de Malphite ?",
+       "ch": [
+        "Jamais groupé avec tes alliés, toujours à portée",
+        "Devant ton tank",
+        "Seul dans la jungle"
+       ],
+       "good": 0,
+       "why": "Espacé et à portée : il ne peut pas toucher tout le monde."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Ton support roam au mid. Leur Nautilus est visible bot, leur jungler inconnu.",
+      "ch": [
+       "Je push pour la plaque",
+       "Je joue près de ma tour et je farme safe",
+       "Je pars aussi"
+      ],
+      "good": 1,
+      "why": "Seul contre un engage + un jungler inconnu : tu respectes.",
+      "suite": {
+       "q": "Ce que tu dis à ton support ?",
+       "ch": [
+        "« Leur Naut est bot, leur jungler inconnu : je joue safe »",
+        "Rien",
+        "« Reviens tout de suite »"
+       ],
+       "good": 0,
+       "why": "Il décide mieux de son retour s'il connaît ta situation."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Tu es 10/1 à 14 min.",
+      "ch": [
+       "Je farme pour arriver au late",
+       "On force les objectifs avec l'équipe : tours, dragon",
+       "Je joue seul en side"
+      ],
+      "good": 1,
+      "why": "Tu avais toutes les ressources : on ne doit pas arriver au late.",
+      "suite": {
+       "q": "Pourquoi ?",
+       "ch": [
+        "Arriver au late avec cette avance, c'est la gâcher",
+        "Le late est déjà perdu",
+        "Pour l'XP"
+       ],
+       "good": 0,
+       "why": "Snowball : chaque minute laisse l'adversaire revenir."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Un ennemi n'a plus de flash, il est mal placé. Ton équipe a ses R.",
+      "ch": [
+       "On joue sur lui",
+       "On l'ignore",
+       "On recule"
+      ],
+      "good": 0,
+      "why": "Pas de flash = moins de porte de sortie : c'est une vraie occasion.",
+      "suite": {
+       "q": "Et toi, tu n'as plus de flash ?",
+       "ch": [
+        "Je joue plus safe et je le call",
+        "Je joue pareil",
+        "Je back toujours"
+       ],
+       "good": 0,
+       "why": "Nos conseils valent aussi pour l'ennemi : il fait le même calcul."
+      },
+      "diff": "hardcore"
+     }
+    ],
+    "quizTitre": "Quiz de l’ADC",
+    "defis": [
+     {
+      "titre": "Le défi CS",
+      "big": "7 CS / min",
+      "sub": "à 10 min · et encore à 20 min = 140 CS",
+      "items": [
+       "Un objectif à chaque game, et toujours s'améliorer",
+       "Objectif tenu (7-8 CS/min) ? Passe au suivant : les teamfights…",
+       "Lane ratée ? Pas grave : tu te rattrapes en farm",
+       "Mais pas matrixé par les CS : en fight, on a besoin de toi"
+      ],
+      "niveau": "Niveau 4 · Le farm",
+      "boss": false
+     },
+     {
+      "titre": "Avant chaque fight",
+      "big": "Le check",
+      "sub": "R et flash, chez nous et chez eux",
+      "items": [
+       "Mes R et mes flashs, et ceux de mes alliés",
+       "Leurs R et leurs flashs",
+       "Sans R ou sans flash : je joue safe et je le call",
+       "Un ennemi sans flash ? On joue sur lui",
+       "Ma team prend un fight : est-ce un bon fight ?"
+      ],
+      "niveau": "Niveau 9 · Les fights",
+      "boss": false
+     },
+     {
+      "titre": "Avant la game",
+      "big": "Échauffement",
+      "sub": "5 à 10 min, selon ton temps",
+      "items": [
+       "Outil d'entraînement : ton farm",
+       "Shadow laning : imagine ta lane de A à Z, comme le shadow boxing",
+       "Ça marche aussi pour le roam : « jouer sans jouer »",
+       "Un objectif pour la game (par exemple : tes CS)"
+      ],
+      "niveau": "Niveau 10 · Mindset et entraînement",
+      "boss": false
+     },
+     {
+      "titre": "Boss final : la checklist de l’ADC",
+      "big": "",
+      "sub": "",
+      "items": [
+       "Je farme : 7 CS/min à 10 et à 20 min",
+       "Je repère les menaces et je ne face check jamais",
+       "Je me place : ni trop loin, ni trop près",
+       "Je check R et flash avant chaque fight",
+       "Chaque wave a un but : freeze, slow push, fast push, reset",
+       "Feed ? Je prends mes responsabilités"
+      ],
+      "niveau": "",
+      "boss": true
      }
     ]
    },
@@ -1522,368 +2437,586 @@
     "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-support/",
     "slides": [
      {
-      "img": "slide-01.jpg?v=7",
+      "img": "slide-01.jpg?v=8",
       "titre": "Le carnet du support"
      },
      {
-      "img": "slide-02.jpg?v=7",
+      "img": "slide-02.jpg?v=8",
       "titre": "La quête"
      },
      {
-      "img": "slide-03.jpg?v=7",
+      "img": "slide-03.jpg?v=8",
       "titre": "Le garde du corps"
      },
      {
-      "img": "slide-04.jpg?v=7",
+      "img": "slide-04.jpg?v=8",
       "titre": "Bien plus que suivre ton ADC"
      },
      {
-      "img": "slide-05.jpg?v=7",
+      "img": "slide-05.jpg?v=8",
       "titre": "Jouer avec ton ADC, jouer pour ton équipe"
      },
      {
-      "img": "slide-06.jpg?v=7",
+      "img": "slide-06.jpg?v=8",
       "titre": "Les 4 grandes familles"
      },
      {
-      "img": "slide-07.jpg?v=7",
+      "img": "slide-07.jpg?v=8",
       "titre": "Hook, engage, peel : forces et limites"
      },
      {
-      "img": "slide-08.jpg?v=7",
+      "img": "slide-08.jpg?v=8",
       "titre": "Enchanteur et mage : forces et limites"
      },
      {
-      "img": "slide-09.jpg?v=7",
+      "img": "slide-09.jpg?v=8",
       "titre": "Qui gêne qui ?"
      },
      {
-      "img": "slide-10.jpg?v=7",
+      "img": "slide-10.jpg?v=8",
       "titre": "Choisir son support"
      },
      {
-      "img": "slide-11.jpg?v=7",
+      "img": "slide-11.jpg?v=8",
       "titre": "Pas seulement pour ton ADC"
      },
      {
-      "img": "slide-12.jpg?v=7",
+      "img": "slide-12.jpg?v=8",
       "titre": "« 1 536 matchups » ? Ça dépend de comment on compte"
      },
      {
-      "img": "slide-13.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-14.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-15.jpg?v=7",
+      "img": "slide-13.jpg?v=8",
       "titre": "Un matchup théorique n’est pas une garantie"
      },
      {
-      "img": "slide-16.jpg?v=7",
+      "img": "slide-14.jpg?v=8",
       "titre": "Le plan de jeu vient des vagues"
      },
      {
-      "img": "slide-17.jpg?v=7",
+      "img": "slide-15.jpg?v=8",
       "titre": "Feu, eau, nature"
      },
      {
-      "img": "slide-18.jpg?v=7",
+      "img": "slide-16.jpg?v=8",
       "titre": "Ce que fait chaque bot"
      },
      {
-      "img": "slide-19.jpg?v=7",
+      "img": "slide-17.jpg?v=8",
       "titre": "C’est le duo qui décide"
      },
      {
-      "img": "slide-20.jpg?v=7",
+      "img": "slide-18.jpg?v=8",
       "titre": "Chaque duo change la lane"
      },
      {
-      "img": "slide-21.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-22.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-23.jpg?v=7",
+      "img": "slide-19.jpg?v=8",
       "titre": "Le support qui contrôle les buissons"
      },
      {
-      "img": "slide-24.jpg?v=7",
+      "img": "slide-20.jpg?v=8",
       "titre": "Eux contrôlent les buissons : tu réagis"
      },
      {
-      "img": "slide-25.jpg?v=7",
+      "img": "slide-21.jpg?v=8",
       "titre": "Deux contre un, pendant un instant"
      },
      {
-      "img": "slide-26.jpg?v=7",
+      "img": "slide-22.jpg?v=8",
       "titre": "Pris en triangle, ou bait ?"
      },
      {
-      "img": "slide-27.jpg?v=7",
+      "img": "slide-23.jpg?v=8",
       "titre": "Le support et la wave"
      },
      {
-      "img": "slide-28.jpg?v=7",
+      "img": "slide-24.jpg?v=8",
       "titre": "Les 5 mots des vagues"
      },
      {
-      "img": "slide-29.jpg?v=7",
+      "img": "slide-25.jpg?v=8",
       "titre": "Comprendre ton objet support"
      },
      {
-      "img": "slide-30.jpg?v=7",
+      "img": "slide-26.jpg?v=8",
       "titre": "Tes charges sur les canons"
      },
      {
-      "img": "slide-31.jpg?v=7",
+      "img": "slide-27.jpg?v=8",
       "titre": "Aider ton ADC à farmer sous tour"
      },
      {
-      "img": "slide-32.jpg?v=7",
+      "img": "slide-28.jpg?v=8",
       "titre": "Laisser les plaques à ton ADC ?"
      },
      {
-      "img": "slide-33.jpg?v=7",
+      "img": "slide-29.jpg?v=8",
       "titre": "Taper en farmant"
      },
      {
-      "img": "slide-34.jpg?v=7",
+      "img": "slide-30.jpg?v=8",
       "titre": "Ce qui décide un échange"
      },
      {
-      "img": "slide-35.jpg?v=7",
+      "img": "slide-31.jpg?v=8",
       "titre": "Les petits plus de la bot"
      },
      {
-      "img": "slide-36.jpg?v=7",
+      "img": "slide-32.jpg?v=8",
       "titre": "À quel moment j’utilise mon combo, et pourquoi ?"
      },
      {
-      "img": "slide-37.jpg?v=7",
+      "img": "slide-33.jpg?v=8",
       "titre": "Priver l’adversaire de ressources"
      },
      {
-      "img": "slide-38.jpg?v=7",
+      "img": "slide-34.jpg?v=8",
       "titre": "Le meilleur compromis"
      },
      {
-      "img": "slide-39.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-40.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-41.jpg?v=7",
+      "img": "slide-35.jpg?v=8",
       "titre": "Une grosse part de ton rôle"
      },
      {
-      "img": "slide-42.jpg?v=7",
+      "img": "slide-36.jpg?v=8",
       "titre": "« Pourquoi je pose cette ward ? »"
      },
      {
-      "img": "slide-43.jpg?v=7",
+      "img": "slide-37.jpg?v=8",
       "titre": "Quand poser une ward de contrôle ?"
      },
      {
-      "img": "slide-44.jpg?v=7",
+      "img": "slide-38.jpg?v=8",
       "titre": "Ne révèle pas ta ward"
      },
      {
-      "img": "slide-45.jpg?v=7",
+      "img": "slide-39.jpg?v=8",
       "titre": "Blue et gromp, ou krugs : selon ton côté"
      },
      {
-      "img": "slide-46.jpg?v=7",
+      "img": "slide-40.jpg?v=8",
       "titre": "Pourquoi ces wards ?"
      },
      {
-      "img": "slide-47.jpg?v=7",
+      "img": "slide-41.jpg?v=8",
       "titre": "Où est son jungler ?"
      },
      {
-      "img": "slide-48.jpg?v=7",
+      "img": "slide-42.jpg?v=8",
       "titre": "Vu, supposé, dangereux"
      },
      {
-      "img": "slide-49.jpg?v=7",
+      "img": "slide-43.jpg?v=8",
       "titre": "Lire la vision, pas seulement poser des wards"
      },
      {
-      "img": "slide-50.jpg?v=7",
+      "img": "slide-44.jpg?v=8",
       "titre": "Où sont les 5 ?"
      },
      {
-      "img": "slide-51.jpg?v=7",
+      "img": "slide-45.jpg?v=8",
       "titre": "Vu ou supposé ?"
      },
      {
-      "img": "slide-52.jpg?v=7",
+      "img": "slide-46.jpg?v=8",
       "titre": "« Si tu vois quelque chose, les autres ne l’ont peut-être pas vu »"
      },
      {
-      "img": "slide-53.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-54.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-55.jpg?v=7",
+      "img": "slide-47.jpg?v=8",
       "titre": "Tous les supports ne roam pas pareil"
      },
      {
-      "img": "slide-56.jpg?v=7",
+      "img": "slide-48.jpg?v=8",
       "titre": "Pyke part roam : l’enchanteur reste ?"
      },
      {
-      "img": "slide-57.jpg?v=7",
+      "img": "slide-49.jpg?v=8",
       "titre": "Ce que tu laisses derrière toi"
      },
      {
-      "img": "slide-58.jpg?v=7",
+      "img": "slide-50.jpg?v=8",
       "titre": "Partir, ou rester ?"
      },
      {
-      "img": "slide-59.jpg?v=7",
+      "img": "slide-51.jpg?v=8",
       "titre": "Passer par le mid ? Une option"
      },
      {
-      "img": "slide-60.jpg?v=7",
+      "img": "slide-52.jpg?v=8",
       "titre": "Back avec ton ADC"
      },
      {
-      "img": "slide-61.jpg?v=7",
+      "img": "slide-53.jpg?v=8",
       "titre": "Où l’équipe met ses ressources"
      },
      {
-      "img": "slide-62.jpg?v=7",
+      "img": "slide-54.jpg?v=8",
       "titre": "Deux plans de jeu possibles"
      },
      {
-      "img": "slide-63.jpg?v=7",
+      "img": "slide-55.jpg?v=8",
       "titre": "Gank, cover, countergank, aide au crash"
      },
      {
-      "img": "slide-64.jpg?v=7",
+      "img": "slide-56.jpg?v=8",
       "titre": "La tempo, c’est quoi ?"
      },
      {
-      "img": "slide-65.jpg?v=7",
+      "img": "slide-57.jpg?v=8",
       "titre": "Une bonne wave crée du temps"
      },
      {
-      "img": "slide-66.jpg?v=7",
+      "img": "slide-58.jpg?v=8",
       "titre": "Ta fenêtre, ou la leur ?"
      },
      {
-      "img": "slide-67.jpg?v=7",
+      "img": "slide-59.jpg?v=8",
       "titre": "Punir une erreur de tempo"
      },
      {
-      "img": "slide-68.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-69.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-70.jpg?v=7",
+      "img": "slide-60.jpg?v=8",
       "titre": "Anticiper sans supposer"
      },
      {
-      "img": "slide-71.jpg?v=7",
+      "img": "slide-61.jpg?v=8",
       "titre": "Préparer un objectif neutre"
      },
      {
-      "img": "slide-72.jpg?v=7",
+      "img": "slide-62.jpg?v=8",
       "titre": "Retirer leur vision, poser la tienne"
      },
      {
-      "img": "slide-73.jpg?v=7",
+      "img": "slide-63.jpg?v=8",
       "titre": "Jouer autour du dragon"
      },
      {
-      "img": "slide-74.jpg?v=7",
+      "img": "slide-64.jpg?v=8",
       "titre": "Qui viser avant un objectif ?"
      },
      {
-      "img": "slide-75.jpg?v=7",
+      "img": "slide-65.jpg?v=8",
       "titre": "Cible prioritaire, pas tunnel vision"
      },
      {
-      "img": "slide-76.jpg?v=7",
+      "img": "slide-66.jpg?v=8",
       "titre": "Vérifie ses intentions avant de bouger"
      },
      {
-      "img": "slide-77.jpg?v=7",
+      "img": "slide-67.jpg?v=8",
       "titre": "Qu’est-ce que le peel ?"
      },
      {
-      "img": "slide-78.jpg?v=7",
+      "img": "slide-68.jpg?v=8",
       "titre": "Engager, protéger, désengager"
      },
      {
-      "img": "slide-79.jpg?v=7",
+      "img": "slide-69.jpg?v=8",
       "titre": "Pas peur de mourir, mais pas pour rien"
      },
      {
-      "img": "slide-80.jpg?v=7",
+      "img": "slide-70.jpg?v=8",
       "titre": "Jamais de face check"
      },
      {
-      "img": "slide-81.jpg?v=7",
-      "titre": "Avant chaque fight"
-     },
-     {
-      "img": "slide-82.jpg?v=7",
+      "img": "slide-71.jpg?v=8",
       "titre": "Jouer front to back"
      },
      {
-      "img": "slide-83.jpg?v=7",
-      "titre": "Quiz"
-     },
-     {
-      "img": "slide-84.jpg?v=7",
-      "titre": "Réponse"
-     },
-     {
-      "img": "slide-85.jpg?v=7",
+      "img": "slide-72.jpg?v=8",
       "titre": "Solo queue et équipe : complémentaires"
      },
      {
-      "img": "slide-86.jpg?v=7",
+      "img": "slide-73.jpg?v=8",
       "titre": "Tu ne contrôles que toi"
      },
      {
-      "img": "slide-87.jpg?v=7",
+      "img": "slide-74.jpg?v=8",
       "titre": "D’abord ton propre jeu"
      },
      {
-      "img": "slide-88.jpg?v=7",
+      "img": "slide-75.jpg?v=8",
       "titre": "« Il faut être dans la tête de son adversaire »"
      },
      {
-      "img": "slide-89.jpg?v=7",
-      "titre": "Avant la game"
-     },
-     {
-      "img": "slide-90.jpg?v=7",
+      "img": "slide-76.jpg?v=8",
       "titre": "Comprendre, observer, anticiper, s’adapter"
+     }
+    ],
+    "quiz": [
+     {
+      "q": "Ton mid joue un hypercarry qui adore les boucliers, ton ADC est un poke. Tu prends quoi ?",
+      "ch": [
+       "Toujours le meilleur support pour mon ADC",
+       "Un enchanteur peut être un bon choix pour toute l'équipe",
+       "Un support au hasard"
+      ],
+      "good": 1,
+      "why": "La synergie avec toute l'équipe peut justifier un choix, même si la synergie avec l'ADC n'est pas parfaite.",
+      "niveau": "Niveau 1 · Comprendre son rôle",
+      "diff": "simple"
      },
      {
-      "img": "slide-91.jpg?v=7",
-      "titre": "Boss final"
+      "q": "Shaco + Caitlyn en face. C'est une bot lane…",
+      "ch": [
+       "Poke",
+       "Prête à recevoir (un bait)",
+       "All-in"
+      ],
+      "good": 1,
+      "why": "À première vue ça poke, mais c'est un bait : c'est plutôt une bot lane qui reçoit.",
+      "niveau": "Niveau 2 · Comprendre la BOTLANE",
+      "diff": "simple"
+     },
+     {
+      "q": "Un canon va mourir sous ta tour avant que ton ADC puisse le last hit. Tu as une charge. Tu fais quoi ?",
+      "ch": [
+       "Rien, tant pis",
+       "Je l'achève avec ma charge : mon ADC touche le gold du canon",
+       "Je le tape sans réfléchir"
+      ],
+      "good": 1,
+      "why": "Ta charge te rapporte la même chose, mais ton ADC récupère le gold du canon au lieu de le perdre.",
+      "niveau": "Niveau 2 · Comprendre la BOTLANE",
+      "diff": "simple"
+     },
+     {
+      "q": "Ta botlane se fait pousser, ils tiennent tes buissons. Ta pink ?",
+      "ch": [
+       "Dans le buisson qu'ils contrôlent, tout de suite",
+       "Là où je peux la défendre, ou là où elle évite un gank",
+       "Je ne pose plus rien"
+      ],
+      "good": 1,
+      "why": "Une pink offerte se fait détruire. Mais une pink défensive qui empêche un gank peut être rentable, même détruite.",
+      "niveau": "Niveau 3 · Comprendre la vision",
+      "diff": "simple"
+     },
+     {
+      "q": "Tu gagnes ta lane, ton mid perd la sienne et rien n'est à faire au mid. Tu sors de base. Tu vas où ?",
+      "ch": [
+       "Au mid, comme d'habitude",
+       "Au bot, pour continuer à exploiter mon avantage",
+       "Je reste en base"
+      ],
+      "good": 1,
+      "why": "Passer par le mid est une option à évaluer. Sans occasion, tu perds du temps : ton avantage est au bot.",
+      "niveau": "Niveau 4 · Comprendre les déplacements",
+      "diff": "simple"
+     },
+     {
+      "q": "Le dragon arrive. Leur jungler est un tank, leur ADC est mal placé, sans flash. Tu engages sur qui ?",
+      "ch": [
+       "Le jungler, toujours",
+       "Leur ADC : on peut l'atteindre et il meurt vite",
+       "Personne, jamais"
+      ],
+      "good": 1,
+      "why": "Tuer le jungler avant un objectif est souvent bien, mais pas à tout prix : la cible accessible et rentable est leur ADC.",
+      "niveau": "Niveau 5 · Le jeu collectif",
+      "diff": "simple"
+     },
+     {
+      "q": "Leur ADC est avancé, leur support est loin derrière. Ton ADC est à portée.",
+      "ch": [
+       "On punit à deux : c'est un triangle",
+       "On attend sans bouger",
+       "Je back"
+      ],
+      "good": 0,
+      "why": "Deux contre un, pendant un instant : c'est la fenêtre.",
+      "suite": {
+       "q": "Ce que tu vérifies avant d'engager ?",
+       "ch": [
+        "Sorts, PV, wave, position du 2e adversaire, jungler, porte de sortie",
+        "Son skin",
+        "Rien, il faut aller vite"
+       ],
+       "good": 0,
+       "why": "Un triangle n'est pas un engage automatique."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Pyke quitte la bot pour roam mid. Tu joues un enchanteur.",
+      "ch": [
+       "Je reste et on met la pression à 2 contre 1 sur leur ADC",
+       "Je suis Pyke",
+       "Je back"
+      ],
+      "good": 0,
+      "why": "Leur ADC est seul : farm facile, pression, plaques.",
+      "suite": {
+       "q": "Ce que tu fais aussi ?",
+       "ch": [
+        "Je ping mid : « Pyke arrive »",
+        "Rien",
+        "J'écris « gg »"
+       ],
+       "good": 0,
+       "why": "Rester ne t'empêche pas de prévenir ton mid."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Pourquoi poser ta ward hors de la vue de l'adversaire ?",
+      "ch": [
+       "Il ne sait pas où la balayer",
+       "Elle dure plus longtemps",
+       "Elle rapporte plus de gold"
+      ],
+      "good": 0,
+      "why": "S'il te voit la poser, il sait à peu près où elle est.",
+      "diff": "dur"
+     },
+     {
+      "q": "Ton ADC prend une plaque, tu es à côté et rien ne menace.",
+      "ch": [
+       "Je reste pour partager",
+       "Je m'écarte un peu pour qu'il touche plus",
+       "Je tape aussi la tour"
+      ],
+      "good": 1,
+      "why": "L'or d'une plaque est partagé entre les champions proches.",
+      "suite": {
+       "q": "Quand vaut-il mieux rester ?",
+       "ch": [
+        "Si ta présence le protège ou qu'il faut tenir la zone",
+        "Jamais",
+        "Toujours"
+       ],
+       "good": 0,
+       "why": "On optimise les ressources de l'équipe, sans exposer l'ADC."
+      },
+      "diff": "dur"
+     },
+     {
+      "q": "Dragon dans 40 s. Ton jungler est au top et veut les larves.",
+      "ch": [
+       "Je vais au dragon seul",
+       "Je m'adapte à son plan : je propose, ou je fais autre chose d'utile",
+       "Je pars aux larves sans le dire"
+      ],
+      "good": 1,
+      "why": "On ne bouge pas juste parce qu'un objectif existe.",
+      "suite": {
+       "q": "Ce que tu fais d'abord ?",
+       "ch": [
+        "Je communique : « larves ou dragon ? »",
+        "Rien",
+        "Je ward le Baron"
+       ],
+       "good": 0,
+       "why": "En solo queue, ses pings et sa position te renseignent aussi."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Tu es Nautilus. Leur ADC n'a pas de flash, leur Janna a sa R. Fight au bot.",
+      "ch": [
+       "J'engage sur l'ADC tout de suite",
+       "J'attends sa R, ou j'engage hors de sa portée",
+       "Je n'engage jamais"
+      ],
+      "good": 1,
+      "why": "Sa R peut annuler ton engage et les soigner.",
+      "suite": {
+       "q": "Pourquoi attendre ?",
+       "ch": [
+        "Sa R repousse et soigne : ton engage serait gâché",
+        "Janna est un tank",
+        "Pour farmer"
+       ],
+       "good": 0,
+       "why": "Un engage se joue sur leurs cooldowns."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Tu comptes : 4 adversaires visibles au bot, 1 inconnu. Vous êtes 3 au mid.",
+      "ch": [
+       "On dive le bot",
+       "On joue l'opposé : tour mid, objectif, ou le top",
+       "On attend"
+      ],
+      "good": 1,
+      "why": "Le nombre est pour vous ailleurs.",
+      "suite": {
+       "q": "Et le 5e, inconnu ?",
+       "ch": [
+        "Il peut être au mid : prudence et vision",
+        "Il est forcément bot",
+        "Il est AFK"
+       ],
+       "good": 0,
+       "why": "Vu ou supposé : ne joue pas comme s'il n'existait pas."
+      },
+      "diff": "hardcore"
+     },
+     {
+      "q": "Tu joues un tank. Un assassin plonge ton ADC. Tu peux le sauver, mais tu risques de mourir.",
+      "ch": [
+       "Je me mets entre eux : il survit, le fight est gagnable",
+       "Je recule",
+       "Je ne fais rien"
+      ],
+      "good": 0,
+      "why": "Une mort utile protège un allié ou gagne le fight.",
+      "suite": {
+       "q": "Une mort est utile quand…",
+       "ch": [
+        "Elle protège un allié ou rapporte un vrai avantage",
+        "Tu as plus de morts que ton ADC",
+        "Toujours"
+       ],
+       "good": 0,
+       "why": "Le bon critère : la qualité de la décision, pas le nombre de morts."
+      },
+      "diff": "hardcore"
+     }
+    ],
+    "quizTitre": "Quiz du support",
+    "defis": [
+     {
+      "titre": "Avant chaque fight",
+      "big": "Le check",
+      "sub": "R et flash, chez nous et chez eux",
+      "items": [
+       "Mes R et mes flashs, et ceux de mes alliés",
+       "Leurs R et leurs flashs",
+       "Sans R ou sans flash : je joue safe et je le call",
+       "Un ennemi sans flash ? On joue sur lui",
+       "Ma team prend un fight : est-ce un bon fight ?"
+      ],
+      "niveau": "Niveau 5 · Le jeu collectif",
+      "boss": false
+     },
+     {
+      "titre": "Avant la game",
+      "big": "Échauffement",
+      "sub": "5 à 10 min, selon ton temps",
+      "items": [
+       "Outil d'entraînement : poser tes wards avec tes sorts",
+       "Shadow laning : imagine ta lane de A à Z, comme le shadow boxing",
+       "Ça marche aussi pour le roam : « jouer sans jouer »",
+       "Un objectif pour la game (par exemple : tes CS)"
+      ],
+      "niveau": "Niveau 6 · Le bilan",
+      "boss": false
+     },
+     {
+      "titre": "Boss final : la checklist du support",
+      "big": "",
+      "sub": "",
+      "items": [
+       "Je sais à quoi sert chaque ward que je pose",
+       "Je compte les adversaires, et je sépare vu et supposé",
+       "Je repère un triangle : pour attaquer, pour reculer, ou pour bait",
+       "Mes charges servent à mon ADC, pas à casser sa wave",
+       "Avant de roam, je compare ce que je gagne et ce que je laisse",
+       "Je prépare l'objectif avant de le taper, avec mon jungler",
+       "Je protège mes carries, et je ne meurs pas pour rien"
+      ],
+      "niveau": "",
+      "boss": true
      }
     ]
    }
