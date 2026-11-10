@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.48",
+   "date": "2026-11-10",
+   "titre": "Partage d'écran plus fluide",
+   "items": [
+    [
+     "fix",
+     "Partage d'écran : moins de retard et plus de saccades. Le flux utilise maintenant l'encodage H.264 de la carte graphique au lieu du processeur, et chaque spectateur garde le moins de retard possible avant l'affichage."
+    ],
+    [
+     "improve",
+     "En mode Fluide, Ultra fluide ou Maximum, FIRE garde en priorité les images par seconde (le jeu reste fluide). En mode Net, il garde la netteté (texte lisible)."
+    ],
+    [
+     "improve",
+     "Avec plusieurs spectateurs, le débit d'envoi est partagé entre eux et la définition baisse un peu à partir de 3 spectateurs, pour ne pas saturer la connexion de celui qui partage."
+    ],
+    [
+     "improve",
+     "Changer la qualité du partage d'écran s'applique tout de suite, même pendant un partage."
+    ]
+   ]
+  },
+  {
    "v": "1.10.47",
    "date": "2026-11-10",
    "titre": "On voit qui est en vocal, partout",

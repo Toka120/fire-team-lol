@@ -147,36 +147,78 @@
       const [s, k] = key.split(':');
       if ((slug == null || s === slug) && (kind == null || k === kind)) { try { V.vout[key].close(); } catch (e) { /* */ } delete V.vout[key]; }
     }
+    retune('cam'); retune('screen');
   }
-  function capBitrate(call, bps) {
-    const pc = call.peerConnection; if (!pc) return;
-    const apply = () => pc.getSenders().forEach((s) => {
-      if (!s.track || s.track.kind !== 'video') return;
-      const p = s.getParameters(); p.encodings = p.encodings && p.encodings.length ? p.encodings : [{}];
-      p.encodings[0].maxBitrate = bps; s.setParameters(p).catch(() => {});
+  // Réglage de l'envoi vidéo, recalculé quand le nombre de spectateurs change.
+  // Chaque spectateur reçoit sa propre copie (et son propre encodage) : à plusieurs, on partage un budget
+  // d'envoi et on baisse un peu la définition, sinon la connexion sature et l'image prend du retard et saccade.
+  const UP_BUDGET = 9000000;
+  function videoPlan(kind) {
+    const fps = kind === 'cam' ? 24 : (V.cfg.screenFps || 15);
+    const viewers = Math.max(1, Object.keys(V.vout).filter((k) => k.endsWith(':' + kind)).length);
+    const want = kind === 'cam' ? 450000 : fps >= 120 ? 8000000 : fps >= 60 ? 5000000 : fps >= 30 ? 3000000 : 1800000;
+    const rate = Math.max(kind === 'cam' ? 250000 : 1200000, Math.min(want, Math.floor(UP_BUDGET / viewers)));
+    const scale = kind === 'cam' ? 1 : viewers >= 4 ? 2 : viewers >= 3 ? 1.5 : 1;
+    // Jeu en direct : on garde la fluidité (images/s) ; texte et replays à 15 images/s : on garde la netteté.
+    return { rate, fps, scale, pref: kind === 'cam' || fps >= 30 ? 'maintain-framerate' : 'maintain-resolution' };
+  }
+  function tuneSender(call, kind) {
+    const pc = call && call.peerConnection; if (!pc || pc.connectionState !== 'connected') return;
+    const pl = videoPlan(kind);
+    pc.getSenders().forEach((sd) => {
+      if (!sd.track || sd.track.kind !== 'video') return;
+      const p = sd.getParameters(); p.encodings = p.encodings && p.encodings.length ? p.encodings : [{}];
+      p.encodings[0].maxBitrate = pl.rate; p.encodings[0].maxFramerate = pl.fps; p.encodings[0].scaleResolutionDownBy = pl.scale;
+      p.degradationPreference = pl.pref;
+      sd.setParameters(p).catch(() => {});
     });
-    pc.addEventListener('connectionstatechange', () => { if (pc.connectionState === 'connected') apply(); });
+  }
+  function retune(kind) { for (const [key, call] of Object.entries(V.vout)) if (key.endsWith(':' + kind)) tuneSender(call, kind); }
+  function capBitrate(call, kind) {
+    const pc = call.peerConnection; if (!pc) return;
+    pc.addEventListener('connectionstatechange', () => { if (pc.connectionState === 'connected') retune(kind); });
+  }
+  // Encodage matériel : on propose d'abord le H.264 (la carte graphique s'en charge sur presque tous les PC),
+  // ce qui évite que le processeur sature et que l'image saccade.
+  function preferH264(sdp) {
+    try {
+      const lines = sdp.split('\r\n');
+      const mi = lines.findIndex((l) => l.startsWith('m=video'));
+      if (mi < 0) return sdp;
+      const h264 = lines.filter((l) => /^a=rtpmap:\d+ H264\/90000/.test(l)).map((l) => l.match(/^a=rtpmap:(\d+)/)[1])
+        .filter((pt) => lines.some((l) => l.startsWith('a=fmtp:' + pt + ' ') && /packetization-mode=1/.test(l)));
+      if (!h264.length) return sdp;
+      const parts = lines[mi].split(' ');
+      const head = parts.slice(0, 3), pts = parts.slice(3);
+      lines[mi] = head.concat(h264.filter((x) => pts.includes(x)), pts.filter((x) => !h264.includes(x))).join(' ');
+      return lines.join('\r\n');
+    } catch (e) { return sdp; }
+  }
+  // Côté spectateur : on demande au navigateur de garder le moins de retard possible avant d'afficher l'image.
+  function lowLatency(call) {
+    const pc = call && call.peerConnection; if (!pc) return;
+    pc.getReceivers().forEach((r) => { try { if ('jitterBufferTarget' in r) r.jitterBufferTarget = 0; if ('playoutDelayHint' in r) r.playoutDelayHint = 0; } catch (e) { /* ancien navigateur */ } });
   }
   function sendVideo(slug, kind) {
     const stream = kind === 'cam' ? V.cam : V.screen;
     const key = slug + ':' + kind;
     if (!stream || V.vout[key] || !V.conns[slug] || !V.conns[slug].out) return;
-    const call = V.peer.call(pid(slug), stream, { metadata: { s: V.me, k: kind } });
+    const call = V.peer.call(pid(slug), stream, { metadata: { s: V.me, k: kind }, sdpTransform: preferH264 });
     if (!call) return;
     V.vout[key] = call;
-    // Débit max par personne : plus d'images par seconde demande plus de débit pour rester net.
-    const fps = V.cfg.screenFps || 15;
-    capBitrate(call, kind === 'cam' ? 450000 : fps >= 120 ? 8000000 : fps >= 60 ? 5000000 : fps >= 30 ? 3000000 : 1800000);
-    call.on('close', () => { if (V.vout[key] === call) delete V.vout[key]; });
-    call.on('error', () => { if (V.vout[key] === call) delete V.vout[key]; });
+    capBitrate(call, kind);
+    retune(kind);
+    const gone = () => { if (V.vout[key] === call) { delete V.vout[key]; retune(kind); } };
+    call.on('close', gone);
+    call.on('error', gone);
   }
   function takeVideo(from, kind, call) {
     if (!V.conns[from]) { try { call.close(); } catch (e) { /* */ } return; }
     const key = from + ':' + kind;
     if (V.vin[key]) { try { V.vin[key].call.close(); } catch (e) { /* */ } }
     V.vin[key] = { call, stream: null };
-    call.answer();
-    call.on('stream', (st) => { if (V.vin[key] && V.vin[key].call === call) { V.vin[key].stream = st; emit(); } });
+    call.answer(undefined, { sdpTransform: preferH264 });
+    call.on('stream', (st) => { lowLatency(call); if (V.vin[key] && V.vin[key].call === call) { V.vin[key].stream = st; emit(); } });
     const done = () => { if (V.vin[key] && V.vin[key].call === call) { delete V.vin[key]; emit(); } };
     call.on('close', done); call.on('error', done);
     const pc = call.peerConnection;
@@ -355,6 +397,11 @@
       try { await openMic(); } catch (e) { V.err = 'ce micro ne répond pas'; }
     }
     if (V.cam && c.cam !== old.cam) { stopCam(); startCam(); }
+    // Qualité du partage changée en plein partage : on l'applique tout de suite.
+    if (V.screen && c.screenFps !== old.screenFps) {
+      V.screen.getVideoTracks().forEach((t) => { t.contentHint = c.screenFps > 20 ? 'motion' : 'detail'; t.applyConstraints({ frameRate: { ideal: c.screenFps, max: c.screenFps } }).catch(() => {}); });
+      retune('screen');
+    }
     emit();
   }
   // « Tester mon micro » : tu t'entends (avec les réglages), même hors du salon.
@@ -446,6 +493,23 @@
   window.FireVoice = {
     join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, lobby, invite,
     clearErr: () => { V.err = ''; emit(); },
+    // Diagnostic (console) : codec, débit et images/s de chaque vidéo envoyée ou reçue.
+    _stats: async () => {
+      const one = async (call, dir) => {
+        const pc = call && call.peerConnection; if (!pc) return null;
+        const r = await pc.getStats(); const out = { dir };
+        r.forEach((x) => {
+          if (x.type === (dir === 'out' ? 'outbound-rtp' : 'inbound-rtp') && x.kind === 'video') { out.fps = x.framesPerSecond; out.w = x.frameWidth; out.h = x.frameHeight; out.codecId = x.codecId; out.limit = x.qualityLimitationReason; }
+        });
+        if (out.codecId) { const c = r.get(out.codecId); out.codec = c && c.mimeType; delete out.codecId; }
+        if (dir === 'out') { const sd = pc.getSenders().find((x) => x.track && x.track.kind === 'video'); if (sd) { const p = sd.getParameters(); out.max = p.encodings && p.encodings[0] && p.encodings[0].maxBitrate; out.pref = p.degradationPreference; } }
+        return out;
+      };
+      const res = {};
+      for (const [k, c] of Object.entries(V.vout)) res['→' + k] = await one(c, 'out');
+      for (const [k, v] of Object.entries(V.vin)) res['←' + k] = await one(v.call, 'in');
+      return res;
+    },
     level: () => V.level, gateOpen: () => V.gateOpen,
     onChange: (f) => V.listeners.push(f),
     state: () => ({
