@@ -1865,6 +1865,8 @@
           h('div', { class: 'vm-sep' }),
           chk('Affichage en grille', layout !== 'focus', (on) => { save('fire.vocal.layout', on ? 'grid' : 'focus'); if (on) VX.focus = null; }),
           chk('Afficher ma caméra', load('fire.vocal.selfcam', true), (on) => save('fire.vocal.selfcam', on)),
+          chk('Contour vert sur un partage d’écran quand son auteur parle', load('fire.vocal.screenring', false), (on) => save('fire.vocal.screenring', on)),
+          chk('Caméra incrustée sur le partage d’écran (pas en plein écran)', load('fire.vocal.pip', false), (on) => save('fire.vocal.pip', on)),
           chk('Afficher les participants sans vidéo', load('fire.vocal.novideo', true), (on) => save('fire.vocal.novideo', on)),
           chk('Afficher les arrivées et départs', load('fire.vocal.toasts', true), (on) => save('fire.vocal.toasts', on)),
           h('div', { class: 'vm-sep' }),
@@ -1976,12 +1978,19 @@
     const screens = [];
     if (v.screen) screens.push({ key: 'me:screen', slug: me, stream: v.screen, mine: true });
     v.videos.filter((x) => x.kind === 'screen').forEach((x) => screens.push({ key: x.slug + ':screen', slug: x.slug, stream: x.stream }));
-    const allTiles = screens.map((x) => ({ ...x, kind: 'screen' })).concat(people.map((p) => ({ key: p.slug + ':p', slug: p.slug, kind: 'person', p, stream: camOf(p.slug), mine: p.slug === me })));
+    // Options d'affichage (désactivées par défaut, chacun choisit dans le menu ⋯) :
+    // - contour vert sur le partage d'écran quand son auteur parle ;
+    // - sa caméra incrustée dans un coin de son partage d'écran (jamais en plein écran), au lieu d'une case à part.
+    const ringScreen = load('fire.vocal.screenring', false);
+    const pip = load('fire.vocal.pip', false);
+    const pipOf = (slug) => (pip && screens.some((x) => x.slug === slug) ? camOf(slug) : null);
+    const allTiles = screens.map((x) => ({ ...x, kind: 'screen', pipCam: pipOf(x.slug) }))
+      .concat(people.filter((p) => !pipOf(p.slug)).map((p) => ({ key: p.slug + ':p', slug: p.slug, kind: 'person', p, stream: camOf(p.slug), mine: p.slug === me })));
     // « Afficher les participants sans vidéo » décoché : seules les vidéos restent (s'il y en a).
     const hideNoVid = !load('fire.vocal.novideo', true) && allTiles.some((t) => t.stream);
     const tiles = hideNoVid ? allTiles.filter((t) => t.stream) : allTiles;
     const hidden = allTiles.length - tiles.length;
-    const keep = new Set(tiles.filter((t) => t.stream).map((t) => (t.kind === 'screen' ? t.key : t.slug + ':cam')));
+    const keep = new Set(tiles.filter((t) => t.stream).map((t) => (t.kind === 'screen' ? t.key : t.slug + ':cam')).concat(tiles.filter((t) => t.pipCam).map((t) => t.slug + ':cam')));
     for (const k of Object.keys(VX.vids)) if (!keep.has(k)) { VX.vids[k].srcObject = null; delete VX.vids[k]; }
     // Disposition : « côte à côte » (tout visible, même taille) ou « focus » (une vidéo en grand, les autres à côté).
     let layout = load('fire.vocal.layout', 'grid');
@@ -1994,9 +2003,10 @@
       const f = (pl.fonds || [])[0];
       const lm = !!v.lmute[t.slug];
       const vol = v.vols[t.slug] ?? 1;
-      const box = h('div', { class: 'vt ' + t.kind + (small ? ' small' : '') + (t.stream ? ' has-video' : '') + (lm ? ' lm' : ''), 'data-vslug': t.kind === 'person' ? t.slug : null,
+      const box = h('div', { class: 'vt ' + t.kind + (small ? ' small' : '') + (t.stream ? ' has-video' : '') + (lm ? ' lm' : ''), 'data-vslug': t.kind === 'person' || (t.kind === 'screen' && ringScreen) ? t.slug : null,
         ondblclick: () => fullscreen(box), onclick: (e) => { if (e.target.closest('.vt-menu, .vt-tools')) return; if (layout === 'focus' && VX.focus === t.key) setLayout('grid'); else setLayout('focus', t.key); } });
       if (t.stream) box.append(vidEl(t.kind === 'screen' ? t.key : t.slug + ':cam', t.stream, t.mine && t.kind === 'person'));
+      if (t.pipCam) box.append(h('div', { class: 'vt-pip' }, vidEl(t.slug + ':cam', t.pipCam, t.mine)));
       else {
         if (f) box.append(h('div', { class: 'vt-bg', style: `background-image:url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${f.champ}_${f.skin}.jpg')` }));
         box.append(h('div', { class: 'vc-av' }, ini(t.slug)));

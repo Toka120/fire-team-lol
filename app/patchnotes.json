@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.50",
+   "date": "2026-11-10",
+   "titre": "Partage d'écran : options d'affichage",
+   "items": [
+    [
+     "new",
+     "Menu ⋯ du salon › « Contour vert sur un partage d'écran quand son auteur parle » : le partage s'entoure de vert pendant que la personne qui partage parle, y compris en plein écran. Désactivé par défaut."
+    ],
+    [
+     "new",
+     "Menu ⋯ › « Caméra incrustée sur le partage d'écran » : la caméra de la personne qui partage se place dans un coin de son écran au lieu d'avoir une case à part. Elle ne s'affiche jamais en plein écran. Désactivé par défaut."
+    ],
+    [
+     "improve",
+     "Chacun règle ces options à son goût : elles ne changent que son propre affichage."
+    ]
+   ]
+  },
+  {
    "v": "1.10.49",
    "date": "2026-11-10",
    "titre": "Plusieurs salons vocaux",

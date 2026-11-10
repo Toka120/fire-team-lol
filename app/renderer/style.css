@@ -1437,3 +1437,12 @@ kbd{font:600 11px/1 ui-monospace,Consolas,monospace;padding:4px 7px;border-radiu
 .vs-room:disabled:not(.on){opacity:.5;cursor:not-allowed}
 .vs-n{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#3ddc84;color:#062214;font-size:11px;display:inline-grid;place-items:center}
 .vs-n.full{background:rgba(239,90,90,.25);color:var(--bad)}
+
+/* Partage d'écran : contour vert quand son auteur parle (option), caméra incrustée (option) */
+.vt.screen.talk{border-color:#3ddc84;box-shadow:0 0 0 1px #3ddc84,0 0 26px rgba(61,220,132,.3)}
+.vt.screen::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 0 0 transparent;transition:box-shadow .15s;z-index:3}
+.vt.screen.talk:fullscreen::after{box-shadow:inset 0 0 0 4px #3ddc84}
+.vt-pip{position:absolute;right:12px;bottom:12px;z-index:2;width:22%;min-width:120px;max-width:280px;aspect-ratio:16/9;border-radius:12px;overflow:hidden;border:2px solid rgba(255,255,255,.18);box-shadow:0 10px 26px rgba(0,0,0,.5)}
+.vt-pip video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vt.small .vt-pip{width:34%;min-width:60px;border-radius:8px}
+.vt:fullscreen .vt-pip{display:none}
