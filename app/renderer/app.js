@@ -2025,12 +2025,14 @@
       const vol = v.vols[t.slug] ?? 1;
       const box = h('div', { class: 'vt ' + t.kind + (small ? ' small' : '') + (t.stream ? ' has-video' : '') + (lm ? ' lm' : ''), 'data-vslug': t.kind === 'person' || (t.kind === 'screen' && ringScreen) ? t.slug : null,
         ondblclick: () => fullscreen(box), onclick: (e) => { if (e.target.closest('.vt-menu, .vt-tools')) return; if (layout === 'focus' && VX.focus === t.key) setLayout('grid'); else setLayout('focus', t.key); } });
+      // Vidéo (caméra ou écran) : elle prend toute la case, sans initiales par-dessus.
+      // Pas de vidéo : le skin préféré en fond et les initiales.
       if (t.stream) box.append(vidEl(t.kind === 'screen' ? t.key : t.slug + ':cam', t.stream, t.mine && t.kind === 'person'));
-      if (t.pipCam) box.append(h('div', { class: 'vt-pip' }, vidEl(t.slug + ':cam', t.pipCam, t.mine)));
       else {
         if (f) box.append(h('div', { class: 'vt-bg', style: `background-image:url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${f.champ}_${f.skin}.jpg')` }));
         box.append(h('div', { class: 'vc-av' }, ini(t.slug)));
       }
+      if (t.pipCam) box.append(h('div', { class: 'vt-pip' }, vidEl(t.slug + ':cam', t.pipCam, t.mine)));
       if (t.kind === 'screen' && !t.mine) box.append(h('span', { class: 'vt-q', 'data-q': t.key }));
       const so = (v.svol || {})[t.slug] || {};
       const sndOn = so.on == null ? v.cfg.streamSound !== false : so.on;

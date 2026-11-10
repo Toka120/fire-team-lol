@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.56",
+   "date": "2026-11-10",
+   "titre": "Salon vocal : plus d'initiales sur les vidéos",
+   "items": [
+    [
+     "fix",
+     "Les initiales (et le skin en fond) ne s'affichent plus par-dessus les caméras et les partages d'écran : on voit de nouveau vos têtes et vos écrans en entier. Elles restent seulement pour ceux qui n'ont pas de vidéo."
+    ]
+   ]
+  },
+  {
    "v": "1.10.55",
    "date": "2026-11-10",
    "titre": "Le son des streams",
