@@ -605,7 +605,7 @@
     renderNav();
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -617,6 +617,7 @@
     else if (S.section === 'lolpatch') renderLolPatch();
     else if (S.section === 'train') renderTrain();
     else if (S.section === 'vocal') renderVocal();
+    else if (S.section === 'draft') renderDraft();
     else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
     else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
     else if (S.view === 'player') renderPlayer();
@@ -1308,6 +1309,7 @@
     if (sec === 'patch') { loadPatch(); markPatchSeen(); }
     if (sec === 'lolpatch') loadLolPatch();
     if (sec === 'vocal') VX.dev = null;
+    if (sec === 'draft') { DR.msg = ''; setTimeout(pollDraft, 0); }
     if (sec === 'jeux') loadJeux();
     if (sec === 'worlds') { loadJeux(); loadWorlds(W.year); }
     render();
@@ -1670,6 +1672,117 @@
     vocalSpeak();
   }
 
+  // ----- Draft en direct : la sélection des champions lue dans le client LoL, et les runes du matchup -----
+  const DR = { d: null, sig: '', opp: {}, runes: {}, busy: '', msg: '', timer: null };
+  const POSN = { top: 'Top', jungle: 'Jungle', middle: 'Mid', bottom: 'ADC', utility: 'Support' };
+  const POSLANE = { top: 'top', jungle: 'jungle', middle: 'middle', bottom: 'bottom', utility: 'support' };
+  const POSCAT = { top: 'top', jungle: 'jungle', middle: 'mid', bottom: 'adc', utility: 'support' };
+  const live = (d) => d && (d.phase === 'ChampSelect' || d.phase === 'InProgress');
+  function draftBadge() { return live(DR.d) ? (DR.d.phase === 'InProgress' ? 'EN JEU' : 'LIVE') : null; }
+  async function pollDraft() {
+    if (!window.fire.lcu || DR.inflight) return;
+    DR.inflight = true;
+    let d = null;
+    try { d = await window.fire.lcu.draft(); } catch (e) { d = null; }
+    DR.inflight = false;
+    const was = draftBadge();
+    DR.d = d;
+    const sig = JSON.stringify(d && [d.client, d.phase, d.allies, d.enemies, d.timer && d.timer.phase]);
+    if (draftBadge() !== was) renderNav();
+    if (S.section === 'draft') {
+      if (sig !== DR.sig && !typing()) { DR.sig = sig; renderDraft(); }
+      const t = document.querySelector('.dr-timer');
+      if (t && d && d.timer) t.textContent = d.timer.left ? `⏱ ${d.timer.left} s` : '';
+    }
+    clearTimeout(DR.timer);
+    // Toutes les 2 s quand l'onglet est ouvert ou qu'une draft est en cours, sinon toutes les 15 s.
+    DR.timer = setTimeout(pollDraft, S.section === 'draft' || live(d) ? 2000 : 15000);
+  }
+  setTimeout(pollDraft, 3000);
+  const lolSlug = (id) => (id === 'MonkeyKing' ? 'wukong' : String(id || '').toLowerCase());
+  // Vis-à-vis : en partie Riot donne le poste de chacun ; en draft, le joueur clique sur son adversaire.
+  function opponent(d) {
+    if (!d || !d.me) return null;
+    const pick = DR.opp[d.me.pos || '?'];
+    const byPick = pick && d.enemies.find((e) => e.champ === pick);
+    if (byPick) return byPick;
+    return d.me.pos ? d.enemies.find((e) => e.champ && e.pos === d.me.pos) || null : null;
+  }
+  async function loadRunes(me) {
+    const k = me.key + ':' + (me.pos || '');
+    if (DR.runes[k] || !me.key) return;
+    DR.runes[k] = { loading: true };
+    const r = await window.fire.lcu.runes(me.key, me.pos).catch((e) => ({ ok: false, error: String(e) }));
+    DR.runes[k] = r || { ok: false };
+    if (S.section === 'draft' && !typing()) renderDraft();
+  }
+  async function importRunes(pg, label, replaceId) {
+    DR.busy = label; DR.msg = ''; renderDraft();
+    const r = await window.fire.lcu.import(pg.raw, label, replaceId).catch((e) => ({ ok: false, error: String(e) }));
+    DR.busy = '';
+    if (r && r.ok) DR.msg = { ok: true, t: `✓ Page « ${r.name} » créée et sélectionnée dans le client.` };
+    else if (r && r.full && r.replace) DR.msg = { ok: false, t: `Toutes tes pages de runes sont prises. Remplacer la page « ${r.replace.name} » ?`, replace: r.replace, pg, label };
+    else DR.msg = { ok: false, t: '⚠ Import impossible' + (r && r.error ? ` : ${r.error}` : '') + '.' };
+    renderDraft();
+  }
+  function renderDraft() {
+    const view = $('view');
+    if (!S.champList) loadChampions();
+    const d = DR.d;
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '⚡'), h('div', null, h('h1', { class: 'title' }, 'Draft en direct'),
+      h('p', { class: 'muted' }, 'FIRE suit ta sélection des champions dans le client LoL : ton matchup, les runes conseillées et leur import en un clic.')));
+    const wait = (t, sub) => view.replaceChildren(hero, h('div', { class: 'card empty-state dr-wait' }, h('b', null, t), sub ? h('p', { class: 'muted small' }, sub) : null));
+    if (!window.fire.lcu) return wait('Fonction indisponible dans cette version.');
+    if (!d) return wait('Recherche du client League of Legends…');
+    if (!d.client) return wait('Client League of Legends non détecté.', 'Ouvre League of Legends sur ce PC : FIRE le repère tout seul, rien à configurer.');
+    if (!live(d)) return wait('Client détecté ✓ · en attente d’une draft', 'Lance une partie (classée, normale, flex…) : dès la sélection des champions, tout s’affiche ici en direct.');
+    const inGame = d.phase === 'InProgress';
+    const me = d.me || {};
+    const opp = opponent(d);
+    const row = (p, enemy) => {
+      const chosen = enemy && opp && p.champ && opp.champ === p.champ;
+      const click = enemy && !inGame && p.champ && me.pos ? () => { DR.opp[me.pos] = p.champ; renderDraft(); } : null;
+      return h(click ? 'button' : 'div', { class: 'dr-row' + (p.me ? ' me' : '') + (chosen ? ' opp' : '') + (p.hover ? ' hover' : ''), onclick: click, title: click ? 'C’est mon vis-à-vis' : null },
+        p.champ ? champIcon(p.champ, 40) : h('span', { class: 'dr-empty' }, '?'),
+        h('span', { class: 'dr-n' }, h('b', null, p.name || (p.champ ? FC.champName(p.champ) : enemy ? 'En attente…' : 'Pas encore choisi')),
+          h('span', { class: 'muted small' }, [p.pos ? POSN[p.pos] : null, p.me ? 'toi' : null, p.hover ? 'survole' : null, chosen ? 'ton vis-à-vis' : null].filter(Boolean).join(' · '))));
+    };
+    const meName = me.name || (me.champ ? FC.champName(me.champ) : '');
+    const lane = POSLANE[me.pos] || '';
+    const statsUrl = me.champ ? `https://lolalytics.com/lol/${lolSlug(me.champ)}/${opp && opp.champ ? 'vs/' + lolSlug(opp.champ) + '/' : ''}build/${lane ? '?lane=' + lane : ''}` : null;
+    const rk = me.key ? me.key + ':' + (me.pos || '') : null;
+    if (!inGame && me.key) loadRunes(me);
+    const R = rk ? DR.runes[rk] : null;
+    const runeBlock = inGame ? null : !me.champ ? h('p', { class: 'muted' }, 'Choisis (ou survole) ton champion : les runes conseillées apparaissent ici.')
+      : !R || R.loading ? h('p', { class: 'muted' }, 'Lecture des runes recommandées…')
+        : !R.ok || !R.pages.length ? h('p', { class: 'muted' }, '⚠ Le client n’a pas renvoyé de runes recommandées' + (R.error ? ` (${R.error})` : '') + '.')
+          : h('div', { class: 'dr-pages' }, R.pages.map((pg, i) => h('div', { class: 'dr-page' },
+            h('div', { class: 'dr-pg-h' }, pg.perks[0] && pg.perks[0].icon ? h('img', { class: 'dr-key', src: pg.perks[0].icon, alt: '' }) : null,
+              h('span', null, h('b', null, (pg.perks[0] && pg.perks[0].name) || 'Page ' + (i + 1)), h('span', { class: 'muted small' }, `${pg.primary.name} + ${pg.sub.name}`))),
+            h('div', { class: 'dr-perks' }, pg.perks.slice(1).map((x) => h('span', { class: 'dr-perk', title: x.name }, x.icon ? h('img', { src: x.icon, alt: '' }) : null, h('span', null, x.name)))),
+            h('button', { class: 'btn-fire', disabled: DR.busy ? true : null, onclick: () => importRunes(pg, meName) }, DR.busy ? 'Import…' : '⬇ Mettre cette page dans le client'))));
+    const M = DR.msg;
+    const cat = POSCAT[me.pos];
+    view.replaceChildren(...[hero,
+      h('div', { class: 'card dr-status' }, h('span', { class: 'dr-live' }, inGame ? '🔴 Partie en cours' + (d.game && d.game.time ? ` · ${Math.floor(d.game.time / 60)} min` : '') : '🔴 Sélection des champions en direct'),
+        h('span', { class: 'dr-timer muted' }, d.timer && d.timer.left ? `⏱ ${d.timer.left} s` : '')),
+      h('div', { class: 'dr-teams' },
+        h('div', { class: 'card' }, h('h3', null, '🔵 Ton équipe'), d.allies.map((p) => row(p, false))),
+        h('div', { class: 'card' }, h('h3', null, '🔴 En face'), !inGame && me.pos ? h('p', { class: 'muted small' }, 'Clique sur ton vis-à-vis pour adapter le matchup.') : null, d.enemies.map((p) => row(p, true)))),
+      me.champ ? h('div', { class: 'card dr-match' },
+        h('div', { class: 'dr-vs' }, champIcon(me.champ, 64), h('div', null, h('b', null, meName), h('span', { class: 'muted small' }, POSN[me.pos] || '')),
+          h('span', { class: 'dr-vs-x' }, 'VS'),
+          opp && opp.champ ? champIcon(opp.champ, 64) : h('span', { class: 'dr-empty big' }, '?'),
+          h('div', null, h('b', null, opp ? (opp.name || FC.champName(opp.champ)) : 'Vis-à-vis à choisir'), h('span', { class: 'muted small' }, opp ? (POSN[opp.pos] || '') : 'clique dessus dans « En face »'))),
+        h('div', { class: 'row dr-acts' },
+          statsUrl ? h('button', { class: 'btn-fire', onclick: () => window.fire.lcu.stats(statsUrl) }, opp ? `📊 Meilleures runes contre ${opp.name || FC.champName(opp.champ)}` : `📊 Meilleures runes de ${meName}`) : null,
+          cat ? h('button', { class: 'btn-ghost', onclick: () => { S.section = 'guides'; S.guideCat = cat; S.theme = null; render(); window.scrollTo(0, 0); } }, `📚 Carnet ${POSN[me.pos]}`) : null),
+        h('p', { class: 'muted small' }, 'Les runes du matchup (taux de victoire de chaque page de runes contre ce champion, d’après les parties classées) s’ouvrent dans une fenêtre à part, sur lolalytics.com.')) : null,
+      !inGame && me.champ ? h('div', { class: 'card' }, h('h3', null, `⚡ Runes recommandées par Riot pour ${meName}${me.pos ? ' ' + POSN[me.pos] : ''}`), runeBlock,
+        M ? h('p', { class: M.ok ? 'ok-t' : 'bad' }, M.t, M.replace ? h('span', null, ' ', h('button', { class: 'btn-ghost', onclick: () => importRunes(M.pg, M.label, M.replace.id) }, 'Oui, remplacer'), ' ', h('button', { class: 'linkbtn', onclick: () => { DR.msg = ''; renderDraft(); } }, 'Non')) : null) : null) : null,
+      inGame ? h('p', { class: 'muted small' }, 'En partie, les runes ne peuvent plus être changées : ce récap sert à revoir ton matchup. Le vis-à-vis vient des postes donnés par Riot.') : null].filter(Boolean));
+  }
+
   // ----- Entraînement micro : les modes de loldodgegame.com (jeu fan-made de swompy), joués dans l'app -----
   const TRAIN = [
     ['dodge', '/dodge/', '🏃', 'Esquive', 'Survis le plus longtemps possible en esquivant les skillshots qui arrivent de partout.', 'Tous les rôles'],
@@ -1767,7 +1880,7 @@
     const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
-    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('train', '🎯 Micro'), b('vocal', '🎙️ Vocal', vocalBadge()), b('worlds', '🏆 E-sport'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('lolpatch', '📜 Patchs LoL', lolUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('train', '🎯 Micro'), b('vocal', '🎙️ Vocal', vocalBadge()), b('draft', '⚡ Draft', draftBadge()), b('worlds', '🏆 E-sport'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('lolpatch', '📜 Patchs LoL', lolUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
   }
 
   function newsBanner() {

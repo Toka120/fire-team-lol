@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.33",
+   "date": "2026-11-10",
+   "titre": "Draft en direct et runes du matchup",
+   "items": [
+    [
+     "new",
+     "Nouvel onglet ⚡ Draft : dès la sélection des champions, FIRE affiche la draft en direct depuis le client LoL (ton équipe, les picks adverses, le chrono). Rien à configurer."
+    ],
+    [
+     "new",
+     "Matchup : clique sur ton vis-à-vis dans « En face ». « Meilleures runes contre… » ouvre les stats de ce matchup précis (runes, objets, taux de victoire) dans une fenêtre FIRE à part, sur lolalytics.com."
+    ],
+    [
+     "new",
+     "Runes recommandées par Riot pour ton champion et ton poste, avec leurs icônes. « Mettre cette page dans le client » crée la page « FIRE · champion » et la sélectionne. Si toutes tes pages sont prises, FIRE demande avant d'en remplacer une."
+    ],
+    [
+     "improve",
+     "En partie, l'onglet garde le récap de la game, avec les vis-à-vis donnés par Riot. Le badge LIVE dans le menu signale une draft en cours, sans jamais ouvrir FIRE par-dessus le jeu."
+    ]
+   ]
+  },
+  {
    "v": "1.10.32",
    "date": "2026-11-10",
    "titre": "FIRE ne passe plus devant tes jeux",

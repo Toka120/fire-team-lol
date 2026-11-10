@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('fire', {
   patchnotes: call('patchnotes'),
   lolpatch: { list: call('lolpatch:list'), get: call('lolpatch:get') },
   screen: { sources: call('screen:sources'), pick: call('screen:pick') },
+  lcu: { draft: call('lcu:draft'), runes: call('lcu:runes'), import: call('lcu:import'), stats: call('lcu:stats') },
   bugs: { send: call('bug:send'), list: call('bug:list'), close: call('bug:close') },
   hash: call('hash'),
   version: call('version'),

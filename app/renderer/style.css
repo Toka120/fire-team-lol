@@ -1179,3 +1179,37 @@ html[data-theme=gris]  { --bg:#1b1c1f; --panel:#25272b; --panel2:#2e3035; --line
 .vc-src:hover{border-color:var(--fire2)}
 .vc-src img{width:100%;aspect-ratio:16/9;object-fit:contain;background:#000;border-radius:8px}
 .vc-src span{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Draft en direct */
+.dr-wait b{font-size:16px}
+.dr-status{display:flex;justify-content:space-between;align-items:center;margin-top:16px}
+.dr-live{font-weight:800;color:var(--bad)}
+.dr-timer{font-weight:700;font-variant-numeric:tabular-nums}
+.dr-teams{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media (max-width:900px){.dr-teams{grid-template-columns:1fr}}
+.dr-teams h3{margin:0 0 8px}
+.dr-row{display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;border-radius:10px;border:1px solid transparent;background:none;color:var(--fg);font:inherit;text-align:left}
+button.dr-row{cursor:pointer}
+button.dr-row:hover{border-color:var(--line);background:var(--panel2)}
+.dr-row.me{border-color:var(--fire2);background:rgba(255,94,58,.1)}
+.dr-row.opp{border-color:var(--bad);background:rgba(239,90,90,.12)}
+.dr-row.hover{opacity:.7}
+.dr-row .cico{border-radius:10px}
+.dr-n{display:flex;flex-direction:column}
+.dr-empty{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--panel2);color:var(--muted);font-weight:800}
+.dr-empty.big{width:64px;height:64px;font-size:22px}
+.dr-match{margin-top:14px}
+.dr-vs{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.dr-vs > div{display:flex;flex-direction:column}
+.dr-vs .cico{border-radius:14px}
+.dr-vs-x{font-weight:900;font-size:22px;color:var(--fire2);margin:0 10px}
+.dr-acts{gap:10px;margin-top:14px;flex-wrap:wrap}
+.dr-pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.dr-page{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)}
+.dr-pg-h{display:flex;gap:10px;align-items:center}
+.dr-pg-h > span{display:flex;flex-direction:column}
+.dr-key{width:48px;height:48px}
+.dr-perks{display:flex;flex-direction:column;gap:4px}
+.dr-perk{display:flex;align-items:center;gap:8px;font-size:13px}
+.dr-perk img{width:24px;height:24px}
+.dr-acts .btn-fire,.dr-acts .btn-ghost{width:auto}

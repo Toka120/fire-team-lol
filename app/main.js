@@ -180,6 +180,28 @@ function screenShare() {
   });
 }
 
+// ---------- Draft en direct (voir lcu.js) ----------
+const lcu = require('./lcu');
+ipcMain.handle('lcu:draft', () => lcu.draft().catch(() => ({ client: false, phase: 'None', allies: [], enemies: [] })));
+ipcMain.handle('lcu:runes', (e, key, pos) => lcu.runes(key, pos).catch((err) => ({ ok: false, error: String(err && err.message || err) })));
+ipcMain.handle('lcu:import', (e, raw, label, replaceId) => lcu.importPage(raw, label, replaceId).catch((err) => ({ ok: false, error: String(err && err.message || err) })));
+// Les stats du matchup s'ouvrent dans une fenêtre FIRE à part (le site ne se laisse pas intégrer dans une page).
+let statsWin = null;
+const STATS_OK = /^https:\/\/(www\.)?lolalytics\.com\//;
+ipcMain.handle('lcu:stats', (e, url) => {
+  if (!STATS_OK.test(String(url || ''))) return false;
+  if (!statsWin || statsWin.isDestroyed()) {
+    statsWin = new BrowserWindow({ width: 1240, height: 900, title: 'FIRE LoL · Stats du matchup', backgroundColor: '#0f0d0c', autoHideMenuBar: true,
+      icon: path.join(__dirname, 'assets', 'fire.ico'), webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true } });
+    statsWin.webContents.setWindowOpenHandler(({ url: u }) => { if (/^https:\/\//.test(u)) shell.openExternal(u); return { action: 'deny' }; });
+    statsWin.webContents.on('will-navigate', (ev, u) => { if (!STATS_OK.test(u)) { ev.preventDefault(); if (/^https:\/\//.test(u)) shell.openExternal(u); } });
+    statsWin.on('closed', () => { statsWin = null; });
+  }
+  statsWin.loadURL(url).catch(() => {});
+  statsWin.show(); statsWin.focus();
+  return true;
+});
+
 // ---------- Configuration (liste des joueurs, code d'équipe) ----------
 
 const cachePath = (name) => path.join(app.getPath('userData'), name);
