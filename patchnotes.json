@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.47",
+   "date": "2026-11-10",
+   "titre": "On voit qui est en vocal, partout",
+   "items": [
+    [
+     "new",
+     "Bandeau vert « EN DIRECT » en haut de toutes les pages quand des coéquipiers sont en vocal et que tu n'y es pas : leurs avatars, leurs noms, et les boutons « Rejoindre » et « Voir le salon »."
+    ],
+    [
+     "new",
+     "Le bouton 🎙️ Vocal du menu s'allume en vert avec le nombre de personnes en vocal, même si tu n'es pas dans le salon."
+    ],
+    [
+     "new",
+     "Pastille « En vocal » sur la carte des joueurs qui sont dans le salon."
+    ],
+    [
+     "new",
+     "Notification Windows « X est arrivé en vocal » quand un coéquipier rejoint le salon (au plus une fois par personne toutes les 10 minutes). Elle peut être coupée dans Paramètres › Notifications."
+    ]
+   ]
+  },
+  {
    "v": "1.10.46",
    "date": "2026-11-10",
    "titre": "Salon vocal : vidéos qui figeaient",

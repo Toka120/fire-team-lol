@@ -1397,3 +1397,20 @@ kbd{font:600 11px/1 ui-monospace,Consolas,monospace;padding:4px 7px;border-radiu
 .vtoast .dot{width:8px;height:8px;border-radius:50%;background:var(--bad)}
 .vtoast.up .dot{background:#3ddc84}
 .vtoast.out{opacity:0;transform:translateX(20px)}
+
+/* Présence en vocal : bouton du menu, bandeau, pastille sur les cartes */
+.navbtn.navlive{border-color:rgba(61,220,132,.7)!important;box-shadow:0 0 0 1px rgba(61,220,132,.35),0 0 18px rgba(61,220,132,.25)}
+.navbtn.navlive .nbadge{background:#3ddc84;color:#062214;animation:vcPulse 2s infinite}
+#vlive{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px auto 0;max-width:1352px;width:calc(100% - 48px);box-sizing:border-box;padding:10px 14px;border-radius:14px;background:linear-gradient(90deg,rgba(61,220,132,.22),rgba(61,220,132,.08) 60%,rgba(61,220,132,.04));border:1px solid rgba(61,220,132,.55);box-shadow:0 8px 26px rgba(61,220,132,.12);animation:vsFade .2s ease}
+.vl-live{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:900;letter-spacing:.12em;color:#3ddc84}
+.vl-live .dot{width:9px;height:9px;border-radius:50%;background:#3ddc84;animation:vcPulse 1.6s infinite}
+.vl-av{display:flex}
+.vl-av .vc-av{margin-left:-6px;border:2px solid #0f1a14}
+.vl-av .vc-av:first-child{margin-left:0}
+.vl-txt{flex:1;min-width:180px;font-size:15px}
+.vl-join{border:0;border-radius:10px;padding:9px 18px;font:inherit;font-weight:800;color:#062214;background:#3ddc84;cursor:pointer;box-shadow:0 6px 18px rgba(61,220,132,.35)}
+.vl-join:hover{background:#52e494}
+.vl-see{border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:8px 14px;font:inherit;font-weight:700;color:var(--fg);background:rgba(0,0,0,.2);cursor:pointer}
+.pcard{position:relative}
+.pvoc{position:absolute;right:12px;bottom:12px;z-index:2;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid rgba(61,220,132,.6);background:rgba(8,30,18,.85);color:#3ddc84;font:inherit;font-size:11px;font-weight:800;cursor:pointer}
+.pvoc .dot{width:7px;height:7px;border-radius:50%;background:#3ddc84;animation:vcPulse 1.6s infinite}

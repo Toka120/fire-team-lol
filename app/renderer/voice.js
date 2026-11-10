@@ -322,6 +322,7 @@
       // Toutes les 20 s, on rappelle ceux qui ne sont pas là : un membre qui revient après une coupure est retrouvé.
       V.probe = setInterval(() => V.ids.forEach(ring), 20000);
       blip(true);
+      presenceLoop();
     } catch (e) {
       V.err = (e && e.name === 'NotAllowedError') ? 'accès au micro refusé (Windows › Paramètres › Confidentialité › Microphone)' : (e && e.name === 'NotFoundError') ? 'aucun micro trouvé' : (e && e.message) || String(e);
       cleanup();
@@ -336,7 +337,7 @@
     V.peer = null; V.on = false; V.speaking = {};
     if (!V.monitor) { closeMic(); clearInterval(V.timer); V.timer = null; V.level = 0; }
   }
-  function leave() { if (!V.on) return; blip(false); cleanup(); emit(); }
+  function leave() { if (!V.on) return; blip(false); clearInterval(L.beat); beacon(false); cleanup(); emit(); }
 
   // ---------- Réglages ----------
   function setMute(m) { V.mute = !!m; if (!V.mute && V.deaf) { V.deaf = false; applyGains(); } broadcast(); emit(); }
@@ -379,7 +380,34 @@
   }
 
   // ---------- Invitations : chaque FIRE ouvert garde une petite adresse « hall » pour recevoir une invitation ----------
-  const L = { peer: null, prefix: '', me: null, ids: [], onInvite: null, last: {}, timer: null };
+  const L = { peer: null, prefix: '', me: null, ids: [], onInvite: null, last: {}, timer: null, links: {}, here: {}, beat: null };
+  // Présence : qui est en vocal, vu depuis n'importe quel FIRE ouvert (même sans être dans le salon).
+  // Chaque membre en appel prévient les autres toutes les 20 s ; sans nouvelle depuis 60 s, on le considère parti.
+  function onHall(from, m) {
+    if (!m) return;
+    if (m.t === 'invite' && L.onInvite) L.onInvite(from);
+    if (m.t === 'here') { if (m.on) L.here[from] = Date.now() + 60000; else delete L.here[from]; emit(); }
+  }
+  function link(slug) {
+    const cur = L.links[slug];
+    if (cur && cur.open) return Promise.resolve(cur);
+    return new Promise((ok) => {
+      if (!L.peer || L.peer.destroyed || !L.peer.open) return ok(null);
+      const dc = L.peer.connect(lid(slug), { reliable: true });
+      const t = setTimeout(() => ok(null), 8000);
+      dc.on('open', () => { clearTimeout(t); L.links[slug] = dc; dc.on('data', (m) => onHall(slug, m)); dc.on('close', () => { if (L.links[slug] === dc) delete L.links[slug]; }); ok(dc); });
+      dc.on('error', () => { clearTimeout(t); ok(null); });
+    });
+  }
+  async function beacon(on) {
+    const others = L.ids.filter((x) => x !== L.me);
+    await Promise.all(others.map(async (x) => { const dc = await link(x); if (dc) { try { dc.send({ t: 'here', on }); } catch (e) { /* */ } } }));
+  }
+  function presenceLoop() {
+    clearInterval(L.beat);
+    if (V.on) { beacon(true); L.beat = setInterval(() => { if (V.on) beacon(true); }, 20000); }
+  }
+  setInterval(() => { const now = Date.now(); let ch = false; for (const [k, t] of Object.entries(L.here)) if (t < now) { delete L.here[k]; ch = true; } if (ch) emit(); }, 5000);
   const lid = (slug) => L.prefix + 'hall' + slug.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
   async function lobby(opts) {
     if (!window.Peer || !opts || !opts.me) return;
@@ -393,7 +421,9 @@
       p.on('connection', (dc) => {
         const from = L.ids.find((x) => lid(x) === dc.peer);
         if (!from || from === L.me) { try { dc.close(); } catch (e) { /* */ } return; }
-        dc.on('data', (m) => { if (m && m.t === 'invite' && L.onInvite) L.onInvite(from); setTimeout(() => { try { dc.close(); } catch (e) { /* */ } }, 500); });
+        L.links[from] = dc;
+        dc.on('data', (m) => onHall(from, m));
+        dc.on('close', () => { if (L.links[from] === dc) delete L.links[from]; });
       });
       p.on('disconnected', () => { setTimeout(() => { try { if (L.peer === p && !p.destroyed) p.reconnect(); } catch (e) { /* */ } }, 3000); });
       // Adresse encore prise (relance rapide) ou serveur coupé : on réessaie un peu plus tard.
@@ -409,11 +439,7 @@
       L.last[slug] = Date.now();
       let done = false;
       const end = (r) => { if (!done) { done = true; ok(r); } };
-      const onErr = (e) => { if (e && e.type === 'peer-unavailable' && String(e.message || '').includes(lid(slug))) end('off'); };
-      L.peer.on('error', onErr);
-      const dc = L.peer.connect(lid(slug), { reliable: true });
-      dc.on('open', () => { try { dc.send({ t: 'invite' }); } catch (e) { /* */ } end('ok'); setTimeout(() => { try { dc.close(); } catch (e) { /* */ } }, 1500); });
-      setTimeout(() => { L.peer && L.peer.off && L.peer.off('error', onErr); end('off'); }, 8000);
+      link(slug).then((dc) => { if (!dc) return end('off'); try { dc.send({ t: 'invite' }); end('ok'); } catch (e) { end('off'); } });
     });
   }
 
@@ -427,8 +453,9 @@
       cfg: Object.assign({}, V.cfg), vols: Object.assign({}, V.vols), lmute: Object.assign({}, V.lmute), speaking: Object.assign({}, V.speaking),
       cam: V.cam, screen: V.screen,
       members: Object.entries(V.conns).map(([s, k]) => ({ slug: s, ok: !!k.out, remote: k.remote || {} })),
+      here: Object.keys(L.here).filter((x) => x !== V.me && L.here[x] > Date.now()),
       videos: Object.entries(V.vin).filter(([, v]) => v.stream).map(([key, v]) => ({ slug: key.split(':')[0], kind: key.split(':')[1], stream: v.stream }))
     })
   };
-  window.addEventListener('beforeunload', () => { try { V.monitor = false; cleanup(); } catch (e) { /* */ } });
+  window.addEventListener('beforeunload', () => { try { if (V.on) beacon(false); V.monitor = false; cleanup(); } catch (e) { /* */ } });
 })();

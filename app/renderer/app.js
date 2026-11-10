@@ -327,7 +327,7 @@
   }
   // ----- Notifications de bureau -----
   // Réglages enregistrés sur cet ordinateur. Chaque alerte n'est envoyée qu'une fois.
-  const NOTIF_DEF = { on: true, app: true, upd: true, plan: true, coach: true };
+  const NOTIF_DEF = { on: true, app: true, upd: true, plan: true, coach: true, vocal: true };
   const notifPrefs = () => ({ ...NOTIF_DEF, ...load('fire.notif', {}) });
   function notifyDesk(kind, title, body, section) {
     const p = notifPrefs();
@@ -459,7 +459,8 @@
       h('div', { class: 'nsub' },
         box(p.upd, '🔥 Une mise à jour de FIRE est disponible', (v) => set('upd', v), !p.on && !p.app),
         box(p.plan, '📅 Le coach a changé le planning (jour ajouté, retiré ou horaires modifiés)', (v) => set('plan', v), !p.on && !p.app),
-        box(p.coach, '📣 Nouvelle fiche ou note dans « Parole du coach »', (v) => set('coach', v), !p.on && !p.app)),
+        box(p.coach, '📣 Nouvelle fiche ou note dans « Parole du coach »', (v) => set('coach', v), !p.on && !p.app),
+        box(p.vocal, '🎙️ Un coéquipier arrive dans le salon vocal (notification Windows, une fois par personne toutes les 10 min)', (v) => set('vocal', v), !p.on)),
       h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: (p.on || p.app) ? null : true, onclick: () => {
         if (p.app) popup('🔥 FIRE LoL', 'Les notifications fonctionnent ✓', null);
         if (p.on && window.fire.notify) window.fire.notify({ title: '🔥 FIRE LoL', body: 'Les notifications fonctionnent ✓', section: 'settings' });
@@ -678,6 +679,7 @@
   function render() {
     hideTip();
     renderNav();
+    try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
     back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
@@ -737,7 +739,8 @@
     const bd = bandeau(p);
     const bg = skinBg(p);
     const card = h('article', { class: 'pcard' + (bd ? ' banded b-' + bd.theme : '') + (bg ? ' has-skin' : ''), tabindex: '0', onclick: () => openPlayer(p.slug), onkeydown: (e) => { if (e.key === 'Enter') openPlayer(p.slug); } },
-      bg, bd ? h('div', { class: 'pcap' }, bd.texte) : null, roleLine(p, R), h('div', { class: 'pname' }, p.pseudo));
+      bg, bd ? h('div', { class: 'pcap' }, bd.texte) : null, roleLine(p, R), h('div', { class: 'pname' }, p.pseudo),
+      vocalPeople().includes(p.slug) ? h('button', { class: 'pvoc', title: 'Ouvrir le salon vocal', onclick: (e) => { e.stopPropagation(); go('vocal'); } }, h('span', { class: 'dot' }), 'En vocal') : null);
     // Vue compacte : rôle, pseudo et objectif de games. Le reste avec « Plus de détails » ou sur le profil.
     if (!S.hubMore) {
       if (d) card.append(progress(objFor(p, d)));
@@ -1569,7 +1572,30 @@
   const vocalName = (slug) => slug === 'coach' ? 'Coach' : shortName((S.players.find((p) => p.slug === slug) || {}).pseudo || slug);
   const vocalIds = () => S.players.map((p) => p.slug).filter(Boolean).concat('coach');
   const ini = (slug) => vocalName(slug).slice(0, 2).toUpperCase();
-  function vocalBadge() { const v = FV() && FV().state(); return v && v.on ? String(1 + v.members.filter((m) => m.ok).length) : null; }
+  // Qui est en vocal : les gens connectés avec moi si je suis dans le salon, sinon ce que les autres FIRE annoncent.
+  function vocalPeople() {
+    const v = window.FireVoice && FV().state();
+    if (!v) return [];
+    return v.on ? [v.me].concat(v.members.filter((m) => m.ok).map((m) => m.slug)) : v.here;
+  }
+  const vocalLive = () => vocalPeople().length > 0;
+  function vocalBadge() { const n = vocalPeople().length; return n ? String(n) : null; }
+  // Bandeau vert en haut de toutes les pages quand des coéquipiers sont en vocal et que je n'y suis pas.
+  function vocalLiveBanner() {
+    let el = document.getElementById('vlive');
+    const v = window.FireVoice && FV().state();
+    const ppl = v && !v.on ? v.here : [];
+    if (!ppl.length || S.section === 'vocal' || !vocalMe()) { if (el) el.remove(); return; }
+    if (!el) { el = h('div', { id: 'vlive' }); $('view').before(el); }
+    const names = ppl.map(vocalName);
+    const txt = names.length === 1 ? `${names[0]} est en vocal` : `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]} sont en vocal`;
+    el.replaceChildren(
+      h('span', { class: 'vl-live' }, h('span', { class: 'dot' }), 'EN DIRECT'),
+      h('span', { class: 'vl-av' }, ppl.slice(0, 6).map((x) => h('span', { class: 'vc-av mini', title: vocalName(x) }, ini(x)))),
+      h('b', { class: 'vl-txt' }, '🎙️ ', txt),
+      h('button', { class: 'vl-join', onclick: () => { go('vocal'); vocalJoin(); } }, 'Rejoindre'),
+      h('button', { class: 'vl-see', onclick: () => go('vocal') }, 'Voir le salon'));
+  }
   function vocalSig(v) {
     return JSON.stringify([v.on, v.joining, v.err, v.mute, v.deaf, v.monitor, !!v.cam, !!v.screen, v.lmute,
       v.members.filter((m) => m.ok).map((m) => [m.slug, m.remote]).sort(), v.videos.map((x) => x.slug + x.kind).sort()]);
@@ -1728,7 +1754,22 @@
         // Pas de nouvel affichage pendant le plein écran d'une vidéo : il le fermerait.
         if (S.section === 'vocal') { if (typing() || document.fullscreenElement) VX.pending = true; else renderVocal(); }
       }
-      vocalBar(); vocalSpeak();
+      vocalBar(); vocalSpeak(); vocalLiveBanner();
+      // Notification Windows quand un coéquipier arrive en vocal alors que je n'y suis pas.
+      if (!v.on) {
+        const np = notifPrefs(), now = Date.now();
+        VX.notified = VX.notified || {};
+        const fresh = v.here.filter((x) => !(VX.prevHere || []).includes(x) && now - (VX.notified[x] || 0) > 600000);
+        if (fresh.length && VX.prevHere && np.on && np.vocal && window.fire.notify && vocalMe()) {
+          fresh.forEach((x) => { VX.notified[x] = now; });
+          const names = fresh.map(vocalName);
+          const all = v.here.length;
+          window.fire.notify({ title: '🎙️ Salon vocal', body: `${names.join(', ')} ${names.length > 1 ? 'sont arrivés' : 'est arrivé'} en vocal${all > fresh.length ? ` (${all} en tout)` : ''}. Clique pour les rejoindre.`, section: 'vocal' }).catch(() => {});
+        }
+        VX.prevHere = v.here.slice();
+      }
+      const hs = vocalPeople().slice().sort().join('|');
+      if (hs !== VX.hereSig) { VX.hereSig = hs; renderNav(); if (S.section === 'stats' && S.view === 'hub' && !typing()) render(); }
     });
     if (window.fire.keys) { window.fire.keys.on(keyAction); setTimeout(() => syncKeys(true), 1500); }
     // Jauge du micro (et rendu remis à plus tard pendant qu'on règle un curseur).
@@ -1746,7 +1787,8 @@
       if (np.app) popup(t, b, 'vocal');
       if (np.on && window.fire.notify) window.fire.notify({ title: t, body: b, section: 'vocal' }).catch(() => {});
     };
-    setInterval(() => { if (S.players.length && vocalMe()) FV().lobby({ me: vocalMe(), ids: vocalIds(), code: 'FIRE-salon-equipe', onInvite }).catch(() => {}); }, 10000);
+    const hall = () => { if (S.players.length && vocalMe()) FV().lobby({ me: vocalMe(), ids: vocalIds(), code: 'FIRE-salon-equipe', onInvite }).catch(() => {}); };
+    setTimeout(hall, 3000); setInterval(hall, 10000);
     // Rejoindre tout seul au lancement, si le joueur l'a demandé.
     let tries = 0;
     const auto = setInterval(() => {
@@ -2166,10 +2208,10 @@
 
   function renderNav() {
     const n = unseen().length;
-    const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
+    const b = (id, label, badge, cls) => h('button', { class: 'navbtn' + (cls ? ' ' + cls : ''), 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
-    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('train', '🎯 Micro'), b('vocal', '🎙️ Vocal', vocalBadge()), b('draft', '⚡ Draft', draftBadge()), b('worlds', '🏆 E-sport'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('lolpatch', '📜 Patchs LoL', lolUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('train', '🎯 Micro'), b('vocal', '🎙️ Vocal', vocalBadge(), vocalLive() ? 'navlive' : null), b('draft', '⚡ Draft', draftBadge()), b('worlds', '🏆 E-sport'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('lolpatch', '📜 Patchs LoL', lolUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
   }
 
   function newsBanner() {
