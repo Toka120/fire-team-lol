@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.32",
+   "date": "2026-11-10",
+   "titre": "FIRE ne passe plus devant tes jeux",
+   "items": [
+    [
+     "fix",
+     "Mise à jour : FIRE ne redémarre plus tout seul par-dessus un jeu. Si FIRE est caché, réduit ou recouvert par un jeu, la mise à jour s'installe sans rien afficher et FIRE revient caché près de l'horloge."
+    ],
+    [
+     "fix",
+     "Si la fenêtre FIRE est ouverte mais que tu es sur autre chose, le redémarrage attend que tu reviennes sur FIRE. Pendant un appel vocal, il attend la fin de l'appel."
+    ],
+    [
+     "fix",
+     "Lancement avec Windows : FIRE démarre toujours caché près de l'horloge, même si l'arrière-plan est désactivé, et ne s'ouvre plus par-dessus une partie déjà lancée."
+    ]
+   ]
+  },
+  {
    "v": "1.10.31",
    "date": "2026-11-10",
    "titre": "Vocal : écran, caméra et réglages",

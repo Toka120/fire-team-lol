@@ -64,8 +64,21 @@ function notify(title, body, section) {
   return true;
 }
 
+// Redémarrage après une mise à jour faite pendant que personne ne regardait FIRE : on revient caché près
+// de l'horloge, sans jamais passer devant un jeu ou une autre fenêtre.
+const quietPath = () => path.join(app.getPath('userData'), 'relance-discrete.json');
+function quietRelaunch() {
+  try {
+    const t = JSON.parse(fs.readFileSync(quietPath(), 'utf8')).t || 0;
+    fs.rmSync(quietPath(), { force: true });
+    return Date.now() - t < 5 * 60 * 1000;
+  } catch (e) { return false; }
+}
+
 function createMainWindow(forceShow) {
-  const hidden = !forceShow && startHidden && bgPrefs().bg;
+  // Lancement avec Windows ou relance discrète : FIRE démarre caché (icône près de l'horloge),
+  // pour ne jamais s'afficher par-dessus une partie en cours.
+  const hidden = !forceShow && (startHidden || quietRelaunch());
   mainWin = new BrowserWindow({
     show: !hidden,
     width: 1320,
@@ -513,8 +526,14 @@ ipcMain.handle('bg:set', (e, m) => {
 });
 app.on('before-quit', () => { quitting = true; });
 
-ipcMain.handle('update:install', () => {
-  if (canAutoUpdate() && updateState.state === 'ready') { quitting = true; setImmediate(() => autoUpdater.quitAndInstall(true, true)); return true; }
+ipcMain.handle('update:install', (e, opts) => {
+  if (!(canAutoUpdate() && updateState.state === 'ready')) return false;
+  // « quiet » : l'app est cachée ou réduite. On installe, et la nouvelle version revient cachée.
+  if (opts && opts.quiet) {
+    if (mainWin && !mainWin.isDestroyed() && mainWin.isVisible() && !mainWin.isMinimized()) return false;
+    try { fs.writeFileSync(quietPath(), JSON.stringify({ t: Date.now() })); } catch (e) { /* ignore */ }
+  }
+  quitting = true; setImmediate(() => autoUpdater.quitAndInstall(true, true)); return true;
   return false;
 });
 // Bouton « Installer la dernière version » de l'onglet Paramètres.
@@ -539,7 +558,8 @@ if (!single) {
   // Windows n'affiche les notifications que si l'application a un identifiant (le même que l'installeur).
   // La version Store a déjà son identité Windows (notifications) : on ne la remplace pas.
   if (process.platform === 'win32' && !store) app.setAppUserModelId('lol.fire.team');
-  app.on('second-instance', () => showMain());
+  // Un 2e lancement par Windows (démarrage auto) ne doit pas afficher la fenêtre : seulement un double-clic du joueur.
+  app.on('second-instance', (e, argv) => { if (!(argv || []).includes('--hidden')) showMain(); });
   app.whenReady().then(() => { lockPermissions(); blockAds(); screenShare(); createMainWindow(); setupUpdater(); });
   app.on('window-all-closed', () => { if (!bgPrefs().bg || quitting) app.quit(); });
 }

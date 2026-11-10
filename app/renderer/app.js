@@ -286,6 +286,16 @@
     if (countdown) return;
     S.updLeft = 15;
     countdown = setInterval(() => {
+      // FIRE caché ou réduit (quelqu'un joue, par exemple) : on installe sans rien afficher,
+      // et la nouvelle version revient cachée près de l'horloge.
+      // Pas de redémarrage pendant un appel vocal : on attend la fin.
+      const inCall = !!(window.FireVoice && window.FireVoice.state().on);
+      if (inCall !== !!S.updVoice) { S.updVoice = inCall; renderUpdate(); }
+      if (inCall) return;
+      if (document.visibilityState !== 'visible') { window.fire.update.install({ quiet: true }).catch(() => {}); return; }
+      // Fenêtre visible mais pas au premier plan : on attend que le joueur revienne sur FIRE.
+      if (!document.hasFocus()) { S.updAway = true; renderUpdate(); return; }
+      S.updAway = false;
       if (typing() || (S.draft && S.draft.busy)) { renderUpdate(); return; } // on n'interrompt pas quelqu'un qui écrit
       S.updLeft--;
       if (S.updLeft <= 0) installNow(); else renderUpdate();
@@ -377,7 +387,7 @@
       else {
         startCountdown();
         const paused = typing() || (S.draft && S.draft.busy);
-        node = h('span', null, `✓ Version ${u.version} prête : FIRE LoL redémarre ${paused ? 'dès que tu as fini d\'écrire' : `dans ${S.updLeft} s`} pour l'installer. `, now, ' · ',
+        node = h('span', null, `✓ Version ${u.version} prête : FIRE LoL redémarre ${S.updVoice ? 'à la fin de ton appel vocal' : S.updAway ? 'quand tu reviens sur FIRE' : paused ? 'dès que tu as fini d\'écrire' : `dans ${S.updLeft} s`} pour l'installer. `, now, ' · ',
           h('button', { class: 'linkbtn', onclick: () => { S.updLater = true; stopCountdown(); renderUpdate(); } }, 'Plus tard'));
       }
     } else if (!u.auto) node = updateNode();
