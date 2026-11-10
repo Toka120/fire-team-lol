@@ -1,6 +1,18 @@
 {
  "versions": [
   {
+   "contenu": true,
+   "id": "c-2026-11-10-fond-support",
+   "date": "2026-11-10",
+   "titre": "Skins en fond pour TheM3talDrakonar",
+   "items": [
+    [
+     "new",
+     "TheM3talDrakonar a ses skins préférés en fond de sa carte et de son profil, en alternance : Pyke chevalier de cendres, Pyke combattant spirituel prestige, Nautilus Crystalis Indomitus, Vel'Koz incognito et Leona séductrice."
+    ]
+   ]
+  },
+  {
    "v": "1.10.43",
    "date": "2026-11-10",
    "titre": "Partage d'écran en 60 et 120 images/s",

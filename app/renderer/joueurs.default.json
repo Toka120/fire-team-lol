@@ -202,7 +202,29 @@
       "bandeau": {
         "texte": "📈 En progression",
         "theme": "emerald"
-      }
+      },
+      "fonds": [
+        {
+          "champ": "Pyke",
+          "skin": 44
+        },
+        {
+          "champ": "Pyke",
+          "skin": 54
+        },
+        {
+          "champ": "Nautilus",
+          "skin": 36
+        },
+        {
+          "champ": "Velkoz",
+          "skin": 3
+        },
+        {
+          "champ": "Leona",
+          "skin": 33
+        }
+      ]
     }
   ]
 }
