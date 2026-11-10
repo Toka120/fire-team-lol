@@ -957,3 +957,6 @@ html[data-theme=gris]  { --bg:#1b1c1f; --panel:#25272b; --panel2:#2e3035; --line
 .ll-btn.playing .ll-ico{animation:ll-pulse 1s ease-in-out infinite}
 @keyframes ll-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 .ll-diff{justify-content:center;margin:6px 0 0}
+.ll-src{margin:4px 0 12px}
+.ll-site{padding:10px}
+.ll-iframe{width:100%;height:min(80vh,860px);border:0;border-radius:12px;background:#0b0f19;display:block}

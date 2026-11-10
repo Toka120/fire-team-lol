@@ -2412,6 +2412,22 @@
       return;
     }
     if (J.tab === 'lore') { nodes.push(...renderLore()); view.replaceChildren(...nodes); return; }
+    // League of Listen : le vrai jeu (sons de chaque sort Q W E R, site lynge.tv) intégré dans l'app,
+    // ou notre version avec les bruitages de l'écran de sélection.
+    if (J.tab === 'listen') {
+      const src = load('fire.listen.src', 'site');
+      const pickSrc = (v) => { save('fire.listen.src', v); render(); };
+      nodes.push(h('div', { class: 'chips ll-src' },
+        h('button', { class: 'chip', 'aria-pressed': String(src === 'site'), onclick: () => pickSrc('site') }, '🎧 League of Listen : sons de chaque sort (Q W E R)'),
+        h('button', { class: 'chip', 'aria-pressed': String(src !== 'site'), onclick: () => pickSrc('fire') }, '🔊 Version FIRE : bruitages de sélection')));
+      if (src === 'site') {
+        nodes.push(h('div', { class: 'card ll-site' },
+          h('iframe', { class: 'll-iframe', src: 'https://lynge.tv/listen/', title: 'League of Listen', allow: 'autoplay; fullscreen' }),
+          h('p', { class: 'muted small' }, 'Clique dans le jeu puis appuie sur Q, W, E ou R (ou clique sur un sort) pour écouter. Jeu fan-made par ',
+            h('a', { href: 'https://lynge.tv/listen/', target: '_blank' }, 'lynge.tv'), ', intégré tel quel dans FIRE.')));
+        view.replaceChildren(...nodes); return;
+      }
+    }
     const mode = J.tab;
     if (!J.r[mode]) { jNew(mode); }
     const r = J.r[mode];

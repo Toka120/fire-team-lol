@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.23",
+   "date": "2026-11-10",
+   "titre": "Le vrai League of Listen",
+   "items": [
+    [
+     "new",
+     "Détente › 🎧 Listen : le jeu League of Listen est intégré dans FIRE, avec le son de chaque sort (Q W E R) et 4 modes (Just for Fun, Classic, Fewest Abilities, Ult Only)."
+    ],
+    [
+     "improve",
+     "La version FIRE avec les bruitages de sélection reste disponible juste à côté."
+    ]
+   ]
+  },
+  {
    "v": "1.10.22",
    "date": "2026-11-10",
    "titre": "Listen : difficulté",
