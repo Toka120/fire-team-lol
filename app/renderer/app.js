@@ -595,7 +595,7 @@
     renderNav();
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -605,6 +605,7 @@
     else if (S.section === 'worlds') renderWorlds();
     else if (S.section === 'patch') renderPatch();
     else if (S.section === 'lolpatch') renderLolPatch();
+    else if (S.section === 'train') renderTrain();
     else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
     else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
     else if (S.view === 'player') renderPlayer();
@@ -1463,6 +1464,46 @@
     box.append(...[...doc.body.childNodes].map((n) => document.importNode(n, true)));
     return box;
   }
+  // ----- Entraînement micro : les modes de loldodgegame.com (jeu fan-made de swompy), joués dans l'app -----
+  const TRAIN = [
+    ['dodge', '/dodge/', '🏃', 'Esquive', 'Survis le plus longtemps possible en esquivant les skillshots qui arrivent de partout.', 'Tous les rôles'],
+    ['skillshot', '/skillshot/', '🎯', 'Skillshots', 'Touche des cibles qui bougent avec tes sorts : précision et vitesse.', 'Mid, support, ADC'],
+    ['kiting', '/kiting/', '🏹', 'Kiting', "Attaque-déplacement et orb-walk : tape sans t'arrêter de bouger.", 'ADC, mid'],
+    ['farming', '/farming/', '🌾', 'Last hit', 'Prends le dernier coup sur chaque sbire pour récupérer tout l’or de la vague.', 'Top, mid, ADC'],
+    ['1vs1', '/1vs1/', '⚔️', 'Duel 1v1', 'Affronte une IA ou un autre joueur en duel.', 'Top, mid'],
+    ['mobabattle', '/mobabattle/', '💥', 'Teamfight', 'Des combats d’équipe condensés : placement et réflexes.', 'Tous les rôles'],
+    ['duo', '/duo/', '🤝', 'Duo', 'Entraîne ta synergie avec un autre joueur.', 'Botlane, duo jungle'],
+    ['lol-guessr', '/lol-guessr/', '🗺️', 'LoL Guessr', 'Devine l’endroit de la carte ou l’objet affiché.', 'Tous les rôles'],
+    ['lolrogue', '/lolrogue/', '🃏', 'LoL Rogue', 'Une aventure roguelike façon Slay the Spire dans l’univers de LoL.', 'Pour souffler']
+  ];
+  const TRAIN_SITE = 'https://loldodgegame.com';
+  function renderTrain() {
+    const view = $('view');
+    const mode = TRAIN.find((m) => m[0] === load('fire.train.mode', 'dodge')) || TRAIN[0];
+    // Les rendus automatiques (stats, messages) ne doivent pas relancer une partie en cours.
+    if (view.querySelector(`.tr-frame[data-mode="${mode[0]}"]`)) return;
+    const pick = (k) => { save('fire.train.mode', k); renderTrain(); };
+    const url = TRAIN_SITE + mode[1];
+    const frame = h('iframe', { class: 'tr-frame', 'data-mode': mode[0], src: url, title: 'Entraînement ' + mode[3],
+      allow: 'fullscreen; autoplay; gamepad', allowfullscreen: true,
+      sandbox: 'allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-popups allow-modals' });
+    view.replaceChildren(
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎯'), h('div', null, h('h1', { class: 'title' }, 'Entraînement micro'),
+        h('p', { class: 'muted' }, 'Esquive, skillshots, kiting, last hit : travaille tes mécaniques entre deux games, sans lancer League of Legends.'))),
+      h('div', { class: 'tr-modes' }, TRAIN.map((m) => h('button', { class: 'tr-mode', 'aria-pressed': String(m[0] === mode[0]), onclick: () => pick(m[0]) },
+        h('span', { class: 'tr-ico' }, m[2]), h('span', null, h('b', null, m[3]), h('span', { class: 'muted small' }, m[5]))))),
+      h('div', { class: 'card tr-card' },
+        h('div', { class: 'tr-head' },
+          h('div', null, h('b', null, mode[2] + ' ' + mode[3]), h('p', { class: 'muted small' }, mode[4])),
+          h('div', { class: 'row' },
+            h('button', { class: 'btn-ghost', title: 'Recommencer', onclick: () => { frame.src = url; } }, '⟳ Recharger'),
+            h('button', { class: 'btn-ghost', onclick: () => { (frame.requestFullscreen ? frame.requestFullscreen() : Promise.reject()).catch(() => {}); } }, '⛶ Plein écran'),
+            h('a', { class: 'btn-ghost', href: url, target: '_blank' }, '↗ Navigateur'))),
+        frame,
+        h('p', { class: 'muted small' }, 'Clique dans le jeu avant de jouer pour qu’il reçoive le clavier et la souris (Échap pour sortir du plein écran). Jeu fan-made créé par swompy, intégré tel quel depuis ',
+          h('a', { href: TRAIN_SITE + '/', target: '_blank' }, 'loldodgegame.com'), ' : tes scores et réglages restent ceux du site.')));
+  }
+
   function renderLolPatch() {
     const view = $('view');
     if (!LP.list) loadLolPatch();
@@ -1520,7 +1561,7 @@
     const b = (id, label, badge) => h('button', { class: 'navbtn', 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
-    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('worlds', '🏆 E-sport'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('lolpatch', '📜 Patchs LoL', lolUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
+    $('nav').replaceChildren(b('stats', '📊 Stats des joueurs'), b('pool', '🧙 POOL'), b('planning', '📅 Planning', planTodo() || null), b('jeux', '🎮 Détente'), b('train', '🎯 Micro'), b('worlds', '🏆 E-sport'), b('guides', '📚 Lanes et principes'), b('coach', '📣 Parole du coach', n || null), b('patch', '🆕 Patch notes', patchUnseen() ? '!' : null), b('lolpatch', '📜 Patchs LoL', lolUnseen() ? '!' : null), b('settings', '⚙️ Paramètres', upd));
   }
 
   function newsBanner() {

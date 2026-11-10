@@ -1097,3 +1097,17 @@ html[data-theme=gris]  { --bg:#1b1c1f; --panel:#25272b; --panel2:#2e3035; --line
 .bonus-v { min-width: 56px; text-align: center; font-weight: 800; }
 .bonus-tag { color: #ffb347; font-weight: 800; }
 .bonus-ctl.compact .bonus-l { flex-basis: 100%; }
+
+/* Entraînement micro (loldodgegame.com) */
+.tr-modes{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin:16px 0}
+.tr-mode{display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;cursor:pointer}
+.tr-mode:hover{border-color:var(--muted)}
+.tr-mode[aria-pressed=true]{border-color:var(--fire2);background:rgba(255,94,58,.16);box-shadow:0 0 0 2px rgba(255,94,58,.25)}
+.tr-mode > span:last-child{display:flex;flex-direction:column;gap:2px}
+.tr-ico{font-size:22px;line-height:1}
+.tr-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.tr-head p{margin:4px 0 0}
+.tr-head .row{gap:8px}
+.tr-head a.btn-ghost{text-decoration:none;display:inline-flex;align-items:center}
+.tr-frame{width:100%;height:min(78vh,820px);border:0;border-radius:12px;background:#0b0f19;display:block}
+.tr-frame:fullscreen{border-radius:0;height:100%}

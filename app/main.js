@@ -110,6 +110,14 @@ function createMainWindow(forceShow) {
   });
 }
 
+// Les jeux intégrés (loldodgegame.com, lynge.tv…) n'ont droit qu'au plein écran et au verrouillage de la souris :
+// pas de caméra, micro, position ou notifications. L'app elle-même (fichiers locaux) garde tout.
+function lockPermissions() {
+  const ok = (perm, url) => /^file:\/\//.test(url || '') || perm === 'fullscreen' || perm === 'pointerLock';
+  session.defaultSession.setPermissionRequestHandler((wc, perm, cb, details) => cb(ok(perm, details && details.requestingUrl)));
+  session.defaultSession.setPermissionCheckHandler((wc, perm, origin, details) => ok(perm, (details && details.requestingUrl) || origin));
+}
+
 // ---------- Configuration (liste des joueurs, code d'équipe) ----------
 
 const cachePath = (name) => path.join(app.getPath('userData'), name);
@@ -483,6 +491,6 @@ if (!single) {
   // La version Store a déjà son identité Windows (notifications) : on ne la remplace pas.
   if (process.platform === 'win32' && !store) app.setAppUserModelId('lol.fire.team');
   app.on('second-instance', () => showMain());
-  app.whenReady().then(() => { createMainWindow(); setupUpdater(); });
+  app.whenReady().then(() => { lockPermissions(); createMainWindow(); setupUpdater(); });
   app.on('window-all-closed', () => { if (!bgPrefs().bg || quitting) app.quit(); });
 }

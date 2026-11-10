@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.29",
+   "date": "2026-11-10",
+   "titre": "Entraînement micro",
+   "items": [
+    [
+     "new",
+     "Nouvel onglet 🎯 Micro : les entraînements de loldodgegame.com directement dans l'app. Il y a 9 modes : esquive, skillshots, kiting, last hit, duel 1v1, teamfight, duo, LoL Guessr et LoL Rogue."
+    ],
+    [
+     "improve",
+     "Chaque mode indique les rôles à qui il sert le plus. Boutons Recharger, Plein écran et Ouvrir dans le navigateur. Le dernier mode choisi est gardé."
+    ],
+    [
+     "improve",
+     "Sécurité : les jeux intégrés n'ont accès qu'au plein écran et à la souris (pas de caméra, micro ni position)."
+    ]
+   ]
+  },
+  {
    "contenu": true,
    "id": "c-2026-11-10-mid-sbires",
    "date": "2026-11-10",
