@@ -492,11 +492,24 @@ async function pools() {
   if (!box) return { ok: true, semaines: [], ...base };
   try {
     const d = open(box);
-    return { ok: true, semaines: (d.semaines || []).sort((a, b) => a.debut.localeCompare(b.debut)), ...base };
+    return { ok: true, semaines: (d.semaines || []).sort((a, b) => a.debut.localeCompare(b.debut)), bonus: cleanBonus(d.bonus), ...base };
   } catch (e) { return { ok: false, error: 'pools illisibles avec ce code', ...base }; }
 }
 
-// action : { type: 'save', semaine } ou { type: 'delete', id } (coach), { type: 'joueur', slug, debut, objectif, tiers } (joueur ou coach)
+// Games obligatoires ajoutées (ou retirées) par le coach à un joueur, pour une semaine : { 'lundi YYYY-MM-DD': { slug: n } }.
+function cleanBonus(b) {
+  const out = {};
+  for (const [wk, m] of Object.entries(b || {})) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(wk) || !m || typeof m !== 'object') continue;
+    const o = {};
+    for (const [slug, n] of Object.entries(m)) { const v = parseInt(n, 10); if (typeof slug === 'string' && slug.length <= 80 && v) o[slug] = Math.max(-200, Math.min(200, v)); }
+    if (Object.keys(o).length) out[wk] = o;
+  }
+  return out;
+}
+
+// action : { type: 'save', semaine } ou { type: 'delete', id } (coach), { type: 'joueur', slug, debut, objectif, tiers } (joueur ou coach),
+// { type: 'bonus', semaine: 'lundi', slug, delta, base } (coach : games obligatoires en plus ou en moins pour la semaine)
 async function savePools(action) {
   const cfg = getConfig();
   const dr = cfg.data_repo || null;
@@ -511,10 +524,20 @@ async function savePools(action) {
   try {
     for (let i = 0; i < 4; i++) {
       const cur = await ghGet(token, file, repo);
-      let semaines = [];
-      if (cur && cur.json) semaines = open(cur.json).semaines || [];
+      let semaines = [], bonus = {};
+      if (cur && cur.json) { const d0 = open(cur.json); semaines = d0.semaines || []; bonus = cleanBonus(d0.bonus); }
       else if (repo !== REPO) { try { const old = await readPublic(POOLS); if (old) semaines = open(old).semaines || []; } catch (e) { /* rien à reprendre */ } }
-      if (action.type === 'delete') semaines = semaines.filter((w) => w.id !== action.id);
+      if (action.type === 'bonus') {
+        const wk = String(action.semaine || ''), slug = String(action.slug || '').slice(0, 80), delta = parseInt(action.delta, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(wk) || !slug || ![-10, -1, 1, 10].includes(delta)) throw new Error('demande invalide');
+        const base = Math.max(0, parseInt(action.base, 10) || 0);
+        const m = bonus[wk] || {};
+        const v = Math.max(-base, Math.min(200, (m[slug] || 0) + delta));
+        if (v) m[slug] = v; else delete m[slug];
+        bonus[wk] = m;
+        // On ne garde que les 8 dernières semaines.
+        Object.keys(bonus).sort().slice(0, -8).forEach((k) => delete bonus[k]);
+      } else if (action.type === 'delete') semaines = semaines.filter((w) => w.id !== action.id);
       else if (action.type === 'joueur') {
         const slug = String(action.slug || '').slice(0, 80);
         if (!slug) throw new Error('joueur inconnu');
@@ -528,9 +551,10 @@ async function savePools(action) {
         semaines = semaines.filter((x) => x.id !== w.id && x.debut !== w.debut).concat([w]);
       }
       semaines.sort((a, b) => a.debut.localeCompare(b.debut));
-      const box = seal({ semaines }, 'pools');
-      const r = await ghPut(token, file, box, cur && cur.sha, 'Pools : tierlists de la semaine', repo);
-      if (r.ok) { saveCache('pools', box); return { ok: true, semaines }; }
+      bonus = cleanBonus(bonus);
+      const box = seal({ semaines, bonus }, 'pools');
+      const r = await ghPut(token, file, box, cur && cur.sha, action.type === 'bonus' ? 'Pools : games obligatoires ajoutées par le coach' : 'Pools : tierlists de la semaine', repo);
+      if (r.ok) { saveCache('pools', box); return { ok: true, semaines, bonus }; }
     }
     throw new Error('les pools ont changé pendant l\'envoi, réessaie');
   } catch (e) {

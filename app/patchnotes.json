@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.27",
+   "date": "2026-11-10",
+   "titre": "Le coach ajoute des games obligatoires",
+   "items": [
+    [
+     "new",
+     "Mode coach : sur la carte de chaque joueur et sur son profil, des boutons −10, −1, +1 et +10 pour ajouter ou retirer des games obligatoires à son objectif de la semaine."
+    ],
+    [
+     "improve",
+     "L'objectif affiché indique les games ajoutées par le coach (par exemple « +3 du coach »). Le compteur repart à zéro chaque lundi, avec l'objectif de la semaine."
+    ]
+   ]
+  },
+  {
    "v": "1.10.26",
    "date": "2026-11-10",
    "titre": "Scénarios sur la carte et quiz qui changent",

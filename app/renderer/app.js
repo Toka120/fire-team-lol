@@ -46,11 +46,42 @@
   const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   const tag = (t) => h('span', { class: 'tag' }, t);
   const dateFr = (ymd) => { const d = new Date(ymd + 'T00:00:00'); return `${d.getDate() === 1 ? '1er' : d.getDate()} ${d.toLocaleDateString('fr-FR', { month: 'long' })}`; };
+  // Games obligatoires ajoutées par le coach à un joueur pour la semaine en cours (lundi → dimanche).
+  const bonusFor = (slug) => (((S.bonus || {})[mondayOf(todayYmd())] || {})[slug]) || 0;
+  function objFor(p, d) {
+    if (!S.obj || !d) return null;
+    const b = bonusFor(p.slug);
+    const o = FC.objectif(p, d.matches, { ...S.obj, games: Math.max(0, (Number(S.obj.games) || 0) + b) });
+    if (o) o.bonus = b;
+    return o;
+  }
+  function bonusCtl(p, compact) {
+    const b = bonusFor(p.slug), base = Number(S.obj && S.obj.games) || 0;
+    const busy = S.bonusBusy === p.slug;
+    const send = async (e, delta) => {
+      e.stopPropagation();
+      if (busy) return;
+      S.bonusBusy = p.slug; S.bonusErr = ''; render();
+      let r;
+      try { r = await window.fire.coach.savePools({ type: 'bonus', semaine: mondayOf(todayYmd()), slug: p.slug, delta, base }); } catch (err) { r = { ok: false, error: String(err) }; }
+      S.bonusBusy = null;
+      if (r && r.ok) { S.pools = r.semaines || S.pools; S.bonus = r.bonus || {}; } else S.bonusErr = (r && r.error) || 'envoi impossible';
+      render();
+    };
+    const bt = (delta) => h('button', { class: 'bonus-b' + (delta < 0 ? ' minus' : ''), disabled: busy || (delta < 0 && base + b + delta < 0) ? true : null,
+      onclick: (e) => send(e, delta), onkeydown: (e) => e.stopPropagation() }, (delta > 0 ? '+' : '−') + Math.abs(delta));
+    return h('div', { class: 'bonus-ctl' + (compact ? ' compact' : ''), onclick: (e) => e.stopPropagation() },
+      h('span', { class: 'bonus-l' }, compact ? '🧑‍🏫 Games obligatoires' : '🧑‍🏫 Coach : games obligatoires de la semaine'),
+      bt(-10), bt(-1),
+      h('span', { class: 'bonus-v' }, busy ? '…' : `${base + b}${b ? ` (${b > 0 ? '+' : ''}${b})` : ''}`),
+      bt(1), bt(10),
+      !compact && S.bonusErr ? h('span', { class: 'bad small' }, '⚠ ' + S.bonusErr) : null);
+  }
   function progress(o, big) {
     if (!o || !o.target) return null;
     const bar = h('div', { class: 'prog' + (o.done >= o.target ? ' done' : '') }, h('i', { style: `width:${o.pct}%` }));
     return h('div', { class: 'objbox' + (big ? ' big' : '') },
-      h('div', { class: 'objline' }, h('span', null, `🎯 Objectif de la semaine : ${o.done} / ${o.target} games obligatoires`), h('span', { class: 'muted small' }, o.done >= o.target ? 'atteint ✓' : `reste ${o.reste}`)),
+      h('div', { class: 'objline' }, h('span', null, `🎯 Objectif de la semaine : ${o.done} / ${o.target} games obligatoires`, o.bonus ? h('span', { class: 'bonus-tag' }, ` ${o.bonus > 0 ? '+' : ''}${o.bonus} du coach`) : null), h('span', { class: 'muted small' }, o.done >= o.target ? 'atteint ✓' : `reste ${o.reste}`)),
       bar);
   }
   const roleOf = (p) => FC.ROLES[p.role_id] || FC.ROLES.mid;
@@ -619,7 +650,8 @@
       roleLine(p, R), h('div', { class: 'pname' }, p.pseudo));
     // Vue compacte : rôle, pseudo et objectif de games. Le reste avec « Plus de détails » ou sur le profil.
     if (!S.hubMore) {
-      if (d) card.append(progress(FC.objectif(p, d.matches, S.obj)));
+      if (d) card.append(progress(objFor(p, d)));
+      if (S.coachState.coach && S.obj) card.append(bonusCtl(p, true));
       if (!d) card.append(h('div', { class: 'pstatus ' + ((st && st.state) || '') }, statusText(st, d)));
       return card;
     }
@@ -633,8 +665,9 @@
         h('div', { class: 'muted small' }, s.games ? `KDA ${fr(s.kda, 2)} · ${fr(s.morts_moy, 1)} morts/game` : periodLabel()),
         d.rank ? h('div', { class: 'muted small' }, d.rank) : null)));
       later(() => ring(box, s, 84));
-      const o = FC.objectif(p, d.matches, S.obj);
+      const o = objFor(p, d);
       card.append(progress(o));
+      if (S.coachState.coach && S.obj) card.append(bonusCtl(p, true));
       const cb = s.games ? catBar({ oblig: s.oblig, maitrise: s.maitrise_g, autres: s.autres }) : null;
       if (cb) { cb.classList.add('compact'); card.append(cb); }
       const pills = hubPills(p, FC.toRows(p, d.matches, start), s, o);
@@ -866,7 +899,7 @@
     const s = FC.stats(rows);
     const days = FC.byDay(rows);
     const champs = FC.byChamp(rows);
-    const obj = FC.objectif(p, d.matches, S.obj);
+    const obj = objFor(p, d);
     if (S.jour !== 'tous' && !days.some((x) => x.jour === S.jour)) S.jour = 'tous';
 
     const ringBox = h('div', { class: 'ring' });
@@ -879,6 +912,7 @@
           h('a', { href: 'https://dpm.lol/' + p.slug, target: '_blank' }, 'voir sur dpm.lol')),
         S.more ? h('p', { class: 'lead' }, FC.lead(p, s)) : null,
         progress(obj, S.more),
+        S.coachState.coach && S.obj ? bonusCtl(p) : null,
         S.more && s.games ? catBar({ oblig: s.oblig, maitrise: s.maitrise_g, autres: s.autres }) : null),
       ringBox));
     later(() => ring(ringBox, s, 170));
@@ -3186,7 +3220,7 @@
   async function loadPools() {
     let r;
     try { r = await window.fire.pools(); } catch (e) { r = { ok: false, error: String(e) }; }
-    if (r && r.ok) { S.pools = r.semaines || []; S.poolsErr = r.offline ? 'Hors ligne : derniers pools enregistrés.' : ''; }
+    if (r && r.ok) { S.pools = r.semaines || []; S.bonus = r.bonus || {}; S.poolsErr = r.offline ? 'Hors ligne : derniers pools enregistrés.' : ''; }
     else { S.pools = S.pools || []; S.poolsErr = (r && r.error) || 'pools indisponibles'; }
     S.poolWrite = !!(r && r.peutEcrire);
     applyWeek();
