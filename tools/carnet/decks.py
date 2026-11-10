@@ -64,9 +64,9 @@ def jungle():
         cards=[('🔴 Red', '#ff6b6b', ["Dégâts sur tes auto-attaques", "Slow", "Régénération de PV"]),
                ('🔵 Blue', '#5aa9ff', ["Régénération de mana", "Réduction des cooldowns"]),
                ('🐾 Familier', '#5fd39a', ["Trois bonus possibles en l'invoquant"])])]
-    s += tracking(L, 5) + cover(L, 5) + sides(L, 5)
+    s += tracking(L, 5) + counting(L, 5) + cover(L, 5) + sides(L, 5)
     s += waves_short(L, 7)
-    s += tempo(L, 8) + structures(L, 8) + vision(L, 8)
+    s += tempo(L, 8) + structures(L, 8) + vision(L, 8) + ward_why(L, 8) + anticip_comms(L, 8) + obj_prep(L, 8) + targets(L, 8)
     s += fights(L, 8)[:2]
     s += patterns(L, 8)
     s += mindset(L, 8, jungle=True) + first_self(L, 8) + intentions(L, 8)
@@ -129,11 +129,11 @@ def adc():
                  "Tu avais toutes les ressources pour carry : crée du jeu, snowball."])]
     s += farm_tour(4)
     s += cs_defi(L, 4)
-    s += trading(L, 5) + patterns(L, 5) + deny(L, 5) + after_kill(L, 5)
+    s += trading(L, 5) + patterns(L, 5) + deny(L, 5) + after_kill(L, 5) + triangle(L, 5) + coop_adc(L, 5)
     s += waves_full(L, 6)
     s += botlane(L, 7)
-    s += back_mid(L, 8) + tracking(L, 8) + vision(L, 8) + sides(L, 8) + cover(L, 8) + tempo(L, 8) + structures(L, 8)
-    s += fights(L, 9)
+    s += back_mid(L, 8) + tracking(L, 8) + vision(L, 8) + ward_why(L, 8) + counting(L, 8) + anticip_comms(L, 8) + sides(L, 8) + cover(L, 8) + tempo(L, 8) + structures(L, 8) + obj_prep(L, 8)
+    s += fights(L, 9) + targets(L, 9)
     s += mindset(L, 10) + first_self(L, 10) + intentions(L, 10)
     s += training(L, 10)
     s += [dict(kind='final', title='Boss final : la checklist de l’ADC',
@@ -288,7 +288,7 @@ def top():
     s += deny(L, 2)
     s += after_kill(L, 2)
     # ---------- Chapitre 3 : jouer avec les informations
-    s += tracking(L, 3) + vision(L, 3) + sides(L, 3)
+    s += tracking(L, 3) + vision(L, 3) + ward_why(L, 3) + counting(L, 3) + anticip_comms(L, 3) + sides(L, 3)
     s += [dict(kind='std', niv=3, kick='Weakside au top', title='Savoir absorber la pression', champ='Ornn',
         bullets=["Un toplaner weakside doit savoir absorber la pression.",
                  "Joue plus prudent, préserve ton XP, évite les morts inutiles.",
@@ -362,7 +362,7 @@ def top():
                  "Ça garde ta pression et force leurs réponses.",
                  f"Mais {bold('un bon duel ne te protège pas contre 2 ou 3 adversaires')}."])]
     s += sidelanes(5)
-    s += fights(L, 5)
+    s += obj_prep(L, 5) + fights(L, 5) + targets(L, 5)
     # ---------- Chapitre 6 : bilan
     s += [dict(kind='std', niv=6, kick='Le bilan', title='Tout est relié', champ='Renekton',
         bullets=["Ta maîtrise du champion → tes trades → ton contrôle de la wave → tes ressources et tes déplacements.",
@@ -400,8 +400,8 @@ def mid():
                  "Un objectif à deux avec ton jungler ? Ton ADC peut prendre tes camps.",
                  f"Règle générale : {bold('rapproche-toi de tes alliés')}."])]
     s += farm_tour(2) + cs_defi(L, 2) + trading(L, 3) + patterns(L, 3) + deny(L, 3) + after_kill(L, 3) + waves_full(L, 4)
-    s += back_mid(L, 5) + tracking(L, 5) + vision(L, 5) + sides(L, 5) + cover(L, 5) + tempo(L, 5) + structures(L, 5) + sidelanes(5)
-    s += fights(L, 6)
+    s += back_mid(L, 5) + tracking(L, 5) + vision(L, 5) + ward_why(L, 5) + counting(L, 5) + anticip_comms(L, 5) + sides(L, 5) + cover(L, 5) + tempo(L, 5) + structures(L, 5) + obj_prep(L, 5) + sidelanes(5)
+    s += fights(L, 6) + targets(L, 6)
     s += mindset(L, 7) + first_self(L, 7) + intentions(L, 7) + training(L, 7)
     s += [dict(kind='final', title='Boss final : la checklist du mid',
         items=["Je garde ma prio pour mon jungler", "Je trade quand il va chercher un sbire",
@@ -411,25 +411,295 @@ def mid():
 
 
 # ================================================================ SUPPORT
+# Prompt SUPPORT du coach : 6 niveaux. Contenu universel (pas rattaché à un joueur).
 def support():
     L = 'support'
-    s = [dict(kind='cover', who='Le carnet du support', players='TheM3talDrakonar', icon='💞'),
-         dict(kind='quest', levels=['Le rôle', 'La bot lane en duo', 'Le trading', 'Les vagues, vite fait', 'Le back', 'Les fights', 'Mindset et entraînement'])]
+    s = [dict(kind='cover', who='Le carnet du support', players='La formation SUPPORT', icon='💞'),
+         dict(kind='quest', levels=['Comprendre son rôle', 'Comprendre la BOTLANE', 'Comprendre la vision',
+                                    'Comprendre les déplacements', 'Le jeu collectif', 'Le bilan'])]
+    # ---------- 1. Comprendre son rôle
     s += role(L, 1, "Vel'Koz")
+    s += [dict(kind='std', niv=1, kick='Le rôle', title='Bien plus que suivre ton ADC', champ='Nautilus',
+        bullets=["En lane : accompagner ton ADC, l'aider à farmer, le protéger, créer des trades ou des engages, contrôler les buissons.",
+                 "Sur la carte : prendre et donner les infos, poser et retirer la vision, aider ton jungler, accompagner ton mid, passer parfois au top.",
+                 "Et en équipe : préparer les objectifs, organiser les déplacements, repérer les erreurs de placement, anticiper leurs réactions."], size=32),
+          dict(kind='cards', niv=1, kick='Le rôle', title='Jouer avec ton ADC, jouer pour ton équipe', cols=2, champ='Pyke',
+        cards=[('🤝 Avec ton ADC', '#5aa9ff', ["Les besoins immédiats de ta botlane : farm, trades, protection, vagues."]),
+               ('🗺️ Pour ton équipe', '#5fd39a', ["Les opportunités sur la carte : vision, roams, objectifs, aide au jungler."])],
+        foot="Ce n'est pas l'un ou l'autre : ni abandonner ton ADC à chaque occasion, ni rester au bot quand l'équipe a besoin de toi."),
+          dict(kind='grid4', niv=1, kick='Les familles de supports', title='Les 4 grandes familles',
+        cells=[('Hook', '#ff6b6b', ['Thresh', 'Blitzcrank'], ["Punir le placement.", "Semi-tank : il encaisse un peu."]),
+               ('Enchanteur', '#5fd39a', ['Lulu', 'Nami'], ["Heal, shield.", "Peu de PV : à protéger, lui aussi."]),
+               ('Mage', '#b48cff', ['Lux', 'Brand'], ["Dégâts, distance.", "Fort en phase de lane."]),
+               ('Utilitaire', '#5aa9ff', ['Alistar', 'Rell', 'Braum', 'Taric'], ["Alistar, Rell : créer du jeu en teamfight.", "Braum, Taric : protection, peel."])]),
+          dict(kind='cards', niv=1, kick='Les familles de supports', title='Hook, engage, peel : forces et limites', cols=3, champ='Nautilus',
+        cards=[('🪝 Hook', '#ff6b6b', ["Blitzcrank, Thresh, Pyke, Nautilus.",
+                                     "Menace un adversaire mal placé, rend ses déplacements difficiles.",
+                                     "Compte : placement, buissons, menace du hook, cooldowns, fenêtres d'engage, sbires, distance."]),
+               ('🛡️ Tank et engage', '#ffb347', ["Leona, Rell, Alistar, Nautilus.",
+                                                "Crée les engages, contrôle, encaisse une partie des dégâts.",
+                                                "Limite : un engage raté ou sans suivi coûte cher."]),
+               ('🧱 Peel et utilitaire', '#5aa9ff', ["Braum, Taric, Tahm Kench, certains enchanteurs.",
+                                                    "Protège, empêche un engage, gêne ceux qui foncent sur tes carries.",
+                                                    "Braum neutralise certaines menaces, pas toutes."])]),
+          dict(kind='cards', niv=1, kick='Les familles de supports', title='Enchanteur et mage : forces et limites', cols=2, champ="Vel'Koz",
+        cards=[('✨ Enchanteur', '#5fd39a', ["Lulu, Janna, Nami, Milio, Soraka.",
+                                           "Soins, boucliers, bonus, outils de protection.",
+                                           "Très fort quand l'équipe a des carries qui profitent de ses sorts.",
+                                           "Limite : fragile, il craint les engages."]),
+               ('🔮 Mage', '#b48cff', ["Brand, Zyra, Lux, Xerath.",
+                                      "Pression par les dégâts, la portée, le contrôle de zone, le poke.",
+                                      "Fort en phase de lane.",
+                                      "Limite : son placement, il ne peut pas tout encaisser."])],
+        foot="Ces familles se chevauchent : un tank peut avoir un engage, un hook peut protéger, un enchanteur peut désengager. Des repères, pas des cases."),
+          dict(kind='cycle', niv=1, kick='Les relations entre familles', title='Qui gêne qui ?',
+        nodes=[('Blitzcrank', 'Hook', '#ff6b6b'), ('Lulu', 'Enchanteur', '#5fd39a'), ('Brand', 'Mage', '#b48cff'), ('Alistar', 'Engage', '#5aa9ff')],
+        center=('Braum', 'Défensif'),
+        bullets=["Le hook est dangereux pour l'enchanteur fragile.",
+                 "L'enchanteur limite le poke de certains mages.",
+                 "Le mage poke fort contre certains tanks.",
+                 "L'engage peut profiter du hook adverse pour se rapprocher… ou se faire punir s'il est touché.",
+                 "Le défensif contre certaines stratégies adverses.",
+                 f"{bold('Ce n’est pas un système automatique')} : sorts, duo ADC, vagues, positions, niveau des joueurs."], size=27,
+        foot="Le but : comprendre pourquoi un matchup est favorable ou non, plutôt qu'apprendre une liste de counters."),
+          dict(kind='std', niv=1, kick='La draft', title='Choisir son support', champ='Pyke',
+        bullets=["Un pool varié mais maîtrisé : un pool large n'est pas forcément meilleur qu'un pool restreint.",
+                 "Blind pick : un champion sûr. Counterpick : profiter de ce que tu vois en face.",
+                 "Le support n'a pas besoin du dernier pick pour être utile.",
+                 "Solo queue et équipe organisée : on ne draft pas pareil, les conditions de victoire comptent."], size=32),
+          dict(kind='std', niv=1, kick='La draft', title='Pas seulement pour ton ADC', champ='Nautilus',
+        bullets=[f"{bold('Ne choisis pas ton support uniquement en fonction de ton ADC')}.",
+                 "Un enchanteur peut être très fort si ton mid ou ton top est un carry qui profite de ses sorts, même si la synergie avec l'ADC n'est pas parfaite.",
+                 "Un tank marche avec beaucoup d'ADC, selon la compo et les matchups.",
+                 "Un mage va bien avec certains ADC agressifs, qui exploitent le poke et le burst.",
+                 "Pas des règles universelles : regarde la compo entière."], size=31),
+          dict(kind='std', niv=1, kick='Les matchups', title='« 1 536 matchups » ? Ça dépend de comment on compte', champ="Vel'Koz",
+        bullets=["Au bot, il y a 4 champions : ton ADC, toi, leur ADC, leur support.",
+                 f"Exemple de calcul : ton support fixé × 8 ADC alliés × 8 ADC adverses × 24 supports adverses = {bold('1 536 situations')}.",
+                 "Avec d'autres pools, le chiffre change complètement : c'est un ordre de grandeur, pas une statistique officielle.",
+                 f"Le message : {bold('une liste de counters ne suffit pas')}, il faut comprendre pourquoi."], size=32),
+          dict(kind='quiz', niv=1, champ='Pyke', q="Ton mid joue un hypercarry qui adore les boucliers, ton ADC est un poke. Tu prends quoi ?",
+        ch=["Toujours le meilleur support pour mon ADC", "Un enchanteur peut être un bon choix pour toute l'équipe", "Un support au hasard"], good=1,
+        why="La synergie avec toute l'équipe peut justifier un choix, même si la synergie avec l'ADC n'est pas parfaite.")]
+    # ---------- 2. Comprendre la BOTLANE
+    s += [dict(kind='std', niv=2, kick='La botlane', title='Un matchup théorique n’est pas une garantie', champ='Caitlyn',
+        bullets=["Ce qui compte : ton niveau, ta connaissance du champion, ton ADC, leur ADC, leur support, la connaissance du matchup.",
+                 "Et aussi : les junglers, les vagues, les cooldowns, les infos, la communication, l'exécution.",
+                 f"{bold('Un duo avantagé peut perdre')} s'il ne sait pas exploiter son avantage.",
+                 "Un duo désavantagé peut s'en sortir grâce à sa maîtrise, ses vagues et ses décisions.",
+                 "Au bot, c'est un duo contre un duo : encore plus de variables."], size=31)]
     s += botlane(L, 2)
-    s += trading(L, 3) + patterns(L, 3) + deny(L, 3)
-    s += waves_short(L, 4)
-    s += [dict(kind='std', niv=5, kick='Le back', title='Back avec ton ADC', champ='Pyke',
+    s += [dict(kind='lane', niv=2, kick='Les buissons', title='Le support qui contrôle les buissons',
+        bushes=[(58, True)],
+        minions=[(40, 5, '#5aa9ff'), (56, 5, '#ff6b6b')],
+        champs=[(30, 'bot', '🏹', 'ton ADC', '#5aa9ff'), (52, 'top', '🪝', 'toi, caché', '#5aa9ff'),
+                (78, 'mid', '🏹', 'leur ADC', '#ff6b6b'), (82, 'bot', '✨', 'leur support', '#ff6b6b')],
+        arrows=[(57, 24, 73, 30, '#ffb347')],
+        bullets=["Le buisson cache ta position : tu menaces sans donner l'info.",
+                 "Un hook dans le buisson : ils ne savent pas d'où il part.",
+                 "Un mage : ses sorts sont plus durs à anticiper.",
+                 "Tu prépares un sort, tu protèges une zone, tu les forces à changer leurs déplacements."], size=27,
+        foot="Schéma simplifié : le placement exact des buissons se vérifie en jeu."),
+          dict(kind='cards', niv=2, kick='Les buissons', title='Eux contrôlent les buissons : tu réagis', cols=2, champ='Pyke',
+        cards=[('✅ Les réponses', '#5fd39a', ["Poser de la vision dans le buisson.",
+                                             "Jouer plus loin du buisson menaçant.",
+                                             "Respecter leurs sorts disponibles, adapter ton placement."]),
+               ('⚠️ Les conditions', '#ff6b6b', ["Pas de ward dans le buisson si ça t'expose à un engage.",
+                                               "Pour le reprendre : vagues, PV, sorts, et leur jungler loin.",
+                                               "Ça dépend toujours du matchup."])])]
+    s += triangle(L, 2)
+    s += [dict(kind='std', niv=2, kick='Les vagues au bot', title='Le support et la wave', champ='Nautilus',
+        bullets=["Freeze, slow push, fast push, crash, bounce : les mêmes définitions que pour l'ADC, le mid et le top.",
+                 "Toi, tu peux aider à pousser, préparer un last hit, gérer la wave sous tour, faciliter un back ou préparer un roam.",
+                 f"{bold('Ne touche pas les sbires par réflexe')} : si ton ADC veut garder la wave, tu la casses.",
+                 "Avant d'agir : quel est le but de la wave ? Il doit être partagé avec ton ADC."], size=32)]
+    s += waves_short(L, 2)
+    s += [dict(kind='cards', niv=2, kick='L’objet support', title='Comprendre ton objet support', cols=2, champ="Vel'Koz",
+        cards=[('🗺️ Comment il marche', '#5fd39a', ["Une charge toutes les 20 s, 3 au maximum.",
+                                                   "Près d'un allié : toucher un champion ou un bâtiment = 20 PO.",
+                                                   "Achever un sbire = 15 PO pour toi, et le gold du sbire pour l'allié le plus proche."]),
+               ('📈 La quête', '#ffb347', ["400 PO gagnés avec l'objet : il évolue (Boussole runique), puis encore.",
+                                         "Il débloque les wards et un choix d'amélioration.",
+                                         "Quête de rôle 2026 : place réservée aux pinks, pinks moins chères, plus de gold passif."])],
+        foot="Valeurs de la capture du coach : elles changent avec les patchs, vérifie dans le jeu."),
+          dict(kind='std', niv=2, kick='L’objet support', title='Tes charges sur les canons', champ='Pyke',
+        bullets=["Le conseil du coach : utilise intelligemment tes charges sur les sbires canons.",
+                 f"Toi, tu gagnes {bold('les mêmes 15 PO')} sur un canon que sur un autre sbire.",
+                 f"L'intérêt : {bold('ton ADC touche le gold du canon')}, et le last hit est sécurisé.",
+                 "Garde une charge pour un canon difficile à last hit, ou un sbire qui va mourir sous la tour.",
+                 "Utilise-les sans casser la wave que ton ADC veut garder."], size=32),
+          dict(kind='std', niv=2, kick='Sous la tour', title='Aider ton ADC à farmer sous tour', champ='Caitlyn',
+        bullets=["Un sbire va mourir sous les tirs de tour avant que ton ADC puisse le last hit.",
+                 "Tu peux lui mettre des dégâts avant, pour que ton ADC puisse le finir.",
+                 "Compte : ses dégâts, les tiens, les tirs de tour, les PV du sbire, les attaques déjà lancées.",
+                 f"{bold('Attention à ne pas lui voler le last hit')}, et pense à tes charges d'objet.",
+                 "Mêlée, caster, canon : les mêmes repères que dans les carnets ADC, mid et top."], size=31),
+          dict(kind='std', niv=2, kick='Les plaques', title='Laisser les plaques à ton ADC ?', champ='Nautilus',
+        bullets=["L'or d'une plaque est partagé entre les champions alliés proches.",
+                 "Tu peux t'écarter un peu pour que ton ADC en touche plus et achète plus vite.",
+                 "Mais : tu as aussi besoin de gold, ta présence peut le protéger, tu peux devoir tenir la zone.",
+                 "Partir peut l'exposer. Parfois, partager est mieux.",
+                 f"{bold('Le support a le droit de toucher du gold')} : on optimise les ressources de l'équipe."], size=31)]
+    s += trading(L, 2) + patterns(L, 2) + deny(L, 2)
+    s += [dict(kind='quiz', niv=2, champ='Pyke', q="Un canon va mourir sous ta tour avant que ton ADC puisse le last hit. Tu as une charge. Tu fais quoi ?",
+        ch=["Rien, tant pis", "Je l'achève avec ma charge : mon ADC touche le gold du canon", "Je le tape sans réfléchir"], good=1,
+        why="Ta charge te rapporte la même chose, mais ton ADC récupère le gold du canon au lieu de le perdre.")]
+    # ---------- 3. Comprendre la vision
+    s += [dict(kind='std', niv=3, kick='La vision', title='Une grosse part de ton rôle', champ="Vel'Koz",
+        bullets=["La vision est une responsabilité de toute l'équipe, mais tu as beaucoup d'outils pour y contribuer.",
+                 "Pourquoi, quelle info, à quel moment, où, comment la protéger.",
+                 "Retirer leur vision, préparer un déplacement, accompagner ton jungler, adapter aux objectifs.",
+                 f"Le but n'est pas de {bold('poser toutes tes wards dès qu’elles sont prêtes')}."], size=32)]
+    s += ward_why(L, 3)
+    s += [dict(kind='cards', niv=3, kick='La pink ward', title='Quand poser une ward de contrôle ?', cols=2, champ='Nautilus',
+        cards=[('✅ Défendable', '#5fd39a', ["Tu contrôles assez la lane, tu peux défendre le buisson.",
+                                           "Tu mets la pression, tu sécurises un accès, tu prépares une action."]),
+               ('⚠️ Facile à détruire', '#ff6b6b', ["Ta botlane se fait pousser, ils tiennent les buissons.",
+                                                  "Une pink à portée de leurs mains : tu leur offres de la détruire."])],
+        foot="Mais une pink défensive peut rester utile en difficulté : si elle empêche un gank ou donne une info décisive, elle est rentable même détruite. Évalue l'info, si tu peux la défendre, et son coût."),
+          dict(kind='cards', niv=3, kick='Poser sans se montrer', title='Ne révèle pas ta ward', cols=2, champ='Pyke',
+        cards=[('🌫️ Hors de leur vue', '#5aa9ff', ["S'ils te voient la poser, ils savent à peu près où elle est.",
+                                                  "Utilise les buissons, le fog, un déplacement discret.",
+                                                  "Pense à ce qu'ils savent déjà."]),
+               ('🎭 Le bait de ward', '#b48cff', ["Tu fais croire que tu as posé une ward ici…",
+                                                 "…ils balaient la zone, la vraie est ailleurs.",
+                                                 "Une possibilité, quand c'est sans risque : pas une obligation."])]),
+          dict(kind='map', niv=3, kick='Warding offensif', title='Blue et gromp, ou krugs : selon ton côté',
+        maps=[dict(title='Côté bleu : leur blue et leur gromp', marks=[(64, 46, '🔵', 'blue', '#5aa9ff'), (88, 40, '🐸', 'gromp', '#5fd39a'),
+                                                                     (77, 58, '👁️', 'ward', '#ffb347')],
+                   arrows=[(90, 84, 80, 64, '#ffb347', True)]),
+              dict(title='Côté rouge : leurs krugs', marks=[(44, 74, '🔴', 'red', '#ff6b6b'), (54, 88, '🪨', 'krugs', '#c9a36b'),
+                                                          (68, 80, '👁️', 'ward', '#ffb347')],
+                   arrows=[(90, 90, 74, 82, '#ffb347', True)])],
+        msize=520, bullets=["Quand vous gagnez le bot et avez une fenêtre.",
+                            "Tu vois une partie des mouvements de leur jungler.",
+                            "Risque : le trajet, et leur jungler s'il est près."], size=24, bw=540,
+        foot="Carte : base bleue en bas à gauche. « Côté bleu/rouge » = l'équipe que tu joues. Les placements précis se voient en coaching individuel."),
+          dict(kind='std', niv=3, kick='Warding offensif', title='Pourquoi ces wards ?', champ="Vel'Koz",
+        bullets=["Elles montrent une partie des déplacements de leur jungler.",
+                 "Tu anticipes une intervention, tu prends des décisions plus sûres.",
+                 "Vérifie avant : le côté de carte, la zone exacte, les lanes, le chemin, l'info cherchée, les risques du trajet.",
+                 "Le guide explique pourquoi et quand ; le placement exact se travaille en coaching."], size=32)]
+    s += tracking(L, 3) + vision(L, 3) + counting(L, 3)
+    s += [dict(kind='std', niv=3, kick='Communiquer', title='« Si tu vois quelque chose, les autres ne l’ont peut-être pas vu »', champ='Pyke',
+        bullets=["Pendant que ton ADC farme et trade, tu as souvent un peu plus de temps pour regarder la carte.",
+                 "Ça ne veut pas dire que tu n'as rien à gérer : tu as aussi ta micro.",
+                 "À signaler : une disparition, un jungler vu, un support qui quitte sa lane, un gank possible, une menace.",
+                 "Et : une occasion d'engage, une supériorité numérique, un objectif qui arrive, une zone sans vision.",
+                 f"{bold('Une info intéressante ? Ne perds pas de temps : partage-la.')} Utile, pas en boucle."], size=30),
+          dict(kind='quiz', niv=3, champ='Nautilus', q="Ta botlane se fait pousser, ils tiennent tes buissons. Ta pink ?",
+        ch=["Dans le buisson qu'ils contrôlent, tout de suite", "Là où je peux la défendre, ou là où elle évite un gank", "Je ne pose plus rien"], good=1,
+        why="Une pink offerte se fait détruire. Mais une pink défensive qui empêche un gank peut être rentable, même détruite.")]
+    # ---------- 4. Comprendre les déplacements
+    s += [dict(kind='grid4', niv=4, kick='Le roaming', title='Tous les supports ne roam pas pareil',
+        cells=[('Tu restes souvent', '#5fd39a', ['Nami', 'Brand'], ["Enchanteur, mage : souvent plus utile avec ton ADC.", "Pas interdit : selon la situation."]),
+               ('Ton ADC a besoin de toi', '#ffb347', ['Draven', 'Kalista'], ["Un duo qui joue la lane ensemble.", "Partir lui enlève sa force."]),
+               ('Tu gagnes ta lane', '#ff6b6b', [], ["Continue d'exploiter ton avantage au bot.", "Roam si ça rapporte plus que ce que tu laisses."]),
+               ('Roamers', '#5aa9ff', ['Pyke', 'Bard'], ["Des outils pour créer des occasions ailleurs.", "Toujours avec un timing de wave."])]),
+          dict(kind='cards', niv=4, kick='Exemple du coach', title='Pyke part roam : l’enchanteur reste ?', cols=2, champ='Pyke',
+        cards=[('🏠 Rester', '#5fd39a', ["2 contre 1 contre leur ADC resté seul.",
+                                       "Pression, farm facile, menace sur l'ADC, plaques, avantage de lane."]),
+               ('🏃 Suivre ou répondre', '#5aa9ff', ["Pyke peut faire beaucoup de dégâts ailleurs : préviens, suis, ou réponds autrement.",
+                                                   "Ça dépend du champion, de la wave, des positions et des objectifs."])]),
+          dict(kind='cards', niv=4, kick='Les risques du roam', title='Ce que tu laisses derrière toi', cols=2, champ="Vel'Koz",
+        cards=[('⚠️ Les risques', '#ff6b6b', ["Ton ADC seul, exposé à un engage, qui ne peut plus farmer.",
+                                            "Des vagues perdues, de l'XP et des ressources en moins, une lane qui se dégrade.",
+                                            "Et le mental : un ADC abandonné en difficulté se frustre et décroche."]),
+               ('⚖️ Ce que tu compares', '#5fd39a', ["Ce que tu peux gagner ailleurs, ce que tu laisses.",
+                                                   "Si ton ADC peut jouer seul, la wave, le matchup, ton temps de retour.",
+                                                   "Un roam peut être juste même si ton ADC ne le comprend pas tout de suite : explique-le."])]),
+          dict(kind='cards', niv=4, kick='Roam ou pas ?', title='Partir, ou rester ?', cols=2, champ='Pyke',
+        cards=[('✅ Tu peux partir', '#5fd39a', ["La wave est crash chez eux, ton ADC peut farmer en sécurité.",
+                                               "Leur support engage est visible, ou ils n'ont pas de quoi le tuer.",
+                                               "Il y a une vraie action à faire ailleurs, et tu l'as dit."]),
+               ('❌ Trop risqué', '#ff6b6b', ["La wave pousse sous ta tour, ton ADC est bas en PV.",
+                                             "Leur support engage et leur jungler ne sont pas visibles.",
+                                             "Rien de sûr à gagner : tu laisserais ton ADC dans un 2 contre 1."])]),
+          dict(kind='std', niv=4, kick='Après ton back', title='Passer par le mid ? Une option', champ='Nautilus',
+        bullets=["Après un back, tu peux passer par le mid avant de rentrer au bot.",
+                 "Pour : voir une occasion, poser de la vision, accompagner ton jungler, aider ton mid, mettre la pression.",
+                 f"{bold('Exemple du coach')} : ta botlane domine, ton mid est en difficulté, rien d'intéressant à faire.",
+                 "Rentre direct au bot pour continuer à exploiter ton avantage.",
+                 "Passer par le mid à chaque fois ferait perdre du temps pour rien."], size=31),
+          dict(kind='std', niv=4, kick='Le back', title='Back avec ton ADC', champ='Pyke',
         bullets=["Toujours crash la wave avant de back.",
                  f"Timing de {bold('wave canon')} : c'est le moment d'aller ward ou d'aider un objectif.",
                  "Gros composant ou objet à acheter ? Ne reste pas avec tes golds."])]
-    s += tracking(L, 5) + vision(L, 5) + sides(L, 5) + cover(L, 5) + tempo(L, 5)
-    s += fights(L, 6)
-    s += mindset(L, 7) + first_self(L, 7) + intentions(L, 7) + training(L, 7)
-    s += [dict(kind='final', title='Boss final : la checklist du support',
-        items=["Je sais si notre bot est all-in, poke ou sustain", "Je conteste le niveau 2",
-               "Freeze agressif : je zone, mon ADC farme", "Timing canon : je vais ward",
-               "Tank ? Je face check. Squishy ? Je reste derrière", "Je check R et flash avant chaque fight"])]
+    s += sides(L, 4) + cover(L, 4) + tempo(L, 4)
+    s += [dict(kind='quiz', niv=4, champ="Vel'Koz", q="Tu gagnes ta lane, ton mid perd la sienne et rien n'est à faire au mid. Tu sors de base. Tu vas où ?",
+        ch=["Au mid, comme d'habitude", "Au bot, pour continuer à exploiter mon avantage", "Je reste en base"], good=1,
+        why="Passer par le mid est une option à évaluer. Sans occasion, tu perds du temps : ton avantage est au bot.")]
+    # ---------- 5. Le jeu collectif
+    s += anticip_comms(L, 5)
+    s += [dict(kind='std', niv=5, kick='Les objectifs', title='Préparer un objectif neutre', champ='Nautilus',
+        bullets=[f"Le repère du coach : {bold('back 35 à 40 secondes avant')} un objectif neutre.",
+                 "Un point de départ, pas un timing universel : temps de back, distance, déplacements, vagues, achats, vision, compo, plan.",
+                 "Parfois, il faut le préparer bien plus tôt.",
+                 "Le but : achats faits, de retour sur la carte, bonnes positions, waves poussées, vision posée, vision adverse retirée, accès contrôlés, un plan.",
+                 f"{bold('Un objectif se prépare avant de le taper')} : moins de risques, un fight plus facile."], size=30),
+          dict(kind='cards', niv=5, kick='La vision d’objectif', title='Retirer leur vision, poser la tienne', cols=2, champ="Vel'Koz",
+        cards=[('⏳ Préparation anticipée', '#5aa9ff', ["Arriver tôt dans la zone, nettoyer, poser, garder le contrôle.",
+                                                       "Demande des backs plus tôt et plus de préparation."]),
+               ('⚡ Préparation simultanée', '#ffb347', ["Arriver, retirer et poser en même temps.",
+                                                       "Plus rapide, mais moins de temps pour se placer."])],
+        foot="Pas de façon mécanique : contrôle les infos et les accès qui comptent vraiment, et ne t'expose pas pour une ward."),
+          dict(kind='map', niv=5, kick='Les objectifs', title='Jouer autour du dragon',
+        maps=[dict(marks=[(67, 70, '🐉', '', '#ffb347'), (53, 64, '👁️', 'ward', '#5fd39a'), (81, 84, '👁️', 'ward', '#5fd39a'),
+                          (77, 56, '❌', 'leur ward', '#ff6b6b'), (42, 42, '🌊', 'mid poussé', '#5aa9ff'), (91, 70, '🌊', 'bot poussé', '#5aa9ff'),
+                          (58, 84, '🔵', 'vous', '#5aa9ff')],
+                   arrows=[(46, 38, 58, 26, '#5aa9ff', True), (91, 64, 91, 44, '#5aa9ff', True)])],
+        bullets=["Les vagues proches et la prio des lanes.",
+                 "Les champions vus, et les positions probables.",
+                 "Les engages, les catchs possibles, leur jungler.",
+                 "Comment sécuriser, comment se désengager.",
+                 "Pas obligé de commencer : mieux se placer, attendre une erreur ou un catch."], size=28),
+          dict(kind='grid4', niv=5, kick='Les cibles', title='Qui viser avant un objectif ?',
+        cells=[('Viego sans flash', '#5fd39a', ['Viego'], ["Mal placé, sans flash, et vous pouvez l'attraper vite.", "Une vraie occasion avant l'objectif."]),
+               ('Un jungler tank', '#ff6b6b', ['Sejuani', 'Zac'], ["Tous vos sorts pour peut-être le tuer.", "Et ils engagent pendant que vous n'avez plus rien."]),
+               ('Leur ADC mal placé', '#ffb347', ['Jinx'], ["Il peut mourir vite : parfois plus intéressant que le jungler.", "La priorité ne dépend pas que du rôle."]),
+               ('La règle', '#5aa9ff', [], ["La cible que l'équipe peut vraiment atteindre,", "et dont la mort apporte un vrai avantage, risques compris."])])]
+    s += targets(L, 5)
+    s += [dict(kind='cards', niv=5, kick='Ton jungler', title='Vérifie ses intentions avant de bouger', cols=2, champ='Nautilus',
+        cards=[('🐛 Exemple : les Void Grubs', '#b48cff', ["Tu veux aller aider ton jungler aux grubs.",
+                                                         "Mais il ne veut pas les jouer, ou il est à l'opposé de la carte."]),
+               ('🔁 Alors tu réévalues', '#5fd39a', ["Propose l'objectif, change le plan, prends une autre occasion.",
+                                                   "Rentre en lane, back pour une autre raison, ou renonce."])],
+        foot="On ne bouge pas juste parce qu'un objectif existe. En équipe : à la voix. En solo queue : ses pings, sa position et ses actions te renseignent."),
+          dict(kind='std', niv=5, kick='Le peel', title='Qu’est-ce que le peel ?', champ='Pyke',
+        para="Permettre aux carries de taper : les protéger des sorts dangereux (en tankant), et gêner les carries en face.",
+        bullets=["Positionnement, boucliers, soins, contrôles, ralentissements, désengagement, bloquer des sorts, créer de l'espace.",
+                 f"{bold('Pas que pour l’ADC')} : un mid ou un autre carry peut avoir besoin de protection."], size=32),
+          dict(kind='cards', niv=5, kick='Le peel', title='Engager, protéger, désengager', cols=3, champ="Vel'Koz",
+        cards=[('⚔️ Engager', '#ff6b6b', ["Lancer le fight sur une cible.", "Il faut que l'équipe suive."]),
+               ('🛡️ Protéger', '#5aa9ff', ["Rester près des carries.", "Contrôler ceux qui foncent dessus."]),
+               ('↩️ Désengager', '#5fd39a', ["Casser leur engage, faire reculer.", "Se repositionner pour le prochain fight."])],
+        foot="Ça dépend de ton champion et de la situation : choisis selon ce que le fight demande."),
+          dict(kind='cards', niv=5, kick='Ta vie a une valeur', title='Pas peur de mourir, mais pas pour rien', cols=2, champ='Nautilus',
+        cards=[('✅ Une mort utile', '#5fd39a', ["Un risque ou un sacrifice qui protège un allié, gagne un fight, rapporte un gros avantage.",
+                                               "Tank ou engage : n'aie pas peur de prendre des risques pour l'équipe."]),
+               ('❌ Une mort inutile', '#ff6b6b', ["Elle ne rapporte rien de proportionné, ou prive l'équipe d'un joueur important.",
+                                                 "Se sacrifier sans raison est aussi une erreur."])],
+        foot="« Le support doit mourir plus que son ADC » n'est pas une règle : le bon critère, c'est la qualité des décisions et la protection vraiment apportée.")]
+    s += fights(L, 5)
+    s += [dict(kind='quiz', niv=5, champ='Pyke', q="Le dragon arrive. Leur jungler est un tank, leur ADC est mal placé, sans flash. Tu engages sur qui ?",
+        ch=["Le jungler, toujours", "Leur ADC : on peut l'atteindre et il meurt vite", "Personne, jamais"], good=1,
+        why="Tuer le jungler avant un objectif est souvent bien, mais pas à tout prix : la cible accessible et rentable est leur ADC.")]
+    # ---------- 6. Le bilan
+    s += mindset(L, 6) + first_self(L, 6) + intentions(L, 6) + training(L, 6)
+    s += [dict(kind='std', niv=6, kick='Le bilan', title='Comprendre, observer, anticiper, s’adapter', champ="Vel'Koz",
+        bullets=["Comprendre avant d'appliquer. Observer avant de décider.",
+                 "Anticiper sans supposer. S'adapter plutôt que répéter.",
+                 "Communiquer pour mieux décider. Jouer pour un objectif, pas juste pour faire une action.",
+                 f"{bold('Une bonne décision ne garantit pas toujours un bon résultat')} : on juge le raisonnement, pas seulement le résultat.",
+                 "Le guide donne la compréhension, le coaching individuel l'applique à ta game."], size=31),
+          dict(kind='final', title='Boss final : la checklist du support',
+        items=["Je sais à quoi sert chaque ward que je pose",
+               "Je compte les adversaires, et je sépare vu et supposé",
+               "Je repère un triangle : pour attaquer, pour reculer, ou pour bait",
+               "Mes charges servent à mon ADC, pas à casser sa wave",
+               "Avant de roam, je compare ce que je gagne et ce que je laisse",
+               "Je prépare l'objectif avant de le taper, avec mon jungler",
+               "Je protège mes carries, et je ne meurs pas pour rien"])]
     return s
 
 

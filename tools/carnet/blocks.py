@@ -404,3 +404,133 @@ def structures(lane, niv):
                  "Un fight trop dangereux sur un objectif ? Prenez des ressources ou une tour ailleurs.",
                  f"Un échange n'est pas gratuit : {bold('compare ce que vous prenez et ce que vous laissez')}.",
                  "Toutes les tours ne valent pas plus que tous les objectifs : ça se décide à chaque fois."], size=34)]
+
+
+# ---------------------------------------------------------------- Notions communes (prompt SUPPORT)
+# Définitions identiques pour tous les rôles, exemples adaptés à chaque lane.
+EX2 = {
+ 'top': dict(count="4 au bot et 1 au mid ? Ton jungler et toi pouvez jouer les grubs, une plaque ou un dive.",
+             ward="La ward de rivière top et le tri-buisson : tu cherches le jungler qui vient sur toi.",
+             anti="Wave poussée, jungler adverse pas vu depuis 40 s : il peut arriver par la rivière.",
+             obj="Les grubs et le Héraut se jouent près de toi : ta wave et ta TP décident si tu peux venir.",
+             tgt="Ton duel est gagné, mais traverser 3 champions pour leur ADC n'est pas une bonne idée."),
+ 'mid': dict(count="2 au top, 2 au bot, leur mid visible : tu sais qui peut venir t'aider ou te punir si tu roam.",
+             ward="Les deux côtés de la rivière : tu cherches les ganks et les roams vers ta lane.",
+             anti="Leur mid perd sa wave et disparaît : il roam peut-être. Ping et préviens.",
+             obj="Ta prio au mid permet à ton jungler et à ton support d'arriver les premiers à l'objectif.",
+             tgt="Ton combo sur la cible accessible vaut mieux qu'un sort lancé dans le vide sur leur ADC."),
+ 'adc': dict(count="Leur support et leur jungler disparaissent : le 2v2 devient un 2v3 possible.",
+             ward="Le tri-buisson et la rivière bot : tu cherches le jungler et le roam de leur support.",
+             anti="Leur support n'est plus visible et la wave pousse chez toi : recule avant de le voir arriver.",
+             obj="Ta wave poussée et ton back au bon moment permettent d'être là au dragon.",
+             tgt="Tape ce que tu peux taper en sécurité : la cible la plus proche est souvent la bonne."),
+ 'support': dict(count="Tu as souvent un peu plus de temps pour regarder la carte : compte, et partage.",
+             ward="Les entrées de jungle et la rivière : tu prépares les déplacements et les objectifs.",
+             anti="Leur jungler a été vu en haut : c'est peut-être le moment de pousser ou de poser une ward profonde.",
+             obj="Tu prépares la vision et les accès, tu accompagnes ton jungler.",
+             tgt="Ton engage sur la cible que l'équipe peut vraiment suivre."),
+ 'jungle': dict(count="Tu vois 4 adversaires au top : leur jungler est sûrement là, le dragon est peut-être libre.",
+             ward="Les entrées de ta jungle, celles de la sienne : tu suis son pathing.",
+             anti="Tu l'as vu au top à 3:20 : il peut être au carapateur bot vers 3:50.",
+             obj="C'est souvent toi qui lances l'objectif : vérifie la prio de tes lanes avant.",
+             tgt="Avant un objectif, leur jungler est souvent une bonne cible, s'il est attrapable."),
+}
+
+
+def counting(lane, niv):
+    e = EX2[lane]
+    return [dict(kind='map', niv=niv, kick='Compter les adversaires', title='Où sont les 5 ?',
+        maps=[dict(title='2 top · 1 mid · 2 bot', marks=[(8, 10, '🔴', '', '#ff6b6b'), (17, 6, '🔴', '', '#ff6b6b'), (50, 50, '🔴', '', '#ff6b6b'),
+                                                       (84, 92, '🔴', '', '#ff6b6b'), (93, 84, '🔴', '', '#ff6b6b')]),
+              dict(title='4 top · 1 mid', marks=[(7, 8, '🔴', '', '#ff6b6b'), (16, 5, '🔴', '', '#ff6b6b'), (6, 19, '🔴', '', '#ff6b6b'),
+                                               (19, 15, '🔴', '4 au top', '#ff6b6b'), (52, 48, '🔴', '1 au mid', '#ff6b6b'),
+                                               (40, 64, '🔵', 'vous', '#5aa9ff')],
+                   arrows=[(44, 60, 60, 66, '#5aa9ff', True)])],
+        bullets=["Les 5 sont visibles : vous savez où ils sont, à cet instant.",
+                 "4 au top, 1 au mid : à plusieurs au mid, vous avez le nombre, ou une autre action ailleurs.",
+                 "Mais n'abandonnez pas vos alliés du top sans comparer : valeur de l'action, risque pour eux, temps, waves.",
+                 e['count']], size=25, bw=600, msize=480),
+         dict(kind='cards', niv=niv, kick='Compter les adversaires', title='Vu ou supposé ?', cols=2,
+        cards=[('👁️ Vu', '#5aa9ff', ["Il est sur la carte, maintenant.", "C'est une certitude, mais seulement à cet instant."]),
+               ('❔ Supposé', '#ffb347', ["Il a disparu : il n'est pas forcément là où tu penses.",
+                                        "Raisonne avec ce que tu sais : dernière position, temps écoulé, chemins possibles."])],
+        foot="Compter change tout : les trades, les ganks, les roams, les objectifs, les rotations, les fights, les actions cross-map.")]
+
+
+def ward_why(lane, niv):
+    e = EX2[lane]
+    return [dict(kind='std', niv=niv, kick='La vision', title='« Pourquoi je pose cette ward ? »',
+        bullets=["Une ward a un but : quelle information tu cherches, et ce que tu vas en faire.",
+                 "Si l'adversaire peut la retirer tout de suite sans risque, demande-toi si l'emplacement est bon.",
+                 "Pose-la hors de sa vue quand tu peux : s'il te voit la poser, il sait où elle est.",
+                 "Une ward sacrifiée pour une info importante n'est pas une ward perdue.",
+                 f"Chez toi : {e['ward']}"], size=32)]
+
+
+def anticip_comms(lane, niv):
+    e = EX2[lane]
+    return [dict(kind='cards', niv=niv, kick='Anticiper et communiquer', title='Anticiper sans supposer', cols=2,
+        cards=[('🔮 Anticiper', '#b48cff', ["Pense aux scénarios possibles : jungler, roams, countergank, réponses, objectifs.",
+                                          "Tu ne connais pas sa décision : tu raisonnes avec les infos que tu as.",
+                                          e['anti']]),
+               ('📣 Communiquer', '#5fd39a', ["« Si tu vois quelque chose, les autres ne l'ont pas forcément vu. »",
+                                            "Une info utile, simple, au bon moment : disparition, jungler vu, objectif, zone sans vision.",
+                                            "En équipe : à la voix. En solo queue : des pings clairs, pas en boucle."])])]
+
+
+def obj_prep(lane, niv):
+    e = EX2[lane]
+    return [dict(kind='std', niv=niv, kick='Les objectifs', title='Un objectif se prépare avant de le taper',
+        bullets=["Achats faits, retour sur la carte, waves poussées, vision posée, vision adverse retirée, accès contrôlés.",
+                 "L'équipe n'est pas obligée de le commencer tout de suite : mieux se placer, attendre une erreur, un catch.",
+                 "Échanger ou abandonner un objectif peut aussi être la bonne décision.",
+                 f"Ta part : {e['obj']}"], size=33)]
+
+
+def targets(lane, niv):
+    e = EX2[lane]
+    return [dict(kind='cards', niv=niv, kick='Les cibles', title='Cible prioritaire, pas tunnel vision', cols=2,
+        cards=[('🎯 Une priorité', '#ffb347', ["La meilleure cible : celle que l'équipe peut vraiment atteindre,",
+                                             "et dont la mort apporte un vrai avantage, risques compris."]),
+               ('🚫 La tunnel vision', '#ff6b6b', ["S'acharner sur une cible sans regarder la situation.",
+                                                 "Traverser toute leur équipe pour leur ADC, tout lancer sur un tank."])],
+        foot=e['tgt'] + " Identifier une priorité ne doit pas t'empêcher d'adapter ta décision.")]
+
+
+def triangle(lane, niv):
+    """Le positionnement en triangle : 2v2 au bot (ADC et SUPPORT)."""
+    sup = lane == 'support'
+    me, ally = ('🛡️', '🏹') if sup else ('🏹', '🛡️')
+    return [dict(kind='lane', niv=niv, kick='Le triangle', title='Deux contre un, pendant un instant',
+        minions=[(38, 5, '#5aa9ff'), (54, 5, '#ff6b6b')],
+        champs=[(30, 'top', me, 'toi', '#5aa9ff'), (30, 'bot', ally, 'ton allié', '#5aa9ff'),
+                (52, 'bot', '🎯', 'trop avancé', '#ff6b6b'), (88, 'top', '⚔️', 'son allié, loin', '#ff6b6b')],
+        arrows=[(34, 26, 48, 76, '#ffb347'), (36, 84, 46, 84, '#ffb347')],
+        bullets=["Un adversaire s'avance trop loin de son partenaire.",
+                 "Vous pouvez l'atteindre à deux, son allié est trop loin pour réagir à temps : un triangle.",
+                 "Trade, engage ou punition… mais pas automatiquement :",
+                 "sorts, PV, portée, waves, dégâts, position du 2e adversaire, jungler, porte de sortie."], size=27),
+         dict(kind='lane', niv=niv, kick='Le triangle', title='Pris en triangle, ou bait ?',
+        bushes=[(30, True)],
+        minions=[(40, 4, '#5aa9ff'), (56, 4, '#ff6b6b')],
+        champs=[(52, 'mid', me, 'toi : avancé ?', '#5aa9ff'), (30, 'top', ally, 'allié caché', '#5aa9ff'),
+                (70, 'top', '⚔️', 'eux', '#ff6b6b'), (70, 'bot', '⚔️', 'eux', '#ff6b6b')],
+        arrows=[(66, 22, 57, 28, '#ff6b6b'), (34, 27, 47, 32, '#5fd39a')],
+        bullets=["Défense : tu es avancé entre deux adversaires ? Reviens vers ton allié.",
+                 "Se réaligner, ce n'est pas se coller : contre les sorts de zone, garde une distance qui permet l'entraide.",
+                 f"{bold('Le bait')} : tu as l'air mal placé, ils engagent… et ton allié ou ton sort retourne la situation.",
+                 "Le triangle : une opportunité, un danger, une situation à créer, ou un piège."], size=26,
+        foot="Schéma simplifié. En teamfight aussi : un champion avancé entre plusieurs menaces est une cible.")]
+
+
+def coop_adc(lane, niv):
+    """Ce que l'ADC doit savoir du support (objet, canons, plaques, farm sous tour)."""
+    return [dict(kind='cards', niv=niv, kick='ADC et support', title='Ce que ton support peut faire pour toi', cols=2,
+        cards=[('🗺️ Son objet support', '#5fd39a', ["Il achève un sbire avec une charge : tu touches le gold du sbire.",
+                                                 "Sur un canon : le gold du canon pour toi."]),
+               ('🗼 Sous ta tour', '#5aa9ff', ["Il abîme un sbire avant le tir de tour : tu le last hit.",
+                                             "À coordonner, sinon il te le vole."]),
+               ('🪙 Les plaques', '#ffb347', ["L'or est partagé entre les champions proches.",
+                                            "Il peut s'écarter pour que tu en touches plus."]),
+               ('🤝 Et toi ?', '#b48cff', ["Dis-lui ce que tu veux faire de la wave.",
+                                         "Comprends ses besoins : charges, wards, roams."])])]

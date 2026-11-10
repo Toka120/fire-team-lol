@@ -15,6 +15,8 @@ from outline import process
 SK = json.load(open('/home/claude/carnet/skins.json'))
 ICONS = json.load(open('/home/claude/carnet/icons.json'))
 SKIP = set(json.load(open('/home/claude/carnet/skip.json')))
+TITLES = {'top': 'Le carnet du top — Formation TOPLANE', 'support': 'Le carnet du support — Formation SUPPORT',
+          'adc': 'Le carnet de l’ADC — The World', 'jungle': 'Le carnet du jungler — Toks42o', 'mid': 'Le carnet du mid — xena'}
 NAMES = {'jungle': 'Jungle', 'adc': 'ADC', 'top': 'Top', 'mid': 'Mid', 'support': 'Support'}
 
 
@@ -184,6 +186,37 @@ def render(deck, s, i, skin, src, ico, tot):
                  f'<div style="display:flex;gap:50px;align-items:center;width:1664px">{dia}{side}</div>')
         return sid, section(sid, inner, skin, src, g=16, mode='full', xp=xp), title
 
+    if k == 'cycle':
+        # Cercle des relations entre familles : 4 nœuds (haut, droite, bas, gauche) + un champion au centre.
+        Wd, R = 640, 230
+        pos = [(Wd / 2, Wd / 2 - R), (Wd / 2 + R, Wd / 2), (Wd / 2, Wd / 2 + R), (Wd / 2 - R, Wd / 2)]
+        nodes = ''
+        for (c, lab, col), (x, y) in zip(s['nodes'], pos):
+            nodes += (f'<div style="position:absolute;left:{x - 80:.0f}px;top:{y - 70:.0f}px;width:160px;display:flex;flex-direction:column;align-items:center;gap:4px">'
+                      f'{icon(ico(c), 110, col)}<p style="font-size:24px;font-weight:700;color:{col};text-align:center;line-height:1.1;'
+                      f'text-shadow:0 0 6px #0a0d14,0 0 6px #0a0d14">{E(lab)}</p></div>')
+        cc, clab = s['center']
+        nodes += (f'<div style="position:absolute;left:{Wd / 2 - 90:.0f}px;top:{Wd / 2 - 95:.0f}px;width:180px;display:flex;flex-direction:column;align-items:center;gap:4px">'
+                  f'{icon(ico(cc), 150, "#5fd39a")}<p style="font-size:24px;font-weight:700;color:#5fd39a;text-align:center">{E(clab)}</p></div>')
+        arcs = []
+        for j in range(4):
+            (x1, y1), (x2, y2) = pos[j], pos[(j + 1) % 4]
+            mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+            cx, cy = Wd / 2 + (mx - Wd / 2) * 1.9, Wd / 2 + (my - Wd / 2) * 1.9
+            # Raccourcit l'arc pour ne pas toucher les icônes.
+            sx, sy = x1 + (cx - x1) * 0.42, y1 + (cy - y1) * 0.42
+            ex, ey = x2 + (cx - x2) * 0.42, y2 + (cy - y2) * 0.42
+            arcs.append(f'<path d="M{sx:.0f},{sy:.0f} Q{cx:.0f},{cy:.0f} {ex:.0f},{ey:.0f}" fill="none" stroke="#ff5a5a" stroke-width="9" '
+                        f'stroke-linecap="round" marker-end="url(#cyc)"/>')
+        svg = (f'<svg aria-hidden="true" width="{Wd}" height="{Wd}" viewBox="0 0 {Wd} {Wd}" style="position:absolute;left:0;top:0">'
+               '<defs><marker id="cyc" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">'
+               '<path d="M0,0 L10,5 L0,10 z" fill="#ff5a5a"/></marker></defs>' + ''.join(arcs) + '</svg>')
+        dia = f'<div style="position:relative;width:{Wd}px;height:{Wd}px;flex:none">{svg}{nodes}</div>'
+        side = bullets(s['bullets'], s.get('size', 28), 900)
+        inner = (kicker(s['kick']) + '\n' + h2(title, 66) + '\n'
+                 f'<div style="display:flex;gap:50px;align-items:center;width:1664px">{dia}{side}</div>')
+        if s.get('foot'): inner += '\n' + para('💡 ' + s['foot'], 26, 1664, '#ffd38a')
+        return sid, section(sid, inner, skin, src, g=12, mode='full', xp=xp), title
     if k == 'tiers':
         rows = []
         for lab, col, champs in s['rows']:
@@ -196,7 +229,7 @@ def render(deck, s, i, skin, src, ico, tot):
         if s.get('foot'): parts.append(para('💡 ' + s['foot'], 26, 1664, '#ffd38a'))
         return sid, section(sid, '\n'.join(parts), skin, src, g=12, mode='full', xp=xp), title
     if k == 'map':
-        maps = ''.join(minimap(m, ico) for m in s['maps'])
+        maps = ''.join(minimap(m, ico, s.get('msize', 600)) for m in s['maps'])
         side = bullets(s['bullets'], s.get('size', 30), s.get('bw', 640)) if s.get('bullets') else ''
         inner = (kicker(s['kick']) + '\n' + h2(title, 68) + '\n'
                  f'<div style="display:flex;gap:36px;align-items:center;width:1664px">{maps}{side}</div>')
@@ -251,7 +284,7 @@ def minimap(m, ico, size=600):
                      f'stroke="#0a0d14" stroke-width="5" paint-order="stroke">{E(lab)}</text>')
     t = m.get('title', '')
     head = f'<p style="{OS};font-size:34px;font-weight:700;color:#ffb347;text-align:center">{E(t)}</p>' if t else ''
-    return (f'<div style="display:flex;flex-direction:column;gap:10px;align-items:center">{head}'
+    return (f'<div style="display:flex;flex-direction:column;gap:10px;align-items:center;flex:none">{head}'
             f'<svg aria-label="{E(t or "Schéma de la carte")}" width="{size}" height="{size}" viewBox="0 0 {size} {size}" style="display:block">{"".join(g)}</svg></div>')
 
 
@@ -316,7 +349,7 @@ if __name__ == '__main__':
         open(f'{outdir}/slides/{sid}.html', 'w', encoding='utf-8').write(h)
     secs = {}
     json.dump({"v": 4, "createdOnFiles": {"v": 1, "at": "2026-11-05T01:00:00Z"}, "lists": "css",
-               "title": f"Le carnet du coach · {NAMES[deck]} — FIRE LoL", "order": order,
+               "title": TITLES[deck], "order": order,
                "sections": {"s1": {"description": "Ouverture et quête", "start": order[0]},
                             "s2": {"description": "Les niveaux du carnet", "start": order[2]},
                             "s3": {"description": "Boss final", "start": order[-1]}},
