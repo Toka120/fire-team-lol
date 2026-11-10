@@ -14,7 +14,7 @@
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
 
   const S = {
-    cfg: null, players: [], period: '7', since: null, obj: null,
+    cfg: null, players: [], coachs: [], period: '7', since: null, obj: null,
     data: load('fire.data', {}), status: {},
     view: 'hub', player: null, tab: 'resume', jour: 'tous',
     refreshing: false, lastRefresh: null, timer: null,
@@ -144,6 +144,7 @@
     S.cfg = await window.fire.config();
     try { S.version = await window.fire.version(); } catch (e) { /* inconnue */ }
     S.players = (S.cfg && S.cfg.joueurs) || [];
+    S.coachs = (S.cfg && Array.isArray(S.cfg.coachs) && S.cfg.coachs) || [];
     S.cfgObj = (S.cfg && S.cfg.objectif && S.cfg.objectif.debut) ? S.cfg.objectif : null;
     S.obj = weeklyObj(S.cfgObj);
     // Début de la saison de l'équipe (joueurs.json → debut_equipe) : période par défaut de toutes les stats.
@@ -289,6 +290,7 @@
       if (c && Array.isArray(c.joueurs) && c.joueurs.length) {
         S.cfg = c;
         S.players = c.joueurs;
+        S.coachs = Array.isArray(c.coachs) ? c.coachs : [];
         S.cfgObj = (c.objectif && c.objectif.debut) ? c.objectif : null;
         applyWeek();
         renderUpdate();
@@ -719,6 +721,7 @@
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🔥'), h('div', null,
         h('h1', { class: 'title' }, "L'équipe"),
         h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · clique sur un joueur pour voir tout le détail.`),
+        (S.coachs || []).length ? h('p', { class: 'muted small hub-coachs' }, '🎓 Coachs : ', (S.coachs || []).map((c) => h('b', null, c.pseudo)).reduce((a, x, i) => (i ? a.concat(' · ', x) : [x]), [])) : null,
         S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif : ${S.obj.games} games par semaine (du lundi au dimanche) sur les champions obligatoires, réparties comme chacun veut. Cette semaine : du ${dateFr(S.obj.debut)} au ${dateFr(S.obj.fin)}.`) : null)),
       homeNotes(),
       teamCards(),
@@ -1571,8 +1574,9 @@
   document.addEventListener('click', (e) => { if (VX.more && !e.target.closest('.vm-wrap')) { VX.more = false; VX.invOpen = false; if (S.section === 'vocal') renderVocal(); } });
   const FV = () => window.FireVoice;
   const vocalMe = () => S.moi || (S.coachState && S.coachState.coach ? 'coach' : null);
-  const vocalName = (slug) => slug === 'coach' ? 'Coach' : shortName((S.players.find((p) => p.slug === slug) || {}).pseudo || slug);
-  const vocalIds = () => S.players.map((p) => p.slug).filter(Boolean).concat('coach');
+  const coachOf = (slug) => (S.coachs || []).find((c) => c.slug === slug) || null;
+  const vocalName = (slug) => slug === 'coach' ? 'Coach' : coachOf(slug) ? coachOf(slug).pseudo : shortName((S.players.find((p) => p.slug === slug) || {}).pseudo || slug);
+  const vocalIds = () => S.players.map((p) => p.slug).filter(Boolean).concat((S.coachs || []).map((c) => c.slug), 'coach');
   const ini = (slug) => vocalName(slug).slice(0, 2).toUpperCase();
   // Qui est en vocal : les gens connectés avec moi si je suis dans le salon, sinon ce que les autres FIRE annoncent.
   function vocalPeople() {
@@ -2111,7 +2115,7 @@
       const sndOn = so.on == null ? v.cfg.streamSound !== false : so.on;
       const sndVol = so.vol ?? 0.8;
       const hasSnd = t.kind === 'screen' && !t.mine && t.sound;
-      box.append(h('div', { class: 'vt-name' }, t.kind === 'screen' ? vi('screen') : null, (t.kind === 'screen' ? 'Écran de ' : '') + (t.mine ? (t.kind === 'screen' ? 'toi' : vocalName(t.slug) + ' (toi)') : ((pl.capitaine ? '👑 ' : '') + vocalName(t.slug))),
+      box.append(h('div', { class: 'vt-name' }, t.kind === 'screen' ? vi('screen') : null, (t.kind === 'screen' ? 'Écran de ' : '') + (t.mine ? (t.kind === 'screen' ? 'toi' : vocalName(t.slug) + ' (toi)') : ((pl.capitaine ? '👑 ' : coachOf(t.slug) ? '🎓 ' : '') + vocalName(t.slug))),
         t.kind === 'person' && r.mute ? h('span', { class: 'vt-st bad' }, vi('micOff')) : null,
         t.kind === 'person' && r.deaf ? h('span', { class: 'vt-st bad' }, vi('headOff')) : null,
         hasSnd ? h('span', { class: 'vt-st ' + (sndOn ? 'snd' : 'bad') }, vi(sndOn ? 'vol' : 'headOff')) : null,
@@ -4022,7 +4026,7 @@
       const mine = S.moi ? rep[S.moi] : null;
       const type = PLAN_TYPES.find((x) => x[0] === j.type) || PLAN_TYPES[0];
       const full = cnt.present >= 5;
-      const btns = S.moi && !past ? h('div', { class: 'plan-me' }, h('span', { class: 'muted small' }, 'Moi : '),
+      const btns = S.moi && !past && S.players.some((x) => x.slug === S.moi) ? h('div', { class: 'plan-me' }, h('span', { class: 'muted small' }, 'Moi : '),
         Object.entries(PLAN_ST).map(([k, v]) => h('button', { class: 'plan-btn ' + v.cls, 'aria-pressed': String(!!(mine && mine.statut === k)), disabled: planCanWrite() ? null : true,
           onclick: () => answer(d, S.moi, mine && mine.statut === k ? null : k) }, v.ico + ' ' + v.txt))) : null;
       const people = h('div', { class: 'plan-people' }, roster.map((p) => {
@@ -4159,7 +4163,8 @@
   const canEdit = (slug) => S.coachState.coach ? (S.poolWrite || S.coachState.github) : (S.poolWrite && S.moi === slug);
 
   function meSelect() {
-    const sel = h('select', { 'aria-label': 'Qui es-tu ?' }, h('option', { value: '' }, '— choisis —'), S.players.filter((x) => x.slug).map((p) => h('option', { value: p.slug }, `${roleOf(p).ico} ${p.pseudo}`)));
+    const sel = h('select', { 'aria-label': 'Qui es-tu ?' }, h('option', { value: '' }, '— choisis —'), S.players.filter((x) => x.slug).map((p) => h('option', { value: p.slug }, `${roleOf(p).ico} ${p.pseudo}`)),
+      (S.coachs || []).map((c) => h('option', { value: c.slug }, `🎓 ${c.pseudo} (coach)`)));
     sel.value = S.moi || '';
     sel.addEventListener('change', () => { S.moi = sel.value || null; save('fire.moi', S.moi); render(); });
     return sel;
@@ -4178,8 +4183,10 @@
       h('div', { class: 'who-t' }, '👋 Qui es-tu ?'),
       h('p', { class: 'muted' }, 'Choisis ton pseudo : l’app te reconnaîtra, et dans POOL un seul bouton « ✏️ Faire ma tierlist » suffira. Tu pourras changer plus tard.'),
       h('div', { class: 'who-grid' }, S.players.filter((x) => x.slug).map((p) => h('button', { class: 'who-p', onclick: () => close(p.slug) },
-        h('span', { class: 'who-ico' }, roleOf(p).ico), h('span', { class: 'who-n' }, String(p.pseudo).split('#')[0]), h('span', { class: 'muted small' }, p.role || roleOf(p).label)))),
-      h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => close(null) }, 'Je suis le coach / plus tard'))));
+        h('span', { class: 'who-ico' }, roleOf(p).ico), h('span', { class: 'who-n' }, String(p.pseudo).split('#')[0]), h('span', { class: 'muted small' }, p.role || roleOf(p).label))),
+        (S.coachs || []).map((c) => h('button', { class: 'who-p coach', onclick: () => close(c.slug) },
+          h('span', { class: 'who-ico' }, '🎓'), h('span', { class: 'who-n' }, c.pseudo), h('span', { class: 'muted small' }, 'Coach')))),
+      h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => close(null) }, 'Plus tard'))));
     document.body.append(box);
   }
 

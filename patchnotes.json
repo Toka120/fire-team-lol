@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.58",
+   "date": "2026-11-10",
+   "titre": "Deux coachs : Heoulh et Dream",
+   "items": [
+    [
+     "new",
+     "Deux coachs dans l'équipe : Heoulh et Dream. Ils apparaissent dans « Qui es-tu ? » et dans « Je suis », avec un 🎓, et sont listés en haut de la page de l'équipe."
+    ],
+    [
+     "new",
+     "Salon vocal : chaque coach y entre avec son nom (🎓 Heoulh, 🎓 Dream), peut être invité, et apparaît dans le bandeau EN DIRECT."
+    ],
+    [
+     "improve",
+     "Le mode coach (code coach) reste le même pour les deux."
+    ]
+   ]
+  },
+  {
    "v": "1.10.57",
    "date": "2026-11-10",
    "titre": "Clic droit sur les streams, comme sur Discord",

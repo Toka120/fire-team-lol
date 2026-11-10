@@ -1482,3 +1482,4 @@ kbd{font:600 11px/1 ui-monospace,Consolas,monospace;padding:4px 7px;border-radiu
 .vt-off b{color:var(--fg)}
 .vtoast.ask{pointer-events:auto;gap:10px}
 .vtoast.ask .dot{background:#5865f2}
+.who-p.coach{border-color:rgba(88,101,242,.5)} .hub-coachs b{color:var(--fg)}

@@ -226,5 +226,15 @@
         }
       ]
     }
+  ],
+  "coachs": [
+    {
+      "slug": "coach-heoulh",
+      "pseudo": "Heoulh"
+    },
+    {
+      "slug": "coach-dream",
+      "pseudo": "Dream"
+    }
   ]
 }

@@ -227,5 +227,15 @@
       ]
     }
   ],
+  "coachs": [
+    {
+      "slug": "coach-heoulh",
+      "pseudo": "Heoulh"
+    },
+    {
+      "slug": "coach-dream",
+      "pseudo": "Dream"
+    }
+  ],
   "debut_equipe": "2026-10-27"
 }
