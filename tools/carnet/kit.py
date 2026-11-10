@@ -23,7 +23,7 @@ def veil(mode):
              'linear-gradient(0deg, rgba(18,14,10,0.22), rgba(18,14,10,0.22))')
         return f'<div style="position:absolute;left:0;top:0;width:1920px;height:1080px;background:{g}"></div>'
     if mode == 'full':
-        g = ('linear-gradient(90deg, rgba(10,13,20,0.86) 0%, rgba(10,13,20,0.68) 50%, rgba(10,13,20,0.34) 100%), '
+        g = ('linear-gradient(90deg, rgba(10,13,20,0.9) 0%, rgba(10,13,20,0.8) 50%, rgba(10,13,20,0.5) 100%), '
              'linear-gradient(0deg, rgba(10,13,20,0.7) 0%, rgba(10,13,20,0) 22%)')
     elif mode == 'light':
         g = ('linear-gradient(90deg, rgba(10,13,20,0.8) 0%, rgba(10,13,20,0.6) 45%, rgba(10,13,20,0.2) 72%, rgba(10,13,20,0) 100%), '

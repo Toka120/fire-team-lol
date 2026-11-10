@@ -1,6 +1,37 @@
 {
  "versions": [
   {
+   "v": "1.10.26",
+   "date": "2026-11-10",
+   "titre": "Scénarios sur la carte et quiz qui changent",
+   "items": [
+    [
+     "new",
+     "Lanes et principes › 🧩 Scénarios : des situations de jeu sur la vraie carte (positions, waves, objectifs). Tu prends la décision, puis la flèche te montre le bon mouvement."
+    ],
+    [
+     "new",
+     "Quiz : 5 questions tirées au hasard à chaque partie, en priorité celles que tu n'as pas encore vues, et les réponses changent de place."
+    ],
+    [
+     "new",
+     "Quiz : de nouvelles questions communes à toutes les lanes dans chaque niveau (simple, compliqué, ultra hardcore)."
+    ]
+   ]
+  },
+  {
+   "contenu": true,
+   "id": "c-2026-11-10-lisible",
+   "date": "2026-11-10",
+   "titre": "Diapos plus lisibles",
+   "items": [
+    [
+     "improve",
+     "Tous les carnets : fond plus sombre derrière le texte, pour mieux lire sur les splash arts clairs."
+    ]
+   ]
+  },
+  {
    "v": "1.10.25",
    "date": "2026-11-10",
    "titre": "Quiz, défis et patchs officiels de LoL",

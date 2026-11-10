@@ -369,9 +369,10 @@ if __name__ == '__main__':
                  niveau=(f"Niveau {s['niv']} · {levels[s['niv'] - 1]}" if s.get('niv') and s['niv'] <= len(levels) else ''))
             for s in full if s['kind'] == 'quiz']
     # 3 niveaux : simple (les quiz du carnet), compliqué et ultra hardcore (quizplus.py, avec des « pourquoi ? »).
-    from quizplus import DUR, HARDCORE
+    from quizplus import DUR, HARDCORE, COMMUN
     for x in quiz: x['diff'] = 'simple'
-    quiz += [dict(x, diff='dur') for x in DUR.get(deck, [])] + [dict(x, diff='hardcore') for x in HARDCORE.get(deck, [])]
+    quiz += [dict(x, diff='simple') for x in COMMUN['simple']]
+    quiz += [dict(x, diff='dur') for x in DUR.get(deck, []) + COMMUN['dur']] + [dict(x, diff='hardcore') for x in HARDCORE.get(deck, []) + COMMUN['hardcore']]
     json.dump(quiz, open(f'{outdir}/quiz.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     lvl = lambda s: (f"Niveau {s['niv']} · {levels[s['niv'] - 1]}" if s.get('niv') and s['niv'] <= len(levels) else '')
     defis = [dict(titre=s['title'], big=s.get('big', ''), sub=s.get('sub', ''), items=s['items'], niveau=lvl(s), boss=s['kind'] == 'final')

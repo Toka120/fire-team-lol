@@ -1666,7 +1666,7 @@
     view.replaceChildren(
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, c.ico), h('div', null, h('h1', { class: 'title' }, c.titre), h('p', { class: 'muted' }, c.intro))),
       (c.diapo && ((c.diapo.quiz || []).length || (c.diapo.defis || []).length))
-        ? h('div', { class: 'diapo-row' }, diapoCard(c), h('div', { class: 'diapo-side' }, (c.diapo.quiz || []).length ? quizCard(c) : null, (c.diapo.defis || []).length ? defisCard(c) : null))
+        ? h('div', { class: 'diapo-row' }, diapoCard(c), h('div', { class: 'diapo-side' }, (c.diapo.quiz || []).length ? quizCard(c) : null, (c.diapo.scenarios || []).length ? scenCard(c) : null, (c.diapo.defis || []).length ? defisCard(c) : null))
         : diapoCard(c),
       h('div', { class: 'cat-list' }, c.themes.map((x, i) => {
         const t = themeOf(x.id);
@@ -1703,6 +1703,18 @@
   const QDIFF = [['simple', '🙂 Simple', 'Les questions du carnet'], ['dur', '🧠 Compliqué', 'Des situations, avec des « pourquoi ? »'], ['hardcore', '💀 Ultra hardcore', 'Les décisions les plus fines']];
   const qOf = (c, d) => ((c.diapo && c.diapo.quiz) || []).filter((x) => (x.diff || 'simple') === d);
   const qTotal = (qs) => qs.reduce((n, x) => n + 1 + (x.suite ? 1 : 0), 0);
+  const QUIZ_N = 5;
+  const mixChoices = (q) => { const order = shuffle(q.ch.map((_, k) => k)); return { ...q, ch: order.map((k) => q.ch[k]), good: order.indexOf(q.good) }; };
+  function drawQuiz(pool, seenKey, n) {
+    let seen = load(seenKey, []);
+    if (!Array.isArray(seen)) seen = [];
+    let fresh = pool.filter((x) => !seen.includes(x.q));
+    if (fresh.length < Math.min(n, pool.length)) { seen = []; fresh = pool.slice(); } // tout a été vu : on repart de zéro
+    const pick = shuffle(fresh).slice(0, n);
+    if (pick.length < n) pick.push(...shuffle(pool.filter((x) => !pick.includes(x))).slice(0, n - pick.length));
+    save(seenKey, seen.concat(pick.map((x) => x.q)));
+    return pick.map((x) => ({ ...mixChoices(x), suite: x.suite ? mixChoices(x.suite) : undefined }));
+  }
   function quizCard(c) {
     const qs = (c.diapo && c.diapo.quiz) || [];
     const bests = QDIFF.map(([d, l]) => { const b = load(`fire.quiz.${c.id}.${d}`, null); return b ? `${l.split(' ')[0]} ${b.ok}/${b.n}` : null; }).filter(Boolean);
@@ -1710,7 +1722,7 @@
       h('div', { class: 'diapo-info' },
         h('div', { class: 'diapo-kick' }, '❓ Quiz'),
         h('div', { class: 'diapo-t' }, quizName(c)),
-        h('p', { class: 'muted small' }, `3 niveaux : simple, compliqué et ultra hardcore · ${qs.length} situations.`),
+        h('p', { class: 'muted small' }, `3 niveaux : simple, compliqué et ultra hardcore · ${qs.length} questions, tirées au hasard à chaque partie.`),
         bests.length ? h('p', { class: 'small' }, '🏆 ' + bests.join(' · ')) : null,
         h('span', { class: 'diapo-go' }, '▶ Lancer le quiz')));
   }
@@ -1720,14 +1732,16 @@
     const body = h('div', { class: 'qz-body' });
     const close = () => { box.remove(); document.removeEventListener('keydown', key); if (S.section === 'guides') render(); };
     const key = (e) => { if (e.key === 'Escape') close(); };
-    const begin = (d) => { diff = d; qs = qOf(c, d); i = 0; ok = 0; picked = null; step = 'main'; draw(); };
+    // Chaque partie tire 5 questions au hasard, en priorité celles pas vues aux parties précédentes,
+    // et mélange l'ordre des réponses : on ne refait jamais exactement le même quiz.
+    const begin = (d) => { diff = d; qs = drawQuiz(qOf(c, d), `fire.quizseen.${c.id}.${d}`, QUIZ_N); i = 0; ok = 0; picked = null; step = 'main'; draw(); };
     const draw = () => {
       if (!diff) {
         body.replaceChildren(h('h2', { class: 'qz-q' }, 'Choisis ton niveau'),
           h('div', { class: 'qz-levels' }, QDIFF.map(([d, l, sub]) => {
             const n = qOf(c, d).length, b = load(`fire.quiz.${c.id}.${d}`, null);
             return h('button', { class: 'qz-level lv-' + d, disabled: n ? null : true, onclick: () => begin(d) },
-              h('b', null, l), h('span', { class: 'muted small' }, sub), h('span', { class: 'small' }, n ? `${n} question${n > 1 ? 's' : ''}` + (b ? ` · 🏆 ${b.ok}/${b.n}` : '') : 'Bientôt'));
+              h('b', null, l), h('span', { class: 'muted small' }, sub), h('span', { class: 'small' }, n ? `${Math.min(QUIZ_N, n)} questions tirées parmi ${n}` + (b ? ` · 🏆 ${b.ok}/${b.n}` : '') : 'Bientôt'));
           })));
         return;
       }
@@ -1740,7 +1754,7 @@
           h('div', { class: 'qz-end' }, h('div', { class: 'qz-big' }, all ? '🏆' : ok >= total / 2 ? '🔥' : '💪'),
             h('h2', null, `${ok} / ${total} bonnes réponses`),
             h('p', { class: 'muted' }, all ? (diff === 'hardcore' ? 'Ultra hardcore sans faute. Respect.' : 'Sans faute : passe au niveau au-dessus !') : 'Revois les slides du diaporama, puis retente ta chance.'),
-            h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => begin(diff) }, '🔄 Recommencer'),
+            h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => begin(diff) }, '🔄 Nouvelles questions'),
               h('button', { class: 'btn-ghost', onclick: () => { diff = null; draw(); } }, 'Changer de niveau'),
               h('button', { class: 'btn-ghost', onclick: close }, 'Fermer'))));
         return;
@@ -1770,6 +1784,100 @@
       h('div', { class: 'qz-card' }, body));
     document.body.append(box);
     document.addEventListener('keydown', key);
+    draw();
+  }
+
+  // ----- Scénarios sur la vraie carte (comme MOBA Trainer) : une situation, une décision, puis la flèche -----
+  const scenName = (c) => ((c.diapo && c.diapo.quizTitre) || '').replace(/^Quiz/, 'Scénarios') || 'Scénarios';
+  function scenCard(c) {
+    const ss = (c.diapo && c.diapo.scenarios) || [];
+    const b = load('fire.scen.' + c.id, null);
+    return h('button', { class: 'diapo-card scen-card', onclick: () => openScen(c) },
+      h('div', { class: 'diapo-info' },
+        h('div', { class: 'diapo-kick' }, '🧩 Scénarios'),
+        h('div', { class: 'diapo-t' }, scenName(c)),
+        h('p', { class: 'muted small' }, `${ss.length} situations sur la vraie carte : lis la carte, prends la décision.`),
+        b ? h('p', { class: 'small' }, `🏆 Meilleur score : ${b.ok} / ${b.n}`) : null,
+        h('span', { class: 'diapo-go' }, '▶ Jouer')));
+  }
+  function scenMap(sc, showArrows) {
+    const pos = (x, y) => `left:${x}%;top:${y}%`;
+    const kids = [];
+    (sc.obj || []).forEach(([x, y, e, l]) => kids.push(h('div', { class: 'sm-obj', style: pos(x, y) }, h('span', null, e), l ? h('em', null, l) : null)));
+    (sc.waves || []).forEach(([x, y, tm, n]) => kids.push(h('div', { class: 'sm-wave ' + tm, style: pos(x, y) }, Array.from({ length: Math.min(n, 7) }, () => h('i')))));
+    (sc.wards || []).forEach(([x, y, tm]) => kids.push(h('div', { class: 'sm-ward ' + tm, style: pos(x, y) }, '👁️')));
+    (sc.inconnus || []).forEach(([x, y, l]) => kids.push(h('div', { class: 'sm-unk', style: pos(x, y) }, h('span', null, '?'), l ? h('em', null, l) : null)));
+    (sc.champs || []).forEach(([x, y, id, tm, l]) => kids.push(h('div', { class: 'sm-champ ' + tm, style: pos(x, y) }, champIcon(id, 30), l ? h('em', null, l) : null)));
+    const svg = showArrows && (sc.fleches || []).length ? (() => {
+      const ns = 'http://www.w3.org/2000/svg';
+      const s = document.createElementNS(ns, 'svg');
+      s.setAttribute('viewBox', '0 0 100 100'); s.setAttribute('preserveAspectRatio', 'none'); s.setAttribute('class', 'sm-arrows');
+      (sc.fleches || []).forEach(([x1, y1, x2, y2, col], k) => {
+        const id = 'ah' + k + Math.random().toString(36).slice(2, 6);
+        const m = document.createElementNS(ns, 'marker');
+        m.setAttribute('id', id); m.setAttribute('viewBox', '0 0 10 10'); m.setAttribute('refX', '7'); m.setAttribute('refY', '5');
+        m.setAttribute('markerWidth', '4'); m.setAttribute('markerHeight', '4'); m.setAttribute('orient', 'auto');
+        const pth = document.createElementNS(ns, 'path'); pth.setAttribute('d', 'M0,0 L10,5 L0,10 z'); pth.setAttribute('fill', col); m.append(pth); s.append(m);
+        const ln = document.createElementNS(ns, 'line');
+        [['x1', x1], ['y1', y1], ['x2', x2], ['y2', y2]].forEach(([a, v]) => ln.setAttribute(a, v));
+        ln.setAttribute('stroke', col); ln.setAttribute('stroke-width', '1.1'); ln.setAttribute('stroke-dasharray', '2.4 1.4');
+        ln.setAttribute('marker-end', `url(#${id})`); ln.setAttribute('vector-effect', 'non-scaling-stroke'); ln.style.strokeWidth = '4px';
+        s.append(ln);
+      });
+      return s;
+    })() : null;
+    return h('div', { class: 'sm-map', style: S.assets && S.assets.rift ? `background-image:url("${S.assets.rift}")` : '' }, ...kids, svg,
+      h('span', { class: 'sm-credit' }, 'Carte · © Riot Games'));
+  }
+  function openScen(c) {
+    const base0 = (c.diapo && c.diapo.scenarios) || [];
+    if (!base0.length) return;
+    const mixS = () => shuffle(base0).map((x) => ({ ...mixChoices(x), suite: x.suite ? mixChoices(x.suite) : undefined }));
+    let ss = mixS();
+    let i = 0, ok = 0, picked = null, step = 'main';
+    const total = ss.reduce((n, x) => n + 1 + (x.suite ? 1 : 0), 0);
+    const body = h('div', { class: 'sc-body' });
+    const close = () => { box.remove(); document.removeEventListener('keydown', key); if (S.section === 'guides') render(); };
+    const key = (e) => { if (e.key === 'Escape') close(); };
+    const draw = () => {
+      if (i >= ss.length) {
+        const k = 'fire.scen.' + c.id, prev = load(k, null);
+        if (!prev || ok > prev.ok || prev.n !== total) save(k, { ok, n: total });
+        body.replaceChildren(h('div', { class: 'qz-end' }, h('div', { class: 'qz-big' }, ok === total ? '🏆' : ok >= total / 2 ? '🔥' : '💪'),
+          h('h2', null, `${ok} / ${total} bonnes décisions`),
+          h('p', { class: 'muted' }, ok === total ? 'Lecture de carte parfaite.' : 'Relis les slides, puis rejoue les situations.'),
+          h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => { ss = mixS(); i = 0; ok = 0; picked = null; step = 'main'; draw(); } }, '🔄 Rejouer'),
+            h('button', { class: 'btn-ghost', onclick: close }, 'Fermer'))));
+        return;
+      }
+      const sc = ss[i], q = step === 'suite' ? sc.suite : sc;
+      const choices = q.ch.map((txt, k) => {
+        let cls = 'qz-ch';
+        if (picked !== null) cls += k === q.good ? ' good' : (k === picked ? ' bad' : ' dim');
+        return h('button', { class: cls, disabled: picked !== null ? true : null, onclick: () => { picked = k; if (k === q.good) ok++; draw(); } }, h('span', { class: 'qz-l' }, 'ABCDE'[k]), txt);
+      });
+      const next = () => { if (step === 'main' && sc.suite) step = 'suite'; else { i++; step = 'main'; } picked = null; draw(); };
+      const last = i + 1 >= ss.length && (step === 'suite' || !sc.suite);
+      body.replaceChildren(
+        scenMap(sc, picked !== null || step === 'suite'),
+        h('div', { class: 'sc-side' },
+          h('div', { class: 'qz-meta muted small' }, `Situation ${i + 1} / ${ss.length}`),
+          h('div', { class: 'qz-bar' }, h('span', { style: `width:${Math.round(i / ss.length * 100)}%` })),
+          h('h3', { class: 'sc-title' }, sc.titre),
+          h('div', { class: 'sc-ctx' }, (sc.contexte || []).map((x) => h('span', { class: 'chip' }, x))),
+          step === 'suite' ? h('div', { class: 'qz-follow' }, '🔎 Et maintenant : pourquoi ?') : null,
+          h('p', { class: 'qz-q' }, q.q),
+          h('div', { class: 'qz-chs' }, choices),
+          picked !== null ? h('div', { class: 'qz-why ' + (picked === q.good ? 'good' : 'bad') }, h('b', null, picked === q.good ? '✅ Bonne décision ! ' : '❌ Pas tout à fait. '), q.why) : null,
+          picked !== null ? h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: next }, step === 'main' && sc.suite ? 'Pourquoi ? →' : last ? 'Voir mon score' : 'Situation suivante →')) : null,
+          h('p', { class: 'muted small' }, '🔵 ta team · 🔴 en face · ❔ position supposée · 👁️ ward')));
+    };
+    const box = h('div', { class: 'dv qz', onclick: (e) => { if (e.target === box) close(); } },
+      h('div', { class: 'dv-top' }, h('span', { class: 'dv-name' }, '🧩 ' + scenName(c)), h('span', { class: 'dv-title' }), h('button', { class: 'btn-ghost', onclick: close }, '✕ Fermer')),
+      h('div', { class: 'qz-card sc-card' }, body));
+    document.body.append(box);
+    document.addEventListener('keydown', key);
+    if (!S.champList) loadChampions();
     draw();
   }
 
