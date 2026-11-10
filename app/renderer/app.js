@@ -1580,6 +1580,12 @@
     const v = FV().state();
     document.querySelectorAll('[data-vslug]').forEach((el) => el.classList.toggle('talk', !!v.speaking[el.dataset.vslug]));
   }
+  // Un élément vidéo retiré de la page se met en pause (règle du navigateur), et l'autoplay ne repart pas tout seul
+  // quand on le remet : après chaque affichage du salon (changement d'onglet, quelqu'un qui coupe son micro…),
+  // on relance la lecture des vidéos visibles.
+  function resumeVideos() {
+    requestAnimationFrame(() => Object.values(VX.vids).forEach((el) => { if (el.isConnected && el.paused && el.srcObject) el.play().catch(() => {}); }));
+  }
   // Élément vidéo gardé d'un rendu à l'autre : l'image ne clignote pas.
   function vidEl(key, stream, mirror) {
     let el = VX.vids[key];
@@ -1719,7 +1725,8 @@
         VX.sig = sig;
         renderNav();
         syncKeys();
-        if (S.section === 'vocal') { if (typing()) VX.pending = true; else renderVocal(); }
+        // Pas de nouvel affichage pendant le plein écran d'une vidéo : il le fermerait.
+        if (S.section === 'vocal') { if (typing() || document.fullscreenElement) VX.pending = true; else renderVocal(); }
       }
       vocalBar(); vocalSpeak();
     });
@@ -1727,7 +1734,7 @@
     // Jauge du micro (et rendu remis à plus tard pendant qu'on règle un curseur).
     setInterval(() => {
       if (S.section !== 'vocal') return;
-      if (VX.pending && !typing()) { VX.pending = false; renderVocal(); }
+      if (VX.pending && !typing() && !document.fullscreenElement) { VX.pending = false; renderVocal(); }
       const l = FV().level(), open = FV().gateOpen() && !FV().state().mute;
       document.querySelectorAll('.vc-meter-fill').forEach((f) => { f.style.width = Math.min(100, l / 1.28) + '%'; f.classList.toggle('open', open); });
     }, 80);
@@ -1950,6 +1957,7 @@
       stage, bar,
       people.length === 1 ? h('p', { class: 'vc-alone' }, 'Tu es seul pour le moment : invite tes coéquipiers avec le menu ⋯ en bas à droite.') : null,
       hidden ? h('p', { class: 'vc-alone' }, `${hidden} participant${hidden > 1 ? 's' : ''} sans vidéo masqué${hidden > 1 ? 's' : ''} (menu ⋯).`) : null), drawer].filter(Boolean));
+    resumeVideos();
     vocalSpeak();
   }
 

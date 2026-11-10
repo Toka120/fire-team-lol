@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.46",
+   "date": "2026-11-10",
+   "titre": "Salon vocal : vidéos qui figeaient",
+   "items": [
+    [
+     "fix",
+     "Salon vocal : les partages d'écran et les caméras ne se figent plus quand on change d'onglet puis qu'on revient sur le salon, ni quand quelqu'un coupe son micro ou arrive."
+    ],
+    [
+     "fix",
+     "Une vidéo en plein écran ne se ferme plus toute seule quand quelque chose change dans le salon."
+    ]
+   ]
+  },
+  {
    "v": "1.10.45",
    "date": "2026-11-10",
    "titre": "Menu ⋯ du salon vocal et invitations",
