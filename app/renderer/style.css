@@ -1446,3 +1446,13 @@ kbd{font:600 11px/1 ui-monospace,Consolas,monospace;padding:4px 7px;border-radiu
 .vt-pip video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .vt.small .vt-pip{width:34%;min-width:60px;border-radius:8px}
 .vt:fullscreen .vt-pip{display:none}
+/* Salons visibles pendant un appel : qui est dans chaque salon */
+.vs-room{flex-direction:column;align-items:flex-start;gap:5px;border-radius:14px;padding:8px 12px;min-width:150px}
+.vs-rh{display:inline-flex;align-items:center;gap:6px}
+.vs-room.busy{border-color:rgba(61,220,132,.45);background:rgba(61,220,132,.06)}
+.vs-ppl{display:flex;align-items:center;gap:6px}
+.vs-ppl .vc-av{width:22px;height:22px;font-size:9px;margin-left:-5px;border:2px solid #121012}
+.vs-ppl .vc-av:first-child{margin-left:0}
+.vs-names{font-size:11px;font-weight:600;color:#3ddc84;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.vs-empty{font-size:11px;color:var(--muted);font-weight:500}
+.vs-empty.here{color:#3ddc84}

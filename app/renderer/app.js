@@ -2057,8 +2057,14 @@
       const there = roomPeople(r.id);
       const mine = r.id === v.room;
       const full = r.max && there.filter((x) => x !== me).length >= r.max;
-      return h('button', { class: 'vs-room' + (mine ? ' on' : ''), disabled: mine || full ? true : null, title: mine ? 'Tu es ici' : full ? 'Complet' : 'Aller dans ce salon', onclick: () => vocalJoin(r.id) },
-        r.ico, ' ', r.name, there.length && !mine ? h('span', { class: 'vs-n' }, String(there.length)) : null, full && !mine ? h('span', { class: 'vs-n full' }, 'complet') : null);
+      // Chaque salon montre qui est dedans (avatars et noms), même quand tu es dans un autre salon.
+      const names = there.map(vocalName);
+      return h('button', { class: 'vs-room' + (mine ? ' on' : '') + (there.length && !mine ? ' busy' : ''), disabled: mine || full ? true : null,
+        title: (names.length ? `Dedans : ${names.join(', ')}` : 'Personne pour le moment') + (mine ? ' · tu es ici' : full ? ' · complet' : ' · clique pour y aller'), onclick: () => vocalJoin(r.id) },
+        h('span', { class: 'vs-rh' }, r.ico, ' ', r.name, full && !mine ? h('span', { class: 'vs-n full' }, 'complet') : null),
+        mine ? h('span', { class: 'vs-empty here' }, 'tu es ici') : there.length
+          ? h('span', { class: 'vs-ppl' }, there.slice(0, 4).map((x) => h('span', { class: 'vc-av mini' }, ini(x))), h('span', { class: 'vs-names' }, names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(', ')))
+          : h('span', { class: 'vs-empty' }, 'vide'));
     }));
     view.replaceChildren(...[h('div', { class: 'vc-room' },
       v.err ? h('p', { class: 'bad vc-err' }, '⚠ ' + v.err, ' ', h('button', { class: 'linkbtn small', onclick: () => FV().clearErr() }, 'OK')) : null,

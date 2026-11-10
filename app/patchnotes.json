@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.51",
+   "date": "2026-11-10",
+   "titre": "Voir les autres salons pendant un appel",
+   "items": [
+    [
+     "new",
+     "Pendant un appel, les salons en haut de l'écran montrent qui est dans chacun (avatars et noms) : par exemple « Duo 1 : Frost tham, The World » ou « Coaching perso : lebrésilien ». Un salon vide affiche « vide », un salon plein « complet »."
+    ],
+    [
+     "improve",
+     "Survole un salon pour voir la liste complète de ses membres, puis clique pour y aller."
+    ]
+   ]
+  },
+  {
    "v": "1.10.50",
    "date": "2026-11-10",
    "titre": "Partage d'écran : options d'affichage",
