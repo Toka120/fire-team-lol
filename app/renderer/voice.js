@@ -9,7 +9,7 @@
   'use strict';
   const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }];
   const CFG_KEY = 'fire.vocal.cfg', VOL_KEY = 'fire.vocal.vols', LMUTE_KEY = 'fire.vocal.lmute';
-  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, vad: 'auto', ec: true, agc: true, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15 };
+  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, vad: 'auto', recvQ: 'auto', ec: true, agc: true, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15 };
   const rd = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   const wr = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
 
@@ -176,7 +176,7 @@
   function startTick() { if (!V.timer) V.timer = setInterval(tick, 20); }
 
   // ---------- Contrôle (micro coupé, caméra, écran…) : un petit canal de données par membre ----------
-  function myState() { return { t: 'st', mute: V.mute, deaf: V.deaf, cam: !!V.cam, screen: !!V.screen }; }
+  function myState() { return { t: 'st', mute: V.mute, deaf: V.deaf, cam: !!V.cam, screen: !!V.screen, q: V.cfg.recvQ || 'auto' }; }
   function broadcast() { for (const k of Object.values(V.conns)) if (k.ctl && k.ctl.open) { try { k.ctl.send(myState()); } catch (e) { /* */ } } }
   function bindCtl(slug, dc) {
     const k = V.conns[slug];
@@ -186,7 +186,9 @@
     dc.on('open', () => { try { dc.send(myState()); } catch (e) { /* */ } });
     dc.on('data', (msg) => {
       const kk = V.conns[slug]; if (!kk || !msg || msg.t !== 'st') return;
-      kk.remote = { mute: !!msg.mute, deaf: !!msg.deaf, cam: !!msg.cam, screen: !!msg.screen };
+      const qBefore = kk.remote && kk.remote.q;
+      kk.remote = { mute: !!msg.mute, deaf: !!msg.deaf, cam: !!msg.cam, screen: !!msg.screen, q: ['auto', 'high', 'medium', 'low'].includes(msg.q) ? msg.q : 'auto' };
+      if (kk.remote.q !== qBefore) { retune('screen'); retune('cam'); }
       if (!msg.cam) closeVin(slug, 'cam');
       if (!msg.screen) closeVin(slug, 'screen');
       emit();
@@ -210,18 +212,36 @@
   // Chaque spectateur reçoit sa propre copie (et son propre encodage) : à plusieurs, on partage un budget
   // d'envoi et on baisse un peu la définition, sinon la connexion sature et l'image prend du retard et saccade.
   const UP_BUDGET = 9000000;
-  function videoPlan(kind) {
+  // Qualité par spectateur : chacun reçoit sa propre copie, on l'adapte donc à SA connexion.
+  // Le spectateur choisit (Haute, Moyenne 720p, Faible connexion 480p) ou laisse en Auto : FIRE mesure alors
+  // la connexion vers lui (débit disponible, retard, pertes) et baisse ou remonte la qualité tout seul.
+  const QLV = [{ maxH: 4320, rate: Infinity, fps: Infinity }, { maxH: 720, rate: 1800000, fps: 30 }, { maxH: 480, rate: 650000, fps: 20 }];
+  const QFIX = { high: 0, medium: 1, low: 2 };
+  V.qlvl = {}; V.qbad = {}; V.qgood = {};
+  function levelFor(slug) {
+    const q = (V.conns[slug] && V.conns[slug].remote && V.conns[slug].remote.q) || 'auto';
+    return q in QFIX ? QFIX[q] : (V.qlvl[slug] || 0);
+  }
+  function videoPlan(kind, slug) {
     const fps = kind === 'cam' ? 24 : (V.cfg.screenFps || 15);
     const viewers = Math.max(1, Object.keys(V.vout).filter((k) => k.endsWith(':' + kind)).length);
     const want = kind === 'cam' ? 450000 : fps >= 120 ? 8000000 : fps >= 60 ? 5000000 : fps >= 30 ? 3000000 : 1800000;
-    const rate = Math.max(kind === 'cam' ? 250000 : 1200000, Math.min(want, Math.floor(UP_BUDGET / viewers)));
-    const scale = kind === 'cam' ? 1 : viewers >= 4 ? 2 : viewers >= 3 ? 1.5 : 1;
+    let rate = Math.max(kind === 'cam' ? 250000 : 1200000, Math.min(want, Math.floor(UP_BUDGET / viewers)));
+    let scale = kind === 'cam' ? 1 : viewers >= 4 ? 2 : viewers >= 3 ? 1.5 : 1;
+    let mfps = fps;
+    const lv = QLV[levelFor(slug)];
+    if (kind === 'screen') {
+      const tr = V.screen && V.screen.getVideoTracks()[0];
+      const srcH = (tr && tr.getSettings && tr.getSettings().height) || 1080;
+      if (srcH / scale > lv.maxH) scale = srcH / lv.maxH;
+      rate = Math.min(rate, lv.rate); mfps = Math.min(fps, lv.fps);
+    } else if (levelFor(slug) >= 2) { rate = 200000; scale = 1.5; }
     // Jeu en direct : on garde la fluidité (images/s) ; texte et replays à 15 images/s : on garde la netteté.
-    return { rate, fps, scale, pref: kind === 'cam' || fps >= 30 ? 'maintain-framerate' : 'maintain-resolution' };
+    return { rate, fps: mfps, scale, pref: kind === 'cam' || fps >= 30 ? 'maintain-framerate' : 'maintain-resolution' };
   }
-  function tuneSender(call, kind) {
+  function tuneSender(call, kind, slug) {
     const pc = call && call.peerConnection; if (!pc || pc.connectionState !== 'connected') return;
-    const pl = videoPlan(kind);
+    const pl = videoPlan(kind, slug);
     pc.getSenders().forEach((sd) => {
       if (!sd.track || sd.track.kind !== 'video') return;
       const p = sd.getParameters(); p.encodings = p.encodings && p.encodings.length ? p.encodings : [{}];
@@ -230,7 +250,38 @@
       sd.setParameters(p).catch(() => {});
     });
   }
-  function retune(kind) { for (const [key, call] of Object.entries(V.vout)) if (key.endsWith(':' + kind)) tuneSender(call, kind); }
+  function retune(kind) { for (const [key, call] of Object.entries(V.vout)) if (key.endsWith(':' + kind)) tuneSender(call, kind, key.split(':')[0]); }
+  // Mode Auto : toutes les 2 s, on regarde la connexion vers chaque spectateur de notre écran.
+  async function adapt() {
+    for (const [key, call] of Object.entries(V.vout)) {
+      const [slug, kind] = key.split(':');
+      if (kind !== 'screen' || !call.peerConnection || levelFor(slug) !== (V.qlvl[slug] || 0)) continue;
+      // Les 12 premières secondes, le débit monte en puissance : on ne juge pas encore la connexion.
+      if (!call.__t0) call.__t0 = Date.now();
+      if (Date.now() - call.__t0 < 12000) continue;
+      const q = (V.conns[slug] && V.conns[slug].remote && V.conns[slug].remote.q) || 'auto';
+      if (q !== 'auto') continue;
+      let avail = 0, rtt = 0, lost = 0, limit = '';
+      try {
+        const st = await call.peerConnection.getStats();
+        st.forEach((x) => {
+          if (x.type === 'candidate-pair' && x.nominated && x.state === 'succeeded') { avail = x.availableOutgoingBitrate || avail; rtt = x.currentRoundTripTime || rtt; }
+          if (x.type === 'remote-inbound-rtp' && x.kind === 'video') { lost = x.fractionLost || 0; rtt = Math.max(rtt, x.roundTripTime || 0); }
+          if (x.type === 'outbound-rtp' && x.kind === 'video') limit = x.qualityLimitationReason || '';
+        });
+      } catch (e) { continue; }
+      const lv = V.qlvl[slug] || 0;
+      const plan = videoPlan('screen', slug);
+      const bad = (avail && avail < plan.rate * 0.6 && limit === 'bandwidth') || rtt > 0.35 || lost > 0.05;
+      const up = QLV[Math.max(0, lv - 1)];
+      const good = lv > 0 && avail > Math.min(up.rate === Infinity ? 4000000 : up.rate, 4000000) * 1.5 && rtt < 0.15 && lost < 0.01 && limit !== 'bandwidth';
+      V.qbad[slug] = bad ? (V.qbad[slug] || 0) + 1 : 0;
+      V.qgood[slug] = good ? (V.qgood[slug] || 0) + 1 : 0;
+      if (V.qbad[slug] >= 3 && lv < 2) { V.qlvl[slug] = lv + 1; V.qbad[slug] = 0; tuneSender(call, 'screen', slug); }
+      else if (V.qgood[slug] >= 6) { V.qlvl[slug] = lv - 1; V.qgood[slug] = 0; tuneSender(call, 'screen', slug); }
+    }
+  }
+  setInterval(() => { if (V.on && V.screen) adapt(); }, 2000);
   function capBitrate(call, kind) {
     const pc = call.peerConnection; if (!pc) return;
     pc.addEventListener('connectionstatechange', () => { if (pc.connectionState === 'connected') retune(kind); });
@@ -451,6 +502,7 @@
       if (c.out !== old.out && V.ctx.setSinkId) V.ctx.setSinkId(c.out || '').catch(() => {});
     }
     if (c.ai !== old.ai) wireMic();
+    if (c.recvQ !== old.recvQ) broadcast();
     if (V.g && c.vad !== old.vad) V.g.delay.delayTime.value = c.vad === 'off' ? 0 : 0.08;
     if (V.raw && (c.mic !== old.mic || c.ns !== old.ns || c.ec !== old.ec || c.agc !== old.agc)) {
       try { await openMic(); } catch (e) { V.err = 'ce micro ne répond pas'; }
@@ -553,6 +605,15 @@
   window.FireVoice = {
     join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, lobby, invite,
     clearErr: () => { V.err = ''; emit(); },
+    // Définition et images/s de chaque écran partagé que je reçois (affichées sur la vidéo).
+    recvInfo: async () => {
+      const out = {};
+      for (const [key, v] of Object.entries(V.vin)) {
+        const pc = v.call && v.call.peerConnection; if (!pc) continue;
+        try { const st = await pc.getStats(); st.forEach((x) => { if (x.type === 'inbound-rtp' && x.kind === 'video') out[key] = { h: x.frameHeight || 0, fps: Math.round(x.framesPerSecond || 0) }; }); } catch (e) { /* */ }
+      }
+      return out;
+    },
     // Diagnostic (console) : codec, débit et images/s de chaque vidéo envoyée ou reçue.
     _stats: async () => {
       const one = async (call, dir) => {

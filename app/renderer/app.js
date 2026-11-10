@@ -1808,6 +1808,12 @@
       }
     });
     if (window.fire.keys) { window.fire.keys.on(keyAction); setTimeout(() => syncKeys(true), 1500); }
+    // Définition reçue de chaque écran partagé (petit badge en haut à gauche de la vidéo).
+    setInterval(async () => {
+      if (S.section !== 'vocal' || !FV().state().on || !document.querySelector('.vt-q')) return;
+      const info = await FV().recvInfo().catch(() => ({}));
+      document.querySelectorAll('.vt-q').forEach((el) => { const i = info[el.dataset.q]; el.textContent = i && i.h ? `${i.h}p · ${i.fps} i/s` : ''; el.hidden = !(i && i.h); });
+    }, 3000);
     // Jauge du micro (et rendu remis à plus tard pendant qu'on règle un curseur).
     setInterval(() => {
       if (S.section !== 'vocal') return;
@@ -1913,7 +1919,11 @@
         sw('sounds', 'Sons d’arrivée et de départ', 'Quand quelqu’un rejoint ou quitte.')),
       h('section', { class: 'vs-sec' }, h('h3', null, vi('cam'), 'Caméra et écran'),
         field('Caméra', sel('cam', D.cams, 'Caméra par défaut', 'Caméra')),
-        field('Qualité du partage d’écran', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ screenFps: Number(e.target.value) }); done(e); } },
+        field('Qualité des streams que je regarde', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ recvQ: e.target.value }); done(e); } },
+          [['auto', 'Auto : s’adapte à ma connexion (recommandé)'], ['high', 'Haute : la meilleure image possible'], ['medium', 'Moyenne : 720p, 30 images/s max'], ['low', 'Petite connexion : 480p, très peu de retard']].map(([k, t]) =>
+            h('option', { value: k, selected: (c.recvQ || 'auto') === k ? true : null }, t)))),
+        h('p', { class: 'vs-hint' }, 'Chaque spectateur reçoit sa propre image : la qualité baisse seulement pour toi si ta connexion est petite, pas pour les autres.'),
+        field('Qualité de mon partage d’écran', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ screenFps: Number(e.target.value) }); done(e); } },
           [[15, 'Net · 15 images/s (texte, replays)'], [30, 'Fluide · 30 images/s'], [60, 'Ultra fluide · 60 images/s'], [120, 'Maximum · 120 images/s (fibre)']].map(([n, t]) =>
             h('option', { value: n, selected: (c.screenFps || 15) === n ? true : null }, t)))),
         h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Rejoindre au lancement de FIRE'), h('small', null, 'Tu arrives directement dans le salon.')),
@@ -2016,6 +2026,7 @@
         if (f) box.append(h('div', { class: 'vt-bg', style: `background-image:url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${f.champ}_${f.skin}.jpg')` }));
         box.append(h('div', { class: 'vc-av' }, ini(t.slug)));
       }
+      if (t.kind === 'screen' && !t.mine) box.append(h('span', { class: 'vt-q', 'data-q': t.key }));
       box.append(h('div', { class: 'vt-name' }, t.kind === 'screen' ? vi('screen') : null, (t.kind === 'screen' ? 'Écran de ' : '') + (t.mine ? (t.kind === 'screen' ? 'toi' : vocalName(t.slug) + ' (toi)') : ((pl.capitaine ? '👑 ' : '') + vocalName(t.slug))),
         t.kind === 'person' && r.mute ? h('span', { class: 'vt-st bad' }, vi('micOff')) : null,
         t.kind === 'person' && r.deaf ? h('span', { class: 'vt-st bad' }, vi('headOff')) : null));

@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.53",
+   "date": "2026-11-10",
+   "titre": "Streams adaptés à chaque connexion",
+   "items": [
+    [
+     "new",
+     "Chaque spectateur d'un partage d'écran reçoit une image adaptée à SA connexion. Une petite connexion reçoit une image plus légère et sans retard, sans baisser la qualité des autres."
+    ],
+    [
+     "new",
+     "Réglages voix et vidéo › « Qualité des streams que je regarde » : Auto (FIRE mesure ta connexion et baisse ou remonte la qualité tout seul), Haute, Moyenne (720p) ou Petite connexion (480p, très peu de retard)."
+    ],
+    [
+     "improve",
+     "Un petit badge en haut à gauche de chaque écran partagé indique la définition et les images/s que tu reçois (par exemple 720p · 30 i/s)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.52",
    "date": "2026-11-10",
    "titre": "Fini le bruit du clavier en vocal",

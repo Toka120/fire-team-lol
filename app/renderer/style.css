@@ -1456,3 +1456,4 @@ kbd{font:600 11px/1 ui-monospace,Consolas,monospace;padding:4px 7px;border-radiu
 .vs-names{font-size:11px;font-weight:600;color:#3ddc84;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
 .vs-empty{font-size:11px;color:var(--muted);font-weight:500}
 .vs-empty.here{color:#3ddc84}
+.vt-q{position:absolute;left:10px;top:10px;z-index:2;padding:3px 8px;border-radius:8px;background:rgba(0,0,0,.6);font:600 11px ui-monospace,Consolas,monospace;color:#cfd3dc}
