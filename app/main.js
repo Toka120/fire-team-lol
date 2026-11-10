@@ -67,20 +67,25 @@ function notify(title, body, section) {
 // Redémarrage après une mise à jour faite pendant que personne ne regardait FIRE : on revient caché près
 // de l'horloge, sans jamais passer devant un jeu ou une autre fenêtre.
 const quietPath = () => path.join(app.getPath('userData'), 'relance-discrete.json');
-function quietRelaunch() {
+// Mode de la relance après une mise à jour : 'tray' (caché près de l'horloge), 'min' (réduit dans la barre des
+// tâches, sans jamais passer devant une autre fenêtre) ou 'show' (le joueur a cliqué « Redémarrer maintenant »).
+function relaunchMode() {
   try {
-    const t = JSON.parse(fs.readFileSync(quietPath(), 'utf8')).t || 0;
+    const j = JSON.parse(fs.readFileSync(quietPath(), 'utf8'));
     fs.rmSync(quietPath(), { force: true });
-    return Date.now() - t < 5 * 60 * 1000;
-  } catch (e) { return false; }
+    if (Date.now() - (j.t || 0) > 10 * 60 * 1000) return null;
+    return j.mode || 'tray';
+  } catch (e) { return null; }
 }
 
 function createMainWindow(forceShow) {
   // Lancement avec Windows ou relance discrète : FIRE démarre caché (icône près de l'horloge),
   // pour ne jamais s'afficher par-dessus une partie en cours.
-  const hidden = !forceShow && (startHidden || quietRelaunch());
+  const mode = forceShow ? null : relaunchMode();
+  const hidden = !forceShow && (startHidden || mode === 'tray');
+  const minimized = !hidden && mode === 'min';
   mainWin = new BrowserWindow({
-    show: !hidden,
+    show: !hidden && !minimized,
     width: 1320,
     height: 880,
     minWidth: 900,
@@ -99,6 +104,9 @@ function createMainWindow(forceShow) {
     }
   });
   if (hidden) ensureTray();
+  // Relance après une mise à jour automatique : la fenêtre revient réduite dans la barre des tâches,
+  // sans prendre la main (on ne passe jamais devant un jeu).
+  if (minimized) { ensureTray(); mainWin.once('ready-to-show', () => { try { mainWin.minimize(); } catch (e) { /* */ } }); }
   // Avec l'arrière-plan activé, fermer la fenêtre la cache seulement : FIRE reste près de l'horloge.
   // Arrêt ou redémarrage de Windows : FIRE se ferme normalement.
   mainWin.on('session-end', () => { quitting = true; });
@@ -568,15 +576,23 @@ ipcMain.handle('bg:set', (e, m) => {
 });
 app.on('before-quit', () => { quitting = true; });
 
-ipcMain.handle('update:install', (e, opts) => {
+// Partie de LoL (ou sélection des champions) en cours sur ce PC : jamais de mise à jour automatique à ce moment-là.
+let lolBusyAt = 0, lolBusyVal = false;
+async function lolBusy() {
+  if (Date.now() - lolBusyAt < 10000) return lolBusyVal;
+  lolBusyAt = Date.now();
+  try { const d = await lcu.draft(); lolBusyVal = ['ChampSelect', 'InProgress', 'GameStart', 'ReadyCheck', 'Reconnect'].includes(d.phase); } catch (e) { lolBusyVal = false; }
+  return lolBusyVal;
+}
+ipcMain.handle('update:install', async (e, opts) => {
   if (!(canAutoUpdate() && updateState.state === 'ready')) return false;
+  const user = !!(opts && opts.user);
+  if (!user && await lolBusy()) return false;
   // « quiet » : l'app est cachée ou réduite. On installe, et la nouvelle version revient cachée.
-  if (opts && opts.quiet) {
-    if (mainWin && !mainWin.isDestroyed() && mainWin.isVisible() && !mainWin.isMinimized()) return false;
-    try { fs.writeFileSync(quietPath(), JSON.stringify({ t: Date.now() })); } catch (e) { /* ignore */ }
-  }
+  if (opts && opts.quiet && mainWin && !mainWin.isDestroyed() && mainWin.isVisible() && !mainWin.isMinimized()) return false;
+  const mode = user ? 'show' : opts && opts.quiet ? 'tray' : 'min';
+  try { fs.writeFileSync(quietPath(), JSON.stringify({ t: Date.now(), mode })); } catch (err) { /* ignore */ }
   quitting = true; setImmediate(() => autoUpdater.quitAndInstall(true, true)); return true;
-  return false;
 });
 // Bouton « Installer la dernière version » de l'onglet Paramètres.
 ipcMain.handle('update:check', async () => {

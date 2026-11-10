@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.54",
+   "date": "2026-11-10",
+   "titre": "Mises à jour : jamais par-dessus un jeu",
+   "items": [
+    [
+     "fix",
+     "FIRE ne s'installe plus jamais pendant une partie de LoL (ni pendant la sélection des champions) : la mise à jour attend la fin de la game."
+    ],
+    [
+     "fix",
+     "Après une mise à jour automatique, FIRE revient réduit dans la barre des tâches (ou caché près de l'horloge s'il y était), sans jamais passer devant la fenêtre ouverte, même si tu as lancé un jeu entre-temps."
+    ],
+    [
+     "improve",
+     "Il ne revient au premier plan que si tu as cliqué toi-même sur « Redémarrer maintenant »."
+    ]
+   ]
+  },
+  {
    "v": "1.10.53",
    "date": "2026-11-10",
    "titre": "Streams adaptés à chaque connexion",

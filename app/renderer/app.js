@@ -305,7 +305,9 @@
   // ---------- Mise à jour de l'application ----------
   let countdown = null;
   function stopCountdown() { clearInterval(countdown); countdown = null; }
-  function installNow() { stopCountdown(); window.fire.update.install(); }
+  // user : le joueur a cliqué « Redémarrer maintenant » (FIRE revient au premier plan). Sinon, relance automatique :
+  // pas pendant une partie de LoL, et FIRE revient réduit, sans passer devant une autre fenêtre.
+  function installNow(user) { if (user === true) stopCountdown(); window.fire.update.install({ user: user === true }).then((ok) => { if (ok) stopCountdown(); }).catch(() => {}); }
   function startCountdown() {
     if (countdown) return;
     S.updLeft = 15;
@@ -322,7 +324,7 @@
       S.updAway = false;
       if (typing() || (S.draft && S.draft.busy)) { renderUpdate(); return; } // on n'interrompt pas quelqu'un qui écrit
       S.updLeft--;
-      if (S.updLeft <= 0) installNow(); else renderUpdate();
+      if (S.updLeft <= 0) { S.updLeft = 0; installNow(false); } else renderUpdate();
     }, 1000);
   }
   // ----- Notifications de bureau -----
@@ -406,7 +408,7 @@
     if (u.auto && (u.state === 'available' || u.state === 'progress')) {
       node = h('span', null, `⬇ Nouvelle version ${u.version || ''} : téléchargement en cours… ${u.percent || 0} %`);
     } else if (u.auto && u.state === 'ready') {
-      const now = h('button', { class: 'linkbtn', onclick: installNow }, 'Redémarrer maintenant');
+      const now = h('button', { class: 'linkbtn', onclick: () => installNow(true) }, 'Redémarrer maintenant');
       if (S.updLater) node = h('span', null, `✓ La version ${u.version} s'installera à la fermeture de FIRE LoL. `, now);
       else {
         startCountdown();
@@ -492,7 +494,7 @@
     else state = u.portable ? 'Version portable : mise à jour manuelle' : (behind ? 'Nouvelle version disponible' : 'À jour ✓');
 
     const buttons = [];
-    if (u.auto && u.state === 'ready') buttons.push(h('button', { class: 'btn-fire small-btn', onclick: installNow }, '🔄 Redémarrer et installer maintenant'));
+    if (u.auto && u.state === 'ready') buttons.push(h('button', { class: 'btn-fire small-btn', onclick: () => installNow(true) }, '🔄 Redémarrer et installer maintenant'));
     else if (u.auto) {
       buttons.push(h('button', { class: 'btn-fire small-btn', disabled: (S.updChecking || u.state === 'progress' || u.state === 'available' || u.state === 'retry') ? true : null, onclick: checkUpdate }, u.state === 'error' ? '🔄 Réessayer la mise à jour' : '⬇ Installer la dernière version'));
       if (u.state === 'error') buttons.push(h('a', { class: 'btn-ghost linklike', href: SETUP_URL, target: '_blank' }, '⬇ Télécharger l’installeur'));
