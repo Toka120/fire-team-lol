@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.21",
+   "date": "2026-11-10",
+   "titre": "League of Listen",
+   "items": [
+    [
+     "new",
+     "Détente › 🎧 Listen : écoute les bruitages d'un champion (sorts, attaques) et devine qui c'est. Sa voix se débloque comme indice après 3 essais ratés."
+    ]
+   ]
+  },
+  {
    "v": "1.10.20",
    "date": "2026-11-10",
    "titre": "Objectif hebdo",

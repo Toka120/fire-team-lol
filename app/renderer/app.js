@@ -2287,7 +2287,7 @@
   // ----- Détente : devine le champion (comme Loldle, en illimité) et lore des champions -----
   const DD = 'https://ddragon.leagueoflegends.com';
   const J = { data: null, err: '', loading: false, tab: 'classique', r: {}, lore: {}, loreSel: null, loreQ: '', loreReg: '' };
-  const JMODES = [['classique', '🎯 Classique'], ['sort', '✨ Sort'], ['passif', '🔮 Passif'], ['phrase', '💬 Phrase'], ['splash', '🖼️ Splash'], ['emoji', '😀 Emoji'], ['ombre', '🌑 Ombre'], ['lore', '📖 Lore']];
+  const JMODES = [['classique', '🎯 Classique'], ['sort', '✨ Sort'], ['passif', '🔮 Passif'], ['phrase', '💬 Phrase'], ['splash', '🖼️ Splash'], ['emoji', '😀 Emoji'], ['ombre', '🌑 Ombre'], ['listen', '🎧 Listen'], ['lore', '📖 Lore']];
   const TAGFR = { Fighter: 'Combattant', Tank: 'Tank', Mage: 'Mage', Assassin: 'Assassin', Marksman: 'Tireur', Support: 'Support' };
   const jn = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
   const jimg = (type, f) => `${DD}/cdn/${J.data.version}/img/${type}/${f}`;
@@ -2330,7 +2330,13 @@
     let c = pick(cs);
     if (prev && cs.length > 1) while (c.id === prev.id) c = pick(cs);
     const r = { target: c, guesses: [], done: false, gaveUp: false, at: Date.now() };
+    if (J.audio) { try { J.audio.pause(); } catch (e) { /* rien */ } }
     if (mode === 'sort') { r.spell = pick(c.spells); r.rot = pick([90, 180, 270]); }
+    // League of Listen : les bruitages du champion (sorts, attaques) joués à la sélection.
+    if (mode === 'listen') {
+      r.sfx = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-sfx-audios/${c.key}.ogg`;
+      r.vo = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/fr_fr/v1/champion-choose-vo/${c.key}.ogg`;
+    }
     if (mode === 'emoji') r.emo = [...new Intl.Segmenter('fr', { granularity: 'grapheme' }).segment(c.emo)].map((x) => x.segment);
     if (mode === 'ombre') { const sk = c.skins.filter((x) => x.num > 0); r.skin = Math.random() < 0.5 || !sk.length ? (c.skins[0] || { num: 0 }) : pick(sk); }
     if (mode === 'splash') {
@@ -2422,6 +2428,21 @@
       clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'À quel champion appartient ce sort ?'),
         h('img', { class: 'jeu-ico', src: jimg('spell', r.spell.img), alt: '', style: `transform:rotate(${r.done || wrong >= 2 ? 0 : r.rot}deg);filter:grayscale(${r.done || wrong >= 4 ? 0 : 1}) blur(${blur}px)` }),
         h('p', { class: 'muted small' }, r.done ? `${r.spell.name} (${r.spell.key})` : wrong >= 2 ? 'Remis à l’endroit.' : 'Tourné, en noir et blanc : il s’éclaircit à chaque essai.'));
+    }
+    if (mode === 'listen') {
+      const play = (src, btn, label) => {
+        if (!J.audio || J.audio.dataset.src !== src) { J.audio = new Audio(src); J.audio.dataset.src = src; J.audio.volume = 0.8; }
+        J.audio.currentTime = 0;
+        btn.classList.add('playing');
+        J.audio.onended = () => btn.classList.remove('playing');
+        J.audio.play().then(() => { btn.querySelector('.ll-l').textContent = label; }).catch(() => { btn.classList.remove('playing'); btn.querySelector('.ll-l').textContent = '⚠ Son indisponible'; });
+      };
+      const voiceOk = wrong >= 3 || r.done;
+      clue = h('div', { class: 'card jeu-clue' }, h('h3', null, '🎧 League of Listen : à quel champion appartiennent ces bruitages ?'),
+        h('div', { class: 'll-row' },
+          h('button', { class: 'll-btn', onclick: (e) => play(r.sfx, e.currentTarget, 'Réécouter les bruitages') }, h('span', { class: 'll-ico' }, '▶'), h('span', { class: 'll-l' }, 'Écouter les bruitages')),
+          voiceOk ? h('button', { class: 'll-btn voice', onclick: (e) => play(r.vo, e.currentTarget, 'Réécouter sa voix') }, h('span', { class: 'll-ico' }, '🗣️'), h('span', { class: 'll-l' }, 'Indice : sa voix')) : null),
+        h('p', { class: 'muted small' }, r.done ? `${t.name} · les bruitages de son écran de sélection.` : voiceOk ? 'Indice débloqué : écoute sa voix.' : `Ses sorts et ses attaques, sans un mot. Sa voix se débloque après 3 essais ratés (encore ${3 - wrong}).`));
     }
     if (mode === 'emoji') {
       // 2 emojis au départ, 1 de plus après 2 puis 4 essais ratés.
