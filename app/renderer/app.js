@@ -3464,6 +3464,24 @@
   const weekDays = (mon) => [0, 1, 2, 3, 4, 5, 6].map((k) => addDays(mon, k));
   const dayFr = (ymd, o) => dOf(ymd).toLocaleDateString('fr-FR', o || { weekday: 'long', day: 'numeric', month: 'long' });
   const planCanWrite = () => S.planWrite || (S.coachState.coach && S.coachState.github);
+  // Accès chef d'équipe : visible seulement pour le joueur qui a le bandeau de chef (et sur le PC où il a mis son code).
+  function chefAccess() {
+    const me = S.players.find((p) => p.slug === S.moi);
+    if (S.coachState.coach || !me || !me.capitaine) return null;
+    if (S.coachState.chef) {
+      return h('p', { class: 'muted small chef-on' }, '👑 Mode chef d’équipe : tu peux modifier le planning. ',
+        h('button', { class: 'linkbtn', onclick: async () => { S.coachState = await window.fire.coach.chefLeave(); render(); } }, 'Quitter le mode chef'));
+    }
+    const inp = h('input', { class: 'inp', type: 'password', placeholder: 'Code chef d’équipe', autocomplete: 'off', style: 'max-width:240px' });
+    const err = h('span', { class: 'bad small' });
+    const goChef = async () => {
+      const r = await window.fire.coach.chefUnlock(inp.value);
+      if (r && r.ok) { S.coachState = r; S.flash = '👑 Mode chef d’équipe activé : tu peux modifier le planning.'; render(); } else { err.textContent = 'Code incorrect.'; inp.select(); }
+    };
+    inp.addEventListener('keydown', (e) => { err.textContent = ''; if (e.key === 'Enter') goChef(); });
+    return h('details', { class: 'coach-access' }, h('summary', null, '👑 Je suis le chef d’équipe : modifier le planning'),
+      h('div', { class: 'row' }, inp, h('button', { class: 'btn-ghost', onclick: goChef }, 'Activer'), err));
+  }
 
   // Heures cochées → plages lisibles : [20,21,22] → « 20h – 23h ».
   function hourBlocks(hs) {
@@ -3511,11 +3529,14 @@
     const mon = S.planWeek || mondayOf(t);
     S.planWeek = mon;
     const days = weekDays(mon);
-    const coach = S.coachState.coach;
+    // Le coach et le chef d'équipe (code chef activé sur ce PC) peuvent modifier le planning.
+    const coach = S.coachState.coach || S.coachState.chef;
     const roster = S.players.filter((x) => x.slug);
     const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🗓️'),
       h('div', null, h('h1', { class: 'title' }, 'Planning'),
         h('p', { class: 'muted' }, coach ? 'Coche les jours et heures de jeu, puis regarde qui sera là.' : 'Dis au coach si tu seras là : ✅ présent · ❔ incertain · ❌ absent.')))];
+    const chefBox = chefAccess();
+    if (chefBox) nodes.push(chefBox);
     if (S.flash) nodes.push(h('div', { class: 'flash' }, S.flash, h('button', { class: 'flash-x', onclick: () => { S.flash = ''; render(); } }, '✕')));
     if (S.planErr) nodes.push(h('p', { class: 'muted small' }, '⚠ ' + S.planErr));
 
@@ -3529,7 +3550,7 @@
       h('button', { class: 'btn-ghost', onclick: () => { S.planWeek = addDays(mon, 7); render(); } }, '→'),
       mon !== mondayOf(t) ? h('button', { class: 'chip', onclick: () => { S.planWeek = mondayOf(t); render(); } }, "Aujourd'hui") : null,
       coach ? h('button', { class: 'btn-fire small-btn', disabled: planCanWrite() ? null : true, onclick: () => startPlanEdit(mon) }, '✏️ Cocher les jours et heures') : null,
-      coach && !planCanWrite() ? h('span', { class: 'bad small' }, 'Ajoute le jeton GitHub (ou le jeton d\'équipe) dans les réglages coach.') : null);
+      coach && !planCanWrite() ? h('span', { class: 'bad small' }, S.coachState.coach ? 'Ajoute le jeton GitHub (ou le jeton d\'équipe) dans les réglages coach.' : 'Le coach doit d\'abord activer le jeton d\'équipe.') : null);
     nodes.push(nav);
 
     const planned = days.filter((d) => S.plan && S.plan.jours[d]);

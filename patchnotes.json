@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.39",
+   "date": "2026-11-10",
+   "titre": "Le chef d'équipe gère le planning",
+   "items": [
+    [
+     "new",
+     "Le chef d'équipe peut modifier le planning : dans l'onglet Planning, « 👑 Je suis le chef d'équipe » s'affiche pour lui seul. Il entre son code chef une fois et peut ensuite cocher les jours et heures, mettre une note et corriger les réponses, comme le coach."
+    ],
+    [
+     "improve",
+     "Le code chef reste sur le PC du chef d'équipe. « Quitter le mode chef » le retire."
+    ]
+   ]
+  },
+  {
    "contenu": true,
    "id": "c-2026-11-10-bandeaux-2",
    "date": "2026-11-10",

@@ -36,6 +36,8 @@ contextBridge.exposeInMainWorld('fire', {
     state: call('coach:state'),
     unlock: call('coach:unlock'),
     leave: call('coach:leave'),
+    chefUnlock: call('chef:unlock'),
+    chefLeave: call('chef:leave'),
     save: call('coach:save'),
     generate: call('coach:generate'),
     message: call('coach:message'),

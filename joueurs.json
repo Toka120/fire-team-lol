@@ -10,6 +10,10 @@
     "salt": "7dacbaa696b253c4b238f6d162d45276",
     "hash": "b992d760c0ca3090e678d352bad50db7c8454a91b99def23493b6c7bb948e00c"
   },
+  "chef_scrypt": {
+    "salt": "999a211aa27e40f08b878cb90d87290d",
+    "hash": "622949bd90c16d7c96a9cbd14a7abd85ae060ce81f5b511d9bc3e57f01315bb7"
+  },
   "fiches_salt": "5916c842ca2b8bc9b75ca3e5558f2fd6",
   "fiches_cle_coach": {
     "salt": "e753cadf35ce116dbb7f5ba47fef987c",

@@ -131,12 +131,28 @@ function open(box) {
 
 // ---------- Mode coach ----------
 
+function chefOn() {
+  const c = readSecret('chef.bin') || {};
+  const cfg = getConfig();
+  return !!(c.hash && cfg.chef_scrypt && c.hash === cfg.chef_scrypt.hash);
+}
 function coachState() {
   const c = readSecret('coach.bin') || {};
   const cfg = getConfig();
   const on = !!(c.hash && cfg.coach_scrypt && c.hash === cfg.coach_scrypt.hash);
-  return { coach: on, claude: on && !!c.anthropic, github: on && !!c.github };
+  return { coach: on, claude: on && !!c.anthropic, github: on && !!c.github, chef: chefOn() };
 }
+
+// ---------- Chef d'équipe : peut modifier le planning (code chef, donné par le coach) ----------
+async function chefUnlock(code) {
+  const cfg = getConfig();
+  let ok = false;
+  try { ok = await matches(code, cfg.chef_scrypt); } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+  if (!ok) return { ok: false };
+  writeSecret('chef.bin', { hash: cfg.chef_scrypt.hash });
+  return { ok: true, ...coachState() };
+}
+function chefLeave() { removeFile('chef.bin'); return coachState(); }
 
 async function coachUnlock(code) {
   const cfg = getConfig();
@@ -609,7 +625,7 @@ async function savePlanning(action) {
   if (dr && tok) { repo = dr; token = tok; file = 'planning.json'; }
   else if (isCoach && c.github) { repo = REPO; token = c.github; file = PLANNING; }
   else return { ok: false, error: dr ? "le coach n'a pas encore activé les réponses des joueurs (jeton d'équipe)" : 'réservé au coach' };
-  if (action.type !== 'reponse' && !isCoach) return { ok: false, error: 'réservé au coach' };
+  if (action.type !== 'reponse' && !isCoach && !chefOn()) return { ok: false, error: "réservé au coach et au chef d'équipe" };
   try {
     for (let i = 0; i < 4; i++) {
       const cur = await ghGet(token, file, repo);
@@ -728,4 +744,4 @@ async function closeBug(id) {
   } catch (e) { return { ok: false, error: String(e.message || e) }; }
 }
 
-module.exports = { sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
