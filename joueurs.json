@@ -54,7 +54,11 @@
       ],
       "pool": "Jarvan IV · Zyra · Lee Sin",
       "tableau": "https://claude.ai/artifact/BMVhYwiXEJhNWvtqwjFJ3H",
-      "dpm": "https://dpm.lol/Toks42o%20-TTV"
+      "dpm": "https://dpm.lol/Toks42o%20-TTV",
+      "bandeau": {
+        "texte": "🔥 L'acharné",
+        "theme": "fire"
+      }
     },
     {
       "role": "Mid",

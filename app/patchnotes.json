@@ -1,6 +1,18 @@
 {
  "versions": [
   {
+   "contenu": true,
+   "id": "c-2026-11-10-bandeau-toks",
+   "date": "2026-11-10",
+   "titre": "Bandeau « L'acharné »",
+   "items": [
+    [
+     "new",
+     "Toks42o reçoit le bandeau « 🔥 L'acharné » (orange FIRE) : un vrai mordu du jeu, toujours prêt à relancer une game."
+    ]
+   ]
+  },
+  {
    "v": "1.10.37",
    "date": "2026-11-10",
    "titre": "Étoile montante",
