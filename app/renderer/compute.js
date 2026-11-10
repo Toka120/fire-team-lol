@@ -240,8 +240,8 @@
     if (obj && obj.target) {
       const d = new Date(obj.start);
       const depuis = `${d.getDate() === 1 ? '1er' : d.getDate()} ${MOIS[d.getMonth()]}`;
-      if (obj.done >= obj.target) out.push({ kind: 'plus', ico: '🎯', title: 'Objectif atteint', chip: `${obj.done} / ${obj.target}`, text: `${obj.done} games sur ses champions obligatoires depuis le ${depuis} (objectif : ${obj.target}).` });
-      else out.push({ kind: obj.done >= obj.target / 2 ? 'info' : 'warn', ico: '🎯', title: 'Objectif de la semaine', chip: `${obj.done} / ${obj.target}`, text: `${obj.done} ${obj.done > 1 ? 'games' : 'game'} sur ses champions obligatoires depuis le ${depuis} : il en reste ${obj.reste} à jouer.` });
+      if (obj.done >= obj.target) out.push({ kind: 'plus', ico: '🎯', title: 'Objectif atteint', chip: `${obj.done} / ${obj.target}`, text: `${obj.done} games sur ses champions obligatoires cette semaine, depuis lundi ${depuis} (objectif : ${obj.target}).` });
+      else out.push({ kind: obj.done >= obj.target / 2 ? 'info' : 'warn', ico: '🎯', title: 'Objectif de la semaine', chip: `${obj.done} / ${obj.target}`, text: `${obj.done} ${obj.done > 1 ? 'games' : 'game'} sur ses champions obligatoires cette semaine (depuis le ${depuis}) : il en reste ${obj.reste} à jouer d'ici dimanche.` });
     }
     if (!s.games) return out.concat([{ kind: 'info', ico: '😴', title: 'Pas de game', text: 'Aucune game classée Solo/Duo sur cette période.' }]);
 

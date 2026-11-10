@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.20",
+   "date": "2026-11-10",
+   "titre": "Objectif hebdo",
+   "items": [
+    [
+     "improve",
+     "L'objectif de games obligatoires se compte chaque semaine, du lundi au dimanche, et repart à zéro le lundi."
+    ]
+   ]
+  },
+  {
    "v": "1.10.19",
    "date": "2026-11-10",
    "titre": "Effectif",

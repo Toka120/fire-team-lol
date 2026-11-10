@@ -50,7 +50,7 @@
     if (!o || !o.target) return null;
     const bar = h('div', { class: 'prog' + (o.done >= o.target ? ' done' : '') }, h('i', { style: `width:${o.pct}%` }));
     return h('div', { class: 'objbox' + (big ? ' big' : '') },
-      h('div', { class: 'objline' }, h('span', null, `🎯 Objectif : ${o.done} / ${o.target} games obligatoires`), h('span', { class: 'muted small' }, o.done >= o.target ? 'atteint ✓' : `reste ${o.reste}`)),
+      h('div', { class: 'objline' }, h('span', null, `🎯 Objectif de la semaine : ${o.done} / ${o.target} games obligatoires`), h('span', { class: 'muted small' }, o.done >= o.target ? 'atteint ✓' : `reste ${o.reste}`)),
       bar);
   }
   const roleOf = (p) => FC.ROLES[p.role_id] || FC.ROLES.mid;
@@ -78,7 +78,7 @@
   }
   function periodLabel() {
     if (S.period === 'debut' && S.debut) return `depuis le ${dateFr(S.debut)}`;
-    if (S.period === 'obj' && S.obj) return `depuis le ${dateFr(S.obj.debut)}`;
+    if (S.period === 'obj' && S.obj) return `cette semaine (depuis le ${dateFr(S.obj.debut)})`;
     if (S.period === 'since' && S.since) { const d = new Date(S.since + 'T00:00:00'); return `depuis le ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`; }
     if (S.period === '1') return "aujourd'hui";
     return `les ${S.period === 'since' ? 7 : S.period} derniers jours`;
@@ -89,8 +89,8 @@
     S.cfg = await window.fire.config();
     try { S.version = await window.fire.version(); } catch (e) { /* inconnue */ }
     S.players = (S.cfg && S.cfg.joueurs) || [];
-    S.obj = (S.cfg && S.cfg.objectif && S.cfg.objectif.debut) ? S.cfg.objectif : null;
-    S.cfgObj = S.obj;
+    S.cfgObj = (S.cfg && S.cfg.objectif && S.cfg.objectif.debut) ? S.cfg.objectif : null;
+    S.obj = weeklyObj(S.cfgObj);
     // Début de la saison de l'équipe (joueurs.json → debut_equipe) : période par défaut de toutes les stats.
     S.debut = (S.cfg && S.cfg.debut_equipe) || null;
     if (S.obj) S.period = 'obj';
@@ -184,7 +184,7 @@
     if (S.obj) {
       const o = document.createElement('option');
       o.value = 'obj';
-      o.textContent = `Objectif (depuis le ${dateFr(S.obj.debut)})`;
+      o.textContent = `Semaine en cours (objectif)`;
       sel.insertBefore(o, sel.firstChild);
       sel.value = 'obj';
     }
@@ -584,7 +584,7 @@
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🔥'), h('div', null,
         h('h1', { class: 'title' }, "L'équipe"),
         h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · clique sur un joueur pour voir tout le détail.`),
-        S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif : ${S.obj.games} games sur les champions obligatoires depuis le ${dateFr(S.obj.debut)}, réparties comme chacun veut.`) : null)),
+        S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif : ${S.obj.games} games par semaine (du lundi au dimanche) sur les champions obligatoires, réparties comme chacun veut. Cette semaine : du ${dateFr(S.obj.debut)} au ${dateFr(S.obj.fin)}.`) : null)),
       homeNotes(),
       teamCards(),
       h('div', { class: 'more-row hub-more' }, h('button', { class: 'btn-ghost more-btn', onclick: () => { S.hubMore = !S.hubMore; render(); } }, S.hubMore ? '➖ Moins de détails' : '➕ Plus de détails')),
@@ -1057,8 +1057,8 @@
     if (obj && obj.target) {
       const chart = h('div', { class: 'chart', style: 'min-height:0' });
       page.append(h('div', { class: 'card' },
-        h('h2', null, `🎯 Objectif : ${obj.target} games sur les champions obligatoires`),
-        h('p', { class: 'muted small' }, `Compté en Solo/Duo depuis le ${dateFr(obj.debut)}, uniquement sur les champions 🎯 obligatoires${p.pool ? ' (' + p.pool + ')' : ''}, répartis comme il veut. Les champions ⭐ maîtrisés et les autres ne comptent pas.`),
+        h('h2', null, `🎯 Objectif de la semaine : ${obj.target} games sur les champions obligatoires`),
+        h('p', { class: 'muted small' }, `Compté en Solo/Duo du ${dateFr(obj.debut)} au ${dateFr(S.obj && S.obj.fin ? S.obj.fin : obj.debut)} (chaque semaine, du lundi au dimanche, le compteur repart à zéro), uniquement sur les champions 🎯 obligatoires${p.pool ? ' (' + p.pool + ')' : ''}, répartis comme il veut. Les champions ⭐ maîtrisés et les autres ne comptent pas.`),
         progress(obj, true),
         h('p', { class: 'small' }, `${obj.wins} V – ${obj.losses} D sur ces games obligatoires${obj.wr != null ? ` (${fr(obj.wr, 1)} %)` : ''}. ${obj.hors_pool ? `${pl(obj.hors_pool, 'game', 'games')} sur des champions non obligatoires (⭐ maîtrisés ou ❔ autres), non comptée${obj.hors_pool > 1 ? 's' : ''}.` : 'Toutes ses games sont sur ses champions obligatoires.'}`),
         chart,
@@ -1914,6 +1914,11 @@
   }
 
   // Les stats et l'objectif suivent la tierlist de la semaine en cours (sinon le pool de la configuration).
+  function weeklyObj(base) {
+    if (!base) return null;
+    const mon = mondayOf(todayYmd());
+    return { ...base, debut: base.debut && base.debut > mon ? base.debut : mon, fin: addDays(mon, 6), hebdo: true };
+  }
   function applyWeek() {
     const w = currentWeek();
     for (const p of S.players) {
@@ -1924,11 +1929,12 @@
         p.pool = t.O.map(FC.champName).join(' · ');
       } else { p.pool_ids = p._cfg.pool_ids; p.maitrise_ids = p._cfg.maitrise_ids; p.pool = p._cfg.pool; p._tiers = null; }
     }
-    S.obj = w && w.objectif ? { debut: w.debut, games: w.objectif, description: w.note || '' } : S.cfgObj;
+    // L'objectif se compte chaque semaine, du lundi au dimanche, et repart à zéro le lundi.
+    S.obj = weeklyObj(w && w.objectif ? { games: w.objectif, description: w.note || '' } : S.cfgObj);
     const sel = $('period');
     let opt = sel.querySelector('option[value=obj]');
     if (S.obj && !opt) { opt = document.createElement('option'); opt.value = 'obj'; sel.insertBefore(opt, sel.firstChild); }
-    if (opt) { if (S.obj) opt.textContent = `Objectif (depuis le ${dateFr(S.obj.debut)})`; else opt.remove(); }
+    if (opt) { if (S.obj) opt.textContent = `Semaine en cours (objectif)`; else opt.remove(); }
   }
 
   // ----- Apprendre en jouant : mini-jeux tirés des carnets du coach -----
