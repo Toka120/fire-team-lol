@@ -1881,7 +1881,7 @@
         cxItem('Arrêter de regarder', () => { vctxClose(); FV().watchStream(t.slug, false); }, 'camOff'),
         cxSep(),
         hasSnd ? cxCheck('Rendre muet', !sndOn, () => { FV().setStreamSound(t.slug, { on: !sndOn }); paint(); }) : null,
-        hasSnd ? cxRange('Volume du stream', vol, 0, 1.5, (n) => FV().setStreamSound(t.slug, { vol: n, on: true })) : null,
+        hasSnd ? cxRange('Volume du stream', Math.min(1, vol), 0, 1, (n) => FV().setStreamSound(t.slug, { vol: n, on: true })) : null,
         !hasSnd ? cxItem(`Demander le son à ${vocalName(t.slug)}`, () => { const ok = FV().requestSound(t.slug); vctxClose(); vocalToast(ok ? `Demande envoyée à ${vocalName(t.slug)}` : 'Demande impossible pour le moment', ok); }, 'vol') : null,
         !hasSnd ? h('p', { class: 'cx-note' }, `${vocalName(t.slug)} ne partage pas le son de son PC.`) : null,
         cxSep(),
@@ -1899,7 +1899,7 @@
       const lm = !!v.lmute[t.slug];
       return [
         h('div', { class: 'cx-head' }, vocalName(t.slug)),
-        cxRange('Volume', v.vols[t.slug] ?? 1, 0, 2, (n) => FV().setVol(t.slug, n)),
+        cxRange('Volume', Math.min(1, v.vols[t.slug] ?? 1), 0, 1, (n) => FV().setVol(t.slug, n)),
         cxCheck('Rendre muet pour moi', lm, () => { FV().setLocalMute(t.slug, !lm); setTimeout(paint, 50); })
       ];
     });
@@ -1988,7 +1988,7 @@
         sw('hp', 'Filtre anti-souffle', 'Coupe les sons très graves.')),
       h('section', { class: 'vs-sec' }, h('h3', null, vi('head'), 'Casque / haut-parleurs'),
         field('Sortie', sel('out', D.outs, 'Sortie par défaut de Windows', 'Sortie')),
-        field('Volume général du salon', range('outVol', 0, 2, 0.05, pct)),
+        field('Volume général du salon', range('outVol', 0, 1, 0.05, pct)),
         sw('sounds', 'Sons d’arrivée et de départ', 'Quand quelqu’un rejoint ou quitte.')),
       h('section', { class: 'vs-sec' }, h('h3', null, vi('cam'), 'Caméra et écran'),
         field('Caméra', sel('cam', D.cams, 'Caméra par défaut', 'Caméra')),
@@ -2129,14 +2129,14 @@
       if (VX.menu === t.key && hasSnd) {
         box.append(h('div', { class: 'vt-menu' },
           h('b', null, 'Son du stream de ' + vocalName(t.slug)),
-          h('div', { class: 'vs-range' }, h('input', { type: 'range', min: 0, max: 1.5, step: 0.05, value: sndVol, onchange: (e) => e.target.blur(),
+          h('div', { class: 'vs-range' }, h('input', { type: 'range', min: 0, max: 1, step: 0.05, value: Math.min(1, sndVol), onchange: (e) => e.target.blur(),
             oninput: (e) => { FV().setStreamSound(t.slug, { vol: Number(e.target.value), on: true }); e.target.nextSibling.textContent = Math.round(e.target.value * 100) + ' %'; } }), h('span', { class: 'vs-rv' }, Math.round(sndVol * 100) + ' %')),
           h('button', { class: 'vs-btn', onclick: () => FV().setStreamSound(t.slug, { on: !sndOn }) }, sndOn ? '🔇 Couper le son du stream' : '🔊 Entendre le son du stream')));
       }
       if (VX.menu === t.slug && t.kind === 'person' && !t.mine) {
         box.append(h('div', { class: 'vt-menu' },
           h('b', null, 'Volume de ' + vocalName(t.slug)),
-          h('div', { class: 'vs-range' }, h('input', { type: 'range', min: 0, max: 2, step: 0.05, value: vol, disabled: lm ? true : null, onchange: (e) => e.target.blur(),
+          h('div', { class: 'vs-range' }, h('input', { type: 'range', min: 0, max: 1, step: 0.05, value: Math.min(1, vol), disabled: lm ? true : null, onchange: (e) => e.target.blur(),
             oninput: (e) => { FV().setVol(t.slug, Number(e.target.value)); e.target.nextSibling.textContent = Math.round(e.target.value * 100) + ' %'; } }), h('span', { class: 'vs-rv' }, Math.round(vol * 100) + ' %')),
           h('button', { class: 'vs-btn', onclick: () => FV().setLocalMute(t.slug, !lm) }, lm ? '🔈 Réentendre' : '🔇 Rendre muet pour moi')));
       }

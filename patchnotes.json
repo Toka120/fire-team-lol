@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.59",
+   "date": "2026-11-11",
+   "titre": "Salon vocal : plus d'écho",
+   "items": [
+    [
+     "fix",
+     "Écho dans le salon vocal corrigé : les voix des autres passent maintenant par le lecteur audio que l'annulation d'écho de Windows connaît. Si ton micro capte tes haut-parleurs (ou un casque réglé fort), leurs voix sont retirées avant d'être envoyées, et ils ne s'entendent plus en écho."
+    ],
+    [
+     "improve",
+     "Les volumes (par personne, général, streams) vont maintenant jusqu'à 100 %, pour que l'annulation d'écho reste efficace."
+    ]
+   ]
+  },
+  {
    "v": "1.10.58",
    "date": "2026-11-10",
    "titre": "Deux coachs : Heoulh et Dream",

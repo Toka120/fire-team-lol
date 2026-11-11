@@ -124,16 +124,17 @@
     if (V.raw) V.raw.getTracks().forEach((t) => t.stop());
     V.raw = V.rawSrc = null;
   }
-  function remoteGain(slug) { return V.deaf || V.lmute[slug] ? 0 : (V.vols[slug] ?? 1); }
+  function remoteGain(slug) { return V.deaf || V.lmute[slug] ? 0 : Math.min(1, (V.vols[slug] ?? 1) * (V.cfg.outVol ?? 1)); }
+  // Les voix des autres sont jouées par un élément audio (et non par Web Audio) : c'est ce son-là que
+  // l'annulation d'écho de Windows/Chrome connaît et retire de ton micro. Sinon, avec des haut-parleurs
+  // ou un casque fort, ton micro renvoie leurs voix et ils s'entendent en écho.
+  function sinkOf(el) { if (V.cfg.out && el.setSinkId) el.setSinkId(V.cfg.out).catch(() => {}); }
   function playRemote(slug, stream) {
-    const c = audioCtx();
-    // Chrome ne fait circuler un flux WebRTC dans Web Audio que s'il est aussi branché sur un élément audio.
-    const el = new Audio(); el.muted = true; el.srcObject = stream; el.play().catch(() => {});
-    const src = c.createMediaStreamSource(stream); const g = c.createGain();
-    g.gain.value = remoteGain(slug); src.connect(g); g.connect(V.g.master);
-    return { el, src, g, level: meter(stream) };
+    audioCtx();
+    const el = new Audio(); el.autoplay = true; el.srcObject = stream; el.volume = remoteGain(slug); sinkOf(el); el.play().catch(() => {});
+    return { el, level: meter(stream) };
   }
-  function applyGains() { for (const [s, k] of Object.entries(V.conns)) if (k.out) k.out.g.gain.value = remoteGain(s); }
+  function applyGains() { for (const [s, k] of Object.entries(V.conns)) if (k.out) k.out.el.volume = remoteGain(s); }
 
   // Porte de bruit, niveau du micro et pastilles « parle » : toutes les 50 ms.
   // Détection de la voix, toutes les 20 ms :
@@ -221,8 +222,9 @@
     const talking = V.cfg.duck !== false && Object.values(V.speaking).some(Boolean);
     const target = talking ? 1 - Math.max(0, Math.min(1, V.cfg.duckAmt ?? 0.5)) : 1;
     if (Math.abs(target - V.duckF) < 0.01) return;
-    V.duckF = target;
-    for (const [k, v] of Object.entries(V.vin)) if (v.snd && V.ctx) v.snd.g.gain.setTargetAtTime(streamGain(k), V.ctx.currentTime, talking ? 0.08 : 0.4);
+    // Descente rapide quand quelqu'un parle, remontée douce ensuite.
+    V.duckF = target < V.duckF ? Math.max(target, V.duckF - 0.25) : Math.min(target, V.duckF + 0.04);
+    applyStreamGains();
   }
   // Arrêter de regarder un stream (on ne le reçoit plus du tout) ou le regarder de nouveau.
   V.unwatch = {};
@@ -234,8 +236,8 @@
     } else { V.unwatch[slug] = true; closeVin(slug, 'screen'); }
     emit();
   }
-  function dropSnd(v) { if (v && v.snd) { try { v.snd.src.disconnect(); v.snd.g.disconnect(); v.snd.el.srcObject = null; } catch (e) { /* */ } v.snd = null; } }
-  function applyStreamGains() { for (const [k, v] of Object.entries(V.vin)) if (v.snd) v.snd.g.gain.value = streamGain(k); }
+  function dropSnd(v) { if (v && v.snd) { try { v.snd.el.pause(); v.snd.el.srcObject = null; } catch (e) { /* */ } v.snd = null; } }
+  function applyStreamGains() { for (const [k, v] of Object.entries(V.vin)) if (v.snd) v.snd.el.volume = Math.min(1, streamGain(k)); }
   // Demander le son du stream à celui qui partage (il doit accepter).
   function requestSound(slug) {
     const k = V.conns[slug];
@@ -383,11 +385,8 @@
       vin.stream = st;
       // Son du stream (si celui qui partage a coché « son de mon PC ») : il passe par son propre volume.
       if (st.getAudioTracks().length && !vin.snd) {
-        const c = audioCtx();
-        const el = new Audio(); el.muted = true; el.srcObject = st; el.play().catch(() => {});
-        const src = c.createMediaStreamSource(st); const g = c.createGain();
-        g.gain.value = streamGain(key); src.connect(g); g.connect(V.g.master);
-        vin.snd = { el, src, g };
+        const el = new Audio(); el.autoplay = true; el.srcObject = new MediaStream(st.getAudioTracks()); el.volume = Math.min(1, streamGain(key)); sinkOf(el); el.play().catch(() => {});
+        vin.snd = { el };
       }
       emit();
     });
@@ -436,7 +435,7 @@
     delete V.conns[slug]; delete V.speaking[slug];
     try { k.call.close(); } catch (e) { /* déjà fermé */ }
     if (k.ctl) { try { k.ctl.close(); } catch (e) { /* */ } }
-    if (k.out) { try { k.out.src.disconnect(); k.out.g.disconnect(); k.out.el.srcObject = null; } catch (e) { /* */ } }
+    if (k.out) { try { k.out.el.pause(); k.out.el.srcObject = null; } catch (e) { /* */ } }
     closeVout(slug, null); closeVin(slug, 'cam'); closeVin(slug, 'screen');
     if (sound && k.out) blip(false);
     emit();
@@ -565,6 +564,8 @@
     if (V.g) {
       V.g.inGain.gain.value = c.gain; V.g.master.gain.value = c.outVol; V.g.hp.frequency.value = c.hp ? 90 : 1;
       if (c.out !== old.out && V.ctx.setSinkId) V.ctx.setSinkId(c.out || '').catch(() => {});
+      if (c.out !== old.out) { for (const k of Object.values(V.conns)) if (k.out && k.out.el.setSinkId) k.out.el.setSinkId(c.out || '').catch(() => {}); for (const x of Object.values(V.vin)) if (x.snd && x.snd.el.setSinkId) x.snd.el.setSinkId(c.out || '').catch(() => {}); }
+      if (c.outVol !== old.outVol) { applyGains(); applyStreamGains(); }
     }
     if (c.ai !== old.ai) wireMic();
     if (c.recvQ !== old.recvQ) broadcast();
