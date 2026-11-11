@@ -1608,7 +1608,7 @@
   }
   function vocalSig(v) {
     return JSON.stringify([v.on, v.joining, v.err, v.mute, v.deaf, v.monitor, !!v.cam, !!v.screen, v.lmute,
-      v.members.filter((m) => m.ok).map((m) => [m.slug, m.remote]).sort(), v.videos.map((x) => x.slug + x.kind + (x.sound ? 's' : '')).sort(), v.svol, v.cfg.streamSound, v.screenAudio, v.unwatch]);
+      v.members.filter((m) => m.ok).map((m) => [m.slug, m.remote]).sort(), v.videos.map((x) => x.slug + x.kind + (x.sound ? 's' : '')).sort(), v.svol, v.cfg.streamSound, v.screenAudio, v.screenMix, v.unwatch]);
   }
   // Salon libre : toute l'équipe arrive dans le même salon, sans code.
   // Plusieurs salons : le salon de l'équipe, deux salons duo et un salon de coaching perso (2 places).
@@ -1681,7 +1681,9 @@
       const L = VX.picker && VX.picker.list;
       box.replaceChildren(h('div', { class: 'card vc-pick-in' },
         h('div', { class: 'row vc-pick-head' }, h('b', null, '🖥️ Que veux-tu montrer ?'), h('button', { class: 'btn-ghost', onclick: close }, '✕ Annuler')),
-        h('label', { class: 'vs-sw vc-pick-snd' }, h('span', null, h('b', null, '🔊 Partager aussi le son de mon PC'), h('small', null, 'Le son du jeu, d’une vidéo… Mets un casque : sinon les voix du salon repassent dans le son et les autres s’entendent en écho.')),
+        h('label', { class: 'vs-sw vc-pick-snd' }, h('span', null, h('b', null, '🔊 Partager aussi le son de mon PC'), h('small', null, VX.picker && VX.picker.own === false
+          ? '⚠ Ton Windows est trop ancien pour séparer les pistes : les voix du salon passeront aussi dans le son partagé. Mets Windows à jour (Windows 10 22H2 ou Windows 11) pour les retirer.'
+          : 'Le son du jeu, d’une vidéo… sans l’appel : les voix du salon et les sons de FIRE ne sont pas envoyés, comme sur Discord.')),
           h('input', { type: 'checkbox', class: 'vs-tog', checked: load('fire.vocal.sharesound', false) ? true : null, onchange: (e) => save('fire.vocal.sharesound', e.target.checked) })),
         !L ? h('p', { class: 'muted' }, 'Recherche des écrans et des fenêtres…')
           : !L.length ? h('p', { class: 'bad' }, '⚠ Aucun écran trouvé (autorise la capture d’écran dans Windows si besoin).')
@@ -1692,7 +1694,11 @@
             })));
     };
     paint(); document.body.append(box);
-    if (window.fire && window.fire.screen) VX.picker.list = await window.fire.screen.sources().catch(() => []);
+    if (window.fire && window.fire.screen) {
+      const own = window.fire.screen.ownAudio ? window.fire.screen.ownAudio().catch(() => false) : Promise.resolve(false);
+      VX.picker.list = await window.fire.screen.sources().catch(() => []);
+      if (VX.picker) VX.picker.own = await own;
+    }
     else { close(); FV().startScreen(null); return; }
     if (VX.picker) paint();
   }
@@ -2119,7 +2125,7 @@
         t.kind === 'person' && r.mute ? h('span', { class: 'vt-st bad' }, vi('micOff')) : null,
         t.kind === 'person' && r.deaf ? h('span', { class: 'vt-st bad' }, vi('headOff')) : null,
         hasSnd ? h('span', { class: 'vt-st ' + (sndOn ? 'snd' : 'bad') }, vi(sndOn ? 'vol' : 'headOff')) : null,
-        t.kind === 'screen' && t.mine && v.screenAudio ? h('span', { class: 'vt-st snd', title: 'Le son de ton PC est partagé' }, vi('vol')) : null));
+        t.kind === 'screen' && t.mine && v.screenAudio ? h('span', { class: 'vt-st snd' + (v.screenMix ? ' warn' : ''), title: v.screenMix ? 'Le son de ton PC est partagé, voix du salon comprises (Windows trop ancien pour les retirer)' : 'Le son de ton PC est partagé, sans les voix du salon' }, vi('vol')) : null));
       const tools = h('div', { class: 'vt-tools' },
         h('button', { title: 'Plein écran (Échap pour sortir)', onclick: () => fullscreen(box) }, vi('full')),
         t.kind === 'person' && !t.mine ? h('button', { title: 'Volume', onclick: () => { VX.menu = VX.menu === t.slug ? null : t.slug; renderVocal(); } }, vi('vol')) : null,

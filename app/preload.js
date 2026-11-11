@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld('fire', {
   guides: call('guides'),
   patchnotes: call('patchnotes'),
   lolpatch: { list: call('lolpatch:list'), get: call('lolpatch:get') },
-  screen: { sources: call('screen:sources'), pick: call('screen:pick') },
+  screen: { sources: call('screen:sources'), pick: call('screen:pick'), ownAudio: call('screen:ownAudio') },
   keys: { set: call('keys:set'), on: (cb) => ipcRenderer.on('keys:hit', (e, a) => cb(a)) },
   lcu: { draft: call('lcu:draft'), runes: call('lcu:runes'), import: call('lcu:import'), stats: call('lcu:stats') },
   bugs: { send: call('bug:send'), list: call('bug:list'), close: call('bug:close') },

@@ -178,6 +178,11 @@ ipcMain.handle('screen:sources', async () => {
     return list.filter((x) => x.name && !x.thumbnail.isEmpty()).map((x) => ({ id: x.id, name: x.name, screen: x.id.startsWith('screen:'), thumb: x.thumbnail.toDataURL() }));
   } catch (e) { return []; }
 });
+// Son du PC sans le son de FIRE (voix du salon, sons, streams regardés), comme Discord : Windows sait
+// capter « tout sauf une application » depuis Windows 10 22H2 (build 19045) et Windows 11.
+// La page le demande (restrictOwnAudio) et Electron choisit alors cette capture à la place de « tout le son ».
+const winBuild = () => { const b = Number(String(require('os').release()).split('.')[2]); return Number.isFinite(b) ? b : 0; };
+ipcMain.handle('screen:ownAudio', () => process.platform === 'win32' && winBuild() >= 19045);
 ipcMain.handle('screen:pick', (e, id, audio) => { screenPick = typeof id === 'string' ? { id, audio: !!audio } : null; return true; });
 function screenShare() {
   session.defaultSession.setDisplayMediaRequestHandler((req, cb) => {

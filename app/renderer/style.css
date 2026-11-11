@@ -1458,6 +1458,7 @@ kbd{font:600 11px/1 ui-monospace,Consolas,monospace;padding:4px 7px;border-radiu
 .vs-empty.here{color:#3ddc84}
 .vt-q{position:absolute;left:10px;top:10px;z-index:2;padding:3px 8px;border-radius:8px;background:rgba(0,0,0,.6);font:600 11px ui-monospace,Consolas,monospace;color:#cfd3dc}
 .vt-st.snd{background:rgba(61,220,132,.85);color:#062214}
+.vt-st.snd.warn{background:rgba(245,166,35,.92);color:#2a1800}
 .vt-tools button.off{background:rgba(239,90,90,.85)}
 .vc-pick-snd{margin:4px 0 10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
 

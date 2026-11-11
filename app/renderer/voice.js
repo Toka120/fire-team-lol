@@ -415,10 +415,23 @@
   async function startScreen(sourceId, withAudio) {
     if (!V.on || V.screen) return;
     try {
-      const audio = !!withAudio && !!(window.fire && window.fire.screen);
-      if (window.fire && window.fire.screen && sourceId) await window.fire.screen.pick(sourceId, audio);
+      const fs = window.fire && window.fire.screen;
+      const audio = !!withAudio && !!fs;
       const fps = V.cfg.screenFps || 15;
-      const st = await navigator.mediaDevices.getDisplayMedia({ audio, video: { frameRate: { ideal: fps, max: fps }, width: { max: 1920 }, height: { max: 1080 } } });
+      const video = { frameRate: { ideal: fps, max: fps }, width: { max: 1920 }, height: { max: 1080 } };
+      // Le son du PC est capté SANS le son de FIRE (voix du salon, sons de l'app, streams regardés) : piste séparée,
+      // comme Discord. Windows trop ancien : on retombe sur « tout le son du PC » et on le signale.
+      const own = audio && fs.ownAudio ? await fs.ownAudio().catch(() => false) : false;
+      const grab = async (restrict) => {
+        if (fs && sourceId) await fs.pick(sourceId, audio);
+        return navigator.mediaDevices.getDisplayMedia({ audio: audio ? (restrict ? { restrictOwnAudio: true, suppressLocalAudioPlayback: false } : true) : false, video });
+      };
+      let st;
+      try { st = await grab(own); } catch (e) { if (!own || (e && e.name === 'AbortError')) throw e; st = await grab(false); }
+      const at = st.getAudioTracks()[0];
+      let iso = false;
+      try { iso = !!(at && at.getSettings().restrictOwnAudio); } catch (e) { /* ancien moteur */ }
+      V.screenMix = !!at && !iso;
       st.getVideoTracks().forEach((t) => { t.contentHint = fps > 20 ? 'motion' : 'detail'; t.onended = stopScreen; });
       V.screen = st; V.screenSrc = sourceId; shareAll('screen'); broadcast(); emit();
     } catch (e) { if (!(e && e.name === 'AbortError')) { V.err = 'partage d’écran impossible'; emit(); } }
@@ -711,6 +724,7 @@
       room: V.room,
       videos: Object.entries(V.vin).filter(([, v]) => v.stream).map(([key, v]) => ({ slug: key.split(':')[0], kind: key.split(':')[1], stream: v.stream, sound: !!v.snd })),
       screenAudio: !!(V.screen && V.screen.getAudioTracks().length),
+      screenMix: !!(V.screen && V.screen.getAudioTracks().length && V.screenMix),
       unwatch: Object.keys(V.unwatch),
       svol: Object.assign({}, V.svol)
     })

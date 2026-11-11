@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.60",
+   "date": "2026-11-11",
+   "titre": "Partage d'écran : le son du PC sans l'appel",
+   "items": [
+    [
+     "new",
+     "Pistes séparées, comme sur Discord : quand tu partages le son de ton PC, les autres entendent ton jeu, tes vidéos… mais plus les voix du salon ni les sons de FIRE. Fini l'écho des voix dans le stream."
+    ],
+    [
+     "improve",
+     "Moteur de l'app mis à jour (Electron 45) : c'est lui qui permet de retirer FIRE du son partagé."
+    ],
+    [
+     "info",
+     "Il faut Windows 10 22H2 ou Windows 11. Sur un Windows plus ancien, le son partagé contient encore l'appel : l'icône 🔊 de ton partage devient orange et le choix de l'écran te prévient."
+    ]
+   ]
+  },
+  {
    "v": "1.10.59",
    "date": "2026-11-11",
    "titre": "Salon vocal : plus d'écho",
