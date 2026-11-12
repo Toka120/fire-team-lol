@@ -1514,3 +1514,5 @@ kbd{font:600 11px/1 ui-monospace,Consolas,monospace;padding:4px 7px;border-radiu
 .pc-req{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px}
 .pc-req-btns{margin-left:auto;display:inline-flex;gap:5px}
 .pc-req-btns .plan-btn{padding:3px 8px;font-size:12px}
+.pc-state{display:inline-flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+.pc-hr{white-space:nowrap}

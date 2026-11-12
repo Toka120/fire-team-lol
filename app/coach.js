@@ -694,14 +694,12 @@ async function savePlanning(action) {
         if (action.type === 'demande') {
           if (!action.on) delete slot[slug];
           else {
-            if (Object.entries(slot).some(([s, x]) => s !== slug && x.statut === 'ok')) throw new Error('ce créneau vient d’être pris');
             if (!slot[slug] || slot[slug].statut === 'refus') slot[slug] = { statut: 'attente', note: str(action.note, 120), at: Date.now() };
           }
         } else {
           if (!slot[slug] || !RESA.includes(action.statut)) throw new Error("cette demande n'existe plus");
-          slot[slug] = { ...slot[slug], statut: action.statut, at: Date.now() };
-          // Créneau validé pour un joueur : les autres demandes du même créneau sont refusées.
-          if (action.statut === 'ok') for (const [s, x] of Object.entries(slot)) if (s !== slug && x.statut !== 'refus') slot[s] = { ...x, statut: 'refus', pris: true, at: Date.now() };
+          // Plusieurs joueurs peuvent être acceptés sur le même créneau (coaching à plusieurs) : chaque demande est traitée à part.
+          slot[slug] = { statut: action.statut, note: slot[slug].note || '', at: Date.now() };
         }
       } else throw new Error('action inconnue');
       d = prunePlanning(d);

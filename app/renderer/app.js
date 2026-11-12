@@ -380,11 +380,13 @@
     const t = todayYmd(), j = (S.plan && S.plan.jours) || {};
     return JSON.stringify(Object.keys(j).filter((d) => d >= t).sort().map((d) => [d, (j[d].heures || []).slice().sort((a, b) => a - b), j[d].type || '', j[d].note || '']));
   }
+  // Les coachs ne jouent pas les sessions d'équipe : pas de notification ni de pastille pour le planning de base.
+  const isCoachUser = () => !!(S.moi && coachOf(S.moi));
   function notifPlanning(mine) {
     const sig = planSig();
     const prev = load('fire.notif.plan', null);
     save('fire.notif.plan', sig);
-    if (mine || prev === null || prev === sig) return;
+    if (mine || prev === null || prev === sig || isCoachUser()) return;
     const was = new Map(JSON.parse(prev).map((x) => [x[0], JSON.stringify(x)]));
     const now = JSON.parse(sig);
     const added = now.filter((x) => !was.has(x[0])).map((x) => x[0]);
@@ -428,10 +430,9 @@
     const day = (x) => `${dateFr(x.d)} à ${x.hr}h`;
     const more = (l) => (l.length > 1 ? ` (+${l.length - 1} autre${l.length > 2 ? 's' : ''})` : '');
     const ok = done.filter((x) => x.st === 'ok'), ko = done.filter((x) => x.st === 'refus');
-    const pris = (x) => !!((((S.plan.resas[x.d] || {})[x.c] || {})[x.hr] || {})[x.s] || {}).pris;
     if (ok.length || ko.length) S.planTab = 'coachs';
     if (ok.length) notifyDesk('resa', '✅ Créneau accepté', `${vocalName(ok[0].c)} a accepté ton créneau du ${day(ok[0])}.` + more(ok), 'planning');
-    if (ko.length) notifyDesk('resa', '❌ Créneau refusé', pris(ko[0]) ? `${vocalName(ko[0].c)} a donné le créneau du ${day(ko[0])} à un autre joueur.` + more(ko) : `${vocalName(ko[0].c)} a refusé ton créneau du ${day(ko[0])}.` + more(ko), 'planning');
+    if (ko.length) notifyDesk('resa', '❌ Créneau refusé', `${vocalName(ko[0].c)} a refusé ton créneau du ${day(ko[0])}.` + more(ko), 'planning');
   }
   function notifFiches() {
     const ids = (S.fiches || []).map((f) => f.id);
@@ -4019,7 +4020,7 @@
   function planTodo() {
     if (!S.plan) return 0;
     const t = todayYmd(), lim = addDays(t, 14);
-    const team = S.moi ? Object.keys(S.plan.jours).filter((d) => d >= t && d <= lim && !((S.plan.reponses[d] || {})[S.moi])).length : 0;
+    const team = S.moi && !isCoachUser() ? Object.keys(S.plan.jours).filter((d) => d >= t && d <= lim && !((S.plan.reponses[d] || {})[S.moi])).length : 0;
     return team + coachPending();
   }
   function coachPending() { return S.coachState.coach ? resaList().filter((x) => x.st === 'attente').length : 0; }
@@ -4137,7 +4138,7 @@
       const slotEl = (d, hr, past) => {
         const who = (((S.plan.resas[d] || {})[c.slug]) || {})[hr] || {};
         const all = Object.entries(who);
-        const taken = all.find(([, x]) => x.statut === 'ok');
+        const oks = all.filter(([, x]) => x.statut === 'ok');
         const waiting = all.filter(([, x]) => x.statut === 'attente');
         const mine = meP ? who[S.moi] : null;
         const lab = `${hr}h – ${hr + 1 === 24 ? '0h' : hr + 1 + 'h'}`;
@@ -4146,8 +4147,8 @@
         if (meP && !past) {
           if (mine && mine.statut === 'attente') me = h('div', { class: 'pc-me' }, h('span', { class: 'st-warn' }, '⏳ Ta demande attend le coach'), h('button', { class: 'linkbtn small', disabled: can ? null : true, onclick: () => act({ type: 'demande', slug: S.moi, on: false }) }, 'Annuler'));
           else if (mine && mine.statut === 'ok') me = h('div', { class: 'pc-me' }, h('span', { class: 'st-ok' }, '✅ Validé pour toi'), h('button', { class: 'linkbtn small', disabled: can ? null : true, onclick: () => act({ type: 'demande', slug: S.moi, on: false }) }, 'Me désister'));
-          else if (mine && mine.statut === 'refus') me = h('div', { class: 'pc-me' }, h('span', { class: 'st-bad' }, mine.pris ? '❌ Pris par un autre joueur' : '❌ Refusé'), !taken ? h('button', { class: 'linkbtn small', disabled: can ? null : true, onclick: () => act({ type: 'demande', slug: S.moi, on: true }) }, 'Redemander') : null);
-          else if (!taken) me = h('button', { class: 'btn-fire small-btn pc-take', disabled: can ? null : true, onclick: () => act({ type: 'demande', slug: S.moi, on: true }) }, '🙋 Je prends ce créneau');
+          else if (mine && mine.statut === 'refus') me = h('div', { class: 'pc-me' }, h('span', { class: 'st-bad' }, '❌ Refusé'), h('button', { class: 'linkbtn small', disabled: can ? null : true, onclick: () => act({ type: 'demande', slug: S.moi, on: true }) }, 'Redemander'));
+          else if (!mine) me = h('button', { class: 'btn-fire small-btn pc-take', disabled: can ? null : true, onclick: () => act({ type: 'demande', slug: S.moi, on: true }) }, '🙋 Je prends ce créneau');
         }
         const reqs = coachMode && all.length ? h('div', { class: 'pc-reqs' }, all.sort((a, b) => (['ok', 'attente', 'refus'].indexOf(a[1].statut) - ['ok', 'attente', 'refus'].indexOf(b[1].statut)) || a[1].at - b[1].at).map(([s, x]) => {
           const st = RESA_ST[x.statut] || RESA_ST.attente;
@@ -4156,8 +4157,11 @@
               x.statut !== 'ok' ? h('button', { class: 'plan-btn st-ok', disabled: can ? null : true, onclick: () => act({ type: 'decision', slug: s, statut: 'ok' }) }, '✓ Valider') : null,
               x.statut !== 'refus' ? h('button', { class: 'plan-btn st-bad', disabled: can ? null : true, onclick: () => act({ type: 'decision', slug: s, statut: 'refus' }) }, '✕ Refuser') : null));
         })) : null;
-        const state = taken ? h('span', { class: 'st-ok' }, `✅ ${vocalName(taken[0])}`) : waiting.length ? h('span', { class: 'st-warn' }, `⏳ ${waiting.length} demande${waiting.length > 1 ? 's' : ''}`) : h('span', { class: 'muted' }, 'Libre');
-        return h('div', { class: 'pc-slot ' + (taken ? 'taken' : waiting.length ? 'asked' : 'free') + (mine ? ' mine-' + mine.statut : '') },
+        const state = h('span', { class: 'pc-state' },
+          oks.length ? h('span', { class: 'st-ok' }, `✅ ${oks.map(([s]) => vocalName(s)).join(', ')}`) : null,
+          waiting.length ? h('span', { class: 'st-warn' }, `⏳ ${waiting.length} demande${waiting.length > 1 ? 's' : ''}`) : null,
+          !oks.length && !waiting.length ? h('span', { class: 'muted' }, 'Libre') : null);
+        return h('div', { class: 'pc-slot ' + (oks.length ? 'taken' : waiting.length ? 'asked' : 'free') + (mine ? ' mine-' + mine.statut : '') },
           h('div', { class: 'pc-slot-top' }, h('b', { class: 'pc-hr' }, '🕒 ' + lab), state), me, reqs);
       };
       const body = !daysOn.length ? [h('p', { class: 'muted' }, `${c.pseudo} n’a pas encore mis de dispos cette semaine.`)]

@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.63",
+   "date": "2026-11-12",
+   "titre": "Coaching à plusieurs",
+   "items": [
+    [
+     "improve",
+     "Dispos des coachs : le coach peut accepter deux joueurs ou plus sur le même créneau. Accepter un joueur ne refuse plus les autres, et le créneau reste ouvert aux demandes."
+    ],
+    [
+     "improve",
+     "Chaque créneau affiche tous les joueurs acceptés (✅) et le nombre de demandes en attente (⏳)."
+    ],
+    [
+     "improve",
+     "Les coachs ne reçoivent plus de notification ni de pastille pour le planning d'équipe : seulement pour les demandes de créneaux."
+    ]
+   ]
+  },
+  {
    "v": "1.10.62",
    "date": "2026-11-12",
    "titre": "Planning 24 h/24 et créneaux notifiés",
