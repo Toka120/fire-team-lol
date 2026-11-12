@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "1.10.61",
+   "date": "2026-11-12",
+   "titre": "Planning : les dispos des coachs",
+   "items": [
+    [
+     "new",
+     "Planning › 🎓 Dispos des coachs : un second onglet où Heoulh et Dream cochent leurs jours et heures de dispo, semaine par semaine (avec une note si besoin)."
+    ],
+    [
+     "new",
+     "Chaque heure proposée est un créneau : clique « 🙋 Je prends ce créneau » pour le demander. Tu vois s'il est libre, déjà demandé, ou pris (et par qui)."
+    ],
+    [
+     "new",
+     "Le coach valide ✓ ou refuse ✕ chaque demande. Quand il valide un joueur, les autres demandes du même créneau sont refusées automatiquement."
+    ],
+    [
+     "new",
+     "Notifications : le joueur est prévenu quand sa demande est validée ou refusée, le coach quand un joueur demande un créneau (pastille sur Planning)."
+    ],
+    [
+     "improve",
+     "Un joueur peut annuler sa demande ou se désister d'un créneau validé. Mettre ses dispos et valider demande le code coach sur le PC du coach."
+    ]
+   ]
+  },
+  {
    "v": "1.10.60",
    "date": "2026-11-11",
    "titre": "Partage d'écran : le son du PC sans l'appel",

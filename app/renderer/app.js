@@ -390,6 +390,37 @@
     if (!parts.length) return;
     notifyDesk('plan', '📅 Le planning a changé', cap(parts.join(' · ')) + '. Vérifie tes disponibilités.', 'planning');
   }
+  // Créneaux avec les coachs : le joueur est prévenu quand le coach valide ou refuse sa demande,
+  // le coach (code coach sur ce PC) quand un joueur demande un créneau.
+  function resaList() {
+    const out = [];
+    for (const [d, byCoach] of Object.entries((S.plan && S.plan.resas) || {})) {
+      if (d < todayYmd()) continue;
+      for (const [c, byHour] of Object.entries(byCoach || {})) for (const [hr, who] of Object.entries(byHour || {})) for (const [s, x] of Object.entries(who || {})) out.push({ d, c, hr: Number(hr), s, st: x.statut });
+    }
+    return out;
+  }
+  function notifResas(mine) {
+    const coach = !!S.coachState.coach;
+    const key = (x) => [x.d, x.c, x.hr, x.s].join('|');
+    const list = resaList().filter((x) => coach ? x.st === 'attente' : x.s === S.moi);
+    const sig = JSON.stringify(list.map((x) => [key(x), x.st]).sort());
+    const store = 'fire.notif.resa.' + (coach ? 'coach' : S.moi || '');
+    const prev = load(store, null);
+    save(store, sig);
+    if (mine || prev === null || prev === sig || (!coach && !S.moi)) return;
+    const was = new Map(JSON.parse(prev));
+    const when = (x) => `${dateFr(x.d)} à ${x.hr}h avec ${vocalName(x.c)}`;
+    if (coach) {
+      const fresh = list.filter((x) => !was.has(key(x)));
+      if (fresh.length) notifyDesk('plan', '🎓 Demande de créneau', fresh.length === 1 ? `${vocalName(fresh[0].s)} demande le ${when(fresh[0])}.` : `${fresh.length} nouvelles demandes, dont ${vocalName(fresh[0].s)} le ${when(fresh[0])}.`, 'planning');
+      return;
+    }
+    const done = list.filter((x) => (x.st === 'ok' || x.st === 'refus') && was.get(key(x)) !== x.st);
+    const ok = done.filter((x) => x.st === 'ok'), ko = done.filter((x) => x.st === 'refus');
+    if (ok.length) notifyDesk('plan', '✅ Créneau validé', `Le coach a validé ton créneau du ${when(ok[0])}.` + (ok.length > 1 ? ` (+${ok.length - 1})` : ''), 'planning');
+    if (ko.length) notifyDesk('plan', '❌ Créneau refusé', `Ton créneau du ${when(ko[0])} n'a pas été retenu.` + (ko.length > 1 ? ` (+${ko.length - 1})` : ''), 'planning');
+  }
   function notifFiches() {
     const ids = (S.fiches || []).map((f) => f.id);
     const known = load('fire.notif.fiches', null);
@@ -3962,20 +3993,23 @@
   async function loadPlanning() {
     let r;
     try { r = await window.fire.planning(); } catch (e) { r = { ok: false, error: String(e) }; }
-    if (r && r.ok) { S.plan = { jours: r.jours || {}, reponses: r.reponses || {} }; S.planErr = r.offline ? 'Hors ligne : dernier planning enregistré.' : ''; if (!r.offline) notifPlanning(false); }
-    else { S.plan = S.plan || { jours: {}, reponses: {} }; S.planErr = (r && r.error) || 'planning indisponible'; }
+    if (r && r.ok) { S.plan = planFrom(r); S.planErr = r.offline ? 'Hors ligne : dernier planning enregistré.' : ''; if (!r.offline) { notifPlanning(false); notifResas(false); } }
+    else { S.plan = S.plan || planFrom({}); S.planErr = (r && r.error) || 'planning indisponible'; }
     S.planWrite = !!(r && r.peutEcrire);
     renderNav();
     if (typing() || S.planEdit) return;
     if (S.section === 'planning') render();
   }
 
-  // Jours à venir (14 jours) où je n'ai pas encore répondu : pastille dans le menu.
+  // Jours à venir (14 jours) où je n'ai pas encore répondu : pastille dans le menu (+ demandes de créneaux à traiter pour un coach).
   function planTodo() {
-    if (!S.moi || !S.plan) return 0;
+    if (!S.plan) return 0;
     const t = todayYmd(), lim = addDays(t, 14);
-    return Object.keys(S.plan.jours).filter((d) => d >= t && d <= lim && !((S.plan.reponses[d] || {})[S.moi])).length;
+    const team = S.moi ? Object.keys(S.plan.jours).filter((d) => d >= t && d <= lim && !((S.plan.reponses[d] || {})[S.moi])).length : 0;
+    return team + coachPending();
   }
+  function coachPending() { return S.coachState.coach ? resaList().filter((x) => x.st === 'attente').length : 0; }
+  function planFrom(r) { return { jours: r.jours || {}, reponses: r.reponses || {}, coachs: r.coachs || {}, resas: r.resas || {} }; }
 
   async function answer(date, slug, statut) {
     const rep = (S.plan.reponses[date] = S.plan.reponses[date] || {});
@@ -3983,7 +4017,7 @@
     if (statut) rep[slug] = { statut, at: Date.now() }; else delete rep[slug];
     render();
     const r = await window.fire.savePlanning({ type: 'reponse', date, slug, statut });
-    if (r && r.ok) S.plan = { jours: r.jours, reponses: r.reponses };
+    if (r && r.ok) S.plan = planFrom(r);
     else { if (before) rep[slug] = before; else delete rep[slug]; S.flash = 'Réponse non enregistrée : ' + ((r && r.error) || 'erreur'); }
     if (!S.planEdit && S.section === 'planning') render(); else renderNav();
   }
@@ -3998,9 +4032,15 @@
     // Le coach et le chef d'équipe (code chef activé sur ce PC) peuvent modifier le planning.
     const coach = S.coachState.coach || S.coachState.chef;
     const roster = S.players.filter((x) => x.slug);
-    const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🗓️'),
+    const tabC = S.planTab === 'coachs';
+    const pend = coachPending();
+    const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, tabC ? '🎓' : '🗓️'),
       h('div', null, h('h1', { class: 'title' }, 'Planning'),
-        h('p', { class: 'muted' }, coach ? 'Coche les jours et heures de jeu, puis regarde qui sera là.' : 'Dis au coach si tu seras là : ✅ présent · ❔ incertain · ❌ absent.')))];
+        h('p', { class: 'muted' }, tabC ? (S.coachState.coach ? 'Coche tes dispos, puis valide ou refuse les créneaux que les joueurs demandent.' : 'Les coachs mettent leurs dispos : demande un créneau, le coach le valide.')
+          : coach ? 'Coche les jours et heures de jeu, puis regarde qui sera là.' : 'Dis au coach si tu seras là : ✅ présent · ❔ incertain · ❌ absent.'))),
+      h('div', { class: 'row plan-tabs' },
+        h('button', { class: 'plan-tab', 'aria-pressed': String(!tabC), onclick: () => { S.planTab = 'equipe'; render(); } }, '🗓️ Planning d’équipe'),
+        h('button', { class: 'plan-tab', 'aria-pressed': String(tabC), onclick: () => { S.planTab = 'coachs'; render(); } }, '🎓 Dispos des coachs', pend ? h('span', { class: 'plan-tab-n' }, String(pend)) : null))];
     const chefBox = chefAccess();
     if (chefBox) nodes.push(chefBox);
     if (S.flash) nodes.push(h('div', { class: 'flash' }, S.flash, h('button', { class: 'flash-x', onclick: () => { S.flash = ''; render(); } }, '✕')));
@@ -4015,9 +4055,10 @@
       h('b', { class: 'plan-week' }, `Semaine du ${dayFr(days[0], { day: 'numeric', month: 'long' })} au ${dayFr(days[6], { day: 'numeric', month: 'long' })}`),
       h('button', { class: 'btn-ghost', onclick: () => { S.planWeek = addDays(mon, 7); render(); } }, '→'),
       mon !== mondayOf(t) ? h('button', { class: 'chip', onclick: () => { S.planWeek = mondayOf(t); render(); } }, "Aujourd'hui") : null,
-      coach ? h('button', { class: 'btn-fire small-btn', disabled: planCanWrite() ? null : true, onclick: () => startPlanEdit(mon) }, '✏️ Cocher les jours et heures') : null,
-      coach && !planCanWrite() ? h('span', { class: 'bad small' }, S.coachState.coach ? 'Ajoute le jeton GitHub (ou le jeton d\'équipe) dans les réglages coach.' : 'Le coach doit d\'abord activer le jeton d\'équipe.') : null);
+      coach && !tabC ? h('button', { class: 'btn-fire small-btn', disabled: planCanWrite() ? null : true, onclick: () => startPlanEdit(mon) }, '✏️ Cocher les jours et heures') : null,
+      (tabC ? S.coachState.coach : coach) && !planCanWrite() ? h('span', { class: 'bad small' }, S.coachState.coach ? 'Ajoute le jeton GitHub (ou le jeton d\'équipe) dans les réglages coach.' : 'Le coach doit d\'abord activer le jeton d\'équipe.') : null);
     nodes.push(nav);
+    if (tabC) { coachPlanning(nodes, days, t, mon); view.replaceChildren(...nodes); return; }
 
     const planned = days.filter((d) => S.plan && S.plan.jours[d]);
     if (!planned.length) {
@@ -4057,13 +4098,77 @@
     view.replaceChildren(...nodes);
   }
 
-  function startPlanEdit(mon) {
+  // ----- Second panel : dispos des coachs, demandes des joueurs, validation par le coach -----
+  const RESA_ST = { attente: { ico: '⏳', txt: 'En attente', cls: 'st-warn' }, ok: { ico: '✅', txt: 'Validé', cls: 'st-ok' }, refus: { ico: '❌', txt: 'Refusé', cls: 'st-bad' } };
+  async function resaAct(a) {
+    if (S.planBusy) return;
+    S.planBusy = true; render();
+    let r;
+    try { r = await window.fire.savePlanning(a); } catch (e) { r = { ok: false, error: String(e) }; }
+    S.planBusy = false;
+    if (r && r.ok) { S.plan = planFrom(r); notifResas(true); }
+    else S.flash = 'Non enregistré : ' + ((r && r.error) || 'erreur');
+    if (S.section === 'planning' && !S.planEdit) render(); else renderNav();
+  }
+  function coachPlanning(nodes, days, t, mon) {
+    if (!S.plan) S.plan = planFrom({});
+    const coachMode = !!S.coachState.coach;
+    const meP = S.moi && S.players.some((x) => x.slug === S.moi);
+    const can = planCanWrite() && !S.planBusy;
+    const list = S.coachs || [];
+    if (!list.length) { nodes.push(h('div', { class: 'card plan-empty' }, h('p', { class: 'muted' }, 'Aucun coach dans l’équipe pour le moment.'))); return; }
+    if (!coachMode && S.moi && !meP && coachOf(S.moi)) nodes.push(h('p', { class: 'muted small' }, '🎓 Pour mettre tes dispos et valider les demandes, active le code coach sur ce PC (onglet « Parole du coach »).'));
+    for (const c of list) {
+      const daysOn = days.filter((d) => (S.plan.coachs[d] || {})[c.slug]);
+      const slotEl = (d, hr, past) => {
+        const who = (((S.plan.resas[d] || {})[c.slug]) || {})[hr] || {};
+        const all = Object.entries(who);
+        const taken = all.find(([, x]) => x.statut === 'ok');
+        const waiting = all.filter(([, x]) => x.statut === 'attente');
+        const mine = meP ? who[S.moi] : null;
+        const lab = `${hr}h – ${hr + 1 === 24 ? '0h' : hr + 1 + 'h'}`;
+        const act = (o) => resaAct({ date: d, coach: c.slug, heure: hr, ...o });
+        let me = null;
+        if (meP && !past) {
+          if (mine && mine.statut === 'attente') me = h('div', { class: 'pc-me' }, h('span', { class: 'st-warn' }, '⏳ Ta demande attend le coach'), h('button', { class: 'linkbtn small', disabled: can ? null : true, onclick: () => act({ type: 'demande', slug: S.moi, on: false }) }, 'Annuler'));
+          else if (mine && mine.statut === 'ok') me = h('div', { class: 'pc-me' }, h('span', { class: 'st-ok' }, '✅ Validé pour toi'), h('button', { class: 'linkbtn small', disabled: can ? null : true, onclick: () => act({ type: 'demande', slug: S.moi, on: false }) }, 'Me désister'));
+          else if (mine && mine.statut === 'refus') me = h('div', { class: 'pc-me' }, h('span', { class: 'st-bad' }, mine.pris ? '❌ Pris par un autre joueur' : '❌ Refusé'), !taken ? h('button', { class: 'linkbtn small', disabled: can ? null : true, onclick: () => act({ type: 'demande', slug: S.moi, on: true }) }, 'Redemander') : null);
+          else if (!taken) me = h('button', { class: 'btn-fire small-btn pc-take', disabled: can ? null : true, onclick: () => act({ type: 'demande', slug: S.moi, on: true }) }, '🙋 Je prends ce créneau');
+        }
+        const reqs = coachMode && all.length ? h('div', { class: 'pc-reqs' }, all.sort((a, b) => (['ok', 'attente', 'refus'].indexOf(a[1].statut) - ['ok', 'attente', 'refus'].indexOf(b[1].statut)) || a[1].at - b[1].at).map(([s, x]) => {
+          const st = RESA_ST[x.statut] || RESA_ST.attente;
+          return h('div', { class: 'pc-req' }, h('span', { class: st.cls }, st.ico), ' ', h('b', null, vocalName(s)),
+            past ? null : h('span', { class: 'pc-req-btns' },
+              x.statut !== 'ok' ? h('button', { class: 'plan-btn st-ok', disabled: can ? null : true, onclick: () => act({ type: 'decision', slug: s, statut: 'ok' }) }, '✓ Valider') : null,
+              x.statut !== 'refus' ? h('button', { class: 'plan-btn st-bad', disabled: can ? null : true, onclick: () => act({ type: 'decision', slug: s, statut: 'refus' }) }, '✕ Refuser') : null));
+        })) : null;
+        const state = taken ? h('span', { class: 'st-ok' }, `✅ ${vocalName(taken[0])}`) : waiting.length ? h('span', { class: 'st-warn' }, `⏳ ${waiting.length} demande${waiting.length > 1 ? 's' : ''}`) : h('span', { class: 'muted' }, 'Libre');
+        return h('div', { class: 'pc-slot ' + (taken ? 'taken' : waiting.length ? 'asked' : 'free') + (mine ? ' mine-' + mine.statut : '') },
+          h('div', { class: 'pc-slot-top' }, h('b', { class: 'pc-hr' }, '🕒 ' + lab), state), me, reqs);
+      };
+      const body = !daysOn.length ? [h('p', { class: 'muted' }, `${c.pseudo} n’a pas encore mis de dispos cette semaine.`)]
+        : daysOn.map((d) => {
+          const off = S.plan.coachs[d][c.slug];
+          const past = d < t;
+          return h('div', { class: 'pc-day' + (past ? ' past' : '') + (d === t ? ' today' : '') },
+            h('div', { class: 'plan-date' }, cap(dayFr(d)), d === t ? h('span', { class: 'plan-tag' }, "aujourd'hui") : null, off.note ? h('span', { class: 'plan-note' }, '📝 ' + off.note) : null),
+            h('div', { class: 'pc-slots' }, off.heures.slice().sort((a, b) => a - b).map((hr) => slotEl(d, hr, past))));
+        });
+      nodes.push(h('div', { class: 'card pc-coach' },
+        h('div', { class: 'row pc-head' }, h('h2', { class: 'pc-name' }, '🎓 ' + c.pseudo),
+          coachMode ? h('button', { class: 'btn-fire small-btn', disabled: planCanWrite() ? null : true, onclick: () => startPlanEdit(mon, c.slug) }, S.moi === c.slug ? '✏️ Mes dispos' : `✏️ Dispos de ${c.pseudo}`) : null),
+        ...body));
+    }
+    if (!meP && !coachMode) nodes.push(h('p', { class: 'muted small' }, '👤 Choisis ton pseudo dans « Je suis » pour demander un créneau.'));
+  }
+
+  function startPlanEdit(mon, coach) {
     const jours = {};
     for (const d of weekDays(mon)) {
-      const j = S.plan && S.plan.jours[d];
-      jours[d] = { heures: j ? j.heures.slice() : [], type: j ? j.type : 'flex', note: j ? j.note || '' : '' };
+      const j = S.plan && (coach ? (S.plan.coachs[d] || {})[coach] : S.plan.jours[d]);
+      jours[d] = { heures: j ? j.heures.slice() : [], type: j && j.type ? j.type : 'flex', note: j ? j.note || '' : '' };
     }
-    S.planEdit = { mon, jours, busy: false, err: '' };
+    S.planEdit = { mon, jours, busy: false, err: '', coach: coach || null };
     render();
   }
 
@@ -4094,9 +4199,9 @@
     const quick = (d, a, b) => () => { e.jours[d].heures = []; for (let x = a; x < b; x++) e.jours[d].heures.push(x); render(); };
     const rows = days.map((d) => {
       const j = e.jours[d];
-      const type = h('select', null, PLAN_TYPES.map(([k, v]) => h('option', { value: k }, v)));
-      type.value = j.type;
-      type.addEventListener('change', () => { j.type = type.value; });
+      const type = e.coach ? null : h('select', null, PLAN_TYPES.map(([k, v]) => h('option', { value: k }, v)));
+      if (type) type.value = j.type;
+      if (type) type.addEventListener('change', () => { j.type = type.value; });
       const note = h('input', { class: 'inp', placeholder: 'Note (facultatif)', maxlength: 200, value: j.note });
       note.addEventListener('input', () => { j.note = note.value; });
       return h('div', { class: 'plan-erow' },
@@ -4109,15 +4214,19 @@
     });
     const save = h('button', { class: 'btn-fire small-btn', disabled: e.busy ? true : null, onclick: async () => {
       e.busy = true; e.err = ''; render();
-      const r = await window.fire.savePlanning({ type: 'semaine', debut: e.mon, jours: e.jours });
+      const r = await window.fire.savePlanning(e.coach ? { type: 'dispos', coach: e.coach, debut: e.mon, jours: e.jours } : { type: 'semaine', debut: e.mon, jours: e.jours });
       e.busy = false;
-      if (r && r.ok) { S.plan = { jours: r.jours, reponses: r.reponses }; notifPlanning(true); S.planWeek = e.mon; S.planEdit = null; S.flash = 'Planning publié ✓ Les joueurs peuvent répondre.'; }
+      if (r && r.ok) { S.plan = planFrom(r); if (!e.coach) notifPlanning(true); S.planWeek = e.mon; S.planEdit = null; S.flash = e.coach ? 'Dispos publiées ✓ Les joueurs peuvent demander un créneau.' : 'Planning publié ✓ Les joueurs peuvent répondre.'; }
       else e.err = (r && r.error) || 'erreur';
       render();
-    } }, e.busy ? 'Publication…' : "📣 Publier le planning");
+    } }, e.busy ? 'Publication…' : e.coach ? '📣 Publier mes dispos' : "📣 Publier le planning");
+    const asked = e.coach ? days.some((d) => Object.keys(((S.plan.resas[d] || {})[e.coach]) || {}).length) : false;
     view.replaceChildren(
-      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '✏️'), h('div', null, h('h1', { class: 'title' }, 'Jours et heures de jeu'),
-        h('p', { class: 'muted' }, `Semaine du ${dayFr(days[0], { day: 'numeric', month: 'long' })}. Clique (ou glisse) sur les cases pour cocher les heures où l'équipe joue.`))),
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, e.coach ? '🎓' : '✏️'), h('div', null, h('h1', { class: 'title' }, e.coach ? `Dispos de ${vocalName(e.coach)}` : 'Jours et heures de jeu'),
+        h('p', { class: 'muted' }, `Semaine du ${dayFr(days[0], { day: 'numeric', month: 'long' })}. ` + (e.coach
+          ? 'Clique (ou glisse) sur les cases pour cocher les heures où tu es disponible : chaque heure devient un créneau que les joueurs peuvent demander.'
+          : "Clique (ou glisse) sur les cases pour cocher les heures où l'équipe joue.")))),
+      asked ? h('p', { class: 'muted small' }, '⚠ Si tu retires une heure déjà demandée par un joueur, sa demande disparaît.') : null,
       h('div', { class: 'card plan-gridwrap' }, grid),
       h('div', { class: 'card plan-edays' }, rows),
       h('div', { class: 'row' }, save, h('button', { class: 'btn-ghost', onclick: () => { S.planEdit = null; render(); } }, 'Annuler'),

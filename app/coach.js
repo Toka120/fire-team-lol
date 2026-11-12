@@ -590,12 +590,31 @@ function cleanJour(j) {
   return { heures, type, note: str(j && j.note, 200), maj: Date.now() };
 }
 
+// Second panel : chaque coach coche ses dispos (heure par heure), un joueur demande un créneau, le coach valide ou refuse.
+// coachs : { 'AAAA-MM-JJ': { slugCoach: { heures, note, maj } } }
+// resas  : { 'AAAA-MM-JJ': { slugCoach: { 'heure': { slugJoueur: { statut: attente|ok|refus, note, at } } } } }
+const RESA = ['attente', 'ok', 'refus'];
+const coachSlugs = () => (Array.isArray(getConfig().coachs) ? getConfig().coachs : []).map((c) => c && c.slug).filter(Boolean);
 function prunePlanning(d) {
   const lim = new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10);
-  const jours = {}, reponses = {};
+  const jours = {}, reponses = {}, coachs = {}, resas = {};
   for (const [k, v] of Object.entries(d.jours || {})) if (isYmd(k) && k >= lim && v && v.heures && v.heures.length) jours[k] = v;
   for (const [k, v] of Object.entries(d.reponses || {})) if (isYmd(k) && k >= lim && v) reponses[k] = v;
-  return { jours, reponses };
+  for (const [k, byCoach] of Object.entries(d.coachs || {})) {
+    if (!isYmd(k) || k < lim || !byCoach) continue;
+    for (const [c, v] of Object.entries(byCoach)) if (v && v.heures && v.heures.length) (coachs[k] = coachs[k] || {})[c] = v;
+  }
+  // Une demande ne survit que si le coach propose toujours cette heure.
+  for (const [k, byCoach] of Object.entries(d.resas || {})) {
+    for (const [c, byHour] of Object.entries(byCoach || {})) {
+      const offer = coachs[k] && coachs[k][c];
+      for (const [hr, who] of Object.entries(byHour || {})) {
+        if (!offer || !offer.heures.includes(Number(hr)) || !who || !Object.keys(who).length) continue;
+        ((resas[k] = resas[k] || {})[c] = resas[k][c] || {})[hr] = who;
+      }
+    }
+  }
+  return { jours, reponses, coachs, resas };
 }
 
 async function planning() {
@@ -609,13 +628,16 @@ async function planning() {
     if (box) saveCache('planning', box);
   } catch (e) { offline = true; box = loadCache('planning'); }
   const base = { peutEcrire: !!(dr && tok), depot: dr, offline };
-  if (!box) return { ok: true, jours: {}, reponses: {}, ...base };
+  if (!box) return { ok: true, jours: {}, reponses: {}, coachs: {}, resas: {}, ...base };
   try { return { ok: true, ...prunePlanning(open(box)), ...base }; }
   catch (e) { return { ok: false, error: 'planning illisible avec ce code', ...base }; }
 }
 
 // action : { type: 'semaine', debut, jours: { 'AAAA-MM-JJ': { heures, type, note } } } (coach : remplace les 7 jours à partir de debut)
 //          { type: 'reponse', date, slug, statut, note } (joueur ou coach)
+//          { type: 'dispos', coach, debut, jours: { 'AAAA-MM-JJ': { heures, note } } } (coach : ses dispos sur 7 jours)
+//          { type: 'demande', date, coach, heure, slug, on, note } (joueur : demande ou retire sa demande d'un créneau)
+//          { type: 'decision', date, coach, heure, slug, statut } (coach : ok / refus / attente)
 async function savePlanning(action) {
   const dr = getConfig().data_repo || null;
   const isCoach = coachState().coach;
@@ -625,14 +647,16 @@ async function savePlanning(action) {
   if (dr && tok) { repo = dr; token = tok; file = 'planning.json'; }
   else if (isCoach && c.github) { repo = REPO; token = c.github; file = PLANNING; }
   else return { ok: false, error: dr ? "le coach n'a pas encore activé les réponses des joueurs (jeton d'équipe)" : 'réservé au coach' };
-  if (action.type !== 'reponse' && !isCoach && !chefOn()) return { ok: false, error: "réservé au coach et au chef d'équipe" };
+  if (action.type === 'semaine' && !isCoach && !chefOn()) return { ok: false, error: "réservé au coach et au chef d'équipe" };
+  if ((action.type === 'dispos' || action.type === 'decision') && !isCoach) return { ok: false, error: 'réservé aux coachs (code coach)' };
+  if (['dispos', 'demande', 'decision'].includes(action.type) && !coachSlugs().includes(action.coach)) return { ok: false, error: 'coach inconnu' };
   try {
     for (let i = 0; i < 4; i++) {
       const cur = await ghGet(token, file, repo);
       let d = { jours: {}, reponses: {} };
       if (cur && cur.json) d = open(cur.json);
       else if (repo !== REPO) { try { const old = await readPublic(PLANNING); if (old) d = open(old); } catch (e) { /* rien à reprendre */ } }
-      d.jours = d.jours || {}; d.reponses = d.reponses || {};
+      d.jours = d.jours || {}; d.reponses = d.reponses || {}; d.coachs = d.coachs || {}; d.resas = d.resas || {};
       if (action.type === 'semaine') {
         if (!isYmd(action.debut)) throw new Error('semaine invalide');
         const t0 = new Date(action.debut + 'T12:00:00Z').getTime();
@@ -649,10 +673,41 @@ async function savePlanning(action) {
         d.reponses[action.date] = d.reponses[action.date] || {};
         if (STATUTS.includes(action.statut)) d.reponses[action.date][slug] = { statut: action.statut, note: str(action.note, 120), at: Date.now() };
         else delete d.reponses[action.date][slug];
+      } else if (action.type === 'dispos') {
+        if (!isYmd(action.debut)) throw new Error('semaine invalide');
+        const t0 = new Date(action.debut + 'T12:00:00Z').getTime();
+        for (let k = 0; k < 7; k++) {
+          const day = new Date(t0 + k * 864e5).toISOString().slice(0, 10);
+          const j = action.jours && action.jours[day];
+          const cj = j ? cleanJour(j) : null;
+          d.coachs[day] = d.coachs[day] || {};
+          if (cj && cj.heures.length) d.coachs[day][action.coach] = { heures: cj.heures, note: cj.note, maj: cj.maj };
+          else delete d.coachs[day][action.coach];
+        }
+      } else if (action.type === 'demande' || action.type === 'decision') {
+        const slug = String(action.slug || '').slice(0, 80);
+        const hr = parseInt(action.heure, 10);
+        if (!slug || !isYmd(action.date) || !(hr >= 0 && hr <= 23)) throw new Error('demande invalide');
+        const offer = d.coachs[action.date] && d.coachs[action.date][action.coach];
+        if (!offer || !offer.heures.includes(hr)) throw new Error("ce créneau n'est plus proposé par le coach");
+        const slot = (((d.resas[action.date] = d.resas[action.date] || {})[action.coach] = d.resas[action.date][action.coach] || {})[hr] = d.resas[action.date][action.coach][hr] || {});
+        if (action.type === 'demande') {
+          if (!action.on) delete slot[slug];
+          else {
+            if (Object.entries(slot).some(([s, x]) => s !== slug && x.statut === 'ok')) throw new Error('ce créneau vient d’être pris');
+            if (!slot[slug] || slot[slug].statut === 'refus') slot[slug] = { statut: 'attente', note: str(action.note, 120), at: Date.now() };
+          }
+        } else {
+          if (!slot[slug] || !RESA.includes(action.statut)) throw new Error("cette demande n'existe plus");
+          slot[slug] = { ...slot[slug], statut: action.statut, at: Date.now() };
+          // Créneau validé pour un joueur : les autres demandes du même créneau sont refusées.
+          if (action.statut === 'ok') for (const [s, x] of Object.entries(slot)) if (s !== slug && x.statut !== 'refus') slot[s] = { ...x, statut: 'refus', pris: true, at: Date.now() };
+        }
       } else throw new Error('action inconnue');
       d = prunePlanning(d);
       const box = seal(d, 'planning');
-      const r = await ghPut(token, file, box, cur && cur.sha, action.type === 'reponse' ? 'Planning : réponse' : 'Planning : semaine', repo);
+      const msg = { reponse: 'Planning : réponse', semaine: 'Planning : semaine', dispos: 'Planning coachs : dispos', demande: 'Planning coachs : demande', decision: 'Planning coachs : décision' }[action.type];
+      const r = await ghPut(token, file, box, cur && cur.sha, msg, repo);
       if (r.ok) { saveCache('planning', box); return { ok: true, ...d }; }
     }
     throw new Error("le planning a changé pendant l'envoi, réessaie");
