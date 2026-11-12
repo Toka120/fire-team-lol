@@ -771,8 +771,20 @@
       homeNotes(),
       teamCards(),
       h('div', { class: 'more-row hub-more' }, h('button', { class: 'btn-ghost more-btn', onclick: () => { S.hubMore = !S.hubMore; render(); } }, S.hubMore ? '➖ Moins de détails' : '➕ Plus de détails')),
-      h('div', { class: 'hub-grid' + (S.hubMore ? '' : ' compact') }, S.players.map((p) => hubCard(p, start)))
+      // Les titulaires (Team FIRE) d'abord, les remplaçants dans leur propre catégorie en dessous.
+      ...hubSections(start)
     ].filter(Boolean));
+  }
+
+  const isSub = (p) => !!(p.remplacant || /rempla|bench|suppl/i.test(p.role || ''));
+  function hubSections(start) {
+    const grid = (list) => h('div', { class: 'hub-grid' + (S.hubMore ? '' : ' compact') }, list.map((p) => hubCard(p, start)));
+    const main = S.players.filter((p) => !isSub(p)), subs = S.players.filter(isSub);
+    return [
+      h('h2', { class: 'hub-sec' }, h('span', null, '🔥 Team FIRE'), h('small', { class: 'muted' }, `${main.length} titulaire${main.length > 1 ? 's' : ''}`)),
+      grid(main),
+      subs.length ? h('h2', { class: 'hub-sec subs' }, h('span', null, '🔁 Remplaçants'), h('small', { class: 'muted' }, `${subs.length} joueur${subs.length > 1 ? 's' : ''}`)) : null,
+      subs.length ? grid(subs) : null];
   }
 
   function roleLine(p, R) {

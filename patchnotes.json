@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.65",
+   "date": "2026-11-12",
+   "titre": "Team FIRE et remplaçants",
+   "items": [
+    [
+     "improve",
+     "Stats des joueurs : les cartes sont rangées en deux catégories, 🔥 Team FIRE (les titulaires) puis 🔁 Remplaçants en dessous."
+    ]
+   ]
+  },
+  {
    "v": "1.10.64",
    "date": "2026-11-12",
    "titre": "Dispos des coachs rétablies",
