@@ -2275,7 +2275,7 @@
     const sig = JSON.stringify(d && [d.client, d.phase, d.allies, d.enemies, d.timer && d.timer.phase]);
     if (draftBadge() !== was) renderNav();
     if (S.section === 'draft') {
-      if (sig !== DR.sig && !typing()) { DR.sig = sig; renderDraft(); }
+      if (sig !== DR.sig && !typing() && S.drTab !== 'puzzle') { DR.sig = sig; renderDraft(); }
       const t = document.querySelector('.dr-timer');
       if (t && d && d.timer) t.textContent = d.timer.left ? `⏱ ${d.timer.left} s` : '';
     }
@@ -2299,7 +2299,7 @@
     DR.runes[k] = { loading: true };
     const r = await window.fire.lcu.runes(me.key, me.pos).catch((e) => ({ ok: false, error: String(e) }));
     DR.runes[k] = r || { ok: false };
-    if (S.section === 'draft' && !typing()) renderDraft();
+    if (S.section === 'draft' && !typing() && S.drTab !== 'puzzle') renderDraft();
   }
   async function importRunes(pg, label, replaceId) {
     DR.busy = label; DR.msg = ''; renderDraft();
@@ -2310,7 +2310,147 @@
     else DR.msg = { ok: false, t: '⚠ Import impossible' + (r && r.error ? ` : ${r.error}` : '') + '.' };
     renderDraft();
   }
+  // Onglets de la rubrique Draft : la draft en direct et les puzzles « Contrez la composition adverse ».
   function renderDraft() {
+    if (S.drTab === 'puzzle') return renderPuzzles();
+    renderDraftLive();
+    const hero = $('view').querySelector('.sec-hero');
+    if (hero) hero.after(draftTabs());
+  }
+  function draftTabs() {
+    const pz = S.drTab === 'puzzle';
+    return h('div', { class: 'row plan-tabs' },
+      h('button', { class: 'plan-tab', 'aria-pressed': String(!pz), onclick: () => { S.drTab = 'live'; DR.sig = null; renderDraft(); } }, '⚡ Draft en direct'),
+      h('button', { class: 'plan-tab', 'aria-pressed': String(pz), onclick: () => { S.drTab = 'puzzle'; renderDraft(); } }, '🧩 Puzzles de draft', pzDue() ? h('span', { class: 'plan-tab-n' }, '!') : null));
+  }
+
+  // ----- Puzzles de draft : la compo adverse est connue, 3 alliés aussi ; choisis le meilleur duo pour les 2 rôles restants. -----
+  // Les bonnes réponses viennent des taux de victoire de LoLalytics (Émeraude+), relevés chaque semaine (tools/puzzles_draft.py).
+  // Progression personnelle seulement (pas de classement entre joueurs : on est une équipe).
+  const PZ_LANES = [['top', 'Top', '🛡️'], ['jungle', 'Jungle', '🌲'], ['middle', 'Mid', '✨'], ['bottom', 'ADC', '🏹'], ['support', 'Support', '💞']];
+  const PZ = { data: null, loading: false, cur: null, pick: null, fifty: null, err: '', last: null };
+  const pzStats = () => ({ cote: 1000, serie: 0, best: 0, ok: 0, total: 0, done: [], days: [], ...load('fire.pz', {}) });
+  const pzDue = () => !!(PZ.data && PZ.data.puzzles && PZ.data.puzzles.length && !pzStats().days.includes(todayYmd()));
+  async function pzLoad() {
+    if (PZ.loading || !window.fire.puzzles) return;
+    PZ.loading = true;
+    try { PZ.data = await window.fire.puzzles(); PZ.err = PZ.data && PZ.data.puzzles && PZ.data.puzzles.length ? '' : 'Les puzzles de la semaine ne sont pas encore prêts.'; }
+    catch (e) { PZ.err = 'Puzzles indisponibles (hors ligne ?)'; }
+    PZ.loading = false;
+    if (S.section === 'draft' && S.drTab === 'puzzle') renderPuzzles(); else renderNav();
+  }
+  function pzNext() {
+    const st = pzStats();
+    const list = (PZ.data && PZ.data.puzzles) || [];
+    PZ.cur = list.find((p) => !st.done.includes(p.id)) || null;
+    PZ.pick = null; PZ.fifty = null; PZ.last = null;
+  }
+  function pzStreakDays(days) {
+    let n = 0; let d = days.includes(todayYmd()) ? todayYmd() : addDays(todayYmd(), -1);
+    while (days.includes(d)) { n++; d = addDays(d, -1); }
+    return n;
+  }
+  function pzAnswer(i) {
+    const p = PZ.cur;
+    if (!p || PZ.pick !== null) return;
+    PZ.pick = i;
+    const st = pzStats();
+    const ok = i === p.bon;
+    let delta;
+    if (ok) { st.serie++; delta = 15 + Math.min(10, (st.serie - 1) * 2); if (PZ.fifty) delta = Math.round(delta / 2); st.ok++; }
+    else { st.serie = 0; delta = -12; }
+    st.best = Math.max(st.best, st.serie);
+    st.total++;
+    st.cote = Math.max(0, st.cote + delta);
+    st.done = st.done.concat(p.id).slice(-500);
+    if (!st.days.includes(todayYmd())) st.days = st.days.concat(todayYmd()).slice(-120);
+    save('fire.pz', st);
+    PZ.last = { ok, delta };
+    renderPuzzles(); renderNav();
+  }
+  function pzFifty() {
+    const p = PZ.cur;
+    if (!p || PZ.pick !== null || PZ.fifty) return;
+    const wrong = p.choix.map((_, i) => i).filter((i) => i !== p.bon);
+    // On retire les deux moins bons choix restants au hasard parmi les mauvais.
+    PZ.fifty = wrong.sort(() => Math.random() - 0.5).slice(0, 2);
+    renderPuzzles();
+  }
+  function pzChamp(c, size) { return champIcon(c.id, size || 36); }
+  const pct = (x) => (Math.round(x * 10) / 10).toLocaleString('fr-FR') + ' %';
+  function renderPuzzles() {
+    const view = $('view');
+    if (!S.champList) loadChampions();
+    if (!PZ.data) pzLoad();
+    if (PZ.data && !PZ.cur && PZ.pick === null) pzNext();
+    const st = pzStats();
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🧩'), h('div', null, h('h1', { class: 'title' }, 'Puzzles de draft'),
+      h('p', { class: 'muted' }, 'Contre la composition adverse : la compo ennemie est connue, choisis le duo qui gagne le plus contre ses adversaires de lane.')));
+    const prec = st.total ? Math.round((st.ok / st.total) * 100) + ' %' : '—';
+    const days = pzStreakDays(st.days);
+    const mon = mondayOf(todayYmd());
+    const week = h('div', { class: 'pz-week' }, ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((l, k) => {
+      const d = addDays(mon, k);
+      return h('span', { class: 'pz-dot' + (st.days.includes(d) ? ' on' : '') + (d === todayYmd() ? ' today' : '') }, st.days.includes(d) ? '🔥' : l);
+    }));
+    const stats = h('div', { class: 'pz-stats' },
+      h('div', { class: 'pz-stat big' }, h('small', null, 'Cote de puzzles'), h('b', null, String(st.cote))),
+      h('div', { class: 'pz-stat' }, h('small', null, 'Série'), h('b', null, String(st.serie))),
+      h('div', { class: 'pz-stat' }, h('small', null, 'Meilleure série'), h('b', null, String(st.best))),
+      h('div', { class: 'pz-stat' }, h('small', null, 'Précision'), h('b', null, prec)),
+      h('div', { class: 'pz-stat days' }, h('small', null, 'Jours d’affilée'), h('b', null, String(days)), week));
+    const nodes = [hero, draftTabs(), stats];
+    if (!PZ.data) nodes.push(h('div', { class: 'card empty-state' }, h('b', null, PZ.err || 'Chargement des puzzles…')));
+    else if (!PZ.cur) {
+      const n = (PZ.data.puzzles || []).length;
+      nodes.push(h('div', { class: 'card empty-state' }, h('b', null, n ? `🏆 Tu as fait les ${n} puzzles de la semaine !` : (PZ.err || 'Pas de puzzle pour le moment.')),
+        h('p', { class: 'muted small' }, 'De nouveaux puzzles arrivent chaque lundi avec les stats à jour.'),
+        n ? h('button', { class: 'btn-ghost', onclick: () => { const s2 = pzStats(); s2.done = s2.done.filter((id) => !(PZ.data.puzzles || []).some((p) => p.id === id)); save('fire.pz', s2); pzNext(); renderPuzzles(); } }, '🔁 Les refaire') : null));
+    } else nodes.push(pzBoard(PZ.cur));
+    if (PZ.data && PZ.data.patch) nodes.push(h('p', { class: 'muted small pz-src' }, `Données : LoLalytics · ${PZ.data.niveau || 'Émeraude+'} · patch ${PZ.data.patch} · relevées le ${dateFr(PZ.data.genere)}, mises à jour chaque lundi. `,
+      'Le bon duo est celui qui gagne le plus souvent contre ses deux adversaires de lane directs.'));
+    view.replaceChildren(...nodes.filter(Boolean));
+  }
+  function pzBoard(p) {
+    const done = PZ.pick !== null;
+    const side = (team, blue) => h('div', { class: 'pz-side ' + (blue ? 'blue' : 'red') },
+      h('div', { class: 'pz-side-t' }, blue ? h('span', null, 'CÔTÉ BLEU ', h('small', null, '(vous)')) : 'CÔTÉ ROUGE'),
+      PZ_LANES.map(([lane, label, ico]) => {
+        const c = team[lane];
+        const open = blue && p.ouverts.includes(lane);
+        if (open) {
+          const pick = done ? p.choix[PZ.pick][lane === p.ouverts[0] ? 'a' : 'b'] : null;
+          return h('div', { class: 'pz-slot open' + (done ? (PZ.pick === p.bon ? ' good' : ' bad') : '') },
+            pick ? pzChamp(pick) : h('span', { class: 'pz-hex' }), h('b', null, pick ? pick.nom : 'Votre choix'), h('span', { class: 'pz-lane', title: label }, ico));
+        }
+        return h('div', { class: 'pz-slot' }, pzChamp(c), h('b', null, c.nom), h('span', { class: 'pz-lane', title: label }, ico));
+      }));
+    const lab = (lane) => (PZ_LANES.find((x) => x[0] === lane) || [])[1];
+    const opts = h('div', { class: 'pz-opts' }, p.choix.map((c, i) => {
+      const gone = PZ.fifty && PZ.fifty.includes(i);
+      const cls = 'pz-opt' + (gone ? ' gone' : '') + (done && i === p.bon ? ' good' : '') + (done && i === PZ.pick && i !== p.bon ? ' bad' : '');
+      return h('button', { class: cls, disabled: done || gone ? true : null, onclick: () => pzAnswer(i) },
+        h('span', { class: 'pz-letter' }, 'ABCD'[i]),
+        h('div', { class: 'pz-duo' }, pzChamp(c.a, 44), pzChamp(c.b, 44)),
+        h('div', { class: 'pz-names' }, c.a.nom, h('span', { class: 'muted' }, ' + '), c.b.nom),
+        done ? h('div', { class: 'pz-why' },
+          h('span', null, `${c.a.nom} vs ${p.rouge[p.ouverts[0]].nom} : ${pct(c.a.wr)}`),
+          h('span', null, `${c.b.nom} vs ${p.rouge[p.ouverts[1]].nom} : ${pct(c.b.wr)}`),
+          h('b', { class: c.score >= 0 ? 'st-ok' : 'st-bad' }, (c.score >= 0 ? '+' : '') + pct(c.score).replace(' %', ' pts'))) : null);
+    }));
+    const L = PZ.last;
+    const center = h('div', { class: 'pz-center' },
+      h('div', { class: 'pz-arch' }, h('span', null, 'VOS CHOIX'), h('small', { class: 'muted' }, `${lab(p.ouverts[0])} + ${lab(p.ouverts[1])}`)),
+      opts,
+      !done ? h('button', { class: 'pz-fifty', disabled: PZ.fifty ? true : null, onclick: pzFifty }, h('b', null, '50 / 50'), h('small', null, 'Éliminer deux choix'), h('small', { class: 'st-bad' }, 'gain de cote divisé par 2')) : null,
+      done ? h('div', { class: 'pz-res ' + (L && L.ok ? 'ok' : 'ko') },
+        h('b', null, L && L.ok ? `✅ Bien vu ! ${L.delta > 0 ? '+' : ''}${L.delta} de cote` : `❌ Raté : la bonne réponse était ${'ABCD'[p.bon]} (${L ? L.delta : ''} de cote)`),
+        h('p', { class: 'muted small' }, `${p.choix[p.bon].a.nom} gagne ${pct(p.choix[p.bon].a.wr)} de ses parties contre ${p.rouge[p.ouverts[0]].nom}, et ${p.choix[p.bon].b.nom} ${pct(p.choix[p.bon].b.wr)} contre ${p.rouge[p.ouverts[1]].nom}.`),
+        h('button', { class: 'btn-fire', onclick: () => { pzNext(); renderPuzzles(); } }, 'Puzzle suivant →')) : null);
+    return h('div', { class: 'card pz-board' }, side(p.bleu, true), center, side(p.rouge, false));
+  }
+
+  function renderDraftLive() {
     const view = $('view');
     if (!S.champList) loadChampions();
     const d = DR.d;

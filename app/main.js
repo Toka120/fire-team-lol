@@ -259,6 +259,8 @@ ipcMain.handle('config', async () => {
   lastCfg = j;
   return j;
 });
+const PUZ_URL = 'https://toka120.github.io/fire-team-lol/puzzles-draft.json';
+ipcMain.handle('puzzles:draft', async () => (await remoteJson(PUZ_URL, 'puzzles-draft.json')) || { puzzles: [] });
 ipcMain.handle('guides', async () => (await remoteJson(GUIDES_URL, 'guides.json')) || { themes: [] });
 // Patch notes : version en ligne (à jour même avant d'installer), sinon la copie livrée avec l'application.
 ipcMain.handle('patchnotes', async () => {

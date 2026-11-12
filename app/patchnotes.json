@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.67",
+   "date": "2026-11-12",
+   "titre": "Puzzles de draft",
+   "items": [
+    [
+     "new",
+     "Draft › 🧩 Puzzles de draft : la compo adverse et 3 de tes alliés sont connus, choisis parmi 4 duos celui qui contre le mieux leurs adversaires de lane. 80 puzzles par semaine."
+    ],
+    [
+     "new",
+     "Les bonnes réponses viennent des vrais taux de victoire (LoLalytics, Émeraude+, patch en cours), mis à jour chaque lundi. Après ta réponse, chaque duo affiche ses taux de victoire contre ses deux vis-à-vis."
+    ],
+    [
+     "new",
+     "Ta progression : cote de puzzles, série, meilleure série, précision et jours d'affilée (🔥 sur la semaine). Joker 50/50 pour éliminer deux choix (le gain de cote est divisé par 2)."
+    ],
+    [
+     "info",
+     "Pas de classement entre joueurs : chacun suit sa propre progression."
+    ]
+   ]
+  },
+  {
    "v": "1.10.66",
    "date": "2026-11-12",
    "titre": "Discussion de l'équipe",

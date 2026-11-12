@@ -1,0 +1,32 @@
+name: Puzzles de draft (chaque lundi)
+
+# Relève les matchups sur LoLalytics (Émeraude+, patch en cours) et régénère puzzles-draft.json,
+# lu par l'onglet Draft › Puzzles de FIRE (servi par GitHub Pages).
+on:
+  schedule:
+    - cron: '43 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  puzzles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 tools/puzzles_draft.py
+      - name: Publier les nouveaux puzzles
+        shell: bash
+        run: |
+          git config user.name "FIRE puzzles"
+          git config user.email "actions@users.noreply.github.com"
+          git add puzzles-draft.json
+          if git diff --cached --quiet; then echo "rien de neuf"; exit 0; fi
+          git commit -m "Puzzles de draft : relevé de la semaine"
+          git pull --rebase origin main
+          git push origin HEAD:main
