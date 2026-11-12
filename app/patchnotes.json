@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.64",
+   "date": "2026-11-12",
+   "titre": "Dispos des coachs rétablies",
+   "items": [
+    [
+     "fix",
+     "Les dispos des coachs et les demandes de créneaux avaient disparu : un joueur encore sur une ancienne version de FIRE a répondu au planning d'équipe, et son app a réécrit le planning sans elles. Elles sont rétablies."
+    ],
+    [
+     "fix",
+     "Les dispos des coachs sont maintenant enregistrées à part du planning d'équipe : une ancienne version de FIRE ne peut plus les effacer."
+    ]
+   ]
+  },
+  {
    "v": "1.10.63",
    "date": "2026-11-12",
    "titre": "Coaching à plusieurs",

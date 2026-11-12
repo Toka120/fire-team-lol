@@ -581,6 +581,15 @@ async function savePools(action) {
 // ---------- Planning : le coach coche les jours et heures de jeu, chaque joueur répond présent / absent / incertain ----------
 // Même stockage que les pools : planning.json dans le dépôt de données (jeton d'équipe), sinon coach/planning.json (jeton du coach).
 const PLANNING = 'coach/planning.json';
+// Les dispos des coachs et les demandes sont dans un fichier à part : les anciennes versions de FIRE
+// réécrivent planning.json sans connaître ces données (c'est ce qui les avait effacées le 12/11).
+const PLANNING_C = 'coach/planning-coachs.json';
+const PLANNING_C_DATA = 'planning-coachs.json';
+// Avant la 1.10.64, les dispos étaient dans planning.json : on les reprend tant que le fichier des coachs n'existe pas.
+function mergePlanning(d, dc) {
+  const src = dc || d || {};
+  return prunePlanning({ jours: (d && d.jours) || {}, reponses: (d && d.reponses) || {}, coachs: src.coachs || {}, resas: src.resas || {} });
+}
 const isYmd = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ''));
 const STATUTS = ['present', 'absent', 'incertain'];
 
@@ -621,15 +630,17 @@ async function planning() {
   if (!teamKey()) return { ok: false, error: "entre à nouveau le code d'équipe pour lire le planning" };
   const dr = getConfig().data_repo || null;
   const tok = dr ? await teamToken() : null;
-  let box = null, offline = false;
+  let box = null, boxC = null, offline = false;
   try {
     if (dr) box = await readPublic('planning.json', dr, tok);
     if (!box) box = await readPublic(PLANNING);
+    if (dr) boxC = await readPublic(PLANNING_C_DATA, dr, tok);
+    if (!boxC) boxC = await readPublic(PLANNING_C);
     if (box) saveCache('planning', box);
-  } catch (e) { offline = true; box = loadCache('planning'); }
+    if (boxC) saveCache('planning-coachs', boxC);
+  } catch (e) { offline = true; box = loadCache('planning'); boxC = loadCache('planning-coachs'); }
   const base = { peutEcrire: !!(dr && tok), depot: dr, offline };
-  if (!box) return { ok: true, jours: {}, reponses: {}, coachs: {}, resas: {}, ...base };
-  try { return { ok: true, ...prunePlanning(open(box)), ...base }; }
+  try { return { ok: true, ...mergePlanning(box ? open(box) : {}, boxC ? open(boxC) : null), ...base }; }
   catch (e) { return { ok: false, error: 'planning illisible avec ce code', ...base }; }
 }
 
@@ -643,9 +654,10 @@ async function savePlanning(action) {
   const isCoach = coachState().coach;
   const c = readSecret('coach.bin') || {};
   const tok = dr ? await teamToken() : null;
-  let repo, token, file;
-  if (dr && tok) { repo = dr; token = tok; file = 'planning.json'; }
-  else if (isCoach && c.github) { repo = REPO; token = c.github; file = PLANNING; }
+  const coachPart = ['dispos', 'demande', 'decision'].includes(action.type);
+  let repo, token, file, other;
+  if (dr && tok) { repo = dr; token = tok; file = coachPart ? PLANNING_C_DATA : 'planning.json'; other = coachPart ? 'planning.json' : PLANNING_C_DATA; }
+  else if (isCoach && c.github) { repo = REPO; token = c.github; file = coachPart ? PLANNING_C : PLANNING; other = coachPart ? PLANNING : PLANNING_C; }
   else return { ok: false, error: dr ? "le coach n'a pas encore activé les réponses des joueurs (jeton d'équipe)" : 'réservé au coach' };
   if (action.type === 'semaine' && !isCoach && !chefOn()) return { ok: false, error: "réservé au coach et au chef d'équipe" };
   if ((action.type === 'dispos' || action.type === 'decision') && !isCoach) return { ok: false, error: 'réservé aux coachs (code coach)' };
@@ -653,9 +665,14 @@ async function savePlanning(action) {
   try {
     for (let i = 0; i < 4; i++) {
       const cur = await ghGet(token, file, repo);
+      const oth = await ghGet(token, other, repo).catch(() => null);
+      const othD = oth && oth.json ? open(oth.json) : {};
       let d = { jours: {}, reponses: {} };
       if (cur && cur.json) d = open(cur.json);
+      else if (coachPart) d = { coachs: othD.coachs || {}, resas: othD.resas || {} }; // 1re écriture : reprise depuis planning.json
       else if (repo !== REPO) { try { const old = await readPublic(PLANNING); if (old) d = open(old); } catch (e) { /* rien à reprendre */ } }
+      if (!coachPart) { d.jours = d.jours || {}; d.reponses = d.reponses || {}; Object.assign(d, { coachs: othD.coachs || {}, resas: othD.resas || {} }); }
+      else { d.jours = othD.jours || {}; d.reponses = othD.reponses || {}; }
       d.jours = d.jours || {}; d.reponses = d.reponses || {}; d.coachs = d.coachs || {}; d.resas = d.resas || {};
       if (action.type === 'semaine') {
         if (!isYmd(action.debut)) throw new Error('semaine invalide');
@@ -703,10 +720,10 @@ async function savePlanning(action) {
         }
       } else throw new Error('action inconnue');
       d = prunePlanning(d);
-      const box = seal(d, 'planning');
+      const box = coachPart ? seal({ coachs: d.coachs, resas: d.resas }, 'planning-coachs') : seal({ jours: d.jours, reponses: d.reponses }, 'planning');
       const msg = { reponse: 'Planning : réponse', semaine: 'Planning : semaine', dispos: 'Planning coachs : dispos', demande: 'Planning coachs : demande', decision: 'Planning coachs : décision' }[action.type];
       const r = await ghPut(token, file, box, cur && cur.sha, msg, repo);
-      if (r.ok) { saveCache('planning', box); return { ok: true, ...d }; }
+      if (r.ok) { saveCache(coachPart ? 'planning-coachs' : 'planning', box); return { ok: true, ...d }; }
     }
     throw new Error("le planning a changé pendant l'envoi, réessaie");
   } catch (e) {
