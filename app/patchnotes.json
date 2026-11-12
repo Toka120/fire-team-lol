@@ -1,6 +1,18 @@
 {
  "versions": [
   {
+   "contenu": true,
+   "id": "c-2026-11-12-fond-toks",
+   "date": "2026-11-12",
+   "titre": "Skins en fond pour Toks42o",
+   "items": [
+    [
+     "new",
+     "Toks42o a ses skins préférés en fond de sa carte et de son profil, en alternance : Zyra sorcière draconique, Briar primordienne et Wukong volcanique."
+    ]
+   ]
+  },
+  {
    "v": "1.10.65",
    "date": "2026-11-12",
    "titre": "Team FIRE et remplaçants",
