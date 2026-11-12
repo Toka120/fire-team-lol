@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.62",
+   "date": "2026-11-12",
+   "titre": "Planning 24 h/24 et créneaux notifiés",
+   "items": [
+    [
+     "improve",
+     "Toutes les heures sont possibles, de 0h à 23h : un coach peut se mettre dispo à 3h du matin. Les heures de nuit sont marquées 🌙, la grille défile et s'ouvre sur 10h. Valable aussi pour le planning d'équipe."
+    ],
+    [
+     "new",
+     "Notification au joueur quand le coach répond à sa demande : « ✅ Créneau accepté » ou « ❌ Créneau refusé », avec le coach, le jour et l'heure (ou « donné à un autre joueur »)."
+    ],
+    [
+     "improve",
+     "Tant qu'une demande attend une réponse, FIRE vérifie chaque minute (au lieu de 10) : la notification arrive presque tout de suite. Les coachs voient aussi les nouvelles demandes en moins d'une minute."
+    ],
+    [
+     "improve",
+     "Paramètres › Notifications : nouvelle case « Créneau avec un coach » pour activer ou couper ces notifications."
+    ]
+   ]
+  },
+  {
    "v": "1.10.61",
    "date": "2026-11-12",
    "titre": "Planning : les dispos des coachs",

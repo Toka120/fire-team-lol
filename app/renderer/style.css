@@ -637,7 +637,10 @@ button.plan-p{cursor:pointer}
 .plan-p.st-none{color:var(--muted)}
 .st-ok{color:var(--ok)} .st-warn{color:var(--warn)} .st-bad{color:var(--bad)}
 .plan-btn.st-ok,.plan-btn.st-warn,.plan-btn.st-bad{color:var(--fg)}
-.plan-gridwrap{overflow-x:auto;margin-bottom:12px}
+.plan-gridwrap{overflow:auto;max-height:560px;margin-bottom:12px;padding-top:0}
+.plan-grid thead th{position:sticky;top:0;z-index:2;background:var(--panel);padding-top:12px;box-shadow:0 -6px 0 var(--panel)}
+.plan-grid tr.night .plan-hr{color:#8fa2ff}
+.plan-grid tr.night .plan-cell:not(.on){background:rgba(90,110,255,.07)}
 .plan-grid{border-collapse:separate;border-spacing:4px;width:100%;user-select:none}
 .plan-grid th{font-weight:700;font-size:13px;padding:2px 4px;text-align:center}
 .plan-grid th.today{color:var(--fire1)}

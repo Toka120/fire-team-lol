@@ -232,6 +232,13 @@
     window.fire.team([]).then((r) => { if (r && r.games) { S.teamGames = r.games; if (S.section === 'stats' && !typing()) render(); } }).catch(() => {});
     refreshAll();
     S.timer = setInterval(refreshContent, REFRESH_EVERY);
+    // Créneaux avec un coach : tant qu'une demande attend (ou sur le PC d'un coach), on regarde chaque minute
+    // pour prévenir le joueur dès que le coach accepte ou refuse.
+    setInterval(() => {
+      if (!S.plan || S.planEdit) return;
+      const waiting = S.moi && resaList().some((x) => x.s === S.moi && x.st === 'attente');
+      if (waiting || S.coachState.coach) loadPlanning();
+    }, 60 * 1000);
     if (!S.moi && !load('fire.moi.demande', false)) later(askWho);
   }
 
@@ -331,7 +338,7 @@
   }
   // ----- Notifications de bureau -----
   // Réglages enregistrés sur cet ordinateur. Chaque alerte n'est envoyée qu'une fois.
-  const NOTIF_DEF = { on: true, app: true, upd: true, plan: true, coach: true, vocal: true };
+  const NOTIF_DEF = { on: true, app: true, upd: true, plan: true, resa: true, coach: true, vocal: true };
   const notifPrefs = () => ({ ...NOTIF_DEF, ...load('fire.notif', {}) });
   function notifyDesk(kind, title, body, section) {
     const p = notifPrefs();
@@ -413,13 +420,18 @@
     const when = (x) => `${dateFr(x.d)} à ${x.hr}h avec ${vocalName(x.c)}`;
     if (coach) {
       const fresh = list.filter((x) => !was.has(key(x)));
-      if (fresh.length) notifyDesk('plan', '🎓 Demande de créneau', fresh.length === 1 ? `${vocalName(fresh[0].s)} demande le ${when(fresh[0])}.` : `${fresh.length} nouvelles demandes, dont ${vocalName(fresh[0].s)} le ${when(fresh[0])}.`, 'planning');
+      if (fresh.length) S.planTab = 'coachs';
+      if (fresh.length) notifyDesk('resa', '🎓 Demande de créneau', fresh.length === 1 ? `${vocalName(fresh[0].s)} demande le ${when(fresh[0])}.` : `${fresh.length} nouvelles demandes, dont ${vocalName(fresh[0].s)} le ${when(fresh[0])}.`, 'planning');
       return;
     }
     const done = list.filter((x) => (x.st === 'ok' || x.st === 'refus') && was.get(key(x)) !== x.st);
+    const day = (x) => `${dateFr(x.d)} à ${x.hr}h`;
+    const more = (l) => (l.length > 1 ? ` (+${l.length - 1} autre${l.length > 2 ? 's' : ''})` : '');
     const ok = done.filter((x) => x.st === 'ok'), ko = done.filter((x) => x.st === 'refus');
-    if (ok.length) notifyDesk('plan', '✅ Créneau validé', `Le coach a validé ton créneau du ${when(ok[0])}.` + (ok.length > 1 ? ` (+${ok.length - 1})` : ''), 'planning');
-    if (ko.length) notifyDesk('plan', '❌ Créneau refusé', `Ton créneau du ${when(ko[0])} n'a pas été retenu.` + (ko.length > 1 ? ` (+${ko.length - 1})` : ''), 'planning');
+    const pris = (x) => !!((((S.plan.resas[x.d] || {})[x.c] || {})[x.hr] || {})[x.s] || {}).pris;
+    if (ok.length || ko.length) S.planTab = 'coachs';
+    if (ok.length) notifyDesk('resa', '✅ Créneau accepté', `${vocalName(ok[0].c)} a accepté ton créneau du ${day(ok[0])}.` + more(ok), 'planning');
+    if (ko.length) notifyDesk('resa', '❌ Créneau refusé', pris(ko[0]) ? `${vocalName(ko[0].c)} a donné le créneau du ${day(ko[0])} à un autre joueur.` + more(ko) : `${vocalName(ko[0].c)} a refusé ton créneau du ${day(ko[0])}.` + more(ko), 'planning');
   }
   function notifFiches() {
     const ids = (S.fiches || []).map((f) => f.id);
@@ -494,6 +506,7 @@
       h('div', { class: 'nsub' },
         box(p.upd, '🔥 Une mise à jour de FIRE est disponible', (v) => set('upd', v), !p.on && !p.app),
         box(p.plan, '📅 Le coach a changé le planning (jour ajouté, retiré ou horaires modifiés)', (v) => set('plan', v), !p.on && !p.app),
+        box(p.resa, '🎓 Créneau avec un coach : ta demande est acceptée ou refusée (coachs : un joueur demande un créneau)', (v) => set('resa', v), !p.on && !p.app),
         box(p.coach, '📣 Nouvelle fiche ou note dans « Parole du coach »', (v) => set('coach', v), !p.on && !p.app),
         box(p.vocal, '🎙️ Un coéquipier arrive dans le salon vocal (notification Windows, une fois par personne toutes les 10 min)', (v) => set('vocal', v), !p.on)),
       h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: (p.on || p.app) ? null : true, onclick: () => {
@@ -3954,7 +3967,8 @@
   // ----- Planning : le coach coche les jours / heures, les joueurs répondent -----
   const PLAN_ST = { present: { ico: '✅', txt: 'Présent', cls: 'st-ok' }, incertain: { ico: '❔', txt: 'Incertain', cls: 'st-warn' }, absent: { ico: '❌', txt: 'Absent', cls: 'st-bad' } };
   const PLAN_TYPES = [['flex', '🔁 Flex'], ['5c5', '🏆 5c5'], ['scrim', '⚔️ Scrim'], ['review', '🎥 Review'], ['autre', '📌 Autre']];
-  const PLAN_HOURS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
+  // Toutes les heures, de 0h à 23h (un coach peut être dispo à 3h du matin). La grille défile et s'ouvre sur 10h.
+  const PLAN_HOURS = Array.from({ length: 24 }, (_, i) => i);
   const ymdL = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const dOf = (ymd) => { const [y, m, d] = ymd.split('-').map(Number); return new Date(y, m - 1, d, 12); };
   const mondayOf = (ymd) => { const d = dOf(ymd); return addDays(ymd, -((d.getDay() + 6) % 7)); };
@@ -4190,7 +4204,7 @@
     const grid = h('table', { class: 'plan-grid' },
       h('thead', null, h('tr', null, h('th', null, ''), days.map((d) => h('th', { class: d === t ? 'today' : null },
         h('div', null, cap(dayFr(d, { weekday: 'short' }))), h('div', { class: 'muted small' }, dayFr(d, { day: 'numeric', month: 'short' })))))),
-      h('tbody', null, PLAN_HOURS.map((hr) => h('tr', null, h('th', { class: 'plan-hr' }, hr + 'h'), days.map((d) => {
+      h('tbody', null, PLAN_HOURS.map((hr) => h('tr', { class: hr < 8 ? 'night' : null, 'data-hr': hr }, h('th', { class: 'plan-hr' }, (hr < 8 ? '🌙 ' : '') + hr + 'h'), days.map((d) => {
         const cell = h('td', { class: 'plan-cell' + (e.jours[d].heures.includes(hr) ? ' on' : '') + (d < t ? ' past' : '') });
         cell.addEventListener('mousedown', (ev) => { ev.preventDefault(); paint = !cell.classList.contains('on'); setCell(cell, d, hr, paint); window.addEventListener('mouseup', stop, { once: true }); });
         cell.addEventListener('mouseenter', () => { if (paint !== null) setCell(cell, d, hr, paint); });
@@ -4220,17 +4234,28 @@
       else e.err = (r && r.error) || 'erreur';
       render();
     } }, e.busy ? 'Publication…' : e.coach ? '📣 Publier mes dispos' : "📣 Publier le planning");
+    // La grille garde sa position de défilement entre deux affichages ; au départ, elle montre 10h (ou la 1re heure cochée si plus tôt).
+    const wrap = h('div', { class: 'card plan-gridwrap' }, grid);
+    wrap.addEventListener('scroll', () => { e.scroll = wrap.scrollTop; });
+    requestAnimationFrame(() => {
+      if (e.scroll == null) {
+        const first = Math.min(10, ...days.flatMap((d) => e.jours[d].heures));
+        const row = wrap.querySelector(`tr[data-hr="${first}"]`);
+        e.scroll = row ? Math.max(0, row.offsetTop - 40) : 0;
+      }
+      wrap.scrollTop = e.scroll;
+    });
     const asked = e.coach ? days.some((d) => Object.keys(((S.plan.resas[d] || {})[e.coach]) || {}).length) : false;
-    view.replaceChildren(
+    view.replaceChildren(...[
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, e.coach ? '🎓' : '✏️'), h('div', null, h('h1', { class: 'title' }, e.coach ? `Dispos de ${vocalName(e.coach)}` : 'Jours et heures de jeu'),
         h('p', { class: 'muted' }, `Semaine du ${dayFr(days[0], { day: 'numeric', month: 'long' })}. ` + (e.coach
           ? 'Clique (ou glisse) sur les cases pour cocher les heures où tu es disponible : chaque heure devient un créneau que les joueurs peuvent demander.'
           : "Clique (ou glisse) sur les cases pour cocher les heures où l'équipe joue.")))),
       asked ? h('p', { class: 'muted small' }, '⚠ Si tu retires une heure déjà demandée par un joueur, sa demande disparaît.') : null,
-      h('div', { class: 'card plan-gridwrap' }, grid),
+      wrap,
       h('div', { class: 'card plan-edays' }, rows),
       h('div', { class: 'row' }, save, h('button', { class: 'btn-ghost', onclick: () => { S.planEdit = null; render(); } }, 'Annuler'),
-        e.err ? h('span', { class: 'bad small' }, '⚠ ' + e.err) : null));
+        e.err ? h('span', { class: 'bad small' }, '⚠ ' + e.err) : null)].filter(Boolean));
   }
 
   async function loadPools() {
