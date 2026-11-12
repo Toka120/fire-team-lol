@@ -624,6 +624,7 @@
   function onHall(from, m) {
     if (!m) return;
     if (m.t === 'invite' && L.onInvite) L.onInvite(from, String(m.room || 'equipe').slice(0, 20));
+    if (m.t === 'chat' && m.msg && L.onChat && m.msg.from === from) L.onChat(m.msg);
     if (m.t === 'here') { if (m.on) L.here[from] = { t: Date.now() + 60000, room: String(m.room || 'equipe').slice(0, 20) }; else delete L.here[from]; emit(); }
   }
   function link(slug) {
@@ -682,9 +683,17 @@
     });
   }
 
+  // Discussion écrite : le message part tout de suite vers chaque FIRE ouvert (l'historique est enregistré à part).
+  async function chatSend(msg) {
+    const others = L.ids.filter((x) => x !== L.me);
+    let n = 0;
+    await Promise.all(others.map(async (x) => { const dc = await link(x); if (dc) { try { dc.send({ t: 'chat', msg }); n++; } catch (e) { /* */ } } }));
+    return n;
+  }
+
   window.FireVoice = {
     join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, setStreamSound, requestSound, addScreenSound, watchStream,
-    onSoundRequest: (f) => { V.onSndReq = f; }, lobby, invite,
+    onSoundRequest: (f) => { V.onSndReq = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
     clearErr: () => { V.err = ''; emit(); },
     // Définition et images/s de chaque écran partagé que je reçois (affichées sur la vidéo).
     recvInfo: async () => {

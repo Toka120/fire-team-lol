@@ -731,6 +731,41 @@ async function savePlanning(action) {
   }
 }
 
+// ---------- Discussion écrite de l'équipe : historique chiffré (300 derniers messages) dans le dépôt de données ----------
+const CHAT = 'chat.json';
+const cleanMsg = (m) => ({ id: String((m && m.id) || '').replace(/[^\w-]/g, '').slice(0, 40), from: String((m && m.from) || '').slice(0, 80), text: str(m && m.text, 500), at: Math.min(Number(m && m.at) || Date.now(), Date.now() + 60000) });
+async function chat() {
+  if (!teamKey()) return { ok: false, error: "entre à nouveau le code d'équipe" };
+  const dr = getConfig().data_repo || null;
+  if (!dr) return { ok: true, msgs: [], peutEcrire: false };
+  const tok = await teamToken();
+  let box = null, offline = false;
+  try { box = await readPublic(CHAT, dr, tok); if (box) saveCache('chat', box); } catch (e) { offline = true; box = loadCache('chat'); }
+  try { return { ok: true, msgs: box ? (open(box).msgs || []) : [], offline, peutEcrire: !!tok }; }
+  catch (e) { return { ok: false, error: 'discussion illisible avec ce code' }; }
+}
+async function chatSend(m) {
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, error: "le coach n'a pas encore activé le jeton d'équipe" };
+  const msg = cleanMsg(m);
+  if (!msg.id || !msg.from || !msg.text) return { ok: false, error: 'message vide' };
+  try {
+    for (let i = 0; i < 5; i++) {
+      const cur = await ghGet(tok, CHAT, dr);
+      const d = cur && cur.json ? open(cur.json) : { msgs: [] };
+      d.msgs = Array.isArray(d.msgs) ? d.msgs : [];
+      if (!d.msgs.some((x) => x.id === msg.id)) d.msgs.push(msg);
+      d.msgs.sort((a, b) => a.at - b.at);
+      d.msgs = d.msgs.slice(-300);
+      const box = seal(d, 'chat');
+      const r = await ghPut(tok, CHAT, box, cur && cur.sha, 'Discussion', dr);
+      if (r.ok) { saveCache('chat', box); return { ok: true, msgs: d.msgs }; }
+    }
+    throw new Error("la discussion a changé pendant l'envoi, réessaie");
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+
 // Liste des champions (Data Dragon de Riot), gardée en cache pour le mode hors ligne.
 async function champions() {
   try {
@@ -814,4 +849,4 @@ async function closeBug(id) {
   } catch (e) { return { ok: false, error: String(e.message || e) }; }
 }
 
-module.exports = { sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { chat, chatSend, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

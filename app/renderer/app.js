@@ -216,10 +216,11 @@
       window.fire.update.on((m) => { S.upd = { ...S.upd, ...m }; renderUpdate(); });
       window.fire.update.state().then((m) => { S.upd = { ...m, ...S.upd, auto: m.auto, portable: m.portable, store: m.store }; renderUpdate(); }).catch(() => {});
     }
-    if (window.fire.onNotifyGo) window.fire.onNotifyGo((sec) => { if (sec) go(sec); });
+    if (window.fire.onNotifyGo) window.fire.onNotifyGo((sec) => { if (sec === 'chat') chatOpen(true); else if (sec) go(sec); });
     if (window.fire.background) window.fire.background.get().then((b) => { S.bg = b; if (S.section === 'settings' && !typing()) renderSettings(); }).catch(() => {});
     renderUpdate();
     render();
+    chatInit();
     loadGuides();
     window.fire.coach.state().then((c) => { S.coachState = c; if (S.section === 'coach' && !typing()) render(); }).catch(() => {});
     loadFiches();
@@ -338,7 +339,7 @@
   }
   // ----- Notifications de bureau -----
   // Réglages enregistrés sur cet ordinateur. Chaque alerte n'est envoyée qu'une fois.
-  const NOTIF_DEF = { on: true, app: true, upd: true, plan: true, resa: true, coach: true, vocal: true };
+  const NOTIF_DEF = { on: true, app: true, upd: true, plan: true, resa: true, coach: true, vocal: true, chat: true };
   const notifPrefs = () => ({ ...NOTIF_DEF, ...load('fire.notif', {}) });
   function notifyDesk(kind, title, body, section) {
     const p = notifPrefs();
@@ -507,6 +508,7 @@
       h('div', { class: 'nsub' },
         box(p.upd, '🔥 Une mise à jour de FIRE est disponible', (v) => set('upd', v), !p.on && !p.app),
         box(p.plan, '📅 Le coach a changé le planning (jour ajouté, retiré ou horaires modifiés)', (v) => set('plan', v), !p.on && !p.app),
+        box(p.chat, '💬 Nouveau message dans la discussion (quand FIRE n’est pas au premier plan)', (v) => set('chat', v), !p.on),
         box(p.resa, '🎓 Créneau avec un coach : ta demande est acceptée ou refusée (coachs : un joueur demande un créneau)', (v) => set('resa', v), !p.on && !p.app),
         box(p.coach, '📣 Nouvelle fiche ou note dans « Parole du coach »', (v) => set('coach', v), !p.on && !p.app),
         box(p.vocal, '🎙️ Un coéquipier arrive dans le salon vocal (notification Windows, une fois par personne toutes les 10 min)', (v) => set('vocal', v), !p.on)),
@@ -728,6 +730,7 @@
   function render() {
     hideTip();
     renderNav();
+    try { chatPaint(); } catch (e) { /* discussion pas encore prête */ }
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
@@ -4327,6 +4330,111 @@
   }
 
   // Au premier lancement : on demande une seule fois qui utilise l'app, pour ouvrir directement sa tierlist.
+  // ----- Discussion de l'équipe : panneau en bas à gauche, sur toutes les pages, ouvert ou replié -----
+  // Les messages arrivent tout de suite par les FIRE ouverts (voice.js) et l'historique est relu toutes les 2 minutes.
+  const CH = { open: load('fire.chat.open', false), msgs: [], seen: load('fire.chat.seen', 0), err: '', sending: false, el: null, list: null, inp: null, told: new Set(), ready: false };
+  function chatMerge(list, live) {
+    const by = new Map(CH.msgs.map((m) => [m.id, m]));
+    const fresh = [];
+    for (const m of list || []) if (m && m.id && m.text && !by.has(m.id)) { by.set(m.id, m); fresh.push(m); }
+    if (!fresh.length) return;
+    CH.msgs = [...by.values()].sort((a, b) => a.at - b.at).slice(-300);
+    // Notification Windows pour les messages des autres, si FIRE n'est pas au premier plan (une seule fois par message).
+    if (CH.ready) {
+      const others = fresh.filter((m) => m.from !== vocalMe() && m.at > Date.now() - 15 * 60000 && !CH.told.has(m.id));
+      others.forEach((m) => CH.told.add(m.id));
+      const p = notifPrefs();
+      if (others.length && p.on && p.chat && !document.hasFocus() && window.fire.notify) {
+        const m = others[others.length - 1];
+        window.fire.notify({ title: `💬 ${vocalName(m.from)}`, body: (others.length > 1 ? `(${others.length} messages) ` : '') + m.text.slice(0, 160), section: 'chat' }).catch(() => {});
+      }
+    }
+    chatPaint(live);
+  }
+  async function chatLoad() {
+    if (!window.fire.chat) return;
+    let r;
+    try { r = await window.fire.chat.list(); } catch (e) { r = { ok: false, error: String(e) }; }
+    if (r && r.ok) { CH.err = r.offline ? 'Hors ligne : derniers messages enregistrés.' : ''; chatMerge(r.msgs); }
+    else CH.err = (r && r.error) || 'discussion indisponible';
+    CH.ready = true;
+    chatPaint();
+  }
+  function chatUnread() { const me = vocalMe(); return CH.msgs.filter((m) => m.at > CH.seen && m.from !== me).length; }
+  function chatSeen() { if (!CH.open || !CH.msgs.length) return; const t = CH.msgs[CH.msgs.length - 1].at; if (t > CH.seen) { CH.seen = t; save('fire.chat.seen', t); } }
+  function chatOpen(v) { CH.open = v; save('fire.chat.open', v); chatPaint(); if (v) setTimeout(() => { if (CH.inp) CH.inp.focus(); }, 50); }
+  async function chatSend() {
+    const me = vocalMe();
+    const text = CH.inp.value.trim().slice(0, 500);
+    if (!text || !me || CH.sending) return;
+    const msg = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), from: me, text, at: Date.now() };
+    CH.inp.value = ''; chatGrow();
+    chatMerge([msg], true);
+    try { if (FV() && FV().chatSend) FV().chatSend(msg); } catch (e) { /* hall pas prêt */ }
+    CH.sending = true;
+    const r = await window.fire.chat.send(msg).catch((e) => ({ ok: false, error: String(e) }));
+    CH.sending = false;
+    if (r && r.ok) { CH.err = ''; chatMerge(r.msgs); } else CH.err = 'Message pas enregistré (' + ((r && r.error) || 'erreur') + ') : seuls ceux qui ont FIRE ouvert l’ont reçu.';
+    chatPaint();
+  }
+  function chatGrow() { if (!CH.inp) return; CH.inp.style.height = 'auto'; CH.inp.style.height = Math.min(120, CH.inp.scrollHeight) + 'px'; }
+  function chatDay(t) {
+    const d = new Date(t), today = new Date(); const y = new Date(); y.setDate(y.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return "Aujourd'hui";
+    if (d.toDateString() === y.toDateString()) return 'Hier';
+    return cap(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }));
+  }
+  function chatWho(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 ' + vocalName(slug); const p = S.players.find((x) => x.slug === slug); return (p ? roleOf(p).ico + ' ' : '') + vocalName(slug); }
+  function chatPaint(live) {
+    if (!S.players || !S.players.length || !window.fire.chat) return;
+    if (!CH.el) {
+      CH.list = h('div', { class: 'chat-list', role: 'log', 'aria-live': 'polite' });
+      CH.inp = h('textarea', { class: 'chat-inp', rows: 1, maxlength: 500, placeholder: 'Écris à l’équipe… (Entrée pour envoyer)' });
+      CH.inp.addEventListener('input', chatGrow);
+      CH.inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(); } if (e.key === 'Escape') chatOpen(false); });
+      CH.head = h('button', { class: 'chat-bar', onclick: () => chatOpen(!CH.open) });
+      CH.foot = h('div', { class: 'chat-foot' });
+      CH.el = h('div', { id: 'chat' }, CH.head, h('div', { class: 'chat-body' }, CH.list, CH.foot));
+      document.body.append(CH.el);
+      CH.el.addEventListener('mousedown', () => { chatSeen(); setTimeout(() => chatPaint(), 0); });
+    }
+    const me = vocalMe();
+    if (CH.open) chatSeen();
+    const un = chatUnread();
+    CH.el.classList.toggle('open', !!CH.open);
+    CH.el.classList.toggle('unread', !CH.open && un > 0);
+    CH.head.replaceChildren(...[h('span', { class: 'chat-t' }, '💬 Discussion de l’équipe'), un && !CH.open ? h('span', { class: 'chat-n' }, String(un)) : null, h('span', { class: 'chat-chev' }, CH.open ? '▾' : '▴')].filter(Boolean));
+    if (!CH.open) return;
+    // Liste : on reste en bas si on y était (ou si c'est mon message), sinon on garde la position de lecture.
+    const atBottom = CH.list.scrollHeight - CH.list.scrollTop - CH.list.clientHeight < 40;
+    const rows = [];
+    let lastDay = '', last = null;
+    for (const m of CH.msgs) {
+      const day = chatDay(m.at);
+      if (day !== lastDay) { rows.push(h('div', { class: 'chat-day' }, day)); lastDay = day; last = null; }
+      const grouped = last && last.from === m.from && m.at - last.at < 5 * 60000;
+      rows.push(h('div', { class: 'chat-m' + (m.from === me ? ' mine' : '') + (grouped ? ' grp' : '') },
+        grouped ? null : h('div', { class: 'chat-mh' }, h('b', null, chatWho(m.from)), h('span', { class: 'muted' }, hm(m.at))),
+        h('div', { class: 'chat-tx' }, m.text)));
+      last = m;
+    }
+    if (!rows.length) rows.push(h('p', { class: 'muted small chat-empty' }, CH.ready ? 'Aucun message pour l’instant. Lance la discussion 👋' : 'Chargement…'));
+    CH.list.replaceChildren(...rows);
+    if (atBottom || live) CH.list.scrollTop = CH.list.scrollHeight;
+    CH.foot.replaceChildren(...[
+      CH.err ? h('p', { class: 'chat-err' }, '⚠ ' + CH.err) : null,
+      me ? h('div', { class: 'chat-form' }, CH.inp, h('button', { class: 'btn-fire chat-send', title: 'Envoyer', onclick: chatSend }, '➤'))
+        : h('button', { class: 'btn-ghost chat-who', onclick: askWho }, '👤 Choisis qui tu es pour écrire')].filter(Boolean));
+  }
+  function chatInit() {
+    if (CH.started || !window.fire.chat) return;
+    CH.started = true;
+    try { if (FV() && FV().onChat) FV().onChat((m) => chatMerge([m], true)); } catch (e) { /* */ }
+    chatLoad();
+    setInterval(chatLoad, 2 * 60 * 1000);
+    chatPaint();
+  }
+
   function askWho() {
     if (document.querySelector('.who')) return;
     const close = (slug) => {

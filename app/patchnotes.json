@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.66",
+   "date": "2026-11-12",
+   "titre": "Discussion de l'équipe",
+   "items": [
+    [
+     "new",
+     "💬 Discussion de l'équipe : un petit salon écrit en bas à gauche de chaque page. Clique sur la barre pour l'ouvrir ou le replier ; il reste comme tu l'as laissé d'une page à l'autre."
+    ],
+    [
+     "new",
+     "Les messages arrivent tout de suite chez ceux qui ont FIRE ouvert, et l'historique (300 derniers messages, chiffré avec le code d'équipe) est retrouvé par ceux qui étaient absents."
+    ],
+    [
+     "new",
+     "Pastille avec le nombre de messages non lus sur la barre repliée, et notification Windows quand FIRE n'est pas au premier plan (Paramètres › Notifications pour la couper)."
+    ],
+    [
+     "improve",
+     "Entrée pour envoyer, Maj+Entrée pour aller à la ligne, Échap pour replier. Les messages d'une même personne sont regroupés, avec un séparateur par jour."
+    ]
+   ]
+  },
+  {
    "contenu": true,
    "id": "c-2026-11-12-fond-toks",
    "date": "2026-11-12",
