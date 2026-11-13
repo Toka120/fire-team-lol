@@ -1,10 +1,11 @@
-// FIRE V2 — aperçu de la nouvelle interface (activable dans Paramètres).
-// Sans l'aperçu, ce fichier ne change rien. Avec : classe html.v2, barre latérale à gauche,
+// FIRE V2 — la nouvelle interface (active par défaut ; l'ancienne reste disponible dans Paramètres).
+// Avec l'ancienne interface, ce fichier ne change rien. Avec : classe html.v2, barre latérale à gauche,
 // icônes Lucide (icons.json) à la place des emojis « système ». Les données restent intactes.
 (function () {
   'use strict';
-  let on = false;
-  try { on = JSON.parse(localStorage.getItem('fire.v2')) === true; } catch (e) { on = false; }
+  // V2 pour tout le monde depuis la 1.10.76 ; chacun peut revenir à l'ancienne interface dans Paramètres.
+  let on = true;
+  try { on = JSON.parse(localStorage.getItem('fire.ui.v1')) !== true; } catch (e) { on = true; }
   const LUC = window.FIRE_LUCIDE || {};
   const DICT = window.FIRE_ICONS || {};
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -274,5 +275,5 @@
     document.documentElement.classList.add('v2');
     mount();
   }
-  window.FIREV2 = { on, icon, nav, decorate, set: (v) => { try { localStorage.setItem('fire.v2', JSON.stringify(!!v)); } catch (e) { /* stockage indisponible */ } location.reload(); } };
+  window.FIREV2 = { on, icon, nav, decorate, set: (v) => { try { localStorage.setItem('fire.ui.v1', JSON.stringify(!v)); } catch (e) { /* stockage indisponible */ } location.reload(); } };
 }());

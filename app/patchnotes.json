@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.76",
+   "date": "2026-11-13",
+   "titre": "La nouvelle interface pour tout le monde",
+   "items": [
+    [
+     "new",
+     "FIRE passe à la nouvelle interface (V2) pour toute l'équipe : barre latérale en 4 groupes (Équipe, Jeu, Apprendre, Social), couleurs or, polices Inter et Cinzel, icônes à la place des emojis système, sur toutes les pages."
+    ],
+    [
+     "improve",
+     "Paramètres › Interface : si quelque chose ne va pas, tu peux revenir à l'ancienne interface sur ton PC (et y retourner quand tu veux). Les thèmes de couleur restent disponibles."
+    ]
+   ]
+  },
+  {
    "v": "1.10.75",
    "date": "2026-11-13",
    "titre": "Tableau tactique, clips et voix plus claire",

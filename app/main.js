@@ -90,7 +90,7 @@ function createMainWindow(forceShow) {
     height: 880,
     minWidth: 900,
     minHeight: 640,
-    backgroundColor: '#0f0d0c',
+    backgroundColor: '#0B0D10',
     title: 'FIRE LoL',
     icon: path.join(__dirname, 'assets', 'fire.ico'),
     autoHideMenuBar: true,

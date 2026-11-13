@@ -575,12 +575,12 @@
         h('p', { class: 'muted small' }, 'Change la couleur du fond de FIRE. Le choix est gardé sur cet ordinateur.'),
         h('div', { class: 'themes' }, THEMES.map(([id, label, bg, glow]) => h('button', { class: 'theme-sw', 'aria-pressed': String(load('fire.theme', 'fire') === id), onclick: () => { save('fire.theme', id); applyTheme(id); renderSettings(); } },
           h('span', { class: 'theme-dot', style: `background: radial-gradient(60px 30px at 50% 0%, ${glow}66, transparent 80%), ${bg}` }), label)))),
-      // Aperçu de la V2 : réservé au mode coach tant qu'elle n'est pas terminée (les autres gardent l'interface actuelle).
-      window.FIREV2 && (S.coachState.coach || window.FIREV2.on) ? h('div', { class: 'card settings-card' },
-        h('h2', null, '✨ Interface V2 (aperçu)'),
-        h('p', { class: 'muted small' }, 'La nouvelle interface en cours de construction : barre latérale, nouvelles couleurs, polices et icônes. Elle ne s’active que sur ce PC ; les autres joueurs gardent l’interface actuelle. FIRE se recharge quand tu changes ce réglage.'),
+      // Interface : la V2 est active pour tout le monde ; l'ancienne reste disponible en cas de souci.
+      window.FIREV2 ? h('div', { class: 'card settings-card' },
+        h('h2', null, '✨ Interface'),
+        h('p', { class: 'muted small' }, 'FIRE utilise la nouvelle interface : barre latérale, couleurs or, polices et icônes. Si quelque chose ne va pas, tu peux revenir à l’ancienne sur ce PC. FIRE se recharge quand tu changes ce réglage.'),
         h('label', { class: 'v2-optin' }, h('input', { type: 'checkbox', checked: window.FIREV2.on ? true : null, onchange: (e) => window.FIREV2.set(e.target.checked) }),
-          h('span', null, h('b', null, 'Activer l’aperçu de la V2'), h('br'), h('span', { class: 'muted small' }, 'Tu peux revenir à l’interface actuelle à tout moment en décochant.')))) : null,
+          h('span', null, h('b', null, 'Nouvelle interface (V2)'), h('br'), h('span', { class: 'muted small' }, 'Décoche pour retrouver l’ancienne interface.')))) : null,
       h('div', { class: 'card settings-card' }, h('h2', null, '🐞 Signaler un bug'), h('p', { class: 'muted small' }, 'Un souci dans FIRE ? Décris-le avec des captures d’écran : le coach reçoit ton rapport.'),
         h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: openBug }, '🐞 Signaler un bug'))),
       notifCard(),
