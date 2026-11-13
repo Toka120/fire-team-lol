@@ -738,7 +738,7 @@ const cleanMsg = (m) => {
   const o = { id: String((m && m.id) || '').replace(/[^\w-]/g, '').slice(0, 40), from: String((m && m.from) || '').slice(0, 80), text: str(m && m.text, 500), at: Math.min(Number(m && m.at) || Date.now(), Date.now() + 60000) };
   if (m && m.to) o.to = String(m.to).slice(0, 80);
   // Salon de la discussion d'équipe (absent = #général).
-  if (m && !m.to && ['strat', 'games', 'detente'].includes(m.ch)) o.ch = m.ch;
+  if (m && !m.to && /^[a-z0-9-]{2,20}$/.test(String(m.ch || ''))) o.ch = m.ch;
   return o;
 };
 async function chat() {
@@ -750,6 +750,50 @@ async function chat() {
   try { box = await readPublic(CHAT, dr, tok); if (box) saveCache('chat', box); } catch (e) { offline = true; box = loadCache('chat'); }
   try { return { ok: true, msgs: box ? (open(box).msgs || []) : [], offline, peutEcrire: !!tok }; }
   catch (e) { return { ok: false, error: 'discussion illisible avec ce code' }; }
+}
+// ---------- Salons de l'équipe (texte et vocal), créés par le coach ou le chef d'équipe ----------
+// salons.json dans le dépôt de données, chiffré avec le code d'équipe comme la discussion.
+const SALONS = 'salons.json';
+const salonId = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20);
+function cleanSalons(d) {
+  const one = (x, voice) => {
+    const id = salonId(x && (x.id || x.name));
+    if (!id || id.length < 2 || ['team', 'equipe', 'general'].includes(id)) return null;
+    const o = { id, name: str(x.name, 30) || id, ico: str(x.ico, 8) || (voice ? '🔊' : '💬'), desc: str(x.desc, 90) };
+    if (voice) o.max = Math.max(0, Math.min(10, Math.round(Number(x.max) || 0)));
+    return o;
+  };
+  const uniq = (l) => { const seen = new Set(); return l.filter((x) => x && !seen.has(x.id) && seen.add(x.id)); };
+  return {
+    texte: uniq((Array.isArray(d && d.texte) ? d.texte : []).map((x) => one(x, false))).slice(0, 15),
+    voix: uniq((Array.isArray(d && d.voix) ? d.voix : []).map((x) => one(x, true))).slice(0, 12),
+  };
+}
+async function salons() {
+  if (!teamKey()) return { ok: false, error: "entre à nouveau le code d'équipe" };
+  const dr = getConfig().data_repo || null;
+  if (!dr) return { ok: true, salons: null };
+  const tok = await teamToken();
+  let box = null, offline = false;
+  try { box = await readPublic(SALONS, dr, tok); if (box) saveCache('salons', box); } catch (e) { offline = true; box = loadCache('salons'); }
+  try { return { ok: true, salons: box ? cleanSalons(open(box)) : null, offline, gerer: coachState().coach || chefOn() }; }
+  catch (e) { return { ok: false, error: 'salons illisibles avec ce code' }; }
+}
+async function salonsSave(d) {
+  if (!coachState().coach && !chefOn()) return { ok: false, error: "réservé au coach et au chef d'équipe" };
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, error: "le coach n'a pas encore activé le jeton d'équipe" };
+  const clean = cleanSalons(d);
+  try {
+    for (let i = 0; i < 4; i++) {
+      const cur = await ghGet(tok, SALONS, dr);
+      const box = seal({ ...clean, maj: Date.now() }, 'salons');
+      const r = await ghPut(tok, SALONS, box, cur && cur.sha, 'Salons', dr);
+      if (r.ok) { saveCache('salons', box); return { ok: true, salons: clean }; }
+    }
+    throw new Error("les salons ont changé pendant l'enregistrement, réessaie");
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 async function chatSend(m) {
   const dr = getConfig().data_repo || null;
@@ -861,4 +905,4 @@ async function closeBug(id) {
   } catch (e) { return { ok: false, error: String(e.message || e) }; }
 }
 
-module.exports = { chat, chatSend, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { chat, chatSend, salons, salonsSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

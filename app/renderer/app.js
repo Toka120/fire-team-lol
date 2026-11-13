@@ -2904,6 +2904,7 @@
               h('span', { class: 'vr-av' }, there.slice(0, 4).map((x) => h('span', { class: 'vc-av mini', title: vocalName(x) }, ini(x)))),
               full ? h('span', { class: 'vr-full' }, 'Complet') : null);
           })),
+          canManageSalons() ? h('button', { class: 'linkbtn small vc-manage', onclick: openSalons }, '⚙️ Gérer les salons (coach et chef d’équipe)') : null,
           VX.roomErr ? h('p', { class: 'bad' }, '⚠ ' + VX.roomErr) : null,
           h('div', { class: 'vc-lobby-me' }, h('div', { class: 'vc-av big' }, ini(me)), h('div', null, h('b', null, vocalName(me)), h('small', { class: 'muted' }, v.monitor ? 'Test du micro en cours' : 'Prêt à rejoindre')),
             h('div', { class: 'vc-meter slim' }, h('div', { class: 'vc-meter-fill' }))),
@@ -5752,7 +5753,74 @@
   const CHANNELS = [['team', '💬', 'général', 'Toute l’équipe, tous les sujets'], ['ch:strat', '🧠', 'stratégie', 'Compos, drafts, plans de jeu, ce qu’on retient des games'],
     ['ch:games', '🎮', 'games', 'On lance une game ? Résultats, clips, invitations'], ['ch:detente', '😄', 'détente', 'Memes, musique, tout et n’importe quoi']];
   const isChan = (c) => CHANNELS.some(([id]) => id === c);
-  const chatConvOf = (m, me) => (!m.to ? (m.ch && isChan('ch:' + m.ch) ? 'ch:' + m.ch : 'team') : m.from === me ? m.to : m.to === me ? (dmAllowedFrom(m.from) ? m.from : null) : null);
+  // Salons créés par le coach ou le chef d'équipe (salons.json) ; sans fichier, ceux par défaut.
+  const SAL_DEF = { texte: [{ id: 'strat', ico: '🧠', name: 'stratégie', desc: 'Compos, drafts, plans de jeu, ce qu’on retient des games' }, { id: 'games', ico: '🎮', name: 'games', desc: 'On lance une game ? Résultats, clips, invitations' },
+    { id: 'detente', ico: '😄', name: 'détente', desc: 'Memes, musique, tout et n’importe quoi' }],
+    voix: [{ id: 'duo1', ico: '🎧', name: 'Duo 1', desc: '2 places', max: 2 }, { id: 'duo2', ico: '🎧', name: 'Duo 2', desc: '2 places', max: 2 }, { id: 'coaching', ico: '🎓', name: 'Coaching perso', desc: '2 places · en tête-à-tête', max: 2 }] };
+  const SAL = { data: load('fire.salons', null), gerer: false };
+  function applySalons(d) {
+    const x = d && (Array.isArray(d.texte) || Array.isArray(d.voix)) ? d : SAL_DEF;
+    CHANNELS.splice(1, CHANNELS.length - 1, ...(x.texte || []).map((c) => ['ch:' + c.id, c.ico || '💬', c.name, c.desc || '']));
+    ROOMS.splice(1, ROOMS.length - 1, ...(x.voix || []).map((r) => ({ id: r.id, ico: r.ico || '🔊', name: r.name, sub: r.desc || (r.max ? `${r.max} places` : 'Places illimitées'), max: Number(r.max) || 0 })));
+  }
+  async function salonsLoad() {
+    if (!window.fire.salons) return;
+    let r;
+    try { r = await window.fire.salons.list(); } catch (e) { return; }
+    if (!r || !r.ok) return;
+    SAL.gerer = !!r.gerer;
+    if (r.salons) { SAL.data = r.salons; save('fire.salons', r.salons); }
+    applySalons(SAL.data);
+    if (S.section === 'chat' || S.section === 'vocal') { if (!typing()) render(); } else chatPaint();
+  }
+  const canManageSalons = () => !!(SAL.gerer || S.coachState.coach || S.coachState.chef);
+  // Éditeur des salons (coach et chef d'équipe) : ajouter, renommer, réordonner, supprimer ; texte et vocal.
+  function openSalons() {
+    document.querySelectorAll('.sal-pop').forEach((x) => x.remove());
+    const base = SAL.data && (SAL.data.texte || SAL.data.voix) ? SAL.data : SAL_DEF;
+    const E = { texte: (base.texte || []).map((x) => ({ ...x })), voix: (base.voix || []).map((x) => ({ ...x })), busy: false, err: '' };
+    const box = h('div', { class: 'sal-pop', onmousedown: (e) => { if (e.target === box) box.remove(); } });
+    const paint = () => {
+      const row = (kind, x, i) => {
+        const list = E[kind];
+        return h('div', { class: 'sal-row' },
+          h('input', { class: 'inp sal-ico', value: x.ico || '', maxlength: 4, title: 'Emoji', oninput: (e) => { x.ico = e.target.value; } }),
+          h('input', { class: 'inp sal-name', value: x.name || '', maxlength: 30, placeholder: kind === 'texte' ? 'nom-du-salon' : 'Nom du salon', oninput: (e) => { x.name = e.target.value; } }),
+          h('input', { class: 'inp sal-desc', value: x.desc || '', maxlength: 90, placeholder: kind === 'texte' ? 'À quoi sert ce salon ?' : 'Petite description', oninput: (e) => { x.desc = e.target.value; } }),
+          kind === 'voix' ? h('select', { class: 'inp sal-max', title: 'Places', onchange: (e) => { x.max = Number(e.target.value); } },
+            [0, 2, 3, 4, 5, 6, 8, 10].map((n) => h('option', { value: String(n), selected: Number(x.max || 0) === n ? true : null }, n ? `${n} places` : 'Illimité'))) : null,
+          h('button', { class: 'sal-b', title: 'Monter', disabled: i === 0 ? true : null, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; paint(); } }, '↑'),
+          h('button', { class: 'sal-b', title: 'Descendre', disabled: i === list.length - 1 ? true : null, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; paint(); } }, '↓'),
+          h('button', { class: 'sal-b del', title: 'Supprimer', onclick: () => { list.splice(i, 1); paint(); } }, '🗑'));
+      };
+      box.replaceChildren(h('div', { class: 'sal-card' },
+        h('h2', null, '⚙️ Gérer les salons'),
+        h('p', { class: 'muted small' }, 'Les salons de toute l’équipe. #général et le Salon de l’équipe sont toujours là. Les messages d’un salon supprimé restent cachés.'),
+        h('h3', null, '💬 Salons textuels'),
+        h('div', { class: 'sal-fixed muted small' }, '# général · toujours là'),
+        E.texte.map((x, i) => row('texte', x, i)),
+        E.texte.length < 15 ? h('button', { class: 'btn-ghost', onclick: () => { E.texte.push({ id: '', ico: '💬', name: '', desc: '' }); paint(); } }, '➕ Ajouter un salon textuel') : null,
+        h('h3', null, '🔊 Salons vocaux'),
+        h('div', { class: 'sal-fixed muted small' }, '🔊 Salon de l’équipe · toujours là'),
+        E.voix.map((x, i) => row('voix', x, i)),
+        E.voix.length < 12 ? h('button', { class: 'btn-ghost', onclick: () => { E.voix.push({ id: '', ico: '🔊', name: '', desc: '', max: 0 }); paint(); } }, '➕ Ajouter un salon vocal') : null,
+        E.err ? h('p', { class: 'bad small' }, '⚠ ' + E.err) : null,
+        h('div', { class: 'row sal-act' },
+          h('button', { class: 'btn-fire small-btn', disabled: E.busy ? true : null, onclick: async () => {
+            const slug = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20);
+            const clean = (l) => l.filter((x) => String(x.name || '').trim()).map((x) => ({ ...x, id: slug(x.id || x.name) }));
+            E.busy = true; E.err = ''; paint();
+            const r = await window.fire.salons.save({ texte: clean(E.texte), voix: clean(E.voix) }).catch((e) => ({ ok: false, error: String(e) }));
+            E.busy = false;
+            if (r && r.ok) { SAL.data = r.salons; save('fire.salons', r.salons); applySalons(r.salons); box.remove(); render(); popup('✅ Salons enregistrés', 'Toute l’équipe les voit à la prochaine mise à jour (2 minutes au plus).', null); }
+            else { E.err = (r && r.error) || 'enregistrement impossible'; paint(); }
+          } }, E.busy ? 'Enregistrement…' : '💾 Enregistrer pour l’équipe'),
+          h('button', { class: 'btn-ghost', onclick: () => box.remove() }, 'Annuler'))));
+    };
+    paint();
+    document.body.append(box);
+  }
+  const chatConvOf = (m, me) => (!m.to ? (m.ch ? (isChan('ch:' + m.ch) ? 'ch:' + m.ch : null) : 'team') : m.from === me ? m.to : m.to === me ? (dmAllowedFrom(m.from) ? m.from : null) : null);
   const chatVisible = (m, me) => chatConvOf(m, me) != null;
   const chatSeenAt = (conv) => (conv === 'team' ? CH.seen : (CH.seenBy[conv] || 0));
   function chatMerge(list, live) {
@@ -5880,7 +5948,7 @@
       h('span', { class: 'chat-cv-i' }, ico), h('span', { class: 'chat-cv-l' }, label), dot ? stDot(id) : null, n && CH.conv !== id ? h('span', { class: 'chat-cv-n' }, String(n)) : null); };
     const chans = CHANNELS.map(([id, ico, label, desc]) => btn(id, full ? '#' : ico, full ? label : '#' + label, desc, false));
     const dms = me ? chatPeople(me).map(([slug, ico, label]) => btn(slug, ico, label, 'Message privé avec ' + label, true)) : [];
-    return full ? [h('div', { class: 'cp-gt' }, 'Salons'), ...chans, h('div', { class: 'cp-gt' }, 'Messages privés'), ...dms] : [...chans, ...dms];
+    return full ? [h('div', { class: 'cp-gt' }, h('span', null, 'Salons'), canManageSalons() ? h('button', { class: 'cp-add', title: 'Gérer les salons', onclick: openSalons }, '⚙') : null), ...chans, h('div', { class: 'cp-gt' }, 'Messages privés'), ...dms] : [...chans, ...dms];
   }
   function chatHead(un) {
     CH.el.classList.toggle('open', !!CH.open);
@@ -5915,7 +5983,7 @@
     if (S.section === 'chat') { chatPagePaint(live); return; }
     if (!CH.open) return;
     const stSig = chatPeople(me).map(([sl]) => { const x = statusOf(sl); return sl + chatUnreadIn(sl) + (x.game ? 'g' : '') + x.st; }).join(',');
-    const convKey = CH.conv + '|' + CHANNELS.map(([id]) => chatUnreadIn(id)).join(',') + '|' + me + '|' + stSig;
+    const convKey = CH.conv + '|' + CHANNELS.map(([id, ico, n]) => id + ico + n + chatUnreadIn(id)).join(',') + '|' + me + '|' + stSig;
     if (convKey !== CH.convKey) { CH.convKey = convKey; CH.convs.replaceChildren(...chatConvButtons(me, 'chat-cv', false)); }
     composerSync(CH.comp, me);
     const atBottom = CH.list.scrollHeight - CH.list.scrollTop - CH.list.clientHeight < 40;
@@ -5944,7 +6012,7 @@
     if (!CHP.root || S.section !== 'chat') return;
     const me = vocalMe();
     const stSig = chatPeople(me).map(([sl]) => { const x = statusOf(sl); return sl + chatUnreadIn(sl) + (x.game ? 'g' : '') + x.st; }).join(',');
-    const key = CH.conv + '|' + CHANNELS.map(([id]) => chatUnreadIn(id)).join(',') + '|' + me + '|' + stSig;
+    const key = CH.conv + '|' + CHANNELS.map(([id, ico, n]) => id + ico + n + chatUnreadIn(id)).join(',') + '|' + me + '|' + stSig + canManageSalons();
     if (key !== CHP.key) { CHP.key = key; CHP.side.replaceChildren(...chatConvButtons(me, 'cp-cv', true)); }
     const ch = CHANNELS.find(([id]) => id === CH.conv);
     CHP.head.replaceChildren(ch ? h('div', null, h('b', null, '# ' + ch[2]), h('span', { class: 'muted' }, ' · ' + ch[3]))
@@ -6072,8 +6140,9 @@
     if (CH.started || !window.fire.chat) return;
     CH.started = true;
     try { if (FV() && FV().onChat) FV().onChat((m) => chatMerge([m], true)); } catch (e) { /* */ }
-    chatLoad();
-    setInterval(chatLoad, 2 * 60 * 1000);
+    applySalons(SAL.data);
+    chatLoad(); salonsLoad();
+    setInterval(() => { chatLoad(); salonsLoad(); }, 2 * 60 * 1000);
     // Statut : envoyé tout de suite, puis chaque minute ; les cartes reçues sont gardées.
     setTimeout(statusPush, 4000);
     setInterval(() => { statusPush(); profilesKeep(); chatPaint(); }, 60000);

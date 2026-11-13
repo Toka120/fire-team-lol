@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.97",
+   "date": "2026-11-13",
+   "titre": "Salons de l'équipe",
+   "items": [
+    [
+     "new",
+     "Le coach et le chef d'équipe peuvent créer des salons textuels et vocaux : nom, emoji, description, nombre de places pour le vocal, ordre et suppression."
+    ],
+    [
+     "new",
+     "Bouton ⚙ à côté de « Salons » dans la page Discussion, et « Gérer les salons » dans le Vocal. Toute l'équipe voit les nouveaux salons en moins de 2 minutes."
+    ],
+    [
+     "improve",
+     "#général et le Salon de l'équipe sont toujours là. Les salons sont enregistrés pour toute l'équipe, chiffrés avec le code d'équipe."
+    ]
+   ]
+  },
+  {
    "v": "1.10.96",
    "date": "2026-11-13",
    "titre": "Discussion réparée et salons",

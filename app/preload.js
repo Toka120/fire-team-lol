@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('fire', {
   live: { on: (cb) => ipcRenderer.on('live:update', (e, g) => cb(g)) },
   clips: { save: call('clips:save'), list: call('clips:list'), read: call('clips:read'), show: call('clips:show'), del: call('clips:delete') },
   chat: { list: call('chat'), send: call('chat:send') },
+  salons: { list: call('salons'), save: call('salons:save') },
   savePlanning: call('planning:save'),
   champions: call('champions'),
   jeux: { data: call('jeux:data'), lore: call('jeux:lore') },

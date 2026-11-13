@@ -2122,3 +2122,21 @@ html.chat-page #chat{display:none}
 .cp .chat-who-n{cursor:pointer}
 .cp .chat-who-n:hover{text-decoration:underline}
 .cp .chat-inp:disabled{opacity:.6}
+
+/* Gérer les salons (coach et chef d'équipe) */
+.cp-gt{display:flex;align-items:center;justify-content:space-between}
+.cp-add{border:none;background:none;color:var(--muted);font-size:15px;cursor:pointer;padding:0 4px;border-radius:6px}
+.cp-add:hover{color:var(--fg);background:color-mix(in srgb,var(--fg) 10%,transparent)}
+.vc-manage{margin:6px 0}
+.sal-pop{position:fixed;inset:0;z-index:955;display:flex;justify-content:center;align-items:flex-start;padding:6vh 16px;background:rgb(0 0 0 / 60%);overflow:auto}
+.sal-card{width:min(860px,96vw);border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:0 24px 70px rgb(0 0 0 / 55%);padding:22px 24px;display:flex;flex-direction:column;gap:8px}
+.sal-card h2{margin:0}
+.sal-card h3{margin:14px 0 4px;font-size:15px}
+.sal-fixed{padding:6px 10px;border-radius:8px;background:var(--panel2)}
+.sal-row{display:grid;grid-template-columns:56px minmax(120px,1fr) minmax(160px,2fr) auto auto auto auto;gap:6px;align-items:center}
+.sal-row .sal-max{width:auto}
+.sal-ico{text-align:center;font-size:18px;padding:6px}
+.sal-b{width:32px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer}
+.sal-b:disabled{opacity:.3}
+.sal-b.del:hover{border-color:var(--bad)}
+.sal-act{margin-top:12px}
