@@ -23,10 +23,10 @@ fs.copyFileSync(path.join(W, 'rnnoise_simd.wasm'), path.join(OUT, 'rnnoise_simd.
 const FONTS = [['inter', [400, 600, 700]], ['cinzel', [600]], ['orbitron', [600, 800]], ['audiowide', [400]], ['bangers', [400]], ['fredoka', [500, 600]], ['jetbrains-mono', [400, 700]],
   // Polices au choix (Paramètres › Polices d'écriture)
   ['poppins', [400, 600, 700]], ['nunito', [400, 700]], ['montserrat', [400, 700]], ['lexend', [400, 600]], ['outfit', [400, 700]], ['rajdhani', [500, 700]],
-  ['space-grotesk', [400, 700]], ['comic-neue', [400, 700]], ['press-start-2p', [400]], ['permanent-marker', [400]], ['russo-one', [400]], ['bebas-neue', [400]]];
+  ['space-grotesk', [400, 700]], ['comic-neue', [400, 700]], ['press-start-2p', [400]], ['permanent-marker', [400]], ['russo-one', [400]], ['bebas-neue', [400]], ['opendyslexic', [400, 700]]];
 const FAMILY = { inter: 'Inter', cinzel: 'Cinzel', orbitron: 'Orbitron', audiowide: 'Audiowide', bangers: 'Bangers', fredoka: 'Fredoka', 'jetbrains-mono': 'JetBrains Mono',
   poppins: 'Poppins', nunito: 'Nunito', montserrat: 'Montserrat', lexend: 'Lexend', outfit: 'Outfit', rajdhani: 'Rajdhani', 'space-grotesk': 'Space Grotesk',
-  'comic-neue': 'Comic Neue', 'press-start-2p': 'Press Start 2P', 'permanent-marker': 'Permanent Marker', 'russo-one': 'Russo One', 'bebas-neue': 'Bebas Neue' };
+  'comic-neue': 'Comic Neue', 'press-start-2p': 'Press Start 2P', 'permanent-marker': 'Permanent Marker', 'russo-one': 'Russo One', 'bebas-neue': 'Bebas Neue', opendyslexic: 'OpenDyslexic' };
 let css = '/* Généré par vendor.js : polices Fontsource (licence SIL OFL 1.1). */\n';
 for (const [fam, weights] of FONTS) {
   const dir = R('node_modules/@fontsource', fam);

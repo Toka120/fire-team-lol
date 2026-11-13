@@ -5,7 +5,9 @@ const call = (ch) => (...a) => ipcRenderer.invoke(ch, ...a);
 contextBridge.exposeInMainWorld('fire', {
   config: call('config'),
   // Taille du texte (Paramètres › Polices d'écriture) : vrai zoom de la fenêtre, les clics restent justes partout.
-  win: { displays: call('window:displays'), setDisplay: call('window:setDisplay') },
+  win: { displays: call('window:displays'), setDisplay: call('window:setDisplay'), soundComms: call('win:soundComms') },
+  adv: { gpu: call('gpu:get'), setGpu: call('gpu:set'), restart: call('app:restart'), clearCache: call('cache:clear'), cacheSize: call('cache:size') },
+  streamer: { watch: call('streamer:watch'), on: (cb) => ipcRenderer.on('streamer:state', (e, v) => cb(!!v)) },
   zoom: (f) => { const z = Number(f); if (z >= 0.8 && z <= 1.3) webFrame.setZoomFactor(z); },
   guides: call('guides'),
   patchnotes: call('patchnotes'),

@@ -1954,3 +1954,82 @@ html[data-ftitle]:not(.v2) .title{font-family:var(--v2-display)}
 .scr.on{border-color:var(--fire1);box-shadow:0 0 0 3px color-mix(in srgb,var(--fire1) 25%,transparent)}
 .scr-ico{grid-row:1/3;width:40px;height:40px;display:grid;place-items:center;border-radius:10px;background:var(--panel);font-size:20px}
 .scr-n{font-weight:800;color:var(--fire1);border:2px solid var(--fire1)}
+
+/* ===== Paramètres façon Discord ===== */
+.set-wrap{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start}
+.set-nav{position:sticky;top:64px;display:flex;flex-direction:column;gap:2px;padding:8px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.set-tab{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;border:none;background:none;color:var(--muted);font:inherit;font-weight:600;text-align:left;cursor:pointer}
+.set-tab:hover{background:var(--panel2);color:var(--fg)}
+.set-tab.on{background:color-mix(in srgb,var(--fire1) 16%,var(--panel));color:var(--fg);box-shadow:inset 3px 0 var(--fire1)}
+.set-ico{width:22px;text-align:center}
+.set-n{margin-left:auto;background:var(--bad);color:#fff;border-radius:999px;font-size:11px;padding:0 7px}
+.set-main{display:flex;flex-direction:column;gap:16px;min-width:0}
+.set-h{margin:0;font-size:22px}
+@media (max-width:900px){.set-wrap{grid-template-columns:1fr}.set-nav{position:static;flex-direction:row;flex-wrap:wrap}}
+.ux-row{display:flex;gap:10px;align-items:flex-start;padding:8px 0}
+.ux-row span{display:flex;flex-direction:column;gap:2px}
+.ux-seg{flex-wrap:wrap;gap:8px}
+.ux-bio{width:100%;resize:vertical}
+.ux-color{width:48px;height:32px;border:none;background:none;cursor:pointer}
+.ux-time{width:auto}
+.ux-sliders{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:8px}
+.ux-sliders input[type=range],.set-main input[type=range]{width:100%;accent-color:var(--fire1)}
+.fld{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.skin-pick{flex-wrap:wrap;align-items:center;gap:8px}
+.skin-pick select{max-width:260px}
+.skin-prev{width:160px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.ux-acc{flex-wrap:wrap;align-items:center;gap:8px}
+.acc-sw{width:30px;height:30px;border-radius:50%;border:3px solid transparent;cursor:pointer;box-shadow:0 0 0 1px var(--line)}
+.acc-sw.on{border-color:var(--fg)}
+.acc-custom{position:relative;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--panel2);border:1px dashed var(--line);cursor:pointer;overflow:hidden}
+.acc-custom input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.kb-row{display:flex;align-items:center;gap:14px;padding:6px 0;border-bottom:1px solid var(--line)}
+.kb-keys{display:flex;gap:4px;min-width:110px}
+kbd{display:inline-block;padding:2px 8px;border-radius:6px;border:1px solid var(--line);border-bottom-width:3px;background:var(--panel2);font:600 12px/18px var(--v2-font,inherit);color:var(--fg)}
+
+/* Mode compact */
+html[data-compact] .card{padding:14px 16px}
+html[data-compact] .sec-hero{padding:14px 18px}
+html[data-compact] .title{font-size:24px;line-height:30px}
+html[data-compact] .navbtn{min-height:34px;padding-top:5px;padding-bottom:5px}
+html[data-compact] #view{gap:12px}
+html.v2[data-compact]{--v2-pad:20px}
+/* Réduire les animations */
+html[data-calm] *,html[data-calm] *::before,html[data-calm] *::after{animation:none!important;transition:none!important}
+/* Fond d'écran perso */
+html[data-uxbg] body::before{content:'';position:fixed;inset:-40px;z-index:-1;background:var(--ux-bg) center/cover no-repeat;filter:blur(var(--ux-blur,6px))}
+html[data-uxbg] body::after{content:'';position:fixed;inset:0;z-index:-1;background:rgb(0 0 0 / var(--ux-dim,.7));pointer-events:none}
+html[data-uxbg] body{background:transparent!important}
+html[data-uxbg]{background:var(--bg)}
+html[data-uxbg] .card,html[data-uxbg] .sec-hero{background:color-mix(in srgb,var(--panel) 82%,transparent)!important;backdrop-filter:blur(8px)}
+html[data-uxbg] .v2-side,html[data-uxbg] .topbar{background:color-mix(in srgb,var(--panel) 78%,transparent)!important;backdrop-filter:blur(10px)}
+/* Mode streamer : les messages privés sont floutés (survol pour lire) */
+html[data-streamer] #chat.priv .chat-tx{filter:blur(6px);transition:filter .2s}
+html[data-streamer] #chat.priv .chat-tx:hover{filter:none}
+html[data-streamer] .sensitive{filter:blur(6px)}
+html[data-streamer] #chat .chat-bar::after{content:'📺';margin-left:6px}
+
+/* Statut */
+.st-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:5px;flex:none;box-shadow:0 0 0 2px var(--panel)}
+.st-online{background:#39c58a}.st-busy{background:#ef5a5a}.st-away{background:#e8b84a}.st-offline,.st-invisible{background:#6b7280}
+.st-game{background:#579dff;box-shadow:0 0 0 2px var(--panel),0 0 8px #579dff}
+#chat .chat-who-n{cursor:pointer}
+#chat .chat-who-n:hover{text-decoration:underline}
+#chat .chat-inp:disabled{opacity:.6}
+/* Carte de profil */
+.prof-pop{position:fixed;inset:0;z-index:950;display:grid;place-items:center;background:rgb(0 0 0 / 55%)}
+.prof-card{width:min(380px,92vw);border-radius:16px;overflow:hidden;background:var(--panel);border:1px solid var(--line);box-shadow:0 20px 60px rgb(0 0 0 / 50%)}
+.prof-ban{height:130px;background:linear-gradient(135deg,var(--fire1),var(--panel2)) center/cover}
+.prof-body{padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px}
+.prof-name{font-size:20px;font-weight:800;display:flex;align-items:center}
+.prof-bio{margin:4px 0;padding:10px 12px;border-radius:10px;background:var(--panel2);white-space:pre-wrap}
+/* Recherche rapide Ctrl+K */
+.qs{position:fixed;inset:0;z-index:960;display:flex;justify-content:center;align-items:flex-start;padding-top:12vh;background:rgb(0 0 0 / 55%)}
+.qs-box{width:min(600px,92vw);border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:0 24px 70px rgb(0 0 0 / 55%);padding:14px}
+.qs-inp{width:100%;font-size:17px;padding:12px 14px}
+.qs-list{display:flex;flex-direction:column;gap:2px;margin-top:10px;max-height:56vh;overflow:auto}
+.qs-it{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:none;background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.qs-it.on{background:color-mix(in srgb,var(--fire1) 18%,var(--panel2))}
+.qs-ico{text-align:center}
+.qs-help{margin:10px 2px 0}
+.qs-none{padding:10px}

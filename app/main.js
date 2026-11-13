@@ -53,9 +53,9 @@ function ensureTray() {
   } catch (e) { tray = null; }
 }
 function dropTray() { if (tray) { tray.destroy(); tray = null; } }
-function notify(title, body, section) {
+function notify(title, body, section, silent) {
   if (!Notification.isSupported()) return false;
-  const n = new Notification({ title, body, icon: path.join(__dirname, 'assets', 'fire.png'), silent: false });
+  const n = new Notification({ title, body, icon: path.join(__dirname, 'assets', 'fire.png'), silent: !!silent });
   n.on('click', () => {
     showMain();
     if (section && mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('notify:go', section);
@@ -731,7 +731,47 @@ async function latestTag() {
   } catch (e) { return null; }
 }
 ipcMain.handle('update:state', async () => ({ ...updateState, auto: canAutoUpdate(), portable, store, latest: store ? null : await latestTag() }));
-ipcMain.handle('notify', (e, m) => notify(String((m && m.title) || 'FIRE LoL').slice(0, 120), String((m && m.body) || '').slice(0, 300), m && m.section));
+ipcMain.handle('notify', (e, m) => notify(String((m && m.title) || 'FIRE LoL').slice(0, 120), String((m && m.body) || '').slice(0, 300), m && m.section, m && m.silent));
+
+// ---------- Avancé : accélération matérielle, cache, son de Windows ----------
+// L'accélération matérielle se règle avant le démarrage : on lit le choix au lancement (redémarrage nécessaire).
+const gpuPath = () => path.join(app.getPath('userData'), 'gpu.json');
+const gpuOff = () => { try { return JSON.parse(fs.readFileSync(gpuPath(), 'utf8')).off === true; } catch (e) { return false; } };
+ipcMain.handle('gpu:get', () => ({ off: gpuOff(), active: !gpuAtStart }));
+ipcMain.handle('gpu:set', (e, off) => { try { fs.writeFileSync(gpuPath(), JSON.stringify({ off: !!off })); } catch (err) { return false; } return true; });
+ipcMain.handle('app:restart', () => { quitting = true; app.relaunch(); app.exit(0); });
+// Vider le cache (images, scripts téléchargés) : les réglages, le code d'équipe et les messages restent.
+ipcMain.handle('cache:clear', async () => {
+  const ses = session.defaultSession;
+  const before = await ses.getCacheSize().catch(() => 0);
+  await ses.clearCache().catch(() => {});
+  await ses.clearCodeCaches({}).catch(() => {});
+  return { freed: before };
+});
+ipcMain.handle('cache:size', () => session.defaultSession.getCacheSize().catch(() => 0));
+// Windows sait baisser le son des autres applications pendant un appel : on ouvre directement ce réglage.
+ipcMain.handle('win:soundComms', () => {
+  if (process.platform !== 'win32') return false;
+  try { require('child_process').spawn('control', ['mmsys.cpl,,3'], { detached: true, stdio: 'ignore', windowsHide: true }).unref(); return true; } catch (e) { return false; }
+});
+
+// ---------- Mode streamer : OBS, Streamlabs ou XSplit ouvert sur ce PC ----------
+// Liste des programmes ouverts (tasklist de Windows), toutes les 20 s, seulement quand FIRE la demande.
+const STREAM_APPS = /^(obs64|obs32|obs|streamlabs obs|streamlabs desktop|xsplit\.core|xsplitbroadcaster|twitchstudio|prismlivestudio)\.exe$/i;
+let streamTimer = null, streamOn = false;
+function streamCheck() {
+  if (process.platform !== 'win32') return;
+  require('child_process').execFile('tasklist', ['/fo', 'csv', '/nh'], { windowsHide: true, maxBuffer: 4 * 1024 * 1024 }, (err, out) => {
+    if (err) return;
+    const on = String(out).split(/\r?\n/).some((l) => STREAM_APPS.test((l.split('","')[0] || '').replace(/^"/, '')));
+    if (on !== streamOn) { streamOn = on; if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('streamer:state', on); }
+  });
+}
+ipcMain.handle('streamer:watch', (e, on) => {
+  clearInterval(streamTimer); streamTimer = null;
+  if (on) { streamCheck(); streamTimer = setInterval(streamCheck, 20000); }
+  return streamOn;
+});
 ipcMain.handle('bg:get', () => ({ ...bgPrefs(), startup: startupOn(), canStartup: app.isPackaged && process.platform !== 'linux' && !store, notif: Notification.isSupported() }));
 ipcMain.handle('bg:set', (e, m) => {
   const cur = bgPrefs();
@@ -779,6 +819,10 @@ ipcMain.handle('update:check', async () => {
 });
 
 // ---------- Démarrage ----------
+
+// Accélération matérielle coupée dans Paramètres › Avancé (pris en compte à ce démarrage).
+const gpuAtStart = (() => { try { return JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'gpu.json'), 'utf8')).off === true; } catch (e) { return false; } })();
+if (gpuAtStart) app.disableHardwareAcceleration();
 
 const single = app.requestSingleInstanceLock();
 if (!single) {

@@ -1,7 +1,7 @@
 {
   "name": "fire-lol",
   "productName": "FIRE LoL",
-  "version": "1.10.92",
+  "version": "1.10.93",
   "description": "FIRE LoL - les stats de l'équipe, à jour depuis dpm.lol",
   "main": "main.js",
   "author": "Toka120",
@@ -25,6 +25,7 @@
     "@fontsource/lexend": "^5.3.0",
     "@fontsource/montserrat": "^5.3.0",
     "@fontsource/nunito": "^5.3.0",
+    "@fontsource/opendyslexic": "^5.3.0",
     "@fontsource/orbitron": "^5.3.0",
     "@fontsource/outfit": "^5.3.0",
     "@fontsource/permanent-marker": "^5.3.0",

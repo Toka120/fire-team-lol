@@ -725,13 +725,14 @@
   }
 
   // ---------- Invitations : chaque FIRE ouvert garde une petite adresse « hall » pour recevoir une invitation ----------
-  const L = { peer: null, prefix: '', me: null, ids: [], onInvite: null, last: {}, timer: null, links: {}, here: {}, live: {}, beat: null, liveBusy: false };
+  const L = { peer: null, prefix: '', me: null, ids: [], onInvite: null, last: {}, timer: null, links: {}, here: {}, live: {}, status: {}, beat: null, liveBusy: false, stBusy: false };
   // Présence : qui est en vocal, vu depuis n'importe quel FIRE ouvert (même sans être dans le salon).
   // Chaque membre en appel prévient les autres toutes les 20 s ; sans nouvelle depuis 60 s, on le considère parti.
   function onHall(from, m) {
     if (!m) return;
     if (m.t === 'invite' && L.onInvite) L.onInvite(from, String(m.room || 'equipe').slice(0, 20));
     if (m.t === 'chat' && m.msg && L.onChat && m.msg.from === from) L.onChat(m.msg);
+    if (m.t === 'status') { const st = cleanStatus(m.s); if (st) L.status[from] = { ...st, t: Date.now() + 150000 }; else delete L.status[from]; emit(); return; }
     if (m.t === 'live') { const g = cleanLive(m.g); if (g) L.live[from] = { g, t: Date.now() + 45000 }; else delete L.live[from]; emit(); return; }
     if (m.t === 'here') { if (m.on) L.here[from] = { t: Date.now() + 60000, room: String(m.room || 'equipe').slice(0, 20) }; else delete L.here[from]; emit(); }
   }
@@ -755,7 +756,7 @@
     clearInterval(L.beat);
     if (V.on) { beacon(true); L.beat = setInterval(() => { if (V.on) beacon(true); }, 20000); }
   }
-  setInterval(() => { const now = Date.now(); let ch = false; for (const obj of [L.here, L.live]) for (const [k, x] of Object.entries(obj)) if (x.t < now) { delete obj[k]; ch = true; } if (ch) emit(); }, 5000);
+  setInterval(() => { const now = Date.now(); let ch = false; for (const obj of [L.here, L.live, L.status]) for (const [k, x] of Object.entries(obj)) if (x.t < now) { delete obj[k]; ch = true; } if (ch) emit(); }, 5000);
   // Partie en direct d'un coéquipier (lue sur son PC par l'API locale officielle de Riot) : on ne garde que des champs connus.
   function cleanLive(g) {
     if (!g || typeof g !== 'object' || !Array.isArray(g.players) || g.players.length > 12) return null;
@@ -766,6 +767,24 @@
       players: g.players.map((p) => ({ n: str(p.n, 40), c: str(p.c, 30).replace(/[^A-Za-z0-9]/g, ''), team: p.team === 'CHAOS' ? 'CHAOS' : 'ORDER',
         k: num(p.k), d: num(p.d), a: num(p.a), cs: num(p.cs), lvl: num(p.lvl), pos: str(p.pos, 10) })),
     };
+  }
+  // Statut et petite carte de profil d'un coéquipier (Paramètres › Mon profil) : seulement des champs connus et courts.
+  function cleanStatus(x) {
+    if (!x || typeof x !== 'object') return null;
+    const str = (v, n) => String(v == null ? '' : v).slice(0, n);
+    const st = ['online', 'busy', 'away'].includes(x.st) ? x.st : 'online';
+    const color = /^#[0-9a-fA-F]{6}$/.test(x.color || '') ? x.color : '';
+    const banner = x.banner && /^[A-Za-z]{2,20}$/.test(x.banner.c || '') && Number.isInteger(x.banner.n) && x.banner.n >= 0 && x.banner.n < 200 ? { c: x.banner.c, n: x.banner.n } : null;
+    return { st, game: !!x.game, bio: str(x.bio, 140), color, banner, dm: ['all', 'coach', 'none'].includes(x.dm) ? x.dm : 'all' };
+  }
+  // Mon statut envoyé à l'équipe (toutes les minutes et à chaque changement) ; null = invisible (les autres ne me voient plus).
+  async function statusSend(st) {
+    if (L.stBusy || !L.peer) return;
+    L.stBusy = true;
+    try {
+      const others = L.ids.filter((x) => x !== L.me);
+      await Promise.all(others.map(async (x) => { const dc = await link(x); if (dc) { try { dc.send({ t: 'status', s: st }); } catch (e) { /* */ } } }));
+    } finally { L.stBusy = false; }
   }
   // Ma partie en direct envoyée à l'équipe (FIRE ouvert chez eux), toutes les 15 s pendant une game ; null à la fin.
   async function liveSend(g) {
@@ -821,7 +840,7 @@
 
   window.FireVoice = {
     join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, setStreamSound, requestSound, addScreenSound, watchStream,
-    onSoundRequest: (f) => { V.onSndReq = f; }, appSend, liveSend, onApp: (f) => { V.onApp = f; }, onPeer: (f) => { V.onPeer = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
+    onSoundRequest: (f) => { V.onSndReq = f; }, appSend, liveSend, statusSend, onApp: (f) => { V.onApp = f; }, onPeer: (f) => { V.onPeer = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
     clearErr: () => { V.err = ''; emit(); },
     // Définition et images/s de chaque écran partagé que je reçois (affichées sur la vidéo).
     recvInfo: async () => {
@@ -861,6 +880,7 @@
       members: Object.entries(V.conns).map(([s, k]) => ({ slug: s, ok: !!k.out, remote: k.remote || {} })),
       here: Object.keys(L.here).filter((x) => x !== V.me && L.here[x].t > Date.now()),
       lives: Object.fromEntries(Object.entries(L.live).filter(([, x]) => x.t > Date.now()).map(([k, x]) => [k, x.g])),
+      statuses: Object.fromEntries(Object.entries(L.status).filter(([, x]) => x.t > Date.now()).map(([k, x]) => [k, x])),
       rooms: Object.fromEntries(Object.entries(L.here).filter(([x, e]) => x !== V.me && e.t > Date.now()).map(([x, e]) => [x, e.room])),
       room: V.room,
       videos: Object.entries(V.vin).filter(([, v]) => v.stream).map(([key, v]) => ({ slug: key.split(':')[0], kind: key.split(':')[1], stream: v.stream, sound: !!v.snd })),

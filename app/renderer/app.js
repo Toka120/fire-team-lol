@@ -51,6 +51,63 @@
     else if (z !== 100) el.style.setProperty('zoom', String(z / 100)); else el.style.removeProperty('zoom');
   }
   applyFonts();
+  // Réglages de confort (Paramètres) : apparence, accessibilité, notifications, profil, confidentialité. Gardés sur ce PC.
+  const UX_DEF = { accent: '', bg: { type: 'none', c: '', n: 0, blur: 6, dim: 70 }, compact: false, h12: false, calm: false, contrast: false, dys: false, sat: 100,
+    dnd: true, quiet: { on: false, from: '23:00', to: '09:00' }, nsound: 'windows', status: 'online', bio: '', color: '', banner: null, dm: 'all', hideLive: false, streamer: 'auto' };
+  let UX = { ...UX_DEF, ...load('fire.ux', {}) };
+  UX.bg = { ...UX_DEF.bg, ...(UX.bg || {}) }; UX.quiet = { ...UX_DEF.quiet, ...(UX.quiet || {}) };
+  const STREAM = { detected: false };
+  const streamerOn = () => UX.streamer === 'on' || (UX.streamer === 'auto' && STREAM.detected);
+  function applyUx() {
+    const el = document.documentElement;
+    const tog = (k, v) => { if (v) el.setAttribute(k, '1'); else el.removeAttribute(k); };
+    if (/^#[0-9a-f]{6}$/i.test(UX.accent || '')) { ['--fire1', '--fire2', '--ta'].forEach((k) => el.style.setProperty(k, UX.accent)); el.setAttribute('data-accent', '1'); }
+    else { ['--fire1', '--fire2', '--ta'].forEach((k) => el.style.removeProperty(k)); el.removeAttribute('data-accent'); }
+    tog('data-compact', UX.compact); tog('data-calm', UX.calm); tog('data-contrast', UX.contrast); tog('data-streamer', streamerOn());
+    if (UX.contrast) { el.style.setProperty('--muted', 'color-mix(in srgb, var(--fg) 86%, transparent)'); el.style.setProperty('--line', 'color-mix(in srgb, var(--fg) 34%, transparent)'); }
+    else { el.style.removeProperty('--muted'); el.style.removeProperty('--line'); }
+    el.style.filter = Number(UX.sat) && Number(UX.sat) !== 100 ? `saturate(${Number(UX.sat) / 100})` : '';
+    // Police pour la dyslexie : passe avant la police choisie.
+    if (UX.dys) { el.style.setProperty('--v2-font', "'OpenDyslexic', 'Segoe UI', sans-serif"); el.setAttribute('data-fui', '1'); }
+    // Fond d'écran : un skin de LoL ou ton image, flouté et assombri derrière l'application.
+    const b = UX.bg || {};
+    let url = '';
+    if (b.type === 'skin' && /^[A-Za-z]+$/.test(b.c || '')) url = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${b.c}_${Number(b.n) || 0}.jpg`;
+    if (b.type === 'image') url = load('fire.uxbgimg', '') || '';
+    if (url) { el.style.setProperty('--ux-bg', `url("${url}")`); el.style.setProperty('--ux-blur', `${Math.max(0, Math.min(30, Number(b.blur) || 0))}px`); el.style.setProperty('--ux-dim', String(Math.max(0, Math.min(95, Number(b.dim) || 0)) / 100)); el.setAttribute('data-uxbg', '1'); }
+    else { el.style.removeProperty('--ux-bg'); el.removeAttribute('data-uxbg'); }
+  }
+  function setUx(patch) { UX = { ...UX, ...patch }; save('fire.ux', UX); applyFonts(); applyUx(); statusPush(); }
+  applyUx();
+  // Notifications Windows : coupées pendant une partie (si choisi), aux heures calmes et en statut « Occupé » ; son au choix.
+  const inQuiet = () => {
+    if (!UX.quiet.on) return false;
+    const now = new Date(), m = now.getHours() * 60 + now.getMinutes();
+    const t = (x) => { const [hh, mm] = String(x || '0:0').split(':').map(Number); return (hh || 0) * 60 + (mm || 0); };
+    const a = t(UX.quiet.from), b = t(UX.quiet.to);
+    return a <= b ? m >= a && m < b : m >= a || m < b;
+  };
+  function notifMuted() { return (UX.dnd && typeof LIVE !== 'undefined' && LIVE.mine) || inQuiet() || UX.status === 'busy'; }
+  function deskNotify(o) {
+    if (!window.fire.notify || (!o.force && notifMuted())) return Promise.resolve(false);
+    const m = { ...o };
+    if (streamerOn()) m.body = 'Ouvre FIRE pour voir le détail (mode streamer).';
+    if (UX.nsound === 'silence' || UX.nsound === 'fire') m.silent = true;
+    if (UX.nsound === 'fire') fireChime();
+    return window.fire.notify(m);
+  }
+  function fireChime() {
+    try {
+      const c = new (window.AudioContext || window.webkitAudioContext)();
+      [[0, 784], [0.11, 1046], [0.22, 1318]].forEach(([d, f]) => {
+        const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + d;
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.4);
+      });
+      setTimeout(() => c.close(), 1200);
+    } catch (e) { /* pas de son */ }
+  }
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
 
   const S = {
@@ -82,7 +139,11 @@
     return e;
   }
   const later = (fn) => requestAnimationFrame(() => { try { fn(); } catch (e) { console.error(e); } });
-  const hm = (t) => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  const hm = (t) => {
+    const d = new Date(t), m = String(d.getMinutes()).padStart(2, '0');
+    if (UX.h12) { const hh = d.getHours(); return `${hh % 12 || 12}:${m} ${hh < 12 ? 'AM' : 'PM'}`; }
+    return `${String(d.getHours()).padStart(2, '0')}:${m}`;
+  };
   const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   const tag = (t) => h('span', { class: 'tag' }, t);
   // Skins préférés d'un joueur (joueurs.json « fonds » : [{ champ, skin }]) : ils défilent en fond de sa carte et de son profil.
@@ -93,7 +154,7 @@
       src: `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${f.champ}_${f.skin}.jpg`, onerror: (e) => e.target.remove() })));
   }
   // Un seul minuteur pour toute l'app : chaque fond passe au skin suivant toutes les 7 s (fondu enchaîné).
-  setInterval(() => document.querySelectorAll('.skin-bg').forEach((b) => {
+  setInterval(() => !UX.calm && document.querySelectorAll('.skin-bg').forEach((b) => {
     const imgs = [...b.querySelectorAll('img')];
     if (imgs.length < 2) return;
     const i = imgs.findIndex((x) => x.classList.contains('on'));
@@ -388,7 +449,7 @@
     const p = notifPrefs();
     if (!p[kind]) return;
     if (p.app) popup(title, body, section);
-    if (p.on && window.fire.notify) window.fire.notify({ title, body, section }).catch(() => {});
+    if (p.on && window.fire.notify) deskNotify({ title, body, section }).catch(() => {});
   }
   // Pop-up dans FIRE : descend du haut de la fenêtre et reste jusqu'à ce qu'on clique sur la croix.
   function popup(title, body, section) {
@@ -417,7 +478,7 @@
     if (S.popV !== v) { S.popV = v; if (p.app && p.upd) popup('🔥 Mise à jour disponible', body, 'settings'); }
     if (load('fire.notif.v', '') === v) return;
     save('fire.notif.v', v);
-    if (p.on && p.upd && window.fire.notify) window.fire.notify({ title: '🔥 Mise à jour disponible', body, section: 'settings' }).catch(() => {});
+    if (p.on && p.upd && window.fire.notify) deskNotify({ title: '🔥 Mise à jour disponible', body, section: 'settings' }).catch(() => {});
   }
   // Empreinte des jours de jeu à venir, pour voir si le coach a changé le planning.
   function planSig() {
@@ -552,12 +613,13 @@
         box(p.upd, '🔥 Une mise à jour de FIRE est disponible', (v) => set('upd', v), !p.on && !p.app),
         box(p.plan, '📅 Le coach a changé le planning (jour ajouté, retiré ou horaires modifiés)', (v) => set('plan', v), !p.on && !p.app),
         box(p.chat, '💬 Nouveau message dans la discussion (quand FIRE n’est pas au premier plan)', (v) => set('chat', v), !p.on),
+        box(p.dm !== false, '🔒 Nouveau message privé', (v) => set('dm', v), !p.on),
         box(p.resa, '🎓 Créneau avec un coach : ta demande est acceptée ou refusée (coachs : un joueur demande un créneau)', (v) => set('resa', v), !p.on && !p.app),
         box(p.coach, '📣 Nouvelle fiche ou note dans « Parole du coach »', (v) => set('coach', v), !p.on && !p.app),
         box(p.vocal, '🎙️ Un coéquipier arrive dans le salon vocal (notification Windows, une fois par personne toutes les 10 min)', (v) => set('vocal', v), !p.on)),
       h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: (p.on || p.app) ? null : true, onclick: () => {
         if (p.app) popup('🔥 FIRE LoL', 'Les notifications fonctionnent ✓', null);
-        if (p.on && window.fire.notify) window.fire.notify({ title: '🔥 FIRE LoL', body: 'Les notifications fonctionnent ✓', section: 'settings' });
+        if (p.on && window.fire.notify) deskNotify({ title: '🔥 FIRE LoL', body: 'Les notifications fonctionnent ✓', section: 'settings', force: true });
       } }, '🔔 Envoyer une notification de test')),
       b.notif === false ? h('p', { class: 'bad small' }, '⚠ Ton ordinateur bloque les notifications. Active-les dans Windows : Paramètres › Système › Notifications.') : null,
       h('h3', { class: 'nh' }, 'Recevoir les notifications même fenêtre fermée'),
@@ -614,6 +676,179 @@
         h('button', { class: 'chip', 'aria-pressed': String(Number(f.zoom || 100) === z), onclick: () => set('zoom', z) }, `${l} · ${z} %`))),
       f.ui || f.title || Number(f.zoom || 100) !== 100 ? h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => { save('fire.font', {}); applyFonts(); renderSettings(); } }, '↺ Polices par défaut')) : null);
   }
+
+  // ----- Paramètres façon Discord : catégories à gauche, réglages à droite -----
+  const SET_TABS = [['profil', '👤', 'Mon profil'], ['apparence', '🎨', 'Apparence'], ['access', '♿', 'Accessibilité'], ['notifs', '🔔', 'Notifications'], ['vocal', '🎙️', 'Voix'],
+    ['raccourcis', '⌨️', 'Raccourcis'], ['confid', '🔒', 'Confidentialité'], ['ouverture', '🚀', 'Ouverture de FIRE'], ['avance', '⚙️', 'Avancé'], ['apropos', 'ℹ️', 'Version et aide']];
+  const uxBox = (checked, label, sub, onchange, disabled) => h('label', { class: 'nrow ux-row' + (disabled ? ' off' : '') },
+    h('input', { type: 'checkbox', checked: checked ? true : null, disabled: disabled ? true : null, onchange: (e) => onchange(e.target.checked) }),
+    h('span', null, h('b', null, label), sub ? h('small', { class: 'muted' }, sub) : null));
+  const uxSeg = (list, cur, on) => h('div', { class: 'row ux-seg' }, list.map(([v, l]) => h('button', { class: 'chip', 'aria-pressed': String(cur === v), onclick: () => on(v) }, l)));
+  const uxCard = (title, sub, ...kids) => h('div', { class: 'card settings-card' }, h('h2', null, title), sub ? h('p', { class: 'muted small' }, sub) : null, ...kids);
+  // Choix d'un skin (champion puis skin) : bannière du profil et fond d'écran.
+  function skinPicker(cur, onPick) {
+    if (!J.data && !J.loading) loadJeux().then(() => { if (S.section === 'settings' && !typing()) renderSettings(); });
+    const champs = (J.data && J.data.champs) || ((S.champList && S.champList.list) || []).map((c) => ({ id: c.id, name: c.name, skins: [{ num: 0, name: c.name }] }));
+    const ch = champs.find((c) => c.id === (cur && cur.c));
+    const skins = ch ? (ch.skins && ch.skins.length ? ch.skins : [{ num: 0, name: ch.name }]) : [];
+    return h('div', { class: 'row skin-pick' },
+      h('select', { class: 'inp', onchange: (e) => onPick(e.target.value ? { c: e.target.value, n: 0 } : null) },
+        h('option', { value: '' }, '— Champion —'), champs.map((c) => h('option', { value: c.id, selected: ch && ch.id === c.id ? true : null }, c.name))),
+      ch ? h('select', { class: 'inp', onchange: (e) => onPick({ c: ch.id, n: Number(e.target.value) || 0 }) },
+        skins.map((k) => h('option', { value: String(k.num), selected: Number(cur.n) === k.num ? true : null }, k.name || ch.name))) : null,
+      ch ? h('img', { class: 'skin-prev', src: `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${ch.id}_${Number(cur.n) || 0}.jpg`, alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } }) : null);
+  }
+  function profilCards() {
+    const me = vocalMe();
+    return [
+      uxCard('👤 Qui es-tu ?', 'Choisis ton pseudo : FIRE te reconnaît (tierlist dans POOL, discussion, vocal).', h('div', { class: 'row' }, meSelect())),
+      uxCard('🟢 Statut', 'Ce que l’équipe voit à côté de ton nom. « Occupé » coupe aussi tes notifications. « En game » s’affiche tout seul pendant une partie.',
+        uxSeg(['online', 'busy', 'away', 'invisible'].map((k) => [k, ST_LABEL[k].join(' ')]), UX.status, (v) => { setUx({ status: v }); renderSettings(); }),
+        LIVE.mine ? h('p', { class: 'good small' }, '🎮 Tu es en game : l’équipe le voit.') : null),
+      uxCard('🪪 Ta carte de profil', 'Visible par l’équipe quand on clique sur ton nom dans la discussion.',
+        h('label', { class: 'fld' }, h('span', null, 'Petite bio (140 caractères)'),
+          h('textarea', { class: 'inp ux-bio', maxlength: 140, rows: 2, placeholder: 'Ex. : main Ahri, je flame pas promis 😇', onchange: (e) => setUx({ bio: e.target.value.slice(0, 140) }) }, UX.bio || '')),
+        h('div', { class: 'row' }, h('span', null, 'Couleur de ton pseudo'),
+          h('input', { type: 'color', class: 'ux-color', value: UX.color || '#f5a524', onchange: (e) => { setUx({ color: e.target.value }); renderSettings(); } }),
+          UX.color ? h('button', { class: 'btn-ghost', onclick: () => { setUx({ color: '' }); renderSettings(); } }, 'Couleur normale') : null),
+        h('div', { class: 'fld' }, h('span', null, 'Bannière (un skin de LoL)'), skinPicker(UX.banner, (b) => { setUx({ banner: b }); renderSettings(); })),
+        me ? h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => openProfile(me) }, '👀 Voir ma carte')) : h('p', { class: 'muted small' }, 'Choisis d’abord qui tu es.')),
+    ];
+  }
+  function appearanceCards(themeCard) {
+    const b = UX.bg;
+    const setBg = (patch) => { setUx({ bg: { ...UX.bg, ...patch } }); renderSettings(); };
+    const upload = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const img = new Image();
+      img.onload = () => {
+        const sc = Math.min(1, 1920 / img.width);
+        const cv = document.createElement('canvas'); cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        try { localStorage.setItem('fire.uxbgimg', JSON.stringify(cv.toDataURL('image/jpeg', 0.82))); setBg({ type: 'image' }); }
+        catch (err) { alert('Image trop lourde : choisis-en une plus petite.'); }
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(f);
+    } });
+    const PRESET = ['#f5a524', '#ff5e3a', '#ff2bd6', '#9d5cff', '#579dff', '#00e5ff', '#2ee6c5', '#39c58a', '#ffd23d', '#ff4d6d'];
+    return [
+      themeCard,
+      uxCard('🖌️ Couleur d’accent', 'Ta couleur pour les boutons, le menu et les liens, par-dessus le thème.',
+        h('div', { class: 'row ux-acc' }, PRESET.map((c) => h('button', { class: 'acc-sw' + (UX.accent === c ? ' on' : ''), style: `background:${c}`, title: c, onclick: () => { setUx({ accent: c }); renderSettings(); } })),
+          h('label', { class: 'acc-custom', title: 'Couleur personnalisée' }, '🎨', h('input', { type: 'color', value: UX.accent || '#f5a524', onchange: (e) => { setUx({ accent: e.target.value }); renderSettings(); } })),
+          UX.accent ? h('button', { class: 'btn-ghost', onclick: () => { setUx({ accent: '' }); renderSettings(); } }, 'Couleur du thème') : null)),
+      uxCard('🖼️ Fond d’écran', 'Un skin de LoL ou ta propre image derrière toute l’application.',
+        uxSeg([['none', 'Aucun'], ['skin', '🎨 Un skin de LoL'], ['image', '📁 Mon image']], b.type, (v) => { if (v === 'image' && !load('fire.uxbgimg', '')) { upload.click(); return; } setBg({ type: v }); }),
+        b.type === 'skin' ? skinPicker({ c: b.c, n: b.n }, (x) => setBg({ type: 'skin', c: x ? x.c : '', n: x ? x.n : 0 })) : null,
+        b.type === 'image' ? h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => upload.click() }, '📁 Changer d’image')) : null,
+        upload,
+        b.type !== 'none' ? h('div', { class: 'ux-sliders' },
+          h('label', { class: 'fld' }, h('span', null, `Flou : ${b.blur} px`), h('input', { type: 'range', min: 0, max: 30, value: b.blur, onchange: (e) => setBg({ blur: Number(e.target.value) }) })),
+          h('label', { class: 'fld' }, h('span', null, `Assombrir : ${b.dim} %`), h('input', { type: 'range', min: 0, max: 95, value: b.dim, onchange: (e) => setBg({ dim: Number(e.target.value) }) }))) : null),
+      fontCard(),
+      uxCard('📐 Affichage', null,
+        uxBox(UX.compact, 'Mode compact', 'Moins d’espace entre les éléments : plus de choses à l’écran sans défiler.', (v) => { setUx({ compact: v }); renderSettings(); }),
+        uxBox(UX.h12, 'Heure sur 12 h (AM/PM)', `Exemple : ${UX.h12 ? '9:30 PM' : '21:30'}`, (v) => { setUx({ h12: v }); renderSettings(); })),
+    ];
+  }
+  function accessCards() {
+    return [uxCard('♿ Accessibilité', 'Pour un FIRE plus confortable à lire.',
+      uxBox(UX.calm, 'Réduire les animations', 'Coupe les défilements de skins, l’arc-en-ciel RGB et les effets de mouvement.', (v) => { setUx({ calm: v }); renderSettings(); }),
+      uxBox(UX.contrast, 'Contraste élevé', 'Textes secondaires et bordures plus marqués.', (v) => { setUx({ contrast: v }); renderSettings(); }),
+      uxBox(UX.dys, 'Police pour la dyslexie (OpenDyslexic)', 'Des lettres plus faciles à distinguer. Passe avant la police choisie.', (v) => { setUx({ dys: v }); renderSettings(); }),
+      h('label', { class: 'fld' }, h('span', null, `Saturation des couleurs : ${UX.sat} %`),
+        h('input', { type: 'range', min: 30, max: 150, step: 10, value: UX.sat, onchange: (e) => { setUx({ sat: Number(e.target.value) }); renderSettings(); } })),
+      UX.sat !== 100 ? h('button', { class: 'btn-ghost', onclick: () => { setUx({ sat: 100 }); renderSettings(); } }, 'Saturation normale') : null)];
+  }
+  function notifExtraCards() {
+    const q = UX.quiet;
+    return [uxCard('🌙 Ne pas déranger', 'Les notifications Windows ne s’affichent pas dans ces moments-là (elles restent dans FIRE).',
+      uxBox(UX.dnd, 'Pendant une partie de LoL', 'FIRE voit que tu es en game et se tait jusqu’à la fin.', (v) => { setUx({ dnd: v }); renderSettings(); }),
+      uxBox(q.on, 'Heures calmes', 'Aucune notification Windows sur ce créneau.', (v) => { setUx({ quiet: { ...q, on: v } }); renderSettings(); }),
+      q.on ? h('div', { class: 'row' }, 'De ', h('input', { type: 'time', class: 'inp ux-time', value: q.from, onchange: (e) => setUx({ quiet: { ...UX.quiet, from: e.target.value } }) }),
+        ' à ', h('input', { type: 'time', class: 'inp ux-time', value: q.to, onchange: (e) => setUx({ quiet: { ...UX.quiet, to: e.target.value } }) })) : null,
+      notifMuted() ? h('p', { class: 'muted small' }, '🔕 En ce moment, les notifications Windows sont coupées.') : null),
+      uxCard('🔊 Son des notifications', null,
+        uxSeg([['windows', '🔔 Son de Windows'], ['fire', '🔥 Son FIRE'], ['silence', '🔇 Silence']], UX.nsound, (v) => { setUx({ nsound: v }); if (v === 'fire') fireChime(); renderSettings(); }))];
+  }
+  function vocalCards() {
+    let cfg = {};
+    try { cfg = FV().state().cfg || {}; } catch (e) { /* */ }
+    return [uxCard('🎙️ Voix', 'Micro, casque, filtres, caméra, partage d’écran et clips sont dans les réglages du vocal.',
+      uxBox(cfg.sounds !== false, 'Sons d’arrivée et de départ', 'Un petit son quand quelqu’un rejoint ou quitte le salon.', (v) => { try { FV().setCfg({ sounds: v }); } catch (e) { /* */ } setTimeout(renderSettings, 50); }),
+      uxBox(cfg.duck !== false, 'Baisser le son des streams quand quelqu’un parle', 'Dans FIRE : le son d’un partage d’écran baisse pendant que l’équipe parle.', (v) => { try { FV().setCfg({ duck: v }); } catch (e) { /* */ } setTimeout(renderSettings, 50); }),
+      h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => { go('vocal'); VX.drawer = true; renderVocal(); } }, '⚙️ Réglages voix et vidéo'))),
+      uxCard('🔉 Baisser le son des autres applications', 'Windows sait baisser la musique, YouTube ou le jeu pendant un appel vocal. Choisis « Réduire de 80 % » dans l’onglet Communications qui s’ouvre.',
+        window.fire.win && window.fire.win.soundComms ? h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => window.fire.win.soundComms() }, '🔉 Ouvrir le réglage de Windows')) : null,
+        h('p', { class: 'muted small' }, 'FIRE ne peut pas changer lui-même le volume des autres programmes : c’est Windows qui s’en charge.'))];
+  }
+  function shortcutCards() {
+    const navs = [...document.querySelectorAll('.navbtn')].slice(0, 9).map((b) => (b.querySelector('.v2-lab') || b).textContent.replace(/\d+$/, '').trim());
+    const k = (keys, what) => h('div', { class: 'kb-row' }, h('span', { class: 'kb-keys' }, keys.split('+').map((x) => h('kbd', null, x))), h('span', null, what));
+    return [uxCard('⌨️ Raccourcis de FIRE', 'Ils marchent quand la fenêtre de FIRE est active.',
+      k('Ctrl+K', 'Recherche rapide : une page, un joueur, un jeu, un réglage, un message privé…'),
+      navs.map((n, i) => k(`Ctrl+${i + 1}`, n)),
+      k('Échap', 'Fermer une fenêtre (recherche, profil, diaporama…)'),
+      h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: qsOpen }, '🔎 Essayer Ctrl+K'))),
+      uxCard('🎮 Raccourcis du vocal', 'Couper le micro, le son, clip instantané… Ils marchent partout, même en pleine partie.',
+        h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => { go('vocal'); VX.drawer = true; VX.setTab && VX.setTab('keys'); renderVocal(); } }, '⌨️ Modifier les raccourcis du vocal')))];
+  }
+  function privacyCards() {
+    return [uxCard('📺 Mode streamer', 'Cache les messages privés, le détail des notifications et les codes quand tu streames.',
+      uxSeg([['auto', '🤖 Automatique (OBS, Streamlabs…)'], ['on', 'Toujours'], ['off', 'Jamais']], UX.streamer, (v) => {
+        setUx({ streamer: v }); if (window.fire.streamer) window.fire.streamer.watch(v === 'auto').then((x) => { STREAM.detected = !!x; applyUx(); renderSettings(); }).catch(() => {}); renderSettings(); }),
+      h('p', { class: 'small ' + (streamerOn() ? 'good' : 'muted') }, streamerOn() ? '📺 Mode streamer actif en ce moment.' : UX.streamer === 'auto' ? 'Aucun logiciel de stream ouvert pour l’instant.' : 'Mode streamer désactivé.')),
+      uxCard('💬 Messages privés', 'Qui peut t’écrire en privé dans la discussion.',
+        uxSeg([['all', 'Toute l’équipe'], ['coach', 'Seulement les coachs'], ['none', 'Personne']], UX.dm, (v) => { setUx({ dm: v }); renderSettings(); })),
+      uxCard('🎮 Ma partie en direct', null,
+        uxBox(!UX.hideLive, 'Montrer ma partie en direct à l’équipe', 'Champion, score et temps de jeu dans « Stats des joueurs ». Décoche pour jouer discrètement.', (v) => { setUx({ hideLive: !v }); if (!v) { try { FV().liveSend(null); } catch (e) { /* */ } } renderSettings(); }))];
+  }
+  const ADV = { gpu: null, cache: null, msg: '' };
+  const EXPORT_SKIP = /^fire\.(unlock|data|chat\.|seen$|vus$|jeux\.cache|lastSection)/;
+  function exportPrefs() {
+    const out = {};
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('fire.') && !EXPORT_SKIP.test(k)) out[k] = localStorage.getItem(k); }
+    const blob = new Blob([JSON.stringify({ app: 'FIRE LoL', v: S.version, at: new Date().toISOString(), prefs: out }, null, 1)], { type: 'application/json' });
+    const a = h('a', { href: URL.createObjectURL(blob), download: `FIRE-reglages-${todayYmd()}.json` });
+    document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    ADV.msg = '💾 Réglages exportés (dossier Téléchargements).'; renderSettings();
+  }
+  function importPrefs(file) {
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const j = JSON.parse(r.result);
+        if (!j || j.app !== 'FIRE LoL' || !j.prefs) throw new Error('fichier');
+        const keys = Object.keys(j.prefs).filter((k) => k.startsWith('fire.') && !EXPORT_SKIP.test(k));
+        if (!confirm(`Remplacer tes réglages par ceux de ce fichier (${keys.length} réglages) ? FIRE va se recharger.`)) return;
+        keys.forEach((k) => localStorage.setItem(k, String(j.prefs[k])));
+        location.reload();
+      } catch (e) { ADV.msg = '⚠ Ce fichier n’est pas une sauvegarde de réglages FIRE.'; renderSettings(); }
+    };
+    r.readAsText(file);
+  }
+  function advancedCards(extra) {
+    const A = window.fire.adv;
+    if (A && ADV.gpu == null) { A.gpu().then((g) => { ADV.gpu = g; renderSettings(); }).catch(() => {}); A.cacheSize().then((n) => { ADV.cache = n; renderSettings(); }).catch(() => {}); ADV.gpu = {}; }
+    const mb = (n) => `${(Number(n || 0) / 1048576).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} Mo`;
+    const imp = h('input', { type: 'file', accept: '.json,application/json', hidden: true, onchange: (e) => { const f = e.target.files && e.target.files[0]; if (f) importPrefs(f); } });
+    return [
+      uxCard('💾 Sauvegarder mes réglages', 'Thème, polices, notifications, vocal, profil… dans un fichier, pour tout retrouver sur un autre PC. Le code d’équipe n’est jamais dedans.',
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: exportPrefs }, '💾 Exporter mes réglages'), h('button', { class: 'btn-ghost', onclick: () => imp.click() }, '📂 Importer un fichier'), imp),
+        ADV.msg ? h('p', { class: 'small' }, ADV.msg) : null),
+      A ? uxCard('🖥️ Performances', null,
+        uxBox(ADV.gpu && ADV.gpu.off === false, 'Accélération matérielle', 'Utilise la carte graphique pour l’affichage. Désactive-la si FIRE rame ou scintille pendant une partie. Il faut redémarrer FIRE.',
+          (v) => A.setGpu(!v).then(() => { ADV.gpu = { ...ADV.gpu, off: !v, changed: true }; renderSettings(); })),
+        ADV.gpu && ADV.gpu.changed ? h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => A.restart() }, '🔄 Redémarrer FIRE maintenant')) : null,
+        h('div', { class: 'row' }, h('span', { class: 'muted small' }, `Cache : ${ADV.cache == null ? '…' : mb(ADV.cache)}`),
+          h('button', { class: 'btn-ghost', onclick: () => A.clearCache().then((r) => { ADV.cache = 0; ADV.msg = `🧹 Cache vidé (${mb(r && r.freed)} libérés). Tes réglages et messages sont gardés.`; renderSettings(); }) }, '🧹 Vider le cache')),
+        ADV.msg && /Cache/.test(ADV.msg) ? h('p', { class: 'small' }, ADV.msg) : null) : null,
+      ...extra,
+    ];
+  }
+
   function renderSettings() {
     if (S.section !== 'settings') return;
     const u = S.upd || {};
@@ -644,10 +879,8 @@
     }
 
     const st = S.coachState || {};
-    view.replaceChildren(
-      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '⚙️'), h('div', null, h('h1', { class: 'title' }, 'Paramètres'), h('p', { class: 'muted' }, 'Version, mises à jour, accès et profil.'))),
-      h('div', { class: 'card settings-card' }, h('h2', null, '👤 Mon profil'), h('p', { class: 'muted small' }, 'Choisis qui tu es : tu pourras modifier ta propre tierlist dans 🧙 POOL.'), h('div', { class: 'row' }, meSelect())),
-      h('div', { class: 'card settings-card' },
+    const C = {};
+    C.version = h('div', { class: 'card settings-card' },
         h('h2', null, "🔄 Version de l'application"),
         row('Version installée', 'v' + S.version),
         u.store ? null : row('Dernière version publiée', latest ? 'v' + latest : '…'),
@@ -658,46 +891,62 @@
           ? "Installé depuis le Microsoft Store : les nouvelles versions arrivent toutes seules par le Store (Bibliothèque › Obtenir les mises à jour)."
           : u.portable
           ? "La version portable ne peut pas s'installer toute seule : télécharge FIRE-LoL-Setup.exe, qui se mettra ensuite à jour automatiquement."
-          : "L'application cherche aussi les nouvelles versions toute seule, à chaque ouverture et toutes les 30 minutes.")),
-      h('div', { class: 'card settings-card' },
+          : "L'application cherche aussi les nouvelles versions toute seule, à chaque ouverture et toutes les 30 minutes."));
+    C.theme = h('div', { class: 'card settings-card' },
         h('h2', null, '🎨 Thème de l’application'),
         h('p', { class: 'muted small' }, 'Les ambiances changent les couleurs, le fond, la police des titres et les effets. Le choix est gardé sur cet ordinateur.'),
         ...[[1, '✨ Ambiances'], [0, '🎨 Couleurs simples']].map(([grp, title]) => h('div', { class: 'th-grp' }, h('h3', { class: 'th-gt' }, title),
           h('div', { class: 'th-grid' + (grp ? '' : ' simple') }, THEMES.filter((x) => x[6] === grp).map(([id, label, bg, a, b2, desc]) =>
             h('button', { class: 'th-card th-' + id, 'aria-pressed': String(load('fire.theme', 'fire') === id), style: `--pa:${a};--pb:${b2};--pbg:${bg}`, onclick: () => { save('fire.theme', id); applyTheme(id); renderSettings(); } },
               h('span', { class: 'th-prev' }, h('i', { class: 'th-side' }), h('span', { class: 'th-body' }, h('b', { class: 'th-tt' }, label), h('i', { class: 'th-line' }), h('i', { class: 'th-line s' }), h('i', { class: 'th-btn' }))),
-              grp ? h('small', { class: 'muted th-desc' }, desc) : null)))))),
-      fontCard(),
-      startCard(),
-      // Interface : la V2 est active pour tout le monde ; l'ancienne reste disponible en cas de souci.
-      window.FIREV2 ? h('div', { class: 'card settings-card' },
+              grp ? h('small', { class: 'muted th-desc' }, desc) : null))))));
+    // Interface : la V2 est active pour tout le monde ; l'ancienne reste disponible en cas de souci.
+    C.v2 = window.FIREV2 ? h('div', { class: 'card settings-card' },
         h('h2', null, '✨ Interface'),
         h('p', { class: 'muted small' }, 'FIRE utilise la nouvelle interface : barre latérale, couleurs or, polices et icônes. Si quelque chose ne va pas, tu peux revenir à l’ancienne sur ce PC. FIRE se recharge quand tu changes ce réglage.'),
         h('label', { class: 'v2-optin' }, h('input', { type: 'checkbox', checked: window.FIREV2.on ? true : null, onchange: (e) => window.FIREV2.set(e.target.checked) }),
-          h('span', null, h('b', null, 'Nouvelle interface (V2)'), h('br'), h('span', { class: 'muted small' }, 'Décoche pour retrouver l’ancienne interface.')))) : null,
-      h('div', { class: 'card settings-card' }, h('h2', null, '🐞 Signaler un bug'), h('p', { class: 'muted small' }, 'Un souci dans FIRE ? Décris-le avec des captures d’écran : le coach reçoit ton rapport.'),
-        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: openBug }, '🐞 Signaler un bug'))),
-      notifCard(),
-      h('div', { class: 'card settings-card' },
+          h('span', null, h('b', null, 'Nouvelle interface (V2)'), h('br'), h('span', { class: 'muted small' }, 'Décoche pour retrouver l’ancienne interface.')))) : null;
+    C.bug = h('div', { class: 'card settings-card' }, h('h2', null, '🐞 Signaler un bug'), h('p', { class: 'muted small' }, 'Un souci dans FIRE ? Décris-le avec des captures d’écran : le coach reçoit ton rapport.'),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: openBug }, '🐞 Signaler un bug')));
+    C.content = h('div', { class: 'card settings-card' },
         h('h2', null, '📊 Stats et contenu'),
         row('Stats dpm.lol', S.refreshing ? 'mise à jour en cours…' : (S.lastRefresh ? 'à jour à ' + hm(S.lastRefresh) : '—')),
         row('Thèmes « Lanes et principes »', S.guides ? `${S.guides.length} thèmes` : '…'),
         row('Fiches du coach', S.fiches ? String(S.fiches.length) : '…'),
         h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: S.refreshing ? true : null, onclick: () => { refreshContent(); setTimeout(renderSettings, 300); } }, '⟳ Tout mettre à jour maintenant')),
-        h('p', { class: 'muted small' }, 'Tout se met aussi à jour tout seul à chaque ouverture, puis toutes les 10 minutes.')),
-      h('div', { class: 'card settings-card' },
+        h('p', { class: 'muted small' }, 'Tout se met aussi à jour tout seul à chaque ouverture, puis toutes les 10 minutes.'));
+    C.access = h('div', { class: 'card settings-card' },
         h('h2', null, '🔐 Accès'),
         row("Code d'équipe", 'enregistré sur cet ordinateur ✓'),
         row('Mode coach', st.coach ? `activé (Claude ${st.claude ? '✓' : '✗'} · GitHub ${st.github ? '✓' : '✗'})` : 'non activé'),
-        coachAccess()),
-      h('div', { class: 'card settings-card' },
+        coachAccess());
+    C.about = h('div', { class: 'card settings-card' },
         h('h2', null, 'ℹ️ À propos'),
         h('p', { class: 'small' }, 'FIRE LoL · ', h('a', { href: 'https://toka120.github.io/fire-team-lol/', target: '_blank' }, 'page de téléchargement'), ' · ',
           h('a', { href: 'https://github.com/Toka120/fire-team-lol/releases', target: '_blank' }, 'toutes les versions'), ' · ',
           h('a', { href: 'https://toka120.github.io/fire-team-lol/confidentialite.html', target: '_blank' }, 'confidentialité')),
-        h('p', { class: 'muted small' }, "FIRE LoL n'est pas approuvé par Riot Games et ne reflète pas les opinions de Riot Games ni de quiconque officiellement impliqué dans la production ou la gestion des propriétés de Riot Games. Riot Games et toutes les propriétés associées sont des marques commerciales ou des marques déposées de Riot Games, Inc.")));
+        h('p', { class: 'muted small' }, "FIRE LoL n'est pas approuvé par Riot Games et ne reflète pas les opinions de Riot Games ni de quiconque officiellement impliqué dans la production ou la gestion des propriétés de Riot Games. Riot Games et toutes les propriétés associées sont des marques commerciales ou des marques déposées de Riot Games, Inc."));
+    // Catégories façon Discord : menu à gauche, réglages de la catégorie à droite.
+    const tab = SET_TABS.some(([k]) => k === S.setTab) ? S.setTab : 'profil';
+    const pages = {
+      profil: () => profilCards(),
+      apparence: () => appearanceCards(C.theme),
+      access: () => accessCards(),
+      notifs: () => [notifCard(), ...notifExtraCards()],
+      vocal: () => vocalCards(),
+      raccourcis: () => shortcutCards(),
+      confid: () => privacyCards(),
+      ouverture: () => [startCard(), C.v2],
+      avance: () => advancedCards([C.content, C.access]),
+      apropos: () => [C.version, C.bug, C.about],
+    };
+    const nav = h('nav', { class: 'set-nav' }, SET_TABS.map(([k, ico, label]) => h('button', { class: 'set-tab' + (k === tab ? ' on' : ''), onclick: () => { S.setTab = k; renderSettings(); window.scrollTo(0, 0); } },
+      h('span', { class: 'set-ico' }, ico), h('span', null, label), k === 'apropos' && behind ? h('span', { class: 'set-n' }, '1') : null)));
+    const cur = SET_TABS.find(([k]) => k === tab);
+    view.replaceChildren(
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '⚙️'), h('div', null, h('h1', { class: 'title' }, 'Paramètres'), h('p', { class: 'muted' }, 'Profil, apparence, notifications, voix, raccourcis, confidentialité… Astuce : Ctrl+K pour aller n’importe où.'))),
+      h('div', { class: 'set-wrap' }, nav, h('div', { class: 'set-main' }, h('h2', { class: 'set-h' }, cur[1] + ' ' + cur[2]), ...pages[tab]().filter(Boolean))));
   }
-
   // ---------- Lecture dpm.lol ----------
   // Un joueur peut changer de compte : « comptes » liste ses comptes, chacun avec ses dates.
   // Un ancien compte (jusqu_au) garde toutes ses games jusqu'à ce jour inclus, le nouveau (depuis) compte à partir de ce jour.
@@ -894,7 +1143,8 @@
     window.fire.live.on((g) => {
       LIVE.mine = g;
       const now = Date.now();
-      if (!g || now - LIVE.lastSend > 15000) { LIVE.lastSend = now; try { FV().liveSend(g); } catch (e) { /* hors ligne */ } }
+      if (!g || now - LIVE.lastSend > 15000) { LIVE.lastSend = now; try { FV().liveSend(UX.hideLive ? null : g); } catch (e) { /* hors ligne */ } }
+      if (!!g !== !!LIVE.wasIn) { LIVE.wasIn = !!g; statusPush(); }
       liveRefresh();
     });
     try { FV().onChange(() => liveRefresh()); } catch (e) { /* */ }
@@ -2112,7 +2362,7 @@
           fresh.forEach((x) => { VX.notified[x] = now; });
           const names = fresh.map(vocalName);
           const all = v.here.length;
-          window.fire.notify({ title: '🎙️ Salon vocal', body: `${names.join(', ')} ${names.length > 1 ? 'sont arrivés' : 'est arrivé'} en vocal${all > fresh.length ? ` (${all} en tout)` : ''}. Clique pour les rejoindre.`, section: 'vocal' }).catch(() => {});
+          deskNotify({ title: '🎙️ Salon vocal', body: `${names.join(', ')} ${names.length > 1 ? 'sont arrivés' : 'est arrivé'} en vocal${all > fresh.length ? ` (${all} en tout)` : ''}. Clique pour les rejoindre.`, section: 'vocal' }).catch(() => {});
         }
         VX.prevHere = v.here.slice();
       }
@@ -2160,7 +2410,7 @@
       const t = '🎙️ Invitation au salon vocal', b = `${vocalName(from)} t’invite dans « ${r.name} ».`;
       const np = notifPrefs();
       if (np.app) popup(t, b, 'vocal');
-      if (np.on && window.fire.notify) window.fire.notify({ title: t, body: b, section: 'vocal' }).catch(() => {});
+      if (np.on && window.fire.notify) deskNotify({ title: t, body: b, section: 'vocal' }).catch(() => {});
     };
     const hall = () => { if (S.players.length && vocalMe()) FV().lobby({ me: vocalMe(), ids: vocalIds(), code: 'FIRE-salon-equipe', onInvite }).catch(() => {}); };
     setTimeout(hall, 3000); setInterval(hall, 10000);
@@ -5358,7 +5608,9 @@
   // Les messages arrivent tout de suite par les FIRE ouverts (voice.js) et l'historique est relu toutes les 2 minutes.
   // conv : 'team' (toute l'équipe) ou le slug d'un membre (messages privés entre vous deux). seenBy : dernier message lu par conversation.
   const CH = { open: load('fire.chat.open', false), msgs: [], seen: load('fire.chat.seen', 0), seenBy: load('fire.chat.seenBy', {}), conv: 'team', err: '', sending: false, el: null, list: null, inp: null, told: new Set(), ready: false, headKey: '' };
-  const chatConvOf = (m, me) => (!m.to ? 'team' : m.from === me ? m.to : m.to === me ? m.from : null);
+  // Messages privés refusés (Paramètres › Confidentialité) : ceux des expéditeurs non autorisés ne s'affichent pas.
+  const dmAllowedFrom = (from) => UX.dm === 'all' || (UX.dm === 'coach' && !!coachOf(from));
+  const chatConvOf = (m, me) => (!m.to ? 'team' : m.from === me ? m.to : m.to === me ? (dmAllowedFrom(m.from) ? m.from : null) : null);
   const chatVisible = (m, me) => chatConvOf(m, me) != null;
   const chatSeenAt = (conv) => (conv === 'team' ? CH.seen : (CH.seenBy[conv] || 0));
   function chatMerge(list, live) {
@@ -5372,9 +5624,10 @@
       const others = fresh.filter((m) => m.from !== vocalMe() && chatVisible(m, vocalMe()) && m.at > Date.now() - 15 * 60000 && !CH.told.has(m.id));
       others.forEach((m) => CH.told.add(m.id));
       const p = notifPrefs();
-      if (others.length && p.on && p.chat && !document.hasFocus() && window.fire.notify) {
-        const m = others[others.length - 1];
-        window.fire.notify({ title: `💬 ${vocalName(m.from)}${m.to ? ' (privé)' : ''}`, body: (others.length > 1 ? `(${others.length} messages) ` : '') + m.text.slice(0, 160), section: 'chat' }).catch(() => {});
+      const wanted = others.filter((m) => (m.to ? p.dm !== false : p.chat));
+      if (wanted.length && p.on && !document.hasFocus() && window.fire.notify) {
+        const m = wanted[wanted.length - 1];
+        deskNotify({ title: `💬 ${vocalName(m.from)}${m.to ? ' (privé)' : ''}`, body: (wanted.length > 1 ? `(${wanted.length} messages) ` : '') + m.text.slice(0, 160), section: 'chat' }).catch(() => {});
       }
     }
     chatPaint(live);
@@ -5442,6 +5695,7 @@
     if (CH.open) chatSeen();
     const un = chatUnread();
     CH.el.classList.toggle('open', !!CH.open);
+    CH.el.classList.toggle('priv', CH.conv !== 'team');
     CH.el.classList.toggle('unread', !CH.open && un > 0);
     // On ne reconstruit la barre que si elle change : la remplacer entre l'appui et le relâchement du clic annulait le clic
     // (il fallait cliquer plusieurs fois pour ouvrir).
@@ -5456,14 +5710,17 @@
       .concat((S.coachs || []).map((c) => [c.slug, '🎓', c.pseudo])).filter(([slug]) => slug !== me);
     if (CH.conv !== 'team' && !people.some(([slug]) => slug === CH.conv)) CH.conv = 'team';
     const convBtn = (id, ico, label, title) => { const n = chatUnreadIn(id); return h('button', { class: 'chat-cv' + (CH.conv === id ? ' on' : ''), title, onclick: () => chatConv(id) },
-      h('span', { class: 'chat-cv-i' }, ico), h('span', { class: 'chat-cv-l' }, label), n && CH.conv !== id ? h('span', { class: 'chat-cv-n' }, String(n)) : null); };
-    const convKey = CH.conv + '|' + people.map(([sl]) => sl + chatUnreadIn(sl)).join(',') + '|' + chatUnreadIn('team') + '|' + me;
+      h('span', { class: 'chat-cv-i' }, ico), h('span', { class: 'chat-cv-l' }, label), id !== 'team' ? stDot(id) : null, n && CH.conv !== id ? h('span', { class: 'chat-cv-n' }, String(n)) : null); };
+    const stSig = people.map(([sl]) => { const x = statusOf(sl); return (x.game ? 'g' : '') + x.st; }).join('');
+    const convKey = CH.conv + '|' + people.map(([sl]) => sl + chatUnreadIn(sl)).join(',') + '|' + chatUnreadIn('team') + '|' + me + '|' + stSig;
     if (convKey !== CH.convKey) {
       CH.convKey = convKey;
       CH.convs.replaceChildren(convBtn('team', '👥', 'Équipe', 'Discussion de toute l’équipe'),
         ...(me ? people.map(([slug, ico, label]) => convBtn(slug, ico, label, 'Message privé avec ' + label)) : []));
     }
-    CH.inp.placeholder = CH.conv === 'team' ? 'Écris à l’équipe… (Entrée pour envoyer)' : `Message privé à ${vocalName(CH.conv)}…`;
+    const refuse = CH.conv !== 'team' && (() => { const x = statusOf(CH.conv); return x.dm === 'none' || (x.dm === 'coach' && !coachOf(me)); })();
+    CH.inp.disabled = !!refuse;
+    CH.inp.placeholder = refuse ? `${vocalName(CH.conv)} ne reçoit pas de messages privés.` : CH.conv === 'team' ? 'Écris à l’équipe… (Entrée pour envoyer)' : `Message privé à ${vocalName(CH.conv)}…`;
     // Liste : on reste en bas si on y était (ou si c'est mon message), sinon on garde la position de lecture.
     const atBottom = CH.list.scrollHeight - CH.list.scrollTop - CH.list.clientHeight < 40;
     const rows = [];
@@ -5474,7 +5731,7 @@
       if (day !== lastDay) { rows.push(h('div', { class: 'chat-day' }, day)); lastDay = day; last = null; }
       const grouped = last && last.from === m.from && m.at - last.at < 5 * 60000;
       rows.push(h('div', { class: 'chat-m' + (m.from === me ? ' mine' : '') + (grouped ? ' grp' : '') },
-        grouped ? null : h('div', { class: 'chat-mh' }, h('b', null, chatWho(m.from)), h('span', { class: 'muted' }, hm(m.at))),
+        grouped ? null : h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n', style: statusOf(m.from).color ? `color:${statusOf(m.from).color}` : '', title: 'Voir sa carte de profil', onclick: () => openProfile(m.from) }, chatWho(m.from)), h('span', { class: 'muted' }, hm(m.at))),
         h('div', { class: 'chat-tx' }, m.text)));
       last = m;
     }
@@ -5488,12 +5745,128 @@
       me ? h('div', { class: 'chat-form' }, CH.inp, h('button', { class: 'btn-fire chat-send', title: 'Envoyer', onclick: chatSend }, '➤'))
         : h('button', { class: 'btn-ghost chat-who', onclick: askWho }, '👤 Choisis qui tu es pour écrire')].filter(Boolean));
   }
+
+  // ----- Statut et carte de profil (Paramètres › Mon profil), envoyés aux FIRE ouverts de l'équipe -----
+  // En ligne · Occupé (pas de notifications) · Absent · Invisible ; « En game » s'ajoute tout seul pendant une partie.
+  const ST_LABEL = { online: ['🟢', 'En ligne'], busy: ['⛔', 'Occupé'], away: ['🌙', 'Absent'], invisible: ['⚫', 'Invisible'], offline: ['⚪', 'Hors ligne'] };
+  function statusPush() {
+    try {
+      if (!FV() || !FV().statusSend || !vocalMe()) return;
+      if (UX.status === 'invisible') { FV().statusSend(null); return; }
+      FV().statusSend({ st: UX.status, game: !!(LIVE.mine), bio: UX.bio || '', color: UX.color || '', banner: UX.banner || null, dm: UX.dm || 'all' });
+    } catch (e) { /* hall pas prêt */ }
+  }
+  function statusOf(slug) {
+    if (slug === vocalMe()) return UX.status === 'invisible' ? { st: 'invisible', game: !!LIVE.mine } : { st: UX.status, game: !!LIVE.mine, bio: UX.bio, color: UX.color, banner: UX.banner, dm: UX.dm };
+    let live = null;
+    try { live = (FV() && FV().state().statuses || {})[slug] || null; } catch (e) { /* */ }
+    const cached = (load('fire.profiles', {}) || {})[slug] || {};
+    return live ? { ...cached, ...live } : { ...cached, st: 'offline', game: false };
+  }
+  // Les cartes de profil reçues restent affichées même quand le coéquipier est hors ligne.
+  function profilesKeep() {
+    try {
+      const st = (FV() && FV().state().statuses) || {};
+      if (!Object.keys(st).length) return;
+      const all = load('fire.profiles', {}) || {};
+      let ch = false;
+      for (const [k, x] of Object.entries(st)) { const v = { bio: x.bio || '', color: x.color || '', banner: x.banner || null, dm: x.dm || 'all' }; if (JSON.stringify(all[k]) !== JSON.stringify(v)) { all[k] = v; ch = true; } }
+      if (ch) save('fire.profiles', all);
+    } catch (e) { /* */ }
+  }
+  const stDot = (slug) => { const x = statusOf(slug); const k = x.game ? 'game' : x.st || 'offline'; return h('i', { class: 'st-dot st-' + k, title: x.game ? 'En game' : (ST_LABEL[x.st] || ST_LABEL.offline)[1] }); };
+  function openProfile(slug) {
+    document.querySelectorAll('.prof-pop').forEach((x) => x.remove());
+    const x = statusOf(slug);
+    const p = S.players.find((y) => y.slug === slug);
+    const close = () => box.remove();
+    const banner = x.banner ? `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${x.banner.c}_${x.banner.n}.jpg` : null;
+    const me = vocalMe();
+    const canDm = slug !== me && (x.dm === 'all' || !x.dm || (x.dm === 'coach' && !!coachOf(me)));
+    const box = h('div', { class: 'prof-pop', onclick: (e) => { if (e.target === box) close(); } },
+      h('div', { class: 'prof-card' },
+        h('div', { class: 'prof-ban', style: banner ? `background-image:url('${banner}')` : '' }),
+        h('div', { class: 'prof-body' },
+          h('div', { class: 'prof-name', style: x.color ? `color:${x.color}` : '' }, vocalName(slug), stDot(slug)),
+          h('div', { class: 'muted small' }, (p ? (p.role || roleOf(p).label) + ' · ' : coachOf(slug) ? 'Coach · ' : '') + (x.game ? '🎮 En game' : (ST_LABEL[x.st] || ST_LABEL.offline).join(' '))),
+          x.bio ? h('p', { class: 'prof-bio' }, x.bio) : null,
+          h('div', { class: 'row' },
+            canDm ? h('button', { class: 'btn-fire small-btn', onclick: () => { close(); chatOpen(true); chatConv(slug); } }, '💬 Message privé') : slug !== me ? h('span', { class: 'muted small' }, '🔒 Ne reçoit pas de messages privés') : null,
+            p ? h('button', { class: 'btn-ghost', onclick: () => { close(); go('stats'); openPlayer(slug); } }, '📊 Ses stats') : null,
+            slug === me ? h('button', { class: 'btn-ghost', onclick: () => { close(); S.setTab = 'profil'; go('settings'); } }, '✏️ Modifier mon profil') : null,
+            h('button', { class: 'btn-ghost', onclick: close }, 'Fermer')))));
+    document.body.append(box);
+  }
+
+  // ----- Recherche rapide (Ctrl+K) et Ctrl+1…9 pour changer de page, comme dans Discord -----
+  const QS = { el: null, q: '', i: 0 };
+  function qsItems() {
+    const out = [];
+    const add = (ico, label, sub, run) => out.push({ ico, label, sub, run });
+    document.querySelectorAll('.navbtn').forEach((b) => { const id = b.dataset.sec || b.getAttribute('data-id'); const t = (b.querySelector('.v2-lab') || b).textContent.replace(/\d+$/, '').trim(); if (t) add('📄', t, 'Page', () => b.click()); });
+    S.players.filter((p) => p.slug).forEach((p) => add(roleOf(p).ico, String(p.pseudo).split('#')[0], 'Stats du joueur', () => { go('stats'); openPlayer(p.slug); }));
+    S.players.concat(S.coachs || []).filter((p) => p.slug && p.slug !== vocalMe()).forEach((p) => add('💬', 'Message à ' + String(p.pseudo).split('#')[0], 'Message privé', () => { chatOpen(true); chatConv(p.slug); }));
+    add('👥', 'Discussion de l’équipe', 'Discussion', () => { chatOpen(true); chatConv('team'); });
+    [['tier', 'Tier list'], ['matchup', 'Matchups'], ['otp', 'One-tricks'], ['puzzle', 'Puzzles de draft'], ['live', 'Draft en direct']].forEach(([k, l]) => add('⚡', l, 'Draft', () => { S.drTab = k; go('draft'); }));
+    JMODES.concat(LMODES, QMODES).forEach(([k, l]) => add('🎮', l.replace(/^\S+\s/, ''), 'Détente', () => { go('jeux'); J.home = false; J.tab = k; render(); }));
+    SET_TABS.forEach(([k, ico, l]) => add(ico, l, 'Paramètres', () => { S.setTab = k; go('settings'); }));
+    THEMES.forEach(([id, l]) => add('🎨', 'Thème ' + l, 'Thème', () => { save('fire.theme', id); applyTheme(id); if (S.section === 'settings') renderSettings(); }));
+    return out;
+  }
+  function qsOpen() {
+    if (QS.el) { QS.el.querySelector('input').focus(); return; }
+    QS.q = ''; QS.i = 0;
+    const list = h('div', { class: 'qs-list' });
+    const norm = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const items = qsItems();
+    const paint = () => {
+      const q = norm(QS.q);
+      const res = (q ? items.filter((x) => norm(x.label + ' ' + x.sub).includes(q)) : items.filter((x) => x.sub === 'Page')).slice(0, 12);
+      QS.res = res; QS.i = Math.min(QS.i, Math.max(0, res.length - 1));
+      list.replaceChildren(...(res.length ? res.map((x, i) => h('button', { class: 'qs-it' + (i === QS.i ? ' on' : ''), onmouseenter: () => { QS.i = i; paint(); }, onclick: () => pickIt(x) },
+        h('span', { class: 'qs-ico' }, x.ico), h('b', null, x.label), h('small', { class: 'muted' }, x.sub))) : [h('p', { class: 'muted small qs-none' }, 'Rien trouvé.')]));
+    };
+    const close = () => { if (QS.el) QS.el.remove(); QS.el = null; };
+    const pickIt = (x) => { close(); try { x.run(); } catch (e) { console.error(e); } };
+    const inp = h('input', { class: 'inp qs-inp', placeholder: 'Où veux-tu aller ? Une page, un joueur, un jeu, un réglage…', oninput: (e) => { QS.q = e.target.value; QS.i = 0; paint(); } });
+    inp.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); QS.i = Math.min((QS.res || []).length - 1, QS.i + 1); paint(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); QS.i = Math.max(0, QS.i - 1); paint(); }
+      else if (e.key === 'Enter') { e.preventDefault(); const x = (QS.res || [])[QS.i]; if (x) pickIt(x); }
+    });
+    QS.el = h('div', { class: 'qs', onmousedown: (e) => { if (e.target === QS.el) close(); } },
+      h('div', { class: 'qs-box' }, inp, list, h('p', { class: 'muted small qs-help' }, '↑↓ pour choisir · Entrée pour ouvrir · Échap pour fermer · Ctrl+1 à 9 : pages du menu')));
+    document.body.append(QS.el);
+    paint();
+    setTimeout(() => inp.focus(), 0);
+  }
+  document.addEventListener('keydown', (e) => {
+    if (!e.ctrlKey || e.altKey || e.shiftKey || e.metaKey) return;
+    if (e.key === 'k' || e.key === 'K') { e.preventDefault(); qsOpen(); return; }
+    if (/^[1-9]$/.test(e.key) && !$('app').hidden) {
+      const btns = [...document.querySelectorAll('.navbtn')];
+      const b = btns[Number(e.key) - 1];
+      if (b) { e.preventDefault(); b.click(); }
+    }
+  });
+
   function chatInit() {
     if (CH.started || !window.fire.chat) return;
     CH.started = true;
     try { if (FV() && FV().onChat) FV().onChat((m) => chatMerge([m], true)); } catch (e) { /* */ }
     chatLoad();
     setInterval(chatLoad, 2 * 60 * 1000);
+    // Statut : envoyé tout de suite, puis chaque minute ; les cartes reçues sont gardées.
+    setTimeout(statusPush, 4000);
+    setInterval(() => { statusPush(); profilesKeep(); chatPaint(); }, 60000);
+    try { FV().onChange(() => { profilesKeep(); }); } catch (e) { /* */ }
+    // Mode streamer automatique : FIRE regarde si OBS ou Streamlabs est ouvert.
+    if (window.fire.streamer) {
+      window.fire.streamer.on((v) => { STREAM.detected = v; applyUx(); chatPaint(); if (S.section === 'settings' && !typing()) renderSettings(); });
+      if (UX.streamer === 'auto') window.fire.streamer.watch(true).then((v) => { STREAM.detected = !!v; applyUx(); }).catch(() => {});
+    }
     chatPaint();
   }
 

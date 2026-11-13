@@ -1,6 +1,45 @@
 {
  "versions": [
   {
+   "v": "1.10.93",
+   "date": "2026-11-13",
+   "titre": "Paramètres façon Discord",
+   "items": [
+    [
+     "new",
+     "Paramètres en catégories à gauche, comme Discord : Mon profil, Apparence, Accessibilité, Notifications, Voix, Raccourcis, Confidentialité, Ouverture de FIRE, Avancé, Version et aide."
+    ],
+    [
+     "new",
+     "Mon profil : statut (En ligne, Occupé, Absent, Invisible, et « En game » tout seul pendant une partie), petite bio, couleur du pseudo et bannière avec un skin. Clique sur un nom dans la discussion pour voir sa carte."
+    ],
+    [
+     "new",
+     "Apparence : couleur d'accent au choix, fond d'écran (un skin de LoL ou ta propre image, avec flou et assombrissement), mode compact, heure sur 12 h ou 24 h."
+    ],
+    [
+     "new",
+     "Accessibilité : réduire les animations, contraste élevé, police pour la dyslexie (OpenDyslexic), saturation des couleurs."
+    ],
+    [
+     "new",
+     "Notifications : ne pas déranger pendant une partie de LoL, heures calmes, notifications des messages privés à part, son Windows, son FIRE ou silence."
+    ],
+    [
+     "new",
+     "Raccourcis : Ctrl+K pour aller n'importe où (page, joueur, jeu, réglage, message privé), Ctrl+1 à 9 pour les pages du menu."
+    ],
+    [
+     "new",
+     "Confidentialité : mode streamer (automatique quand OBS ou Streamlabs est ouvert : messages privés floutés, notifications sans détail), qui peut t'envoyer des messages privés, masquer ta partie en direct."
+    ],
+    [
+     "new",
+     "Avancé : exporter et importer tes réglages (pour un autre PC), accélération matérielle, vider le cache. Voix : raccourci vers le réglage Windows qui baisse le son des autres applications pendant un appel."
+    ]
+   ]
+  },
+  {
    "v": "1.10.92",
    "date": "2026-11-13",
    "titre": "Ouverture de FIRE",
