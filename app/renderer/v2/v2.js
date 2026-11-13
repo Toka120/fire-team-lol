@@ -115,6 +115,10 @@
   // Planning : réponses des joueurs et demandes de créneau (Présent ✓, Incertain ?, Absent ✕, Sans réponse ⌛).
   const PLAN = { '✅': 'controls.Valider', '❔': 'controls.Incertain', '❌': 'controls.Fermer', '⏳': 'controls.Sans réponse' };
   const PLAN_SEL = '.plan-count > span, .plan-btn, .pc-state > span, .pc-me > span, .pc-req > span, .plan-tabs .tab';
+  // Vocal : salons, petite barre d'appel, bandeau « en direct ».
+  const ROOMS = { '🔊': 'Salon de l’équipe', '🎧': 'navigation.Vocal', '🎓': 'controls.Coach', '🎙️': 'navigation.Vocal' };
+  const VOICE = { '🎙️': 'navigation.Vocal', '🎤': 'voice.Micro actif', '🔇': 'voice.Micro coupé', '🎧': 'navigation.Vocal',
+    '🔕': 'voice.Casque coupé', '📞': 'voice.Quitter', '🔴': 'voice.EN DIRECT', '👑': 'ribbons.Chef d’équipe' };
   const ROLES = { '🛡️': 'roles.Top', '🌲': 'roles.Jungle', '✨': 'roles.Mid', '🏹': 'roles.ADC', '💞': 'roles.Support' };
   // Petites icônes seules (cartes d'analyse, points forts d'équipe, objectifs d'une game).
   const ICO_SEL = '.acard-ico, .tf-ico, .pz-lane, .pc-ico, .tier-ico, .pk-b, .ibtn, .apill-ico, .mini-tag, .pool-card table.t td';
@@ -180,6 +184,16 @@
     once(root, CAT_SEL, (el) => inlineIcons(el, CAT));
     once(root, PLAN_SEL, (el) => leadIcon(el, PLAN));
     once(root, '.sec-hero p.muted', (el) => inlineIcons(el, PLAN));
+    once(root, '.vr-ico', (el) => { const n = ROOMS[el.textContent.trim()]; const ic = n && icon(n); if (ic) el.replaceChildren(ic); });
+    once(root, '.vs-rh, .vc-live-pill', (el) => leadIcon(el, ROOMS));
+    once(root, '.vc-ghost, .vb-go, .vl-txt', (el) => leadIcon(el, { ...VOICE, '🎧': 'Tester mon micro' }));
+    once(root, '.vb-btn', (el) => { const n = VOICE[el.textContent.trim()]; const ic = n && icon(n); if (ic) el.replaceChildren(ic); });
+    once(root, '.vb-live, .vt-name', (el) => inlineIcons(el, VOICE));
+    // Petite barre d'appel : en haut de la zone de contenu, sous la barre d'état (DECISIONS-V2 §4).
+    const bar = document.getElementById('vbar');
+    const view = document.getElementById('view');
+    if (bar && view && bar.parentNode === document.body) view.before(bar);
+    once(root, '.plan-grid tr.night .plan-hr', (el) => { const ic = icon('Moon'); if (ic) el.prepend(ic); });
     once(root, '.plan-p', (el) => {
       const st = el.firstElementChild;
       const em = st && st.textContent.trim();

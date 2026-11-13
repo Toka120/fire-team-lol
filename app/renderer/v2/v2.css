@@ -354,11 +354,9 @@ html.v2 .plan-note { margin-left: 8px; padding: 4px 12px; display: inline-flex; 
 /* Grille du chef : cases cochées en or plein */
 html.v2 .plan-grid { border-spacing: 4px; }
 html.v2 .plan-grid thead th { background: var(--panel); box-shadow: 0 -6px 0 var(--panel); font: 600 12px/16px var(--v2-font); }
-html.v2 .plan-cell { border-radius: 8px; background: var(--panel2); height: 32px; }
+html.v2 .plan-cell { border-radius: 8px; background: var(--panel2); }
 html.v2 .plan-cell:hover { border-color: var(--fire1); }
 html.v2 .plan-cell.on { background: var(--fire1); border-color: var(--fire1); }
-html.v2 .plan-grid tr.night .plan-hr { color: var(--v2-blue); }
-html.v2 .plan-grid tr.night .plan-cell:not(.on) { background: color-mix(in srgb, var(--v2-blue) 8%, var(--panel2)); }
 html.v2 .plan-esum { color: var(--fire1); }
 /* Dispos des coachs */
 html.v2 .pc-day { border-top-color: var(--line); }
@@ -386,6 +384,85 @@ html.v2 .dr-vs-x { color: var(--fire1); font: 700 20px/28px var(--v2-font); }
 html.v2 .dr-page { border-radius: 16px; padding: 16px; }
 html.v2 .pz-lane { display: inline-grid; place-items: center; color: var(--muted); }
 html.v2 .pz-lane .v2i { width: 16px; height: 16px; }
+
+/* ---------- Vocal ---------- */
+/* Salle d'attente */
+html.v2 .vc-lobby { border-radius: 16px; border: 1px solid var(--line); background: var(--panel); }
+html.v2 .vc-lobby-bg { opacity: .18; }
+html.v2 .vc-lobby-bg::after { background: linear-gradient(180deg, rgb(11 13 16 / 60%), rgb(11 13 16 / 94%)); }
+html.v2 .vc-lobby-in h1 { font: 600 32px/40px var(--v2-display); letter-spacing: 0; }
+html.v2 .vc-lobby-me { border-radius: 16px; background: var(--panel2); border-color: var(--line); }
+html.v2 .vr-card { border-radius: 8px; border-color: var(--line); background: var(--panel2); }
+html.v2 .vr-card:hover { background: var(--panel); border-color: var(--muted); }
+html.v2 .vr-card.sel { border-color: var(--fire1); background: var(--v2-sel); box-shadow: none; }
+html.v2 .vr-card.busy .vr-t small { color: var(--ok); }
+html.v2 .vr-ico { display: inline-grid; place-items: center; color: var(--muted); }
+html.v2 .vr-ico .v2i { width: 24px; height: 24px; }
+html.v2 .vr-card.sel .vr-ico { color: var(--fire1); }
+html.v2 .vc-join { border-radius: 8px; padding: 8px 24px; min-height: 48px; background: var(--fire1); color: #0B0D10; font: 600 16px/24px var(--v2-font); box-shadow: none; }
+html.v2 .vc-join:hover { transform: none; box-shadow: none; background: color-mix(in srgb, var(--fg) 8%, var(--fire1)); }
+html.v2 .vc-ghost { border-radius: 8px; min-height: 48px; padding: 8px 16px; background: var(--panel2); border-color: var(--line); font: 600 14px/24px var(--v2-font); gap: 8px; }
+html.v2 .vc-ghost.icon { padding: 8px 12px; }
+html.v2 .vc-ghost > .v2i { width: 20px; height: 20px; }
+/* « En direct » : rouge, point fixe */
+html.v2 .vc-live-pill { border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); font: 600 12px/16px var(--v2-font); letter-spacing: 0; color: var(--fg); }
+html.v2 .vc-live-pill .dot, html.v2 .vl-live .dot, html.v2 .pvoc .dot { background: var(--bad); box-shadow: none; animation: none; }
+html.v2 .vc-lobby-in > .vc-live-pill .dot { background: var(--muted); }
+html.v2 .vc-live-pill > .v2i, html.v2 .vs-rh > .v2i { width: 16px; height: 16px; }
+/* Salons pendant l'appel */
+html.v2 .vs-room { border-radius: 8px; border-color: var(--line); background: var(--panel); }
+html.v2 .vs-room:hover:not(:disabled) { background: var(--panel2); }
+html.v2 .vs-room.on { border-color: var(--fire1); color: var(--fg); background: var(--v2-sel); }
+html.v2 .vs-room.on .vs-rh > .v2i { color: var(--fire1); }
+html.v2 .vs-room.busy { border-color: var(--line); background: var(--panel2); }
+/* Vignettes */
+html.v2 .vt { border-radius: 16px; background: var(--panel2); border: 1px solid var(--line); }
+html.v2 .vt.talk { border-color: var(--ok); box-shadow: inset 0 0 0 2px var(--ok); }
+html.v2 .vt-name { border-radius: 8px; background: rgb(11 13 16 / 72%); font: 600 13px/20px var(--v2-font); }
+html.v2 .vt-name .v2i { width: 14px; height: 14px; vertical-align: -2px; color: var(--fire1); }
+html.v2 .vt-q { border-radius: 8px; background: rgb(11 13 16 / 72%); border: 1px solid var(--line); font: 600 12px/16px var(--v2-font); color: var(--fg); padding: 4px 8px; }
+html.v2 .vt-menu { border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); box-shadow: var(--v2-shadow); }
+html.v2 .vc-bar { border-radius: 16px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--v2-shadow); }
+/* Toasts : seuls en bas à droite */
+html.v2 #vtoasts { top: auto; bottom: 24px; right: 24px; }
+html.v2 .vtoast { border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); box-shadow: var(--v2-shadow); font: 600 13px/20px var(--v2-font); }
+html.v2 .vtoast.up .dot { background: var(--ok); }
+html.v2 .vtoast.ask .dot { background: var(--v2-blue); }
+
+/* Petite barre d'appel : pleine largeur en haut du contenu, hauteur 48 */
+html.v2 #vbar { position: sticky; top: 49px; left: auto; right: auto; bottom: auto; z-index: 4; margin: 0; min-height: 48px; padding: 4px var(--v2-pad);
+  border-radius: 0; border: 0; border-bottom: 1px solid var(--line); background: var(--panel); box-shadow: none; gap: 8px; }
+html.v2 #vbar button { border-radius: 8px; border-color: var(--line); background: var(--panel2); min-height: 36px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; }
+html.v2 #vbar .vb-go { margin-right: auto; background: transparent; border-color: transparent; font: 400 14px/24px var(--v2-font); }
+html.v2 #vbar .vb-go:hover { background: var(--panel2); }
+html.v2 #vbar .vb-go > .v2i { width: 18px; height: 18px; margin-right: 4px; }
+html.v2 #vbar .vb-btn { width: 36px; padding: 0; justify-content: center; }
+html.v2 #vbar .vb-btn .v2i { width: 18px; height: 18px; }
+html.v2 #vbar .vb-btn.off { border-color: var(--bad); color: var(--bad); background: var(--v2-bad-bg); }
+html.v2 #vbar .vb-btn.leave { background: var(--bad); border-color: var(--bad); color: #0B0D10; }
+html.v2 .vb-live { color: var(--bad); font-weight: 600; }
+html.v2 .vb-live .v2i { width: 16px; height: 16px; vertical-align: -3px; margin: 0 4px; }
+html.v2 .vb-p { border-radius: 8px; width: 28px; height: 28px; background: var(--panel2); border: 1px solid var(--line); font: 600 11px/16px var(--v2-font); }
+html.v2 .vb-p.talk { border-color: var(--ok); box-shadow: inset 0 0 0 1px var(--ok); }
+/* Bandeau des coéquipiers en vocal (quand on n'est pas en appel) : même place */
+html.v2 #vlive { margin: 0; max-width: none; width: auto; border-radius: 0; padding: 4px var(--v2-pad); min-height: 48px; gap: 16px;
+  background: var(--panel); border: 0; border-bottom: 1px solid var(--line); box-shadow: none; position: sticky; top: 49px; z-index: 4; }
+html.v2 .vl-live { color: var(--bad); background: var(--v2-bad-bg); border-radius: 8px; padding: 4px 8px; font: 600 11px/16px var(--v2-font); letter-spacing: .08em; }
+html.v2 .vl-av .vc-av { border-color: var(--panel); }
+html.v2 .vl-txt { font: 600 14px/24px var(--v2-font); }
+html.v2 .vl-txt > .v2i { width: 18px; height: 18px; vertical-align: -4px; margin-right: 8px; color: var(--muted); }
+html.v2 .vl-join, html.v2 .vl-see { border-radius: 8px; min-height: 36px; padding: 4px 16px; border: 1px solid var(--line); background: var(--panel2); color: var(--fg); box-shadow: none; font: 600 14px/24px var(--v2-font); }
+html.v2 .vl-join:hover, html.v2 .vl-see:hover { background: var(--panel); border-color: var(--muted); }
+html.v2 .vl-see { background: transparent; }
+
+/* Planning (DECISIONS-V2 §5) : cellules 24, nuit = icône Lune sans couleur */
+html.v2 .plan-cell { height: 24px; }
+html.v2 .plan-grid tr.night .plan-hr { color: var(--muted); }
+html.v2 .plan-grid tr.night .plan-cell:not(.on) { background: var(--panel2); }
+html.v2 .plan-hr .v2i { width: 14px; height: 14px; margin-right: 4px; vertical-align: -2px; }
+/* Série V/D (§6) : fond teinté + lettre de la couleur */
+html.v2 .tdot.w { background: var(--v2-ok-bg); color: var(--ok); }
+html.v2 .tdot.l { background: var(--v2-bad-bg); color: var(--bad); }
 
 /* ---------- Divers ---------- */
 html.v2 .flash { border-radius: 8px; background: var(--v2-ok-bg); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }

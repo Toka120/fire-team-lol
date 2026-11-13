@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.73",
+   "date": "2026-11-13",
+   "titre": "Interface V2 : Vocal",
+   "items": [
+    [
+     "improve",
+     "V2 : la petite barre d'appel passe en haut de la page, pleine largeur, sous la barre d'état (salon, personnes, micro, casque, quitter). Plus rien en bas à droite à part les notifications."
+    ],
+    [
+     "improve",
+     "V2 : le bandeau « EN DIRECT » (coéquipiers en vocal) prend la même place, en rouge avec un point fixe, bouton Rejoindre secondaire. Tout ce qui est en direct est rouge et ne clignote plus."
+    ],
+    [
+     "improve",
+     "V2 : salle d'attente, salons, vignettes, nom sur la vidéo, badge de qualité (ex. 1080p · 60 i/s), menu d'un stream et notifications redessinés ; contour vert quand quelqu'un parle."
+    ],
+    [
+     "improve",
+     "V2 : grille du planning conforme à la charte (cases de 24, nuit marquée par une lune) et série V/D en pastilles teintées."
+    ]
+   ]
+  },
+  {
    "v": "1.10.72",
    "date": "2026-11-13",
    "titre": "Interface V2 : Draft",
