@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.81",
+   "date": "2026-11-13",
+   "titre": "Pastilles « nouveau »",
+   "items": [
+    [
+     "new",
+     "Menu : une pastille apparaît sur POOL quand une nouvelle semaine arrive (ou que le coach modifie ta tierlist), et sur Lanes et principes pour chaque thème nouveau ou mis à jour. Comme des quêtes : elle disparaît quand tu as tout ouvert."
+    ],
+    [
+     "new",
+     "Dans les pages, ce qui est nouveau est marqué « Nouveau » (thèmes, nouvelle semaine du POOL) jusqu'à ce que tu l'ouvres."
+    ]
+   ]
+  },
+  {
    "v": "1.10.80",
    "date": "2026-11-13",
    "titre": "Matchups et parties en direct",

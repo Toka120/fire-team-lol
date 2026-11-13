@@ -1727,3 +1727,13 @@ html[data-theme=violet]  { --bg:#0b0614; --panel:#150d24; --panel2:#1e1333; --li
 .lv-n b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lv-k{font-variant-numeric:tabular-nums;font-weight:700}
 @media (max-width:1100px){.lv-teams{grid-template-columns:1fr}}
+
+/* ---------- Nouveautés (façon quêtes) ---------- */
+.new-tag{display:inline-flex;align-items:center;margin-left:6px;padding:1px 7px;border-radius:6px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#0B0D10;background:var(--fire1);vertical-align:middle}
+.cchip.is-new{border-color:var(--fire1)}
+.tcard.is-new{border-color:var(--fire1);box-shadow:0 0 0 1px var(--fire1)}
+.week-banner.is-new{border-color:var(--fire1)}
+.week-banner{position:relative}
+.wb-new{position:absolute;top:12px;right:14px;margin:0}
+.tcard.is-new{position:relative}
+.tcard.is-new::after{content:'Nouveau';position:absolute;top:10px;right:10px;padding:1px 7px;border-radius:6px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#0B0D10;background:var(--fire1)}

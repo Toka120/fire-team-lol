@@ -1523,6 +1523,7 @@
     if (sec === 'stats') { S.view = 'hub'; S.player = null; }
     if (sec === 'planning') { S.planEdit = null; loadPlanning(); }
     if (sec === 'patch') { loadPatch(); markPatchSeen(); }
+    if (sec === 'pool') { S.poolFresh = newsFresh('pool'); if (S.poolFresh.length) newsMark('pool', S.poolFresh); }
     if (sec === 'lolpatch') loadLolPatch();
     if (sec === 'vocal') VX.dev = null;
     if (sec === 'draft') { DR.msg = ''; setTimeout(pollDraft, 0); }
@@ -1531,6 +1532,42 @@
     render();
     window.scrollTo(0, 0);
   }
+
+  // ----- Nouveautés par rubrique, façon quêtes : une pastille dans le menu tant qu'il reste du nouveau non ouvert -----
+  // POOL : la nouvelle semaine (et ta tierlist modifiée par le coach) ; vue dès que la page s'ouvre.
+  // Lanes et principes : chaque thème nouveau ou mis à jour ; vu quand on l'ouvre (marqué « Nouveau » d'ici là).
+  const hashStr = (x) => { let h2 = 0; const t = String(x); for (let i = 0; i < t.length; i++) h2 = (h2 * 31 + t.charCodeAt(i)) | 0; return (h2 >>> 0).toString(36); };
+  function newsIds(sec) {
+    if (sec === 'pool') {
+      const w = (S.pools || []).slice().sort((a, b) => String(b.debut || '').localeCompare(String(a.debut || '')))[0];
+      if (!w) return [];
+      const ids = ['week:' + w.id];
+      const mine = S.moi && (w.joueurs || {})[S.moi];
+      if (mine && mine.par !== 'joueur' && mine.maj) ids.push('tl:' + w.id + ':' + mine.maj);
+      if (w.note) ids.push('note:' + w.id + ':' + hashStr(w.note));
+      return ids;
+    }
+    if (sec === 'guides') return (S.guides || []).map((t) => 'g:' + t.id + ':' + hashStr(JSON.stringify(t)));
+    return [];
+  }
+  function newsFresh(sec) {
+    const seen = load('fire.seen', {});
+    const ids = newsIds(sec);
+    if (!ids.length) return [];
+    // Première fois : tout ce qui existe déjà compte comme vu (pas de pluie de pastilles à l'installation).
+    if (!seen[sec]) { seen[sec] = ids; save('fire.seen', seen); return []; }
+    return ids.filter((x) => !seen[sec].includes(x));
+  }
+  function newsMark(sec, ids) {
+    const seen = load('fire.seen', {});
+    seen[sec] = [...new Set((seen[sec] || []).concat(ids))].slice(-400);
+    save('fire.seen', seen);
+    renderNav();
+  }
+  const newsCount = (sec) => newsFresh(sec).length;
+  // Thème de guide nouveau ou modifié (pour l'étiquette « Nouveau » dans la page).
+  const themeIsNew = (t) => { const id = 'g:' + t.id + ':' + hashStr(JSON.stringify(t)); return newsFresh('guides').includes(id); };
+  const markTheme = (t) => newsMark('guides', ['g:' + t.id + ':' + hashStr(JSON.stringify(t))]);
 
   // ----- Patch notes -----
   // Entrées « contenu » (diapos, guides, quiz…) : pas de numéro de version, juste une date et un identifiant.
@@ -2923,8 +2960,8 @@
     const b = (id, label, badge, cls) => h('button', { class: 'navbtn' + (cls ? ' ' + cls : ''), 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
-    const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL'], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente'], ['train', '🎯', 'Micro'],
-      ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes'],
+    const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente'], ['train', '🎯', 'Micro'],
+      ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null],
       ['coach', '📣', 'Parole du coach', n || null], ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
     if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), items.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }
@@ -3072,7 +3109,7 @@
   // ----- Lanes et principes -----
   const catOf = (id) => (S.guideCats || []).find((c) => c.id === id) || null;
   const myRole = () => { const me = S.players.find((p) => p.slug === S.moi); return me ? me.role_id : null; };
-  const openTheme = (id) => { S.theme = id; render(); window.scrollTo(0, 0); };
+  const openTheme = (id) => { S.theme = id; const t = (S.guides || []).find((x) => x.id === id); if (t) markTheme(t); render(); window.scrollTo(0, 0); };
 
   function renderGuides() {
     if (S.guideCats && S.guideCats.length && S.guideCat !== 'all') {
@@ -3097,7 +3134,7 @@
           h('div', { class: 'cat-ico' }, c.ico),
           h('div', { class: 'cat-t' }, c.titre),
           h('p', { class: 'muted small' }, c.intro),
-          h('div', { class: 'cat-chips' }, c.themes.map((x) => { const t = themeOf(x.id); return t ? h('span', { class: 'cchip' }, `${t.ico} ${t.titre.replace(/ \(.*\)$/, '')}`) : null; })));
+          h('div', { class: 'cat-chips' }, c.themes.map((x) => { const t = themeOf(x.id); return t ? h('span', { class: 'cchip' + (themeIsNew(t) ? ' is-new' : '') }, `${t.ico} ${t.titre.replace(/ \(.*\)$/, '')}`, themeIsNew(t) ? h('span', { class: 'new-tag' }, 'Nouveau') : null) : null; })));
       })),
       h('p', { class: 'muted small' }, h('button', { class: 'linkbtn', onclick: () => { S.guideCat = 'all'; render(); } }, 'Voir tous les thèmes sans catégorie')));
   }
@@ -3422,7 +3459,7 @@
     if (!S.guides) { view.replaceChildren(head, h('div', { class: 'empty-state' }, 'Chargement des thèmes…')); return; }
     view.replaceChildren(head, h('div', { class: 'theme-grid' }, S.guides.map((t) => {
       const extra = (S.fiches || []).filter((f) => f.rubrique === t.id).length;
-      return h('button', { class: 'tcard', onclick: () => { S.theme = t.id; render(); window.scrollTo(0, 0); } },
+      return h('button', { class: 'tcard' + (themeIsNew(t) ? ' is-new' : ''), onclick: () => { markTheme(t); S.theme = t.id; render(); window.scrollTo(0, 0); } },
         h('div', { class: 'tico' }, t.ico || '📘'),
         h('div', { class: 'tname' }, t.titre),
         h('p', { class: 'muted small' }, t.accroche),
@@ -4964,7 +5001,8 @@
     nodes.push(h('div', { class: 'chips' }, chips), tools.length ? h('div', { class: 'row' }, tools) : null);
 
     const obj = w ? (w.objectif ? { debut: w.debut, games: w.objectif, fin: rng.fin } : null) : (S.cfgObj ? { ...S.cfgObj } : null);
-    nodes.push(h('div', { class: 'card week-banner' },
+    nodes.push(h('div', { class: 'card week-banner' + ((S.poolFresh || []).length ? ' is-new' : '') },
+      (S.poolFresh || []).length ? h('span', { class: 'new-tag wb-new' }, (S.poolFresh || []).some((x) => x.startsWith('week:')) ? 'Nouvelle semaine' : 'Mis à jour') : null,
       h('div', { class: 'wb-main' },
         h('div', { class: 'wb-big' }, obj && obj.games ? String(obj.games) : '—'),
         h('div', null, h('div', { class: 'wb-t' }, w ? `${weekLabel(w)}${rng.fin ? ' → ' + dateFr(rng.fin) : ''}` : `Depuis le ${obj ? dateFr(obj.debut) : '—'}`),
