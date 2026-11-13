@@ -241,19 +241,34 @@ const AD_HOSTS = ['googlesyndication.com', 'doubleclick.net', 'googleadservices.
   'aps.amazon-adsystem.com', 'c.amazon-adsystem.com', 'ads.pubmatic.com', 'cdn.adsafeprotected.com', 'micro.rubiconproject.com', 'prebid.org'];
 const isAdHost = (h) => AD_HOSTS.some((d) => h === d || h.endsWith('.' + d));
 const AD_CSS = '[id^="div-gpt-ad"],[id*="google_ads_iframe"],[class*="adthrive"],[id*="adthrive"],[class*="ad-slot"],[class*="AdSlot"],[class*="ad_slot"],[class*="adSlot"],[id*="ad-slot"],[class*="ad-banner"],[class*="AdBanner"],[class*="ad-wrapper"],[class*="AdWrapper"],[class*="ads-wrapper"],[class*="ad-unit"],[class*="adunit"],[class*="sponsored-ad"],[data-ad-slot],[data-ad-unit],[data-adunit],[data-google-query-id],[aria-label="Advertisement"],[aria-label="Publicité"],[id^="nitropay"],[class*="nitropay"],[id^="nn_"],[class*="venatus"],[id*="venatus"],[class*="vm-placement"],[id^="pw-"],[class*="playwire"],[class*="fs-sticky"],[class*="freestar"],[id*="freestar"],[class*="mv-ad"],[class*="ezoic"],[id^="ezoic"],[class*="sticky-ad"],[class*="StickyAd"],[class*="video-ad"],[class*="primis"],[id*="primis"],[class*="aniview"],[class*="connatix"],[class*="ad-placeholder"],[class*="adPlaceholder"],' + 'ins.adsbygoogle,.adsbygoogle,[id*="-com_300x250"],[id*="-com_728x90"],[id*="-com_160x600"],[id*="_300x250"],[id*="_728x90"],[id*="_160x600"],[class*="ad-container"],[id^="aip_"],iframe[src*="googlesyndication"],iframe[src*="doubleclick"]{display:none!important}';
-// Navigateur intégré (liens, outils) : aucune pub non plus. Régies bloquées + emplacements masqués dans chaque page et cadre.
-function blockAdsWeb(wc) {
+// Navigateur intégré (liens, outils) : aucune pub. Bloqueur Ghostery (listes EasyList, EasyPrivacy, uBlock et
+// « gênes » comme les bandeaux de cookies), mis à jour au lancement et gardé en cache ; nos régies en plus.
+// Sans connexion la première fois : on se rabat sur notre propre liste de régies.
+let adWebOn = false;
+function adFallback(s) {
+  s.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
+    let host = '';
+    try { host = new URL(d.url).hostname; } catch (e) { /* */ }
+    cb({ cancel: !!host && isAdHost(host) && d.resourceType !== 'mainFrame' });
+  });
+}
+async function adblockWeb() {
+  if (adWebOn) return; adWebOn = true;
+  const s = session.fromPartition('persist:fire-web');
   try {
-    const s = session.fromPartition('persist:fire-web');
-    if (!s.__fireAds) {
-      s.__fireAds = true;
-      s.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
-        let host = '';
-        try { host = new URL(d.url).hostname; } catch (e) { /* */ }
-        cb({ cancel: !!host && isAdHost(host) && d.resourceType !== 'mainFrame' });
-      });
-    }
-  } catch (e) { /* */ }
+    const { ElectronBlocker } = require('@ghostery/adblocker-electron');
+    const cache = path.join(app.getPath('userData'), 'adblock-engine.bin');
+    let blocker = null;
+    try { blocker = await ElectronBlocker.fromPrebuiltFull(fetch, { path: cache, read: fs.promises.readFile, write: fs.promises.writeFile }); }
+    catch (e) { const buf = await fs.promises.readFile(cache).catch(() => null); if (buf) blocker = ElectronBlocker.deserialize(new Uint8Array(buf)); }
+    if (!blocker) throw new Error('listes indisponibles');
+    try { blocker.updateFromDiff({ added: AD_HOSTS.map((h) => '||' + h + '^$third-party') }); } catch (e) { /* */ }
+    blocker.enableBlockingInSession(s);
+  } catch (e) {
+    try { adFallback(s); } catch (x) { /* */ }
+  }
+}
+function blockAdsWeb(wc) {
   const css = AD_CSS;
   wc.on('dom-ready', () => { wc.insertCSS(css, { cssOrigin: 'user' }).catch(() => {}); });
   hideAdSlots(wc);
@@ -1082,6 +1097,6 @@ if (!single) {
   if (process.platform === 'win32' && !store) app.setAppUserModelId('lol.fire.team');
   // Un 2e lancement par Windows (démarrage auto) ne doit pas afficher la fenêtre : seulement un double-clic du joueur.
   app.on('second-instance', (e, argv) => { if (!(argv || []).includes('--hidden')) showMain(); });
-  app.whenReady().then(() => { lockPermissions(); blockAds(); screenShare(); createMainWindow(); setupUpdater(); });
+  app.whenReady().then(() => { lockPermissions(); blockAds(); adblockWeb().catch(() => {}); screenShare(); createMainWindow(); setupUpdater(); });
   app.on('window-all-closed', () => { if ((!bgPrefs().bg && !inVoice) || quitting) app.quit(); });
 }

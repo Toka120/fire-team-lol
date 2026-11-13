@@ -2409,3 +2409,10 @@ html.sub-mode #chat { display: none !important; }
 .pc-end { text-align: center; }
 .pc-end .row { justify-content: center; }
 .pc-big { font-size: 34px; font-weight: 900; margin: 10px 0; }
+
+/* ===== Outils affichés comme des pages de FIRE ===== */
+.web-bar.native { display: flex; align-items: center; gap: 8px; padding: 6px 8px; }
+.tool-tabs { display: flex; gap: 4px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.tool-tab { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: inherit; font: inherit; font-weight: 600; white-space: nowrap; cursor: pointer; opacity: .75; }
+.tool-tab:hover { opacity: 1; background: #ffffff0d; }
+.tool-tab.on { opacity: 1; background: color-mix(in srgb, var(--accent, #ff6b3d) 16%, transparent); border-color: color-mix(in srgb, var(--accent, #ff6b3d) 55%, transparent); }

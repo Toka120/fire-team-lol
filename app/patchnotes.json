@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.115",
+   "date": "2026-11-13",
+   "titre": "Outils sans pub, comme dans FIRE",
+   "items": [
+    [
+     "fix",
+     "Plus de pub dans les outils et les pages intégrées : FIRE utilise maintenant un vrai bloqueur (listes EasyList, EasyPrivacy et uBlock, mises à jour à chaque lancement) qui retire aussi les emplacements de pub et les bandeaux de cookies. Il s'ajoute à notre propre liste de régies."
+    ],
+    [
+     "improve",
+     "Outils : plus de barre d'adresse ni de navigateur. L'outil s'affiche comme une page de FIRE, avec une rangée d'onglets pour passer d'un outil à l'autre, « Revenir » et « Actualiser »."
+    ]
+   ]
+  },
+  {
    "v": "1.10.114",
    "date": "2026-11-13",
    "titre": "Objectif identique dans POOL et Stats",

@@ -1063,8 +1063,17 @@
         WEB.loading ? h('i', { class: 'web-spin' }) : null));
     const slot = h('div', { id: 'web-slot', class: 'web-slot' }, WEB.error ? h('div', { class: 'web-err' }, h('b', null, 'Page indisponible'), h('p', { class: 'muted' }, WEB.error)) : null);
     // Salle de réunion : on passe d'un outil à l'autre sans revenir en arrière.
-    const tools = inMeet ? h('div', { class: 'row meet-tabs' }, (WEB.from === 'outils' ? ALL_TOOLS() : MEET_TOOLS).map((t) => h('button', { class: 'chip', 'aria-pressed': String(webHost(WEB.url) === webHost(t.url) && (t.k !== 'll' || /lol-map/.test(WEB.url))), onclick: () => webOpen(t.url) }, t.ico + ' ' + t.name))) : null;
-    view.replaceChildren(...[bar, tools, slot].filter(Boolean));
+    // Outils : pas de barre de navigateur, l'outil s'affiche comme une page de FIRE (onglets des outils + retour).
+    if (inMeet) {
+      const list = WEB.from === 'outils' ? ALL_TOOLS() : MEET_TOOLS;
+      const cur = list.find((t) => webHost(WEB.url) === webHost(t.url)) || {};
+      const nbar = h('div', { class: 'web-bar native' },
+        h('button', { class: 'btn-ghost web-home', onclick: () => webClose() }, WEB.from === 'reunion' ? '← Salle de réunion' : '← Outils'),
+        h('div', { class: 'tool-tabs' }, list.map((t) => h('button', { class: 'tool-tab' + (cur.k === t.k ? ' on' : ''), onclick: () => webOpen(t.url) }, h('span', null, t.ico), t.name.split(' · ')[0]))),
+        h('button', { class: 'web-b', title: WEB.back ? 'Revenir' : '', disabled: WEB.back ? null : true, onclick: () => nav('back') }, '‹'),
+        h('button', { class: 'web-b', title: 'Actualiser', onclick: () => nav(WEB.loading ? 'stop' : 'reload') }, WEB.loading ? h('i', { class: 'web-spin' }) : '⟳'));
+      view.replaceChildren(nbar, slot);
+    } else view.replaceChildren(bar, slot);
     requestAnimationFrame(() => {
       const r = webRect(); if (r) window.fire.web.bounds(r);
       if (!WEB.ro && window.ResizeObserver) { WEB.ro = new ResizeObserver(() => { const rr = webRect(); if (rr && WEB.open) window.fire.web.bounds(rr); }); WEB.ro.observe(document.getElementById('web-slot')); }
@@ -1186,9 +1195,9 @@
     const view = $('view');
     view.replaceChildren(
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🧰'), h('div', null, h('h1', { class: 'title' }, 'Outils'),
-        h('p', { class: 'muted' }, 'Tous les sites utiles pour progresser, rangés par thème. Ils s’ouvrent dans FIRE.'))),
+        h('p', { class: 'muted' }, 'Tout ce qu’il faut pour progresser, rangé par thème.'))),
       h('div', { class: 'row meet-tabs' },
-        h('button', { class: 'btn-fire small-btn', onclick: () => go('parties') }, '🔎 Analyse de parties (dans FIRE)'),
+        h('button', { class: 'btn-fire small-btn', onclick: () => go('parties') }, '🔎 Analyse de parties'),
         meetOk() ? h('button', { class: 'btn-ghost', onclick: () => go('reunion') }, '🧑‍🏫 Salle de réunion (coachs)') : null,
         h('button', { class: 'btn-ghost', onclick: () => go('draft') }, '⚡ Draft, matchups et tier list')),
       ...TOOL_CATS.flatMap(([title, list]) => [h('h2', { class: 'hub-sec' }, h('span', null, title)),
@@ -1271,7 +1280,7 @@
     if (!meetOk()) { view.replaceChildren(h('div', { class: 'card' }, h('p', null, 'La salle de réunion est réservée aux coachs.'))); return; }
     view.replaceChildren(
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🧑‍🏫'), h('div', null, h('h1', { class: 'title' }, 'Salle de réunion'),
-        h('p', { class: 'muted' }, 'Les outils pour enseigner, ouverts directement dans FIRE. Partage ton écran dans le salon vocal pour montrer l’outil aux joueurs.'))),
+        h('p', { class: 'muted' }, 'Les outils pour enseigner. Partage ton écran dans le salon vocal pour les montrer aux joueurs.'))),
       h('div', { class: 'meet-grid' }, MEET_TOOLS.map((t) => h('button', { class: 'card meet-card', onclick: () => webOpen(t.url) },
         h('span', { class: 'meet-ico' }, t.ico), h('b', null, t.name), h('small', { class: 'muted' }, t.desc), h('span', { class: 'meet-go' }, 'Ouvrir →')))),
       h('div', { class: 'card meet-tips' }, h('h3', null, '🎙️ Pour une séance'),
