@@ -1,6 +1,45 @@
 {
  "versions": [
   {
+   "v": "1.10.105",
+   "date": "2026-11-13",
+   "titre": "Clips automatiques et vocal qui reste",
+   "items": [
+    [
+     "new",
+     "Nouvelle rubrique « Clips » (dans Jeu) : la bibliothèque de tous tes clips, avec aperçu au survol, lecteur, filtres (automatiques, kills, assists, objectifs, tours, manuels, reçus) et filtre par champion."
+    ],
+    [
+     "new",
+     "Clips automatiques : avec l'enregistrement continu activé, FIRE garde tout seul tes kills, assists (double, triple, quadra, penta, ace), les objectifs où tu participes (dragons, Nashor, Héraut, larves, Atakhan) et les tours ou inhibiteurs pris juste après un kill ou une assist. Pas les camps de la jungle, ni les vagues, ni un TP ou un ignite sans kill. Un combat entier donne un seul clip, nommé (ex. « Double kill + Dragon infernal »)."
+    ],
+    [
+     "new",
+     "Vocal : fermer la fenêtre de FIRE ne te sort plus du salon. FIRE se range près de l'horloge et l'appel continue, comme sur Discord. Clic droit sur l'icône FIRE : « Quitter le vocal » ou « Quitter FIRE LoL »."
+    ],
+    [
+     "improve",
+     "Test du micro en plein appel : ton micro et ton casque sont coupés pour le salon pendant le test, puis reviennent comme avant."
+    ],
+    [
+     "improve",
+     "Parties en direct : le mode exact est affiché (Classée Solo/Duo, Classée Flex, Normale, Partie rapide, ARAM, ARAM : Mayhem, Arena…)."
+    ],
+    [
+     "improve",
+     "Parties en direct : chaque partie tient sur une ligne (mode, champions et scores des joueurs de FIRE, temps). « Détails ▾ » ouvre le tableau complet. Les coéquipiers en game dont le détail n'est pas encore arrivé sont aussi affichés."
+    ],
+    [
+     "fix",
+     "Parties en direct : un coéquipier injoignable un moment ne bloque plus l'envoi de la partie aux autres."
+    ],
+    [
+     "improve",
+     "Matchups : « Guides du matchup » devient « Guide du champion », une vidéo qui explique le champion (sorts, combos, build, plan de jeu)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.104",
    "date": "2026-11-13",
    "titre": "Plus de « ne répond pas » et accueil des nouveaux",

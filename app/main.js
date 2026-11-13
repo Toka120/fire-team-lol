@@ -44,15 +44,27 @@ function ensureTray() {
   try {
     tray = new Tray(path.join(__dirname, 'assets', process.platform === 'win32' ? 'fire.ico' : 'fire.png'));
     tray.setToolTip('FIRE LoL');
-    tray.setContextMenu(Menu.buildFromTemplate([
-      { label: 'Ouvrir FIRE LoL', click: showMain },
-      { type: 'separator' },
-      { label: 'Quitter FIRE LoL', click: () => { quitting = true; app.quit(); } }
-    ]));
+    tray.setContextMenu(trayMenu());
+    if (inVoice) tray.setToolTip('FIRE LoL · en vocal');
     tray.on('click', showMain);
   } catch (e) { tray = null; }
 }
 function dropTray() { if (tray) { tray.destroy(); tray = null; } }
+// En vocal, fermer la fenêtre ne coupe pas l'appel (comme Discord) : FIRE se range près de l'horloge.
+let inVoice = false;
+ipcMain.on('vocal:on', (e, on) => {
+  inVoice = !!on;
+  if (tray) tray.setToolTip(inVoice ? 'FIRE LoL · en vocal' : 'FIRE LoL');
+  if (tray) tray.setContextMenu(trayMenu());
+});
+function trayMenu() {
+  return Menu.buildFromTemplate([
+    { label: 'Ouvrir FIRE LoL', click: showMain },
+    ...(inVoice ? [{ label: 'Quitter le vocal', click: () => { if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('vocal:leave'); } }] : []),
+    { type: 'separator' },
+    { label: 'Quitter FIRE LoL', click: () => { quitting = true; app.quit(); } }
+  ]);
+}
 function notify(title, body, section, silent) {
   if (!Notification.isSupported()) return false;
   const n = new Notification({ title, body, icon: path.join(__dirname, 'assets', 'fire.png'), silent: !!silent });
@@ -177,13 +189,14 @@ function createMainWindow(forceShow) {
   // Arrêt ou redémarrage de Windows : FIRE se ferme normalement.
   mainWin.on('session-end', () => { quitting = true; });
   mainWin.on('close', (e) => {
-    if (quitting || !bgPrefs().bg) return;
+    if (quitting || (!bgPrefs().bg && !inVoice)) return;
     // Fenêtre déjà cachée : la demande de fermeture vient de Windows ou de l'installeur, pas du joueur.
     // On quitte vraiment, sinon l'installeur ne peut pas remplacer les fichiers.
     if (!mainWin.isVisible()) { quitting = true; dropTray(); setImmediate(() => app.quit()); return; }
     e.preventDefault();
     mainWin.hide();
     ensureTray();
+    if (inVoice) { notify('Tu es toujours en vocal', 'FIRE est rangé près de l’horloge : l’appel continue. Clic droit sur l’icône FIRE pour quitter le vocal ou FIRE.', null, true); return; }
     if (!trayHintShown) { trayHintShown = true; notify('FIRE LoL reste ouvert', "Tu recevras les notifications ici. Clic droit sur l'icône FIRE près de l'horloge pour quitter."); }
   });
   hideAdSlots(mainWin.webContents);
@@ -386,6 +399,57 @@ function liveClient() {
     req.on('timeout', () => req.destroy()); req.on('error', () => ok(null));
   });
 }
+// Le mode exact (Classée Solo/Duo, Flex, Normale, ARAM…) vient du client League sur ce PC (API locale, fichier « lockfile »).
+// Lecture seule, comme Porofessor ou Blitz : rien d'injecté, rien lu dans la mémoire du jeu.
+const LCU = { port: 0, pass: '', at: 0, queue: null, qAt: 0 };
+function lcuFind() {
+  if (process.platform !== 'win32') return null;
+  const tries = [];
+  for (const d of ['C', 'D', 'E', 'F']) tries.push(`${d}:\\Riot Games\\League of Legends\\lockfile`, `${d}:\\Program Files\\Riot Games\\League of Legends\\lockfile`, `${d}:\\Jeux\\Riot Games\\League of Legends\\lockfile`, `${d}:\\Games\\Riot Games\\League of Legends\\lockfile`);
+  for (const f of tries) { try { const t = fs.readFileSync(f, 'utf8').split(':'); if (t.length >= 5) return { port: Number(t[2]), pass: t[3] }; } catch (e) { /* */ } }
+  return null;
+}
+function lcuFromProcess() {
+  return new Promise((ok) => {
+    if (process.platform !== 'win32') return ok(null);
+    const cmd = "Get-CimInstance Win32_Process -Filter \"name='LeagueClientUx.exe'\" | Select-Object -ExpandProperty CommandLine";
+    require('child_process').execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true, timeout: 8000 }, (err, out) => {
+      const s = String(out || ''); const port = (s.match(/--app-port=(\d+)/) || [])[1]; const pass = (s.match(/--remoting-auth-token=([\w-]+)/) || [])[1];
+      ok(port && pass ? { port: Number(port), pass } : null);
+    });
+  });
+}
+function lcuGet(p) {
+  return new Promise((ok) => {
+    if (!LCU.port) return ok(null);
+    const req = require('https').get({ host: '127.0.0.1', port: LCU.port, path: p, rejectUnauthorized: false, timeout: 2500, headers: { Authorization: 'Basic ' + Buffer.from('riot:' + LCU.pass).toString('base64') } }, (res) => {
+      let b = ''; res.setEncoding('utf8'); res.on('data', (c) => { b += c; if (b.length > 2e6) req.destroy(); });
+      res.on('end', () => { try { ok(res.statusCode === 200 ? JSON.parse(b) : null); } catch (e) { ok(null); } });
+    });
+    req.on('timeout', () => req.destroy()); req.on('error', () => ok(null));
+  });
+}
+async function lcuQueue() {
+  if (LCU.queue && Date.now() - LCU.qAt < 60000) return LCU.queue;
+  LCU.qAt = Date.now();
+  let s = await lcuGet('/lol-gameflow/v1/session');
+  if (!s && Date.now() - LCU.at > 60000) { LCU.at = Date.now(); const f = lcuFind() || await lcuFromProcess(); if (f) { LCU.port = f.port; LCU.pass = f.pass; s = await lcuGet('/lol-gameflow/v1/session'); } }
+  const q = s && s.gameData && s.gameData.queue;
+  LCU.queue = q ? { id: Number(q.id) || 0, name: String(q.description || q.shortName || '').slice(0, 40), ranked: !!q.isRanked } : null;
+  return LCU.queue;
+}
+// Événements de la partie (kills, assists, objectifs) pour les clips automatiques : seulement ceux du joueur de ce PC.
+function liveEvents(d) {
+  const me = String((d && d.activePlayer && (d.activePlayer.riotId || d.activePlayer.summonerName)) || '');
+  const meName = me.split('#')[0];
+  const evs = (d && d.events && Array.isArray(d.events.Events)) ? d.events.Events : [];
+  const mine = (x) => x && (x === me || x === meName || String(x).split('#')[0] === meName);
+  return evs.slice(-60).map((e) => {
+    const killer = String(e.KillerName || e.Acer || ''), as = Array.isArray(e.Assisters) ? e.Assisters.map(String) : [];
+    const part = mine(killer) ? 'kill' : as.some(mine) ? 'assist' : '';
+    return { id: Number(e.EventID) || 0, t: Number(e.EventTime) || 0, kind: String(e.EventName || '').slice(0, 20), part, victim: String(e.VictimName || '').split('#')[0].slice(0, 30), dragon: String(e.DragonType || '').slice(0, 12), stolen: e.Stolen === 'True' || e.Stolen === true, streak: Number(e.KillStreak) || 0 };
+  });
+}
 function liveSummary(d) {
   if (!d || !Array.isArray(d.allPlayers) || !d.gameData) return null;
   const champ = (p) => String(p.rawChampionName || '').split('_').pop() || String(p.championName || '');
@@ -398,11 +462,13 @@ function liveSummary(d) {
 }
 let liveLast = null;
 setInterval(async () => {
-  const g = liveSummary(await liveClient());
-  if (!g && !liveLast) return;
+  const raw = await liveClient();
+  const g = liveSummary(raw);
+  if (!g && !liveLast) { LCU.queue = null; return; }
+  if (g) { const q = await lcuQueue().catch(() => null); if (q) g.queue = q; g.events = liveEvents(raw); }
   liveLast = g;
   if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('live:update', g);
-}, 5000);
+}, 2500);
 
 // ---------- Clips instantanés : rangés dans Vidéos\FIRE Clips ----------
 const CLIP_MAX = 150 * 1024 * 1024;
@@ -416,17 +482,22 @@ ipcMain.handle('clips:save', (e, data, meta) => {
     const d = new Date(); const z = (n) => String(n).padStart(2, '0');
     const stamp = `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}h${z(d.getMinutes())}m${z(d.getSeconds())}s`;
     const from = String((meta && meta.from) || '').replace(/[^\p{L}\p{N} _-]/gu, '').slice(0, 30).trim();
-    let name = `FIRE ${from ? 'de ' + from + ' ' : ''}${stamp}.mp4`;
+    const label = String((meta && meta.label) || '').replace(/[^\p{L}\p{N} _,+-]/gu, '').slice(0, 40).trim();
+    let name = `FIRE ${label ? label + ' ' : ''}${from ? 'de ' + from + ' ' : ''}${stamp}.mp4`;
     let k = 2; while (fs.existsSync(path.join(clipDir(), name))) name = name.replace(/( \(\d+\))?\.mp4$/, ` (${k++}).mp4`);
     fs.writeFileSync(path.join(clipDir(), name), buf);
+    const info = { auto: !!(meta && meta.auto), kind: String((meta && meta.kind) || (from ? 'recu' : 'manuel')).slice(0, 20), label, from, champ: String((meta && meta.champ) || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 30), mode: String((meta && meta.mode) || '').slice(0, 40), at: Date.now() };
+    try { const all = clipMeta(); all[name] = info; fs.writeFileSync(path.join(clipDir(), 'clips.json'), JSON.stringify(all)); } catch (e) { /* */ }
     return { ok: true, name, path: path.join(clipDir(), name) };
   } catch (err) { return { ok: false, error: String(err && err.message || err) }; }
 });
+function clipMeta() { try { return JSON.parse(fs.readFileSync(path.join(clipDir(), 'clips.json'), 'utf8')) || {}; } catch (e) { return {}; } }
 ipcMain.handle('clips:list', () => {
   try {
     const dir = clipDir(); if (!fs.existsSync(dir)) return [];
-    return fs.readdirSync(dir).filter((f) => /\.mp4$/i.test(f)).map((f) => { const st = fs.statSync(path.join(dir, f)); return { name: f, path: path.join(dir, f), size: st.size, t: st.mtimeMs, url: require('url').pathToFileURL(path.join(dir, f)).href }; })
-      .sort((a, b) => b.t - a.t).slice(0, 40);
+    const meta = clipMeta();
+    return fs.readdirSync(dir).filter((f) => /\.mp4$/i.test(f)).map((f) => { const st = fs.statSync(path.join(dir, f)); return { name: f, path: path.join(dir, f), size: st.size, t: st.mtimeMs, url: require('url').pathToFileURL(path.join(dir, f)).href, meta: meta[f] || null }; })
+      .sort((a, b) => b.t - a.t).slice(0, 300);
   } catch (err) { return []; }
 });
 ipcMain.handle('clips:read', (e, p) => { try { if (!inClips(p)) return null; const st = fs.statSync(p); if (st.size > CLIP_MAX) return null; return fs.readFileSync(p); } catch (err) { return null; } });
@@ -905,5 +976,5 @@ if (!single) {
   // Un 2e lancement par Windows (démarrage auto) ne doit pas afficher la fenêtre : seulement un double-clic du joueur.
   app.on('second-instance', (e, argv) => { if (!(argv || []).includes('--hidden')) showMain(); });
   app.whenReady().then(() => { lockPermissions(); blockAds(); screenShare(); createMainWindow(); setupUpdater(); });
-  app.on('window-all-closed', () => { if (!bgPrefs().bg || quitting) app.quit(); });
+  app.on('window-all-closed', () => { if ((!bgPrefs().bg && !inVoice) || quitting) app.quit(); });
 }

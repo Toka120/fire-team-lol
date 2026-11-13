@@ -328,7 +328,7 @@
     render();
     chatInit();
     actInit();
-    modInit();
+    modInit(); voiceTrayInit();
     loadGuides();
     window.fire.coach.state().then((c) => { S.coachState = c; if (S.section === 'coach' && !typing()) render(); }).catch(() => {});
     loadFiches();
@@ -1089,7 +1089,7 @@
   // Chaque FIRE note ses actions (pages ouvertes, messages, vocal, planning, POOL, quiz, clips…) et les envoie toutes les
   // 3 minutes dans le fichier d'activité du joueur (chiffré avec le code d'équipe). Le contenu des messages privés n'est jamais noté.
   const PAGE_NAMES = { stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
-    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', web: 'navigateur' };
+    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', web: 'navigateur' };
   const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
   function actLog(k, d) {
     if (!vocalMe() || !window.fire.staff) return;
@@ -1446,13 +1446,14 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'carnet' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'carnet' || S.section === 'clips' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
     else if (S.section === 'web') renderWeb();
     else if (S.section === 'chat') renderChatPage();
     else if (S.section === 'carnet') renderCarnet();
+    else if (S.section === 'clips') renderClipsPage();
     else if (S.section === 'pool') renderPool();
     else if (S.section === 'planning') renderPlanning();
     else if (S.section === 'jeux') renderJeux();
@@ -1509,6 +1510,8 @@
     window.fire.live.on((g) => {
       LIVE.mine = g;
       const now = Date.now();
+      if (g) autoClipCheck(g);
+      if (g && g.events) { g = { ...g }; delete g.events; LIVE.mine = g; }
       if (!g || now - LIVE.lastSend > 15000) { LIVE.lastSend = now; try { FV().liveSend(UX.hideLive ? null : g); } catch (e) { /* hors ligne */ } }
       if (!!g !== !!LIVE.wasIn) { LIVE.wasIn = !!g; statusPush(); }
       liveRefresh();
@@ -1517,7 +1520,8 @@
   }
   function liveRefresh() {
     const all = liveAll();
-    const sig = Object.entries(all).map(([k, g]) => k + ':' + g.time).sort().join('|');
+    const bare = S.players.filter((p) => p.slug && !all[p.slug] && p.slug !== vocalMe() && statusOf(p.slug).game).map((p) => p.slug + ':g');
+    const sig = Object.entries(all).map(([k, g]) => k + ':' + g.time).concat(bare).sort().join('|');
     if (sig === LIVE.sig) return;
     const keysChanged = Object.keys(all).sort().join() !== LIVE.sig.split('|').map((x) => x.split(':')[0]).filter(Boolean).sort().join();
     LIVE.sig = sig;
@@ -1529,9 +1533,15 @@
     }
   }
   const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+  // Mode exact de la partie : file d'attente lue dans le client League (Solo/Duo, Flex, Normale, ARAM…), sinon le mode du jeu.
+  const QUEUES = { 420: 'Classée Solo/Duo', 440: 'Classée Flex', 400: 'Normale (draft)', 430: 'Normale (aveugle)', 480: 'Partie rapide', 490: 'Partie rapide', 450: 'ARAM', 2400: 'ARAM : Mayhem',
+    1700: 'Arena', 1710: 'Arena', 900: 'URF', 1900: 'URF', 1010: 'URF', 700: 'Clash', 720: 'Clash ARAM', 0: 'Partie personnalisée', 3100: 'Partie personnalisée', 1020: 'Un pour tous', 1300: 'Nexus Blitz', 1810: 'Swarm', 1820: 'Swarm', 1830: 'Swarm', 1840: 'Swarm',
+    830: 'Contre l’IA', 840: 'Contre l’IA', 850: 'Contre l’IA', 870: 'Contre l’IA', 880: 'Contre l’IA', 890: 'Contre l’IA' };
+  const GMODES = { CLASSIC: 'Faille (normale ou classée)', ARAM: 'ARAM', KIWI: 'ARAM : Mayhem', CHERRY: 'Arena', URF: 'URF', ARURF: 'ARURF', PRACTICETOOL: 'Outil d’entraînement', ONEFORALL: 'Un pour tous', NEXUSBLITZ: 'Nexus Blitz', ULTBOOK: 'Grimoire ultime', TUTORIAL: 'Tutoriel', STRAWBERRY: 'Swarm', SWIFTPLAY: 'Partie rapide' };
+  const gameModeLabel = (g) => (g.queue && g.queue.id != null && QUEUES[g.queue.id]) || (g.queue && g.queue.name) || GMODES[g.mode] || g.mode || 'Partie';
+  const gameModeKind = (g) => { const id = g.queue && g.queue.id; return id === 420 || id === 440 ? 'ranked' : (g.mode === 'ARAM' || g.mode === 'KIWI' || id === 450 || id === 2400) ? 'aram' : g.mode === 'CLASSIC' ? 'normal' : 'fun'; };
   function liveSection() {
     const all = liveAll();
-    if (!Object.keys(all).length) return null;
     // Plusieurs joueurs de FIRE dans la même partie : une seule carte.
     const games = [];
     for (const [slug, g] of Object.entries(all)) {
@@ -1539,18 +1549,38 @@
       const ex = games.find((x) => x.key === key);
       if (ex) { ex.slugs.push(slug); if (g.at > ex.g.at) ex.g = g; } else games.push({ key, g, slugs: [slug] });
     }
+    // En game d'après leur statut, mais leur FIRE n'a pas (encore) envoyé le détail : on les montre quand même.
+    const shown = new Set(Object.keys(all));
+    const bare = S.players.filter((p) => p.slug && !p.pending && !shown.has(p.slug) && p.slug !== vocalMe() && statusOf(p.slug).game);
+    if (!games.length && !bare.length) return null;
     const ours = new Set(S.players.map((p) => String(p.pseudo || '').toLowerCase()));
+    const isOurs = (p) => ours.has(p.n.toLowerCase());
     const team = (g, side) => h('div', { class: 'lv-team ' + (side === 'ORDER' ? 'blue' : 'red') }, g.players.filter((p) => p.team === side).map((p) =>
-      h('div', { class: 'lv-p' + (ours.has(p.n.toLowerCase()) ? ' ours' : '') }, champIcon(p.c, 24),
+      h('div', { class: 'lv-p' + (isOurs(p) ? ' ours' : '') }, champIcon(p.c, 24),
         h('span', { class: 'lv-n' }, h('b', null, p.n.split('#')[0]), h('small', { class: 'muted' }, ` niv. ${p.lvl} · ${p.cs} CS`)),
         h('span', { class: 'lv-k' }, `${p.k} / ${p.d} / ${p.a}`))));
-    const modes = { CLASSIC: 'Faille de l’invocateur', ARAM: 'ARAM', CHERRY: 'Arena', URF: 'URF', PRACTICETOOL: 'Entraînement' };
+    LIVE.open = LIVE.open || {};
+    const n = games.reduce((t, x) => t + x.slugs.length, 0) + bare.length;
     return h('section', { class: 'live-sec' },
-      h('h2', { class: 'hub-sec' }, h('span', { class: 'lv-dot' }), h('span', null, 'En game maintenant'), h('small', { class: 'muted' }, `${Object.keys(all).length} joueur${Object.keys(all).length > 1 ? 's' : ''} de FIRE`)),
-      games.map(({ g, slugs }) => h('div', { class: 'card lv-card' },
-        h('div', { class: 'lv-head' }, h('span', { class: 'lv-live' }, 'EN DIRECT'), h('b', null, slugs.map((x) => (S.players.find((p) => p.slug === x) || {}).pseudo || vocalName(x)).map((x) => String(x).split('#')[0]).join(', ')),
-          h('span', { class: 'muted' }, `${modes[g.mode] || g.mode} · ${mmss(g.time)}`)),
-        h('div', { class: 'lv-teams' }, team(g, 'ORDER'), team(g, 'CHAOS')))));
+      h('h2', { class: 'hub-sec' }, h('span', { class: 'lv-dot' }), h('span', null, 'En game maintenant'),
+        h('small', { class: 'muted' }, `${n} joueur${n > 1 ? 's' : ''} de FIRE${games.length > 1 ? ` · ${games.length} parties` : ''}`)),
+      games.map(({ key, g, slugs }) => {
+        const open = LIVE.open[key] != null ? LIVE.open[key] : games.length === 1;
+        const mine = g.players.filter(isOurs);
+        const names = slugs.map((x) => (S.players.find((p) => p.slug === x) || {}).pseudo || vocalName(x)).map((x) => String(x).split('#')[0]);
+        return h('div', { class: 'card lv-card' + (open ? ' open' : '') },
+          h('button', { class: 'lv-head lv-tog', 'aria-expanded': String(open), onclick: () => { LIVE.open[key] = !open; const cur = document.querySelector('.live-sec'); if (cur) cur.replaceWith(liveSection()); } },
+            h('span', { class: 'lv-live' }, 'EN DIRECT'),
+            h('span', { class: 'lv-mode ' + gameModeKind(g) }, gameModeLabel(g)),
+            h('span', { class: 'lv-ours' }, (mine.length ? mine : g.players.filter((p) => p.n === g.me)).map((p) => h('span', { class: 'lv-o' }, champIcon(p.c, 22), h('b', null, p.n.split('#')[0]), h('small', { class: 'muted' }, ` ${p.k}/${p.d}/${p.a}`))),
+              !mine.length ? h('b', null, names.join(', ')) : null),
+            h('span', { class: 'muted lv-time' }, mmss(g.time)),
+            h('span', { class: 'lv-chev' }, open ? 'Masquer ▴' : 'Détails ▾')),
+          open ? h('div', { class: 'lv-teams' }, team(g, 'ORDER'), team(g, 'CHAOS')) : null);
+      }),
+      bare.length ? h('div', { class: 'card lv-card lv-bare' }, h('div', { class: 'lv-head' }, h('span', { class: 'lv-live' }, 'EN GAME'),
+        h('b', null, bare.map((p) => String(p.pseudo || '').split('#')[0]).join(', ')),
+        h('span', { class: 'muted small' }, 'Le détail de la partie arrive dès que leur FIRE l’envoie (FIRE ouvert chez eux, « Montrer ma partie » activé).'))) : null);
   }
 
   const isSub = (p) => !!(p.remplacant || /rempla|bench|suppl/i.test(p.role || ''));
@@ -2915,6 +2945,14 @@
     actLog('modo', `Reçu de ${who} : ${c.a}`);
     render();
   }
+  // En vocal, fermer la fenêtre ne coupe pas l'appel : FIRE se range près de l'horloge (comme Discord).
+  function voiceTrayInit() {
+    const w = window.fire.win;
+    if (!w || !w.inVoice) return;
+    let last = null;
+    try { FV().onChange(() => { const on = FV().isOn ? FV().isOn() : false; if (on !== last) { last = on; w.inVoice(on); } }); } catch (e) { /* */ }
+    if (w.onLeaveVoice) w.onLeaveVoice(() => { try { FV().leave(); } catch (e) { /* */ } });
+  }
   function modInit() {
     try {
       FV().onMod((from, c) => modReceive(from, c));
@@ -2979,7 +3017,7 @@
   }
   async function clipsRefresh() {
     CL.list = window.fire.clips ? await window.fire.clips.list().catch(() => []) : [];
-    if (CL.open) clipsModal();
+    clipsPaint();
   }
   // Envoi d'un clip à tout le salon (pair à pair, par morceaux de 64 Ko).
   async function clipSend(c) {
@@ -2989,15 +3027,15 @@
     if (!data) { vocalToast('Clip introuvable', false); return; }
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
     const id = Math.random().toString(36).slice(2, 10), PART = 65536, n = Math.ceil(bytes.length / PART);
-    CL.sending[c.path] = 0; clipsModal();
+    CL.sending[c.path] = 0; clipsPaint();
     FV().appSend({ t: 'clip', op: 'start', id, size: bytes.length, n });
     for (let i = 0; i < n; i++) {
       FV().appSend({ t: 'clip', op: 'part', id, i, d: bytes.slice(i * PART, (i + 1) * PART).buffer });
-      if (i % 8 === 7) { CL.sending[c.path] = Math.round((i + 1) / n * 100); clipsModal(); await new Promise((r) => setTimeout(r, 40)); }
+      if (i % 8 === 7) { CL.sending[c.path] = Math.round((i + 1) / n * 100); clipsPaint(); await new Promise((r) => setTimeout(r, 40)); }
     }
     FV().appSend({ t: 'clip', op: 'end', id });
     delete CL.sending[c.path];
-    vocalToast('Clip envoyé au salon', true); clipsModal();
+    vocalToast('Clip envoyé au salon', true); clipsPaint();
   }
   function clipRecv(from, m) {
     if (!m || !m.id || typeof m.id !== 'string') return;
@@ -3015,6 +3053,127 @@
       }).catch(() => {});
     }
   }
+
+  // ===== Bibliothèque de clips (Vidéos › FIRE Clips) et clips automatiques =====
+  // Clips auto : lus dans l'API locale officielle de Riot pendant la partie (rien dans la mémoire du jeu).
+  // Comptent : tes kills et assists, les objectifs où tu participes (dragons, Nashor, Héraut, larves, Atakhan),
+  // et une tour ou un inhibiteur seulement s'il y a eu un kill ou une assist de ta part juste avant (30 s).
+  // Ne comptent pas : camps de la jungle, vagues, sorts d'invocateur (TP, ignite…) sans kill ni assist.
+  const AC = { game: '', seen: new Set(), lastKA: -999, q: null, timer: null };
+  const AC_OBJ = { DragonKill: 'Dragon', BaronKill: 'Nashor', HeraldKill: 'Héraut', HordeKill: 'Larves du Néant', AtakhanKill: 'Atakhan' };
+  const AC_DRAG = { Fire: 'infernal', Earth: 'de montagne', Water: 'océanique', Air: 'des nuages', Hextech: 'hextech', Chemtech: 'chemtech', Elder: 'ancestral' };
+  const AC_MULTI = { 2: 'Double kill', 3: 'Triple kill', 4: 'Quadra kill', 5: 'PENTAKILL' };
+  function autoClipCheck(g) {
+    const key = (g.players || []).map((p) => p.n).sort().join('|');
+    const evs = g.events || [];
+    if (AC.game !== key) { AC.game = key; AC.seen = new Set(evs.map((e) => e.id)); AC.lastKA = -999; return; } // ce qui s'est passé avant l'ouverture de FIRE n'est pas filmé
+    const c = clipCfg();
+    for (const e of evs) {
+      if (AC.seen.has(e.id)) continue;
+      AC.seen.add(e.id);
+      if (!e.part) continue;
+      let kind = null, lab = null;
+      if (e.kind === 'ChampionKill') { AC.lastKA = e.t; kind = e.part; lab = e.part === 'kill' ? 'Kill' : 'Assist'; }
+      else if (e.kind === 'Multikill' && e.part === 'kill' && AC_MULTI[e.streak]) { kind = 'kill'; lab = AC_MULTI[e.streak]; }
+      else if (e.kind === 'Ace' && e.part === 'kill') { kind = 'kill'; lab = 'Ace'; }
+      else if (AC_OBJ[e.kind]) { kind = 'objectif'; lab = e.kind === 'DragonKill' && AC_DRAG[e.dragon] ? (e.dragon === 'Elder' ? 'Dragon ancestral' : 'Dragon ' + AC_DRAG[e.dragon]) : AC_OBJ[e.kind]; if (e.stolen) lab += ' volé'; }
+      else if ((e.kind === 'TurretKilled' || e.kind === 'InhibKilled') && e.t - AC.lastKA <= 30) { kind = 'tour'; lab = e.kind === 'TurretKilled' ? 'Tour' : 'Inhibiteur'; }
+      if (!kind || !c.on || c.auto === false) continue;
+      autoClipQueue(kind, lab, g);
+    }
+  }
+  // Un combat = un seul clip : on attend 7 s de calme après le dernier moment fort (sans dépasser la durée du clip).
+  function autoClipQueue(kind, lab, g) {
+    const now = Date.now();
+    if (!AC.q) AC.q = { first: now, labs: [], kinds: [], g };
+    AC.q.labs.push(lab); AC.q.kinds.push(kind); AC.q.g = g;
+    clearTimeout(AC.timer);
+    const maxWait = Math.max(5000, (clipCfg().seconds - 8) * 1000);
+    AC.timer = setTimeout(autoClipSave, Math.max(0, Math.min(7000, AC.q.first + maxWait - now)));
+  }
+  function autoClipLabel(labs) {
+    const n = (x) => labs.filter((l) => l === x).length;
+    const multi = ['PENTAKILL', 'Quadra kill', 'Triple kill', 'Double kill'].find((m) => labs.includes(m));
+    const parts = [];
+    if (multi) parts.push(multi); else if (n('Kill')) parts.push(n('Kill') > 1 ? `${n('Kill')} kills` : 'Kill');
+    if (n('Assist')) parts.push(n('Assist') > 1 ? `${n('Assist')} assists` : 'Assist');
+    if (labs.includes('Ace')) parts.push('Ace');
+    parts.push(...new Set(labs.filter((l) => !['Kill', 'Assist', 'Ace', 'PENTAKILL', 'Quadra kill', 'Triple kill', 'Double kill'].includes(l))));
+    return parts.join(' + ');
+  }
+  async function autoClipSave() {
+    const q = AC.q; AC.q = null;
+    if (!q || !window.FireClips || !window.fire.clips || !FireClips.state().on) return;
+    const r = await FireClips.save().catch(() => null);
+    if (!r) return;
+    const label = autoClipLabel(q.labs);
+    const kind = ['objectif', 'kill', 'tour', 'assist'].find((k) => q.kinds.includes(k)) || 'kill';
+    const me = (q.g.players || []).find((p) => p.n === q.g.me) || {};
+    const res = await window.fire.clips.save(r.buf, { auto: true, kind, label, champ: me.c || '', mode: gameModeLabel(q.g) }).catch(() => null);
+    if (res && res.ok) { actLog('clip', 'Clip automatique : ' + label); vocalToast(`🎬 Clip auto : ${label}`, true); clipsRefresh(); }
+  }
+
+  const CLIP_KINDS = [['tous', 'Tous'], ['auto', '⚡ Automatiques'], ['kill', '⚔️ Kills'], ['assist', '🤝 Assists'], ['objectif', '🐉 Objectifs'], ['tour', '🏰 Tours'], ['manuel', '🎬 Manuels'], ['recu', '📨 Reçus']];
+  const CLB = { filter: 'tous', champ: '', n: 24 };
+  const clipKind = (c) => (c.meta && c.meta.kind) || (/ de [^ ]+ \d{4}-/.test(c.name) ? 'recu' : 'manuel');
+  const clipTitle = (c) => (c.meta && c.meta.label) || (clipKind(c) === 'recu' ? 'Clip reçu' + (c.meta && c.meta.from ? ' de ' + c.meta.from : '') : 'Clip manuel');
+  function clipsPaint() { if (CL.open) clipsModal(); if (S.section === 'clips' && !typing()) renderClipsPage(); }
+  function renderClipsPage() {
+    const view = $('view');
+    if (!CL.loaded) { CL.loaded = true; clipsRefresh(); }
+    const c = clipCfg();
+    const st = window.FireClips ? FireClips.state() : { on: false };
+    const v = FV().state();
+    const others = v.on && v.members.some((m) => m.ok);
+    const upd = (patch) => { save('fire.clips', { ...c, ...patch }); clipsApply().then(() => renderClipsPage()); renderClipsPage(); };
+    const champs = [...new Set(CL.list.map((x) => x.meta && x.meta.champ).filter(Boolean))].sort();
+    const list = CL.list.filter((x) => (CLB.filter === 'tous' || (CLB.filter === 'auto' ? x.meta && x.meta.auto : clipKind(x) === CLB.filter)) && (!CLB.champ || (x.meta && x.meta.champ) === CLB.champ));
+    const sel = CL.list.find((x) => x.path === CL.sel);
+    const mb = (b) => (b / 1048576).toFixed(1).replace('.', ',') + ' Mo';
+    const when = (t) => new Date(t).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎬'), h('div', null, h('h1', { class: 'title' }, 'Clips'),
+      h('p', { class: 'muted' }, 'Tes meilleurs moments, enregistrés par FIRE pendant tes games. Rangés dans Vidéos › FIRE Clips, sur ton PC.')));
+    const cfg = h('div', { class: 'card clb-cfg' },
+      h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Enregistrement continu'), h('small', null, `FIRE garde en mémoire les ${c.seconds} dernières secondes de ton écran, du son du jeu et du vocal. Rien n’est écrit tant qu’il n’y a pas de clip.`)),
+        h('input', { type: 'checkbox', class: 'vs-tog', checked: c.on ? true : null, onchange: (e) => upd({ on: e.target.checked }) })),
+      h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Clips automatiques'), h('small', null, 'Un clip à chaque kill ou assist, à chaque objectif où tu participes (dragon, Nashor, Héraut, larves, Atakhan) et à chaque tour ou inhibiteur pris juste après un kill ou une assist. Pas les camps de la jungle, ni les vagues, ni un TP ou un ignite sans kill. Un combat entier = un seul clip.')),
+        h('input', { type: 'checkbox', class: 'vs-tog', checked: c.auto !== false ? true : null, onchange: (e) => upd({ auto: e.target.checked }) })),
+      h('div', { class: 'row clb-row' },
+        h('label', { class: 'clb-f' }, h('span', { class: 'muted small' }, 'Durée'), h('select', { class: 'inp', onchange: (e) => upd({ seconds: Number(e.target.value) }) },
+          [[15, '15 s'], [30, '30 s'], [60, '1 min'], [90, '1 min 30']].map(([n, t]) => h('option', { value: n, selected: c.seconds === n ? true : null }, t)))),
+        h('label', { class: 'clb-f' }, h('span', { class: 'muted small' }, 'Qualité'), h('select', { class: 'inp', onchange: (e) => upd({ quality: e.target.value }) },
+          [['1080p30', '1080p 30 i/s'], ['1080p60', '1080p 60 i/s'], ['720p30', '720p 30 i/s']].map(([k, t]) => h('option', { value: k, selected: c.quality === k ? true : null }, t)))),
+        h('span', { class: 'muted small clb-key' }, `Clip à la main : ${keyTxt(vkeys().clip)}`),
+        h('span', { class: 'clb-state ' + (st.on ? 'on' : '') }, st.on ? '● Enregistrement en cours' : st.err ? '⚠ ' + st.err : '○ En pause'),
+        h('button', { class: 'btn-ghost', onclick: () => window.fire.clips.show() }, '📂 Ouvrir le dossier')));
+    const filters = h('div', { class: 'row clb-filters' },
+      CLIP_KINDS.map(([k, l]) => { const n = k === 'tous' ? CL.list.length : CL.list.filter((x) => (k === 'auto' ? x.meta && x.meta.auto : clipKind(x) === k)).length;
+        return (n || k === 'tous') ? h('button', { class: 'chip', 'aria-pressed': String(CLB.filter === k), onclick: () => { CLB.filter = k; CLB.n = 24; renderClipsPage(); } }, `${l} · ${n}`) : null; }),
+      champs.length ? h('select', { class: 'inp clb-champ', onchange: (e) => { CLB.champ = e.target.value; renderClipsPage(); } }, h('option', { value: '' }, 'Tous les champions'),
+        champs.map((x) => h('option', { value: x, selected: CLB.champ === x ? true : null }, FC.champName(x)))) : null);
+    const player = sel ? h('div', { class: 'card clb-player' },
+      h('video', { src: sel.url, controls: '', autoplay: '', preload: 'auto' }),
+      h('div', { class: 'clb-ph' }, sel.meta && sel.meta.champ ? champIcon(sel.meta.champ, 32) : null,
+        h('div', null, h('b', null, clipTitle(sel)), h('div', { class: 'muted small' }, [when(sel.t), sel.meta && sel.meta.mode, mb(sel.size)].filter(Boolean).join(' · '))),
+        h('div', { class: 'row clb-act' },
+          others ? h('button', { class: 'btn-fire small-btn', disabled: CL.sending[sel.path] != null ? true : null, onclick: () => clipSend(sel) }, CL.sending[sel.path] != null ? `Envoi… ${CL.sending[sel.path]} %` : '📨 Envoyer au salon') : null,
+          h('button', { class: 'btn-ghost', onclick: () => window.fire.clips.show(sel.path) }, 'Afficher dans le dossier'),
+          h('button', { class: 'btn-ghost', onclick: async () => {
+            if (CL.confirm !== sel.path) { CL.confirm = sel.path; renderClipsPage(); return; }
+            CL.confirm = null; await window.fire.clips.del(sel.path); CL.sel = null; clipsRefresh();
+          } }, CL.confirm === sel.path ? 'Confirmer la suppression' : '🗑 Supprimer'),
+          h('button', { class: 'btn-ghost', title: 'Fermer', onclick: () => { CL.sel = null; renderClipsPage(); } }, '✕'))),
+      !others ? h('p', { class: 'muted small' }, 'Pour l’envoyer à l’équipe, rejoins le salon vocal : ceux qui y sont le reçoivent directement.') : null) : null;
+    const grid = list.length ? h('div', { class: 'clb-grid' }, list.slice(0, CLB.n).map((x) => h('button', { class: 'clb-card' + (CL.sel === x.path ? ' on' : ''), onclick: () => { CL.sel = x.path; CL.confirm = null; renderClipsPage(); view.scrollTop = 0; window.scrollTo(0, 0); } },
+      h('div', { class: 'clb-thumb' }, h('video', { src: x.url + '#t=2', preload: 'metadata', muted: '', onmouseenter: (e) => { e.target.muted = true; e.target.play().catch(() => {}); }, onmouseleave: (e) => e.target.pause() }),
+        x.meta && x.meta.auto ? h('span', { class: 'clb-auto' }, '⚡ Auto') : null,
+        x.meta && x.meta.champ ? h('span', { class: 'clb-champ-ico' }, champIcon(x.meta.champ, 26)) : null),
+      h('b', null, clipTitle(x)), h('small', { class: 'muted' }, [when(x.t), x.meta && x.meta.mode].filter(Boolean).join(' · ')))))
+      : h('div', { class: 'card' }, h('p', { class: 'muted' }, CL.list.length ? 'Aucun clip avec ce filtre.' : c.on ? `Aucun clip pour l’instant. Lance une game : ${c.auto !== false ? 'tes kills, assists et objectifs seront filmés tout seuls, et ' : ''}${keyTxt(vkeys().clip)} garde les ${c.seconds} dernières secondes.` : 'Active l’enregistrement continu ci-dessus pour que FIRE filme tes meilleurs moments.'));
+    view.replaceChildren(...[hero, cfg, player, filters, grid,
+      list.length > CLB.n ? h('div', { class: 'more-row' }, h('button', { class: 'btn-ghost', onclick: () => { CLB.n += 24; renderClipsPage(); } }, `Voir plus (${list.length - CLB.n})`)) : null].filter(Boolean));
+  }
+
   function clipsModal() {
     let el = document.getElementById('clips');
     if (!CL.open) { if (el) el.remove(); return; }
@@ -3045,7 +3204,7 @@
               } }, CL.confirm === sel.path ? 'Confirmer la suppression' : 'Supprimer')),
             !others ? h('p', { class: 'muted small' }, 'Pour l’envoyer à l’équipe, rejoins le salon vocal : ceux qui y sont le reçoivent directement.') : null) : null)));
   }
-  function openClips() { CL.open = true; clipsRefresh(); clipsModal(); }
+  function openClips() { VX.drawer = false; go('clips'); }
   // Menu « ⋯ » du salon : inviter, affichage, réglages.
   function vocalMenu(v, tilesAll) {
     const me = vocalMe();
@@ -3133,7 +3292,8 @@
           : c.vad === 'off' ? 'Tout ce que capte ton micro est envoyé, même entre tes phrases.'
             : 'FIRE n’ouvre ton micro que quand il reconnaît TA voix : il apprend ton niveau en quelques phrases, et ignore les voix au fond de la pièce, le clavier, la souris et les coups sur le micro ou le bureau. Une fois ouvert, il reste ouvert tant que tu parles.'),
         sw('ai', 'Suppression du bruit par IA', v.ai ? 'Active : efface clavier, souris, ventilateur pendant que tu parles.' : 'Efface clavier, souris, ventilateur pendant que tu parles (RNNoise).'),
-        h('button', { class: 'vs-btn' + (v.monitor ? ' on' : ''), onclick: () => FV().setMonitor(!v.monitor) }, v.monitor ? '⏹ Arrêter le test' : '🎧 Tester mon micro (tu t’entends)')),
+        h('button', { class: 'vs-btn' + (v.monitor ? ' on' : ''), onclick: () => FV().setMonitor(!v.monitor) }, v.monitor ? '⏹ Arrêter le test' : '🎧 Tester mon micro (tu t’entends)'),
+        v.on ? h('p', { class: 'vs-hint' }, v.monitor ? '🔇 Pendant le test, ton micro et ton casque sont coupés pour le salon. Ils reviennent comme avant à la fin du test.' : 'En plein appel, le test coupe ton micro et ton casque pour le salon, le temps du test.') : null),
       h('section', { class: 'vs-sec' }, h('h3', null, vi('vol'), 'Profil d’entrée audio'),
         profRow('iso', 'Isolement de la voix', 'Rien que ta voix : FIRE retire le bruit, le clavier, l’écho et les voix au fond de la pièce (recommandé).'),
         profRow('studio', 'Studio', 'Son pur : micro ouvert sans aucun traitement (micro de qualité, pièce calme).'),
@@ -3517,10 +3677,10 @@
         stats,
         h('div', { class: 'mu-links' },
           link(yt('challenger'), '▶ Vidéos du matchup', 'YouTube · parties de joueurs Challenger et Grand Maître', 'yt'),
-          link(yt('guide'), '▶ Guides du matchup', 'YouTube · explications et conseils', 'yt'),
+          link('https://www.youtube.com/results?search_query=' + encodeURIComponent(`guide ${A} ${laneTxt} français`.replace(/\s+/g, ' ').trim()), '▶ Guide du champion ' + A, 'YouTube · une vidéo qui explique ' + A + ' : sorts, combos, build, plan de jeu', 'yt'),
           link(`https://mid.gg/champion/${encodeURIComponent(MU.a)}`, '▶ VOD de pros sur ' + A, 'mid.gg · parties pro avec build, runes et chronologie (choisis le matchup sur la page)'),
           h('button', { class: 'mu-link', onclick: () => window.fire.lcu.stats(ll) }, h('b', null, '📊 Stats et runes du matchup'), h('small', { class: 'muted' }, 'LoLalytics · taux de victoire, runes et objets contre ' + B))),
-        h('p', { class: 'muted small' }, 'Les vidéos s’ouvrent dans ton navigateur, gratuitement. Rien n’est téléchargé.'));
+        h('p', { class: 'muted small' }, 'Les vidéos s’ouvrent dans FIRE, gratuitement. Rien n’est téléchargé.'));
     }
     view.replaceChildren(hero, draftTabs(), pick, res);
   }
@@ -3961,7 +4121,7 @@
     const b = (id, label, badge, cls) => h('button', { class: 'navbtn' + (cls ? ' ' + cls : ''), 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
-    const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
+    const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'], ['clips', '🎬', 'Clips'],
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null],
       ['coach', '📣', 'Parole du coach', n || null], ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.

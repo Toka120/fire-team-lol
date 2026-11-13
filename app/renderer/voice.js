@@ -267,7 +267,7 @@
     const ratio = all > 0 ? voice / all : 0;
     const voiced = db > -65 ? voicing(g.td, V.ctx.sampleRate) : 0;
     V.gateOpen = vadStep(db, ratio, voiced, performance.now(), c.vad, c.gate);
-    const target = V.mute ? 0 : V.gateOpen ? 1 : 0;
+    const target = (V.mute && !V.monitor) ? 0 : V.gateOpen ? 1 : 0;
     g.gate.gain.setTargetAtTime(target, V.ctx.currentTime, target ? 0.004 : 0.08);
     let ch = false;
     const set = (k, v) => { if (!!V.speaking[k] !== v) { V.speaking[k] = v; ch = true; } };
@@ -698,11 +698,11 @@
     V.peer = null; V.on = false; V.speaking = {}; V.unwatch = {};
     if (!V.monitor) { closeMic(); clearInterval(V.timer); V.timer = null; V.level = 0; }
   }
-  function leave() { if (!V.on) return; blip(false); clearInterval(L.beat); beacon(false); cleanup(); emit(); }
+  function leave() { if (!V.on) return; if (V.testHold) { try { V.g.gate.connect(V.g.send); } catch (e) { /* */ } V.testHold = null; } blip(false); clearInterval(L.beat); beacon(false); cleanup(); emit(); }
 
   // ---------- Réglages ----------
-  function setMute(m) { V.mute = !!m; if (!V.mute && V.deaf) { V.deaf = false; applyGains(); } broadcast(); emit(); }
-  function setDeaf(d) { V.deaf = !!d; V.mute = V.deaf; applyGains(); applyStreamGains(); broadcast(); emit(); }
+  function setMute(m) { if (V.testHold) { V.testHold.mute = !!m; if (!m) V.testHold.deaf = false; emit(); return; } V.mute = !!m; if (!V.mute && V.deaf) { V.deaf = false; applyGains(); } broadcast(); emit(); }
+  function setDeaf(d) { if (V.testHold) { V.testHold.deaf = !!d; V.testHold.mute = !!d; emit(); return; } V.deaf = !!d; V.mute = V.deaf; applyGains(); applyStreamGains(); broadcast(); emit(); }
   function setVol(slug, v) { V.vols[slug] = v; wr(VOL_KEY, V.vols); applyGains(); emit(); }
   function setLocalMute(slug, m) { if (m) V.lmute[slug] = true; else delete V.lmute[slug]; wr(LMUTE_KEY, V.lmute); applyGains(); emit(); }
   async function setCfg(patch) {
@@ -736,10 +736,21 @@
     try {
       if (on) {
         if (!V.raw) await openMic();
+        // En plein appel : pendant le test, le salon ne t'entend plus et tu n'entends plus le salon (micro et casque coupés).
+        if (V.on && !V.testHold) {
+          V.testHold = { mute: V.mute, deaf: V.deaf };
+          try { V.g.gate.disconnect(V.g.send); } catch (e) { /* */ }
+          V.deaf = true; V.mute = true; applyGains(); applyStreamGains(); broadcast();
+        }
         startTick(); V.g.gate.connect(V.g.master); V.monitor = true;
       } else if (V.monitor) {
         try { V.g.gate.disconnect(V.g.master); } catch (e) { /* */ }
         V.monitor = false;
+        if (V.testHold) {
+          const h = V.testHold; V.testHold = null;
+          try { V.g.gate.connect(V.g.send); } catch (e) { /* */ }
+          V.mute = h.mute; V.deaf = h.deaf; applyGains(); applyStreamGains(); broadcast();
+        }
         if (!V.on) { closeMic(); clearInterval(V.timer); V.timer = null; V.level = 0; }
       }
     } catch (e) { V.err = e && e.name === 'NotAllowedError' ? 'accès au micro refusé (Windows › Paramètres › Confidentialité › Microphone)' : 'micro indisponible'; V.monitor = false; }
@@ -795,6 +806,7 @@
     const num = (x) => (Number.isFinite(Number(x)) ? Math.max(0, Math.min(99999, Number(x))) : 0);
     return {
       mode: str(g.mode, 30), time: num(g.time), me: str(g.me, 40), at: num(g.at) || Date.now(),
+      queue: g.queue && typeof g.queue === 'object' ? { id: num(g.queue.id), name: str(g.queue.name, 40), ranked: !!g.queue.ranked } : null,
       players: g.players.map((p) => ({ n: str(p.n, 40), c: str(p.c, 30).replace(/[^A-Za-z0-9]/g, ''), team: p.team === 'CHAOS' ? 'CHAOS' : 'ORDER',
         k: num(p.k), d: num(p.d), a: num(p.a), cs: num(p.cs), lvl: num(p.lvl), pos: str(p.pos, 10) })),
     };
@@ -831,7 +843,7 @@
     L.liveBusy = true;
     try {
       const others = L.ids.filter((x) => x !== L.me);
-      await Promise.all(others.map(async (x) => { const dc = await link(x); if (dc) { try { dc.send({ t: 'live', g }); } catch (e) { /* */ } } }));
+      await Promise.all(others.map(async (x) => { const dc = await link(x); if (dc) { try { dc.send({ t: 'live', g }); } catch (e) { if (L.links[x] === dc) delete L.links[x]; try { dc.close(); } catch (er) { /* */ } } } }));
     } finally { L.liveBusy = false; }
   }
   const lid = (slug) => L.prefix + 'hall' + slug.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
@@ -881,6 +893,7 @@
     join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, setStreamSound, requestSound, addScreenSound, watchStream,
     onSoundRequest: (f) => { V.onSndReq = f; }, appSend, liveSend, statusSend, modSend, onMod: (f) => { L.onMod = f; }, onApp: (f) => { V.onApp = f; }, onPeer: (f) => { V.onPeer = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
     clearErr: () => { V.err = ''; emit(); },
+    isOn: () => !!V.on,
     // Définition et images/s de chaque écran partagé que je reçois (affichées sur la vidéo).
     recvInfo: async () => {
       const out = {};
