@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.103",
+   "date": "2026-11-13",
+   "titre": "Profils étoffés",
+   "items": [
+    [
+     "new",
+     "Carte de profil : section League of Legends avec le rang, le champion le plus joué (games et temps de jeu estimé), le meilleur KDA (5 games minimum), le meilleur taux de victoire (20 games minimum) et les 8 champions les plus joués du split en classé solo."
+    ],
+    [
+     "new",
+     "« Mes jeux » : choisis les jeux auxquels tu joues (Valorant, TFT, CS2, Fortnite… ou un autre). Ils s'affichent sur ta carte de profil."
+    ],
+    [
+     "improve",
+     "Clique sur un nom dans la discussion (ou fais un clic droit, puis « Profil ») pour voir la carte. « Toutes ses stats » ouvre son profil complet."
+    ]
+   ]
+  },
+  {
    "v": "1.10.102",
    "date": "2026-11-13",
    "titre": "Clic droit comme Discord",

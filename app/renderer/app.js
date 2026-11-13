@@ -722,6 +722,12 @@
           h('input', { type: 'color', class: 'ux-color', value: UX.color || '#f5a524', onchange: (e) => { setUx({ color: e.target.value }); renderSettings(); } }),
           UX.color ? h('button', { class: 'btn-ghost', onclick: () => { setUx({ color: '' }); renderSettings(); } }, 'Couleur normale') : null),
         h('div', { class: 'fld' }, h('span', null, 'Bannière (un skin de LoL)'), skinPicker(UX.banner, (b) => { setUx({ banner: b }); renderSettings(); })),
+        h('div', { class: 'fld' }, h('span', null, 'Mes jeux (8 au plus)'),
+          h('div', { class: 'row pf-pick' }, GAME_LIST.concat((UX.games || []).filter((g) => !GAME_LIST.some(([n]) => n === g)).map((g) => [g, '🎮'])).map(([g, ico]) => {
+            const on = (UX.games || []).includes(g);
+            return h('button', { class: 'chip', 'aria-pressed': String(on), onclick: () => { const l = new Set(UX.games || []); if (on) l.delete(g); else if (l.size < 8) l.add(g); setUx({ games: [...l] }); renderSettings(); } }, ico + ' ' + g);
+          }),
+            h('input', { class: 'inp pf-other', placeholder: 'Autre jeu… (Entrée)', maxlength: 24, onkeydown: (e) => { if (e.key === 'Enter' && e.target.value.trim()) { const l = new Set(UX.games || []); if (l.size < 8) l.add(e.target.value.trim().slice(0, 24)); setUx({ games: [...l] }); renderSettings(); } } }))),
         me ? h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => openProfile(me) }, '👀 Voir ma carte')) : h('p', { class: 'muted small' }, 'Choisis d’abord qui tu es.')),
     ];
   }
@@ -6334,11 +6340,11 @@
     try {
       if (!FV() || !FV().statusSend || !vocalMe()) return;
       if (UX.status === 'invisible') { FV().statusSend(null); return; }
-      FV().statusSend({ st: UX.status, game: !!(LIVE.mine), bio: UX.bio || '', color: UX.color || '', banner: UX.banner || null, dm: UX.dm || 'all' });
+      FV().statusSend({ st: UX.status, game: !!(LIVE.mine), bio: UX.bio || '', color: UX.color || '', banner: UX.banner || null, dm: UX.dm || 'all', games: UX.games || [] });
     } catch (e) { /* hall pas prêt */ }
   }
   function statusOf(slug) {
-    if (slug === vocalMe()) return UX.status === 'invisible' ? { st: 'invisible', game: !!LIVE.mine } : { st: UX.status, game: !!LIVE.mine, bio: UX.bio, color: UX.color, banner: UX.banner, dm: UX.dm };
+    if (slug === vocalMe()) return { st: UX.status === 'invisible' ? 'invisible' : UX.status, game: !!LIVE.mine, bio: UX.bio, color: UX.color, banner: UX.banner, dm: UX.dm, games: UX.games || [] };
     let live = null;
     try { live = (FV() && FV().state().statuses || {})[slug] || null; } catch (e) { /* */ }
     const cached = (load('fire.profiles', {}) || {})[slug] || {};
@@ -6351,11 +6357,39 @@
       if (!Object.keys(st).length) return;
       const all = load('fire.profiles', {}) || {};
       let ch = false;
-      for (const [k, x] of Object.entries(st)) { const v = { bio: x.bio || '', color: x.color || '', banner: x.banner || null, dm: x.dm || 'all' }; if (JSON.stringify(all[k]) !== JSON.stringify(v)) { all[k] = v; ch = true; } }
+      for (const [k, x] of Object.entries(st)) { const v = { bio: x.bio || '', color: x.color || '', banner: x.banner || null, dm: x.dm || 'all', games: x.games || [] }; if (JSON.stringify(all[k]) !== JSON.stringify(v)) { all[k] = v; ch = true; } }
       if (ch) save('fire.profiles', all);
     } catch (e) { /* */ }
   }
   const stDot = (slug) => { const x = statusOf(slug); const k = x.game ? 'game' : x.st || 'offline'; return h('i', { class: 'st-dot st-' + k, title: x.game ? 'En game' : (ST_LABEL[x.st] || ST_LABEL.offline)[1] }); };
+  // Ses stats LoL pour la carte de profil (dpm.lol, déjà chargées par FIRE) : champions du split en classé solo,
+  // temps de jeu sur son champion le plus joué, meilleur KDA (5 games ou plus) et meilleur taux de victoire (20 games ou plus).
+  function profileLol(slug) {
+    const d = S.data[slug];
+    if (!d) return null;
+    const champs = (d.champs || []).filter((c) => c && c.id && c.games > 0).slice().sort((a, b) => b.games - a.games);
+    const matches = d.matches || [];
+    const avgDur = matches.length ? matches.reduce((n, m) => n + (Number(m.d) || 0), 0) / matches.length : 1800;
+    const games = champs.reduce((n, c) => n + c.games, 0), wins = champs.reduce((n, c) => n + (c.wins || 0), 0);
+    const top = champs[0] || null;
+    let topTime = null;
+    if (top) {
+      const mine = matches.filter((m) => m.championName === top.id && Number(m.d) > 0);
+      const avg = mine.length ? mine.reduce((n, m) => n + Number(m.d), 0) / mine.length : avgDur;
+      topTime = { sec: Math.round(top.games * avg), exact: false };
+    }
+    const kdaPool = champs.filter((c) => c.games >= 5 && Number.isFinite(c.kda));
+    const bestKda = kdaPool.sort((a, b) => b.kda - a.kda)[0] || null;
+    const wrPool = champs.filter((c) => c.games >= 20);
+    const bestWr = wrPool.map((c) => ({ ...c, wr: (c.wins || 0) / c.games * 100 })).sort((a, b) => b.wr - a.wr || b.games - a.games)[0] || null;
+    return { rank: d.rank || '', record: d.record || '', champs, games, wr: games ? wins / games * 100 : null, top, topTime, bestKda, bestWr };
+  }
+  const champName = (id) => (((S.champList && S.champList.list) || []).find((c) => c.id === id) || {}).name || id;
+  const hrs = (sec) => { const m = Math.round(sec / 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`; };
+  // Jeux auxquels on joue (Paramètres › Profil) : affichés sur la carte de profil.
+  const GAME_LIST = [['League of Legends', '⚔️'], ['TFT', '♟️'], ['Valorant', '🎯'], ['2XKO', '🥊'], ['Legends of Runeterra', '🃏'], ['Counter-Strike 2', '🔫'], ['Fortnite', '🏗️'], ['Rocket League', '🚗'],
+    ['Apex Legends', '🪂'], ['Overwatch 2', '🛡️'], ['Minecraft', '⛏️'], ['EA Sports FC', '⚽'], ['Call of Duty', '🎖️'], ['Rainbow Six Siege', '🧨'], ['Genshin Impact', '🌸'], ['Elden Ring', '🗡️']];
+  const gameIco = (g) => (GAME_LIST.find(([n]) => n === g) || [, '🎮'])[1];
   function openProfile(slug) {
     document.querySelectorAll('.prof-pop').forEach((x) => x.remove());
     const x = statusOf(slug);
@@ -6364,18 +6398,35 @@
     const banner = x.banner ? `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${x.banner.c}_${x.banner.n}.jpg` : null;
     const me = vocalMe();
     const canDm = slug !== me && (x.dm === 'all' || !x.dm || (x.dm === 'coach' && !!coachOf(me)));
+    const L = profileLol(slug);
+    const stat = (label, big, sub, icon) => h('div', { class: 'pf-stat' }, icon ? champIcon(icon, 40) : null, h('div', null, h('small', { class: 'muted' }, label), h('b', null, big), sub ? h('small', { class: 'muted' }, sub) : null));
+    const lol = L ? h('div', { class: 'pf-lol' },
+      h('div', { class: 'pf-h' }, h('b', null, '⚔️ League of Legends'), h('small', { class: 'muted' }, L.rank ? `${L.rank}${L.record ? ' · ' + L.record : ''}` : 'Classé solo · ce split')),
+      L.champs.length ? [
+        h('div', { class: 'pf-stats' },
+          L.top ? stat('Champion le plus joué', champName(L.top.id), `${L.top.games} games · ≈ ${hrs(L.topTime.sec)} de jeu`, L.top.id) : null,
+          L.bestKda ? stat('Meilleur KDA', `${fr(L.bestKda.kda, 2)} sur ${champName(L.bestKda.id)}`, `${L.bestKda.games} games (5 minimum)`, L.bestKda.id) : null,
+          L.bestWr ? stat('Meilleur taux de victoire', `${fr(L.bestWr.wr, 1)} % sur ${champName(L.bestWr.id)}`, `${L.bestWr.games} games (20 minimum)`, L.bestWr.id)
+            : h('div', { class: 'pf-stat' }, h('div', null, h('small', { class: 'muted' }, 'Meilleur taux de victoire'), h('b', null, '—'), h('small', { class: 'muted' }, 'Aucun champion à 20 games ce split')))),
+        h('div', { class: 'pf-sum muted small' }, `${L.games} games ce split en classé solo` + (L.wr != null ? ` · ${fr(L.wr, 1)} % de victoires` : '')),
+        h('div', { class: 'pf-champs' }, L.champs.slice(0, 8).map((c) => h('div', { class: 'pf-ch', title: `${champName(c.id)} : ${c.games} games, ${fr((c.wins || 0) / c.games * 100, 0)} % de victoires, KDA ${fr(c.kda, 2)}` },
+          champIcon(c.id, 44), h('small', null, `${c.games} g`), h('small', { class: (c.wins || 0) / c.games >= 0.5 ? 'good' : 'bad' }, `${fr((c.wins || 0) / c.games * 100, 0)} %`))))]
+        : h('p', { class: 'muted small' }, 'Pas encore de games classées ce split.')) : null;
+    const games = (x.games || []).filter(Boolean);
     const box = h('div', { class: 'prof-pop', onclick: (e) => { if (e.target === box) close(); } },
-      h('div', { class: 'prof-card' },
+      h('div', { class: 'prof-card pf-wide' },
         h('div', { class: 'prof-ban', style: banner ? `background-image:url('${banner}')` : '' }),
         h('div', { class: 'prof-body' },
-          h('div', { class: 'prof-name', style: x.color ? `color:${x.color}` : '' }, vocalName(slug), stDot(slug)),
+          h('div', { class: 'prof-name', style: x.color ? `color:${x.color}` : '' }, vocalName(slug), stDot(slug), roleBadge(slug)),
           h('div', { class: 'muted small' }, (p ? (p.role || roleOf(p).label) + ' · ' : coachOf(slug) ? 'Coach · ' : '') + (x.game ? '🎮 En game' : (ST_LABEL[x.st] || ST_LABEL.offline).join(' '))),
           x.bio ? h('p', { class: 'prof-bio' }, x.bio) : null,
+          games.length ? h('div', { class: 'pf-games' }, h('small', { class: 'muted' }, 'Ses jeux'), h('div', { class: 'pf-gl' }, games.map((g) => h('span', { class: 'pf-g' }, gameIco(g) + ' ' + g)))) : null,
+          lol,
           load('fire.unotes', {})[slug] ? h('p', { class: 'prof-note' }, h('small', { class: 'muted' }, '📝 Ta note (visible seulement par toi)'), h('br'), load('fire.unotes', {})[slug]) : null,
           h('div', { class: 'row' },
             canDm ? h('button', { class: 'btn-fire small-btn', onclick: () => { close(); CH.conv = slug; go('chat'); } }, '💬 Message privé') : slug !== me ? h('span', { class: 'muted small' }, '🔒 Ne reçoit pas de messages privés') : null,
-            p ? h('button', { class: 'btn-ghost', onclick: () => { close(); go('stats'); openPlayer(slug); } }, '📊 Ses stats') : null,
-            slug === me ? h('button', { class: 'btn-ghost', onclick: () => { close(); S.setTab = 'profil'; go('settings'); } }, '✏️ Modifier mon profil') : null,
+            p ? h('button', { class: 'btn-ghost', onclick: () => { close(); go('stats'); openPlayer(slug); } }, '📊 Toutes ses stats') : null,
+            slug === me ? h('button', { class: 'btn-ghost', onclick: () => { close(); S.setTab = 'profil'; S.setSub = 'carte'; go('settings'); } }, '✏️ Modifier mon profil') : null,
             h('button', { class: 'btn-ghost', onclick: close }, 'Fermer')))));
     document.body.append(box);
   }

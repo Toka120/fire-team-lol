@@ -806,7 +806,8 @@
     const st = ['online', 'busy', 'away'].includes(x.st) ? x.st : 'online';
     const color = /^#[0-9a-fA-F]{6}$/.test(x.color || '') ? x.color : '';
     const banner = x.banner && /^[A-Za-z]{2,20}$/.test(x.banner.c || '') && Number.isInteger(x.banner.n) && x.banner.n >= 0 && x.banner.n < 200 ? { c: x.banner.c, n: x.banner.n } : null;
-    return { st, game: !!x.game, bio: str(x.bio, 140), color, banner, dm: ['all', 'coach', 'none'].includes(x.dm) ? x.dm : 'all' };
+    const games = (Array.isArray(x.games) ? x.games : []).map((g) => str(g, 24)).filter(Boolean).slice(0, 8);
+    return { st, game: !!x.game, bio: str(x.bio, 140), color, banner, dm: ['all', 'coach', 'none'].includes(x.dm) ? x.dm : 'all', games };
   }
   // Mon statut envoyé à l'équipe (toutes les minutes et à chaque changement) ; null = invisible (les autres ne me voient plus).
   async function statusSend(st) {
