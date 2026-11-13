@@ -1907,3 +1907,10 @@ img.qz-hole.ok{border:2px solid var(--ok)}
 #chat .chat-cv.on{background:var(--fire1);border-color:var(--fire1);color:#0B0D10}
 #chat .chat-cv-n{background:#ff5a3c;color:#fff;border-radius:999px;font-size:10px;min-width:16px;height:16px;display:inline-grid;place-items:center;padding:0 4px}
 #chat .chat-priv{background:color-mix(in srgb,var(--fire1) 14%,transparent);color:var(--fg)}
+
+/* Tuiles des lanes : les champions de la lane défilent avec leurs skins */
+.lane-skins{position:absolute;inset:0;overflow:hidden}
+.lane-skins .lane-art{opacity:0;transition:opacity 1.4s ease, transform 7s ease-out;transform:scale(1.04)}
+.lane-skins .lane-art.on{opacity:1;transform:scale(1.14)}
+.lane-tile:hover .lane-skins .lane-art.on{transform:scale(1.18)}
+@media (prefers-reduced-motion: reduce){.lane-skins .lane-art{transition:opacity .3s}.lane-skins .lane-art.on{transform:none}}

@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.89",
+   "date": "2026-11-13",
+   "titre": "RGB partout et lanes animées",
+   "items": [
+    [
+     "improve",
+     "Thème Gamer RGB : l'arc-en-ciel est partout. Les couleurs de l'app tournent en continu, les bordures des cartes défilent, et le menu, les titres, les boutons, les onglets, les pastilles et la discussion sont en RGB."
+    ],
+    [
+     "improve",
+     "Lanes et principes : chaque tuile fait défiler les champions de sa lane avec leurs skins (fondu enchaîné et léger zoom)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.88",
    "date": "2026-11-13",
    "titre": "Messages privés",

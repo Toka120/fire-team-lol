@@ -3288,8 +3288,54 @@
     const a = LANE_ART[k] || (c.roles || []).map((r) => LANE_ART[r]).find(Boolean);
     return a ? `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${a[0]}_${a[1]}.jpg` : null;
   }
+  // Chaque tuile de lane fait défiler des champions de la lane avec leurs skins (fondu enchaîné, léger zoom).
+  const LANE_POOL = {
+    top: ['Darius', 'Garen', 'Aatrox', 'Fiora', 'Jax', 'Camille', 'Riven', 'Sett', 'Mordekaiser', 'Irelia', 'Renekton', 'Gwen'],
+    jungle: ['LeeSin', 'Viego', 'Khazix', 'Kayn', 'Hecarim', 'Elise', 'Graves', 'Vi', 'JarvanIV', 'Nidalee', 'Evelynn', 'Kindred'],
+    mid: ['Ahri', 'Yasuo', 'Zed', 'Sylas', 'Akali', 'Syndra', 'Katarina', 'Leblanc', 'Orianna', 'Yone', 'Viktor', 'Lux'],
+    adc: ['Jinx', 'Kaisa', 'Ezreal', 'Jhin', 'MissFortune', 'Caitlyn', 'Vayne', 'Lucian', 'Xayah', 'Samira', 'Ashe', 'Draven'],
+    support: ['Thresh', 'Lux', 'Pyke', 'Nautilus', 'Leona', 'Rakan', 'Nami', 'Seraphine', 'Morgana', 'Senna', 'Soraka', 'Blitzcrank'],
+  };
+  const laneKey = (c) => Object.keys(LANE_POOL).find((x) => String(c.id).toLowerCase().includes(x) || (c.roles || []).includes(x)) || ((c.roles || []).find((r) => LANE_POOL[r]) || '');
+  const laneShow = {};
+  function laneSkins(c) {
+    const k = laneKey(c);
+    if (!k) return null;
+    if (!laneShow[k] || (J.data && !laneShow[k].full)) {
+      const byId = J.data ? Object.fromEntries(J.data.champs.map((x) => [x.id, x])) : {};
+      const list = shuffle(LANE_POOL[k]).map((id) => {
+        const ch = byId[id];
+        const sk = ch && ch.skins && ch.skins.length ? pick(ch.skins.filter((x) => x.num > 0).concat(ch.skins.slice(0, 1))) : { num: 0 };
+        return { id, num: sk.num, name: sk.name || id };
+      });
+      const first = LANE_ART[k] ? [{ id: LANE_ART[k][0], num: LANE_ART[k][1], name: '' }] : [];
+      laneShow[k] = { full: !!J.data, list: first.concat(list.filter((x) => !first.some((f) => f.id === x.id))).slice(0, 10) };
+    }
+    return h('div', { class: 'lane-skins', 'data-step': String(4200 + Math.floor(Math.random() * 1600)), 'aria-hidden': 'true' },
+      laneShow[k].list.map((x, i) => h('img', { class: 'lane-art' + (i === 0 ? ' on' : ''), alt: '', title: x.name, decoding: 'async',
+        src: `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${x.id}_${x.num}.jpg`,
+        onerror: (e) => { const im = e.target, box = im.parentNode, wasOn = im.classList.contains('on'); im.remove(); if (wasOn && box && box.firstElementChild) box.firstElementChild.classList.add('on'); } })));
+  }
+  setInterval(() => {
+    const now = Date.now();
+    document.querySelectorAll('.lane-skins').forEach((b) => {
+      const next = Number(b.dataset.next || 0);
+      if (!next) { b.dataset.next = String(now + Number(b.dataset.step || 5000)); return; }
+      if (now < next) return;
+      b.dataset.next = String(now + Number(b.dataset.step || 5000));
+      const imgs = [...b.querySelectorAll('img')];
+      if (imgs.length < 2) return;
+      const i = imgs.findIndex((x) => x.classList.contains('on'));
+      // Le suivant déjà chargé (une image pas encore arrivée ne laisse jamais la tuile vide).
+      for (let d = 1; d < imgs.length; d++) {
+        const nx = imgs[(i + d + imgs.length) % imgs.length];
+        if (nx.complete && nx.naturalWidth > 0) { imgs.forEach((x) => x.classList.remove('on')); nx.classList.add('on'); break; }
+      }
+    });
+  }, 500);
   function renderCategories() {
     const view = $('view');
+    if (!J.data && !J.loading && window.fire.jeux) loadJeux().then(() => { if (S.section === 'guides' && !S.guideCat && !S.theme && !typing()) renderCategories(); });
     const role = myRole();
     const seenThemes = new Set();
     const themes = [];
@@ -3303,7 +3349,7 @@
         const art = laneArt(c);
         const nNew = c.themes.filter((x) => { const t = themeOf(x.id); return t && themeIsNew(t); }).length;
         return h('button', { class: 'lane-tile' + (mine ? ' mine' : ''), onclick: () => { S.guideCat = c.id; S.theme = null; render(); window.scrollTo(0, 0); } },
-          art ? h('img', { class: 'lane-art', src: art, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }) : null,
+          laneSkins(c) || (art ? h('img', { class: 'lane-art', src: art, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }) : null),
           h('div', { class: 'lane-shade' }),
           h('div', { class: 'lane-top' }, mine ? h('span', { class: 'me-tag' }, 'Ta lane') : null, nNew ? h('span', { class: 'new-tag' }, `${nNew} nouveau${nNew > 1 ? 'x' : ''}`) : null),
           h('div', { class: 'lane-body' },

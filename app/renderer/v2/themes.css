@@ -197,14 +197,58 @@ html.v2[data-theme=matrix] .btn-fire { background: transparent; color: var(--ta)
 html.v2[data-theme=matrix] .btn-fire:hover { background: var(--ta); color: var(--ton); }
 @keyframes th-blink { 50% { opacity: 0; } }
 
-html.v2[data-theme=rgb] .title { background: var(--trainbow); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; animation: th-rgb 6s linear infinite; }
-html.v2[data-theme=rgb] .v2-brand span { background: var(--trainbow); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; animation: th-rgb 6s linear infinite; }
-html.v2[data-theme=rgb] .sec-hero { border: 2px solid transparent; background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--trainbow) border-box; background-size: 100% 100%, 200% 100%; animation: th-rgb 6s linear infinite; }
-html.v2[data-theme=rgb] .btn-fire { background: var(--trainbow); background-size: 200% 100%; color: #0b0b10; animation: th-rgb 4s linear infinite; }
-html.v2[data-theme=rgb] .navbtn[aria-current=page] { box-shadow: inset 3px 0 #ffd23d, 0 0 18px rgb(255 61 110 / 25%); }
-html.v2[data-theme=rgb] .v2-side { border-right: 2px solid transparent; border-image: linear-gradient(180deg, #ff3d6e, #ffd23d, #3dff8a, #3dd8ff, #b13dff) 1; }
+/* Gamer RGB : l'accent de toute l'application fait le tour de l'arc-en-ciel (icônes, liens, anneaux, pastilles…),
+   et les bordures, titres, barre latérale, onglets et boutons sont en arc-en-ciel qui défile. */
+@property --rgb1 { syntax: '<color>'; inherits: true; initial-value: #ff3d6e; }
+@property --rgb2 { syntax: '<color>'; inherits: true; initial-value: #3dd8ff; }
+@property --rgba { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+@keyframes th-rgb-c1 { 0%, 100% { --rgb1: #ff3d6e; } 17% { --rgb1: #ff9f3d; } 33% { --rgb1: #ffe93d; } 50% { --rgb1: #3dff8a; } 67% { --rgb1: #3dd8ff; } 83% { --rgb1: #b13dff; } }
+@keyframes th-rgb-c2 { 0%, 100% { --rgb2: #3dd8ff; } 17% { --rgb2: #b13dff; } 33% { --rgb2: #ff3d6e; } 50% { --rgb2: #ff9f3d; } 67% { --rgb2: #ffe93d; } 83% { --rgb2: #3dff8a; } }
+@keyframes th-rgb-a { to { --rgba: 360deg; } }
+html.v2[data-theme=rgb] {
+  --ta: var(--rgb1); --tb: var(--rgb2);
+  --trainbow: linear-gradient(90deg, #ff3d6e, #ff9f3d, #ffe93d, #3dff8a, #3dd8ff, #b13dff, #ff3d6e);
+  --trot: linear-gradient(var(--rgba), #ff3d6e, #ff9f3d, #ffe93d, #3dff8a, #3dd8ff, #b13dff, #ff3d6e);
+  animation: th-rgb-c1 8s linear infinite, th-rgb-c2 8s linear infinite, th-rgb-a 6s linear infinite;
+}
+html.v2[data-theme=rgb] body { background: radial-gradient(800px 500px at 100% 0%, color-mix(in srgb, var(--rgb1) 22%, transparent), transparent 60%), radial-gradient(800px 500px at 0% 100%, color-mix(in srgb, var(--rgb2) 22%, transparent), transparent 60%), var(--bg); background-attachment: fixed; }
+/* Textes en arc-en-ciel qui défile */
+html.v2[data-theme=rgb] :is(.title, .v2-brand span, .hub-sec > span:first-child, .card h2, .team-h, .qz-rank) { background: var(--trainbow); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: th-rgb 5s linear infinite; text-shadow: none; }
+/* Bordures arc-en-ciel qui tournent : cartes, en-têtes, joueurs, jeux, conversations */
+html.v2[data-theme=rgb] :is(.card, .sec-hero, .pcard, .jg-card, .th-card, .lane-tile, .princ, .acard, .mu-slot, .tl-card) {
+  border: 2px solid transparent !important;
+  background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--trot) border-box !important;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--rgb1) 22%, transparent), 0 0 34px color-mix(in srgb, var(--rgb2) 10%, transparent);
+}
+html.v2[data-theme=rgb] .pcard { background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--trot) border-box !important; }
+html.v2[data-theme=rgb] :is(.jg-card, .card, .pcard):hover { box-shadow: 0 0 26px color-mix(in srgb, var(--rgb1) 45%, transparent), 0 0 50px color-mix(in srgb, var(--rgb2) 25%, transparent); }
+/* Barre latérale, barre du haut, navigation */
+html.v2[data-theme=rgb] .v2-side { border-right: 3px solid transparent; border-image: linear-gradient(180deg, #ff3d6e, #ff9f3d, #ffe93d, #3dff8a, #3dd8ff, #b13dff) 1;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--rgb1) 16%, var(--panel)), var(--panel) 45%, color-mix(in srgb, var(--rgb2) 14%, var(--panel))); }
+html.v2[data-theme=rgb] .topbar { border-bottom: 2px solid transparent; border-image: var(--trainbow) 1; }
+/* Chaque icône du menu a sa couleur, et toutes tournent dans l'arc-en-ciel avec un décalage. */
+@keyframes th-rgb-ico { 0%, 100% { color: #ff3d6e; } 17% { color: #ff9f3d; } 33% { color: #ffe93d; } 50% { color: #3dff8a; } 67% { color: #3dd8ff; } 83% { color: #b13dff; } }
+html.v2[data-theme=rgb] .navbtn .v2i { animation: th-rgb-ico 6s linear infinite; }
+html.v2[data-theme=rgb] .navbtn:nth-child(2) .v2i { animation-delay: -1s; } html.v2[data-theme=rgb] .navbtn:nth-child(3) .v2i { animation-delay: -2s; }
+html.v2[data-theme=rgb] .navbtn:nth-child(4) .v2i { animation-delay: -3s; } html.v2[data-theme=rgb] .navbtn:nth-child(5) .v2i { animation-delay: -4s; }
+html.v2[data-theme=rgb] .navbtn:nth-child(6) .v2i { animation-delay: -5s; }
+html.v2[data-theme=rgb] .v2-group:nth-of-type(2) .navbtn .v2i { animation-duration: 6.5s; } html.v2[data-theme=rgb] .v2-group:nth-of-type(3) .navbtn .v2i { animation-duration: 7s; }
+html.v2[data-theme=rgb] .navbtn[aria-current=page] { background: linear-gradient(90deg, color-mix(in srgb, var(--rgb1) 35%, transparent), color-mix(in srgb, var(--rgb2) 15%, transparent)); box-shadow: inset 4px 0 var(--rgb1), 0 0 22px color-mix(in srgb, var(--rgb1) 40%, transparent); }
+html.v2[data-theme=rgb] .navbtn[aria-current=page] .v2-lab { background: var(--trainbow); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: th-rgb 4s linear infinite; }
+html.v2[data-theme=rgb] :is(.v2-badge, .navbtn .badge, .plan-tab-n, .chat-n, .chat-cv-n, .new-tag) { background: var(--trainbow) !important; background-size: 200% 100% !important; color: #0b0b10 !important; animation: th-rgb 3s linear infinite; }
+/* Boutons, onglets, puces */
+html.v2[data-theme=rgb] :is(.btn-fire, .chip[aria-pressed=true], .plan-tab[aria-pressed=true], .chat-cv.on) { background: var(--trainbow) !important; background-size: 200% 100% !important; color: #0b0b10 !important; border-color: transparent !important; animation: th-rgb 4s linear infinite; box-shadow: 0 0 18px color-mix(in srgb, var(--rgb1) 45%, transparent); }
+html.v2[data-theme=rgb] .btn-ghost:hover, html.v2[data-theme=rgb] .chip:hover { border-color: var(--rgb1); box-shadow: 0 0 12px color-mix(in srgb, var(--rgb1) 40%, transparent); }
+html.v2[data-theme=rgb] .sec-ico { background: var(--trot); color: #0b0b10; }
+html.v2[data-theme=rgb] .inp:focus, html.v2[data-theme=rgb] select:focus, html.v2[data-theme=rgb] textarea:focus { border-color: var(--rgb1); box-shadow: 0 0 0 3px color-mix(in srgb, var(--rgb1) 35%, transparent), 0 0 18px color-mix(in srgb, var(--rgb2) 25%, transparent); }
+/* Discussion, barres de progression, défilement */
+html.v2[data-theme=rgb] #chat { border: 2px solid transparent; border-bottom: none; background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--trot) border-box; }
+html.v2[data-theme=rgb] #chat .chat-bar { background: linear-gradient(90deg, color-mix(in srgb, var(--rgb1) 30%, transparent), color-mix(in srgb, var(--rgb2) 30%, transparent)); }
+html.v2[data-theme=rgb] :is(.lt-bar i, .bar > i, .prog > i, .gbar i) { background: var(--trainbow) !important; background-size: 200% 100% !important; animation: th-rgb 3s linear infinite, ltb linear forwards; }
+html.v2[data-theme=rgb] ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #ff3d6e, #ffe93d, #3dff8a, #3dd8ff, #b13dff); }
+html.v2[data-theme=rgb] ::selection { background: color-mix(in srgb, var(--rgb1) 55%, transparent); }
 @keyframes th-rgb { to { background-position: 200% 0, 200% 0; } }
-@media (prefers-reduced-motion: reduce) { html.v2[data-skin] * { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { html.v2[data-skin], html.v2[data-skin] * { animation: none !important; } }
 
 /* ---------- Choix du thème dans Paramètres (aperçu de chaque ambiance) ---------- */
 .th-grp { margin-top: 14px; }
