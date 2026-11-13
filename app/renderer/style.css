@@ -2376,3 +2376,36 @@ html.sub-mode #chat { display: none !important; }
 .qz-log .mid { color: #ffc24b; }
 .wr-end { text-align: center; }
 .wr-big { font-size: 46px; font-weight: 900; margin: 6px 0; }
+
+/* ===== Parcours (arbre des compétences) ===== */
+.pc-total { display: flex; align-items: center; gap: 10px; margin-top: 8px; max-width: 520px; }
+.pc-total .prog { flex: 1; }
+.pc-grid { display: grid; gap: 12px; margin-top: 16px; align-items: stretch; }
+.pc-th { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 10px; background: #ffffff0d; border: 1px solid #ffffff1f; font-size: 15px; }
+.pc-lv { display: flex; align-items: center; gap: 8px; writing-mode: vertical-rl; transform: rotate(180deg); justify-content: center; padding: 8px 4px; border-radius: 10px; background: #ffffff08; border: 1px solid #ffffff14; font-weight: 700; }
+.pc-lv i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.pc-node { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px 10px; min-height: 150px; border-radius: 16px; text-align: center;
+  background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--c) 18%, transparent), transparent 70%), #ffffff08; border: 2px solid color-mix(in srgb, var(--c) 45%, transparent);
+  color: inherit; font: inherit; cursor: pointer; transition: transform .12s, box-shadow .12s; }
+.pc-node:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 8px 22px color-mix(in srgb, var(--c) 30%, transparent); }
+.pc-node .pc-ico { font-size: 34px; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: #0006; border: 2px solid var(--c); }
+.pc-node b { font-size: 14px; }
+.pc-node small { font-size: 11px; opacity: .8; }
+.pc-node.done { border-color: #3ddc84; }
+.pc-node.done .pc-ico { border-color: #3ddc84; box-shadow: 0 0 14px #3ddc8466; }
+.pc-node.locked { filter: grayscale(.9) brightness(.55); cursor: not-allowed; }
+.pc-step { max-width: 900px; }
+.pc-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 8px; }
+.pc-head h2 { width: 100%; margin: 6px 0 0; }
+.pc-tag { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid var(--c); color: var(--c); }
+.pc-lesson { line-height: 1.6; margin: 8px 0 16px; }
+.pc-lesson li { margin: 6px 0; }
+.pc-opts { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.pc-opt { text-align: left; padding: 12px 14px; border-radius: 10px; border: 1px solid #ffffff22; background: #ffffff08; color: inherit; font: inherit; cursor: pointer; }
+.pc-opt:hover:not(:disabled) { border-color: var(--accent, #ff6b3d); }
+.pc-opt.good { border-color: #3ddc84; background: #3ddc8422; }
+.pc-opt.bad { border-color: #ff4d5e; background: #ff4d5e22; }
+.pc-opt.dim { opacity: .5; }
+.pc-end { text-align: center; }
+.pc-end .row { justify-content: center; }
+.pc-big { font-size: 34px; font-weight: 900; margin: 10px 0; }

@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.113",
+   "date": "2026-11-13",
+   "titre": "Le Parcours",
+   "items": [
+    [
+     "new",
+     "Apprendre › Parcours : la carte des compétences de macro, en 5 thèmes (Économie, Vision, Déplacements, Combat, État de la partie) et 4 niveaux (Facile, Moyen, Difficile, Pro), soit 20 étapes."
+    ],
+    [
+     "new",
+     "Chaque étape : une courte leçon, puis 4 puzzles de décision avec l'explication de la bonne réponse. Il faut en réussir 3 sur 4 pour débloquer le niveau suivant du thème, jusqu'au niveau Pro. Les réponses sont mélangées à chaque essai."
+    ],
+    [
+     "new",
+     "Ta progression est gardée (étapes réussies, meilleur score), avec une barre d'avancement sur toute la carte."
+    ]
+   ]
+  },
+  {
    "v": "1.10.112",
    "date": "2026-11-13",
    "titre": "Qui a le meilleur winrate ? et spectateur corrigé",

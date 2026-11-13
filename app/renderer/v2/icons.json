@@ -23,7 +23,8 @@
     "Clips": "Clapperboard",
     "Salle de réunion": "Presentation",
     "Outils": "Wrench",
-    "Analyse de parties": "Focus"
+    "Analyse de parties": "Focus",
+    "Parcours": "MapPinned"
   },
   "roles": {
     "Top": "Shield",

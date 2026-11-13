@@ -1093,6 +1093,78 @@
 
 
 
+
+  // ===== Parcours : arbre de compétences (5 thèmes × 4 niveaux). Réussir les puzzles d'une étape débloque la suivante. =====
+  const PC = { open: null, i: 0, ok: 0, ans: null, order: [] };
+  const pcData = () => window.FIRE_PARCOURS || { THEMES: [], LEVELS: [], NODES: [] };
+  const pcProg = () => load('fire.parcours', {});
+  const pcDone = (id) => !!(pcProg()[id] && pcProg()[id].done);
+  function pcUnlocked(n) {
+    if (n.lv === 0) return true;
+    const prev = pcData().NODES.find((x) => x.th === n.th && x.lv === n.lv - 1);
+    return !prev || pcDone(prev.id);
+  }
+  function pcStart(n) { PC.open = n.id; PC.i = 0; PC.ok = 0; PC.ans = null; PC.lesson = true; PC.order = shuffle(n.q.map((_, i) => i)); PC.perm = n.q.map((q) => shuffle(q.o.map((_, i) => i))); render(); window.scrollTo(0, 0); }
+  function renderParcours() {
+    const view = $('view');
+    const D = pcData();
+    const prog = pcProg();
+    const total = D.NODES.length, done = D.NODES.filter((n) => pcDone(n.id)).length;
+    const n = PC.open && D.NODES.find((x) => x.id === PC.open);
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🗺️'), h('div', null, h('h1', { class: 'title' }, 'Parcours'),
+      h('p', { class: 'muted' }, 'La carte des compétences de macro. Chaque étape : une courte leçon, puis 4 puzzles. Réussis-en 3 pour débloquer le niveau suivant du thème, de Facile jusqu’à Pro.'),
+      h('div', { class: 'pc-total' }, h('div', { class: 'prog' }, h('i', { style: `width:${Math.round(done / Math.max(1, total) * 100)}%` })), h('small', null, `${done} / ${total} étapes réussies`))));
+    if (n) { view.replaceChildren(hero, pcStep(n)); return; }
+    const grid = h('div', { class: 'pc-grid', style: `grid-template-columns: 90px repeat(${D.THEMES.length}, 1fr)` },
+      h('div'), ...D.THEMES.map(([k, ico, name]) => h('div', { class: 'pc-th' }, h('span', null, ico), h('b', null, name))),
+      ...D.LEVELS.flatMap(([lab, col], lv) => [h('div', { class: 'pc-lv', style: `--c:${col}` }, h('i'), h('span', null, lab)),
+        ...D.THEMES.map(([k]) => {
+          const x = D.NODES.find((y) => y.th === k && y.lv === lv);
+          if (!x) return h('div');
+          const ok = pcDone(x.id), open = pcUnlocked(x), best = prog[x.id] && prog[x.id].best;
+          return h('button', { class: 'pc-node' + (ok ? ' done' : open ? ' open' : ' locked'), style: `--c:${col}`, disabled: open ? null : true, title: open ? '' : 'Réussis d’abord l’étape du dessus', onclick: () => pcStart(x) },
+            h('span', { class: 'pc-ico' }, x.ico), h('b', null, x.t), h('small', null, ok ? `✅ Réussie · ${best}/4` : open ? 'À faire' : '🔒 Verrouillée'));
+        })]));
+    view.replaceChildren(hero, grid);
+  }
+  function pcStep(n) {
+    const D = pcData();
+    const [lab, col] = D.LEVELS[n.lv];
+    const th = D.THEMES.find(([k]) => k === n.th) || ['', '', ''];
+    const back = h('button', { class: 'btn-ghost', onclick: () => { PC.open = null; render(); } }, '← Carte du parcours');
+    const head = h('div', { class: 'pc-head' }, back, h('span', { class: 'pc-tag', style: `--c:${col}` }, `${th[1]} ${th[2]} · ${lab}`), h('h2', null, `${n.ico} ${n.t}`));
+    if (PC.lesson) return h('div', { class: 'card pc-step' }, head, h('h3', null, '📘 La leçon'), h('ul', { class: 'pc-lesson' }, n.l.map((x) => h('li', null, x))),
+      h('button', { class: 'btn-fire small-btn', onclick: () => { PC.lesson = false; render(); } }, `▶ Passer aux puzzles (${n.q.length})`));
+    if (PC.i >= n.q.length) {
+      const win = PC.ok >= Math.ceil(n.q.length * 0.75);
+      if (!PC.saved) {
+        PC.saved = true;
+        const p = pcProg(); const cur = p[n.id] || {};
+        p[n.id] = { done: cur.done || win, best: Math.max(cur.best || 0, PC.ok), at: Date.now() };
+        save('fire.parcours', p);
+        actLog('jeu', `Parcours : ${n.t} ${win ? 'réussie' : 'ratée'} (${PC.ok}/${n.q.length})`);
+      }
+      const next = D.NODES.find((x) => x.th === n.th && x.lv === n.lv + 1);
+      return h('div', { class: 'card pc-step pc-end ' + (win ? 'win' : 'lose') }, head,
+        h('div', { class: 'pc-big' }, win ? '🏅 Étape réussie !' : '😤 Pas encore…'),
+        h('p', null, `${PC.ok} / ${n.q.length} bonnes réponses${win ? '' : ' : il en faut ' + Math.ceil(n.q.length * 0.75) + ' pour valider.'}`),
+        h('div', { class: 'row' },
+          win && next ? h('button', { class: 'btn-fire small-btn', onclick: () => { PC.saved = false; pcStart(next); } }, `Débloqué : ${next.ico} ${next.t} ▶`) : null,
+          !win ? h('button', { class: 'btn-fire small-btn', onclick: () => { PC.saved = false; pcStart(n); } }, '↻ Réessayer') : null,
+          h('button', { class: 'btn-ghost', onclick: () => { PC.saved = false; PC.open = null; render(); } }, 'Carte du parcours')));
+    }
+    const q = n.q[PC.order[PC.i]];
+    const answered = PC.ans != null;
+    return h('div', { class: 'card pc-step' }, head,
+      h('div', { class: 'qz-top' }, h('span', null, `Puzzle ${PC.i + 1} / ${n.q.length}`), h('b', null, `${PC.ok} ✓`)),
+      h('h3', null, q.q),
+      // Les réponses sont mélangées à chaque essai.
+      h('div', { class: 'pc-opts' }, PC.perm[PC.order[PC.i]].map((i) => [q.o[i], i]).map(([o, i]) => h('button', { class: 'pc-opt' + (answered ? (i === q.g ? ' good' : i === PC.ans ? ' bad' : ' dim') : ''), disabled: answered ? true : null,
+        onclick: () => { PC.ans = i; if (i === q.g) PC.ok++; render(); } }, o))),
+      answered ? h('div', { class: 'l-fb ' + (PC.ans === q.g ? 'ok' : 'ko') }, h('b', null, PC.ans === q.g ? '✅ Bien vu ! ' : '❌ Raté. '), h('span', null, q.e),
+        h('button', { class: 'btn-fire small-btn', onclick: () => { PC.i++; PC.ans = null; render(); } }, PC.i + 1 >= n.q.length ? 'Voir le résultat ▶' : 'Puzzle suivant ▶')) : null);
+  }
+
   // ===== Outils : tous les sites utiles, rangés par thème, ouverts dans FIRE =====
   const TOOL_CATS = [
     ['🎞️ Revoir ses parties', [
@@ -1215,7 +1287,7 @@
   // Chaque FIRE note ses actions (pages ouvertes, messages, vocal, planning, POOL, quiz, clips…) et les envoie toutes les
   // 3 minutes dans le fichier d'activité du joueur (chiffré avec le code d'équipe). Le contenu des messages privés n'est jamais noté.
   const PAGE_NAMES = { stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
-    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', web: 'navigateur' };
+    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', web: 'navigateur' };
   const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
   function actLog(k, d) {
     if (!vocalMe() || !window.fire.staff) return;
@@ -1583,7 +1655,7 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'carnet' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'carnet' || S.section === 'parcours' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -1593,6 +1665,7 @@
     else if (S.section === 'clips') renderClipsPage();
     else if (S.section === 'reunion') renderReunion();
     else if (S.section === 'outils') renderOutils();
+    else if (S.section === 'parcours') renderParcours();
     else if (S.section === 'parties') renderParties();
     else if (S.section === 'pool') renderPool();
     else if (S.section === 'planning') renderPlanning();
@@ -4317,7 +4390,7 @@
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
-      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null],
+      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['parcours', '🗺️', 'Parcours'],
       ['coach', '📣', 'Parole du coach', n || null], ['parties', '🔎', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
