@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.96",
+   "date": "2026-11-13",
+   "titre": "Discussion réparée et salons",
+   "items": [
+    [
+     "fix",
+     "Discussion : on peut de nouveau écrire plusieurs messages à la suite. Après le premier message, la zone de saisie perdait le clavier à chaque clic."
+    ],
+    [
+     "new",
+     "Nouvelle page « Discussion » dans le menu (Social), comme Discord : les salons #général, #stratégie, #games et #détente, et les messages privés avec chaque membre, avec son statut."
+    ],
+    [
+     "improve",
+     "Le petit panneau de discussion en bas à gauche garde les salons et les messages privés. Une pastille sur « Discussion » compte les messages non lus."
+    ]
+   ]
+  },
+  {
    "v": "1.10.95",
    "date": "2026-11-13",
    "titre": "Tout s'ouvre dans FIRE",

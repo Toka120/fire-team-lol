@@ -17,7 +17,8 @@
     "Patchs LoL": "ScrollText",
     "Vocal": "Headphones",
     "Patch notes": "History",
-    "Paramètres": "Settings"
+    "Paramètres": "Settings",
+    "Discussion": "MessagesSquare"
   },
   "roles": {
     "Top": "Shield",

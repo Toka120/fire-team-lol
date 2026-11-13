@@ -317,7 +317,7 @@
       window.fire.update.on((m) => { S.upd = { ...S.upd, ...m }; renderUpdate(); });
       window.fire.update.state().then((m) => { S.upd = { ...m, ...S.upd, auto: m.auto, portable: m.portable, store: m.store }; renderUpdate(); }).catch(() => {});
     }
-    if (window.fire.onNotifyGo) window.fire.onNotifyGo((sec) => { if (sec === 'chat') chatOpen(true); else if (sec) go(sec); });
+    if (window.fire.onNotifyGo) window.fire.onNotifyGo((sec) => { if (sec === 'chat') go('chat'); else if (sec) go(sec); });
     if (window.fire.background) window.fire.background.get().then((b) => { S.bg = b; if (S.section === 'settings' && !typing()) renderSettings(); }).catch(() => {});
     renderUpdate();
     // Page d'ouverture choisie dans Paramètres (ou la dernière page ouverte).
@@ -631,7 +631,7 @@
   }
 
   // Ouverture de FIRE : la page affichée au démarrage et l'écran (moniteur) où la fenêtre apparaît.
-  const START_PAGES = [['stats', '📊 Stats des joueurs'], ['pool', '🧙 POOL'], ['planning', '📅 Planning'], ['draft', '⚡ Draft'], ['jeux', '🎮 Détente'], ['train', '🎯 Micro'],
+  const START_PAGES = [['stats', '📊 Stats des joueurs'], ['chat', '💬 Discussion'], ['pool', '🧙 POOL'], ['planning', '📅 Planning'], ['draft', '⚡ Draft'], ['jeux', '🎮 Détente'], ['train', '🎯 Micro'],
     ['vocal', '🎙️ Vocal'], ['guides', '📚 Lanes et principes'], ['coach', '📣 Parole du coach'], ['worlds', '🏆 E-sport'], ['lolpatch', '📜 Patchs LoL']];
   const SCR = { list: null, current: 'last', here: null, loading: false };
   function startCard() {
@@ -1216,11 +1216,12 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
     else if (S.section === 'web') renderWeb();
+    else if (S.section === 'chat') renderChatPage();
     else if (S.section === 'pool') renderPool();
     else if (S.section === 'planning') renderPlanning();
     else if (S.section === 'jeux') renderJeux();
@@ -2028,6 +2029,7 @@
     if (sec !== S.section && S.section !== 'settings') S.prevSection = S.section;
     if (sec !== 'settings') setClose(true);
     if (sec !== 'web' && WEB.open) webClose(true);
+    document.documentElement.classList.toggle('chat-page', sec === 'chat');
     S.section = sec;
     if (START_PAGES.some(([k]) => k === sec)) save('fire.lastSection', sec);
     if (sec === 'guides') { S.theme = null; S.guideCat = null; }
@@ -3644,7 +3646,7 @@
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
-      ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null],
+      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null],
       ['coach', '📣', 'Parole du coach', n || null], ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
     if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), items.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }
@@ -5746,7 +5748,11 @@
   const CH = { open: load('fire.chat.open', false), msgs: [], seen: load('fire.chat.seen', 0), seenBy: load('fire.chat.seenBy', {}), conv: 'team', err: '', sending: false, el: null, list: null, inp: null, told: new Set(), ready: false, headKey: '' };
   // Messages privés refusés (Paramètres › Confidentialité) : ceux des expéditeurs non autorisés ne s'affichent pas.
   const dmAllowedFrom = (from) => UX.dm === 'all' || (UX.dm === 'coach' && !!coachOf(from));
-  const chatConvOf = (m, me) => (!m.to ? 'team' : m.from === me ? m.to : m.to === me ? (dmAllowedFrom(m.from) ? m.from : null) : null);
+  // Salons de l'équipe (comme Discord) : #général (« team »), #stratégie, #games, #détente ; puis les messages privés.
+  const CHANNELS = [['team', '💬', 'général', 'Toute l’équipe, tous les sujets'], ['ch:strat', '🧠', 'stratégie', 'Compos, drafts, plans de jeu, ce qu’on retient des games'],
+    ['ch:games', '🎮', 'games', 'On lance une game ? Résultats, clips, invitations'], ['ch:detente', '😄', 'détente', 'Memes, musique, tout et n’importe quoi']];
+  const isChan = (c) => CHANNELS.some(([id]) => id === c);
+  const chatConvOf = (m, me) => (!m.to ? (m.ch && isChan('ch:' + m.ch) ? 'ch:' + m.ch : 'team') : m.from === me ? m.to : m.to === me ? (dmAllowedFrom(m.from) ? m.from : null) : null);
   const chatVisible = (m, me) => chatConvOf(m, me) != null;
   const chatSeenAt = (conv) => (conv === 'team' ? CH.seen : (CH.seenBy[conv] || 0));
   function chatMerge(list, live) {
@@ -5780,7 +5786,7 @@
   function chatUnreadIn(conv) { const me = vocalMe(); const t = chatSeenAt(conv); return CH.msgs.filter((m) => m.from !== me && m.at > t && chatConvOf(m, me) === conv).length; }
   function chatUnread() { const me = vocalMe(); return CH.msgs.filter((m) => { const c = chatConvOf(m, me); return c && m.from !== me && m.at > chatSeenAt(c); }).length; }
   function chatSeen() {
-    if (!CH.open) return;
+    if (!CH.open && S.section !== 'chat') return;
     const me = vocalMe();
     const mine = CH.msgs.filter((m) => chatConvOf(m, me) === CH.conv);
     if (!mine.length) return;
@@ -5788,15 +5794,17 @@
     if (CH.conv === 'team') { if (t > CH.seen) { CH.seen = t; save('fire.chat.seen', t); } }
     else if (t > (CH.seenBy[CH.conv] || 0)) { CH.seenBy[CH.conv] = t; save('fire.chat.seenBy', CH.seenBy); }
   }
-  function chatConv(c) { CH.conv = c; chatPaint(true); setTimeout(() => { if (CH.inp) CH.inp.focus(); }, 30); }
+  function chatConv(c) { CH.conv = c; chatPaint(true); setTimeout(() => { const i = chatInput(); if (i && !i.disabled) i.focus(); }, 30); }
   function chatOpen(v) { CH.open = v; save('fire.chat.open', v); chatPaint(); if (v) setTimeout(() => { if (CH.inp) CH.inp.focus(); }, 50); }
   async function chatSend() {
     const me = vocalMe();
-    const text = CH.inp.value.trim().slice(0, 500);
+    const inp = chatInput();
+    const text = inp.value.trim().slice(0, 500);
     if (!text || !me || CH.sending) return;
     const msg = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), from: me, text, at: Date.now() };
-    if (CH.conv !== 'team') msg.to = CH.conv;
-    CH.inp.value = ''; chatGrow();
+    if (CH.conv.startsWith('ch:')) msg.ch = CH.conv.slice(3);
+    else if (CH.conv !== 'team') msg.to = CH.conv;
+    inp.value = ''; chatGrow();
     chatMerge([msg], true);
     try { if (FV() && FV().chatSend) FV().chatSend(msg); } catch (e) { /* hall pas prêt */ }
     CH.sending = true;
@@ -5805,7 +5813,9 @@
     if (r && r.ok) { CH.err = ''; chatMerge(r.msgs); } else CH.err = 'Message pas enregistré (' + ((r && r.error) || 'erreur') + ') : seuls ceux qui ont FIRE ouvert l’ont reçu.';
     chatPaint();
   }
-  function chatGrow() { if (!CH.inp) return; CH.inp.style.height = 'auto'; CH.inp.style.height = Math.min(120, CH.inp.scrollHeight) + 'px'; }
+  // La zone de saisie active : celle de la page « Discussion » si elle est ouverte, sinon celle du panneau.
+  const chatInput = () => (S.section === 'chat' && CHP.inp ? CHP.inp : CH.inp);
+  function chatGrow() { const i = chatInput(); if (!i) return; i.style.height = 'auto'; i.style.height = Math.min(160, i.scrollHeight) + 'px'; }
   function chatDay(t) {
     const d = new Date(t), today = new Date(); const y = new Date(); y.setDate(y.getDate() - 1);
     if (d.toDateString() === today.toDateString()) return "Aujourd'hui";
@@ -5813,73 +5823,143 @@
     return cap(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }));
   }
   function chatWho(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 ' + vocalName(slug); const p = S.players.find((x) => x.slug === slug); return (p ? roleOf(p).ico + ' ' : '') + vocalName(slug); }
-  function chatPaint(live) {
-    if (!S.players || !S.players.length || !window.fire.chat) return;
-    if (!CH.el) {
-      CH.list = h('div', { class: 'chat-list', role: 'log', 'aria-live': 'polite' });
-      CH.inp = h('textarea', { class: 'chat-inp', rows: 1, maxlength: 500, placeholder: 'Écris à l’équipe… (Entrée pour envoyer)' });
-      CH.inp.addEventListener('input', chatGrow);
-      CH.inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(); } if (e.key === 'Escape') chatOpen(false); });
-      CH.head = h('button', { class: 'chat-bar', onclick: () => chatOpen(!CH.open) });
-      CH.foot = h('div', { class: 'chat-foot' });
-      CH.convs = h('div', { class: 'chat-convs' });
-      CH.el = h('div', { id: 'chat' }, CH.head, h('div', { class: 'chat-body' }, CH.convs, CH.list, CH.foot));
-      document.body.append(CH.el);
-      CH.el.addEventListener('mousedown', () => { chatSeen(); setTimeout(() => chatPaint(), 0); });
-    }
-    const me = vocalMe();
-    if (CH.open) chatSeen();
-    const un = chatUnread();
-    CH.el.classList.toggle('open', !!CH.open);
-    CH.el.classList.toggle('priv', CH.conv !== 'team');
-    CH.el.classList.toggle('unread', !CH.open && un > 0);
-    // On ne reconstruit la barre que si elle change : la remplacer entre l'appui et le relâchement du clic annulait le clic
-    // (il fallait cliquer plusieurs fois pour ouvrir).
-    const headKey = (CH.open ? 'o' : 'c') + (CH.open ? 0 : un);
-    if (headKey !== CH.headKey) {
-      CH.headKey = headKey;
-      CH.head.replaceChildren(...[h('span', { class: 'chat-t' }, '💬 Discussion de l’équipe'), un && !CH.open ? h('span', { class: 'chat-n' }, String(un)) : null, h('span', { class: 'chat-chev' }, CH.open ? '▾' : '▴')].filter(Boolean));
-    }
-    if (!CH.open) return;
-    // Conversations : l'équipe, puis un message privé avec chaque membre (joueurs et coachs).
-    const people = S.players.filter((x) => x.slug).map((p) => [p.slug, roleOf(p).ico, String(p.pseudo).split('#')[0]])
+  // Les conversations : les salons, puis un message privé avec chaque membre (joueurs et coachs).
+  function chatPeople(me) {
+    return S.players.filter((x) => x.slug).map((p) => [p.slug, roleOf(p).ico, String(p.pseudo).split('#')[0]])
       .concat((S.coachs || []).map((c) => [c.slug, '🎓', c.pseudo])).filter(([slug]) => slug !== me);
-    if (CH.conv !== 'team' && !people.some(([slug]) => slug === CH.conv)) CH.conv = 'team';
-    const convBtn = (id, ico, label, title) => { const n = chatUnreadIn(id); return h('button', { class: 'chat-cv' + (CH.conv === id ? ' on' : ''), title, onclick: () => chatConv(id) },
-      h('span', { class: 'chat-cv-i' }, ico), h('span', { class: 'chat-cv-l' }, label), id !== 'team' ? stDot(id) : null, n && CH.conv !== id ? h('span', { class: 'chat-cv-n' }, String(n)) : null); };
-    const stSig = people.map(([sl]) => { const x = statusOf(sl); return (x.game ? 'g' : '') + x.st; }).join('');
-    const convKey = CH.conv + '|' + people.map(([sl]) => sl + chatUnreadIn(sl)).join(',') + '|' + chatUnreadIn('team') + '|' + me + '|' + stSig;
-    if (convKey !== CH.convKey) {
-      CH.convKey = convKey;
-      CH.convs.replaceChildren(convBtn('team', '👥', 'Équipe', 'Discussion de toute l’équipe'),
-        ...(me ? people.map(([slug, ico, label]) => convBtn(slug, ico, label, 'Message privé avec ' + label)) : []));
-    }
-    const refuse = CH.conv !== 'team' && (() => { const x = statusOf(CH.conv); return x.dm === 'none' || (x.dm === 'coach' && !coachOf(me)); })();
-    CH.inp.disabled = !!refuse;
-    CH.inp.placeholder = refuse ? `${vocalName(CH.conv)} ne reçoit pas de messages privés.` : CH.conv === 'team' ? 'Écris à l’équipe… (Entrée pour envoyer)' : `Message privé à ${vocalName(CH.conv)}…`;
-    // Liste : on reste en bas si on y était (ou si c'est mon message), sinon on garde la position de lecture.
-    const atBottom = CH.list.scrollHeight - CH.list.scrollTop - CH.list.clientHeight < 40;
+  }
+  const convName = (c) => { const ch = CHANNELS.find(([id]) => id === c); return ch ? '#' + ch[2] : vocalName(c); };
+  function chatRefuse(me) {
+    if (CH.conv === 'team' || isChan(CH.conv)) return false;
+    const x = statusOf(CH.conv);
+    return x.dm === 'none' || (x.dm === 'coach' && !coachOf(me));
+  }
+  const chatPlaceholder = (me, refuse) => refuse ? `${vocalName(CH.conv)} ne reçoit pas de messages privés.` : isChan(CH.conv) ? `Écrire dans ${convName(CH.conv)}… (Entrée pour envoyer)` : `Message privé à ${vocalName(CH.conv)}…`;
+  // Les messages d'une conversation (jour, auteur en couleur, messages groupés).
+  function chatRows(me) {
     const rows = [];
+    const stc = {};
+    const st = (slug) => (stc[slug] = stc[slug] || statusOf(slug));
     let lastDay = '', last = null;
     for (const m of CH.msgs) {
       if (chatConvOf(m, me) !== CH.conv) continue;
       const day = chatDay(m.at);
       if (day !== lastDay) { rows.push(h('div', { class: 'chat-day' }, day)); lastDay = day; last = null; }
       const grouped = last && last.from === m.from && m.at - last.at < 5 * 60000;
+      const col = st(m.from).color;
       rows.push(h('div', { class: 'chat-m' + (m.from === me ? ' mine' : '') + (grouped ? ' grp' : '') },
-        grouped ? null : h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n', style: statusOf(m.from).color ? `color:${statusOf(m.from).color}` : '', title: 'Voir sa carte de profil', onclick: () => openProfile(m.from) }, chatWho(m.from)), h('span', { class: 'muted' }, hm(m.at))),
+        grouped ? null : h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n', style: col ? `color:${col}` : '', title: 'Voir sa carte de profil', onclick: () => openProfile(m.from) }, chatWho(m.from)), h('span', { class: 'muted' }, hm(m.at))),
         h('div', { class: 'chat-tx' }, m.text)));
       last = m;
     }
-    if (!rows.length) rows.push(h('p', { class: 'muted small chat-empty' }, !CH.ready ? 'Chargement…' : CH.conv === 'team' ? 'Aucun message pour l’instant. Lance la discussion 👋'
+    if (!rows.length) rows.push(h('p', { class: 'muted small chat-empty' }, !CH.ready ? 'Chargement…' : isChan(CH.conv) ? `Aucun message dans ${convName(CH.conv)} pour l’instant. Lance la discussion 👋`
       : `Aucun message privé avec ${vocalName(CH.conv)}. Seuls vous deux les voyez dans FIRE.`));
-    if (CH.conv !== 'team') rows.unshift(h('div', { class: 'chat-day chat-priv' }, `🔒 Conversation privée avec ${vocalName(CH.conv)}`));
-    CH.list.replaceChildren(...rows);
+    if (!isChan(CH.conv)) rows.unshift(h('div', { class: 'chat-day chat-priv' }, `🔒 Conversation privée avec ${vocalName(CH.conv)}`));
+    return rows;
+  }
+  // Une zone de saisie : créée une seule fois puis jamais déplacée (la déplacer lui faisait perdre le clavier : on ne pouvait plus écrire).
+  function chatComposer(cls) {
+    const inp = h('textarea', { class: 'chat-inp ' + (cls || ''), rows: 1, maxlength: 500 });
+    inp.addEventListener('input', chatGrow);
+    inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(); } if (e.key === 'Escape' && !cls) chatOpen(false); });
+    const form = h('div', { class: 'chat-form' }, inp, h('button', { class: 'btn-fire chat-send', title: 'Envoyer', onclick: chatSend }, '➤'));
+    const who = h('button', { class: 'btn-ghost chat-who', onclick: askWho }, '👤 Choisis qui tu es pour écrire');
+    const err = h('p', { class: 'chat-err', hidden: true });
+    return { inp, form, who, err, foot: h('div', { class: 'chat-foot' }, err, form, who) };
+  }
+  function composerSync(c, me) {
+    const refuse = chatRefuse(me);
+    c.form.hidden = !me; c.who.hidden = !!me;
+    c.err.hidden = !CH.err; c.err.textContent = CH.err ? '⚠ ' + CH.err : '';
+    c.inp.disabled = !!refuse;
+    const ph = chatPlaceholder(me, refuse);
+    if (c.inp.placeholder !== ph) c.inp.placeholder = ph;
+  }
+  function chatConvButtons(me, cls, full) {
+    const btn = (id, ico, label, title, dot) => { const n = chatUnreadIn(id); return h('button', { class: cls + (CH.conv === id ? ' on' : ''), title, onclick: () => chatConv(id) },
+      h('span', { class: 'chat-cv-i' }, ico), h('span', { class: 'chat-cv-l' }, label), dot ? stDot(id) : null, n && CH.conv !== id ? h('span', { class: 'chat-cv-n' }, String(n)) : null); };
+    const chans = CHANNELS.map(([id, ico, label, desc]) => btn(id, full ? '#' : ico, full ? label : '#' + label, desc, false));
+    const dms = me ? chatPeople(me).map(([slug, ico, label]) => btn(slug, ico, label, 'Message privé avec ' + label, true)) : [];
+    return full ? [h('div', { class: 'cp-gt' }, 'Salons'), ...chans, h('div', { class: 'cp-gt' }, 'Messages privés'), ...dms] : [...chans, ...dms];
+  }
+  function chatHead(un) {
+    CH.el.classList.toggle('open', !!CH.open);
+    CH.el.classList.toggle('unread', !CH.open && un > 0);
+    // On ne reconstruit la barre que si elle change : la remplacer pendant un clic annulait le clic.
+    const headKey = (CH.open ? 'o' : 'c') + (CH.open ? 0 : un);
+    if (headKey !== CH.headKey) {
+      CH.headKey = headKey;
+      CH.head.replaceChildren(...[h('span', { class: 'chat-t' }, '💬 Discussion de l’équipe'), un && !CH.open ? h('span', { class: 'chat-n' }, String(un)) : null, h('span', { class: 'chat-chev' }, CH.open ? '▾' : '▴')].filter(Boolean));
+    }
+  }
+  function chatPaint(live) {
+    if (!S.players || !S.players.length || !window.fire.chat) return;
+    if (!CH.el) {
+      CH.list = h('div', { class: 'chat-list', role: 'log', 'aria-live': 'polite' });
+      CH.comp = chatComposer();
+      CH.inp = CH.comp.inp;
+      CH.head = h('button', { class: 'chat-bar', onclick: () => chatOpen(!CH.open) });
+      CH.convs = h('div', { class: 'chat-convs' });
+      CH.el = h('div', { id: 'chat' }, CH.head, h('div', { class: 'chat-body' }, CH.convs, CH.list, CH.comp.foot));
+      document.body.append(CH.el);
+      // Un clic dans la discussion : messages lus et pastille à jour, sans rien reconstruire (la saisie garde le clavier).
+      CH.el.addEventListener('mousedown', () => { chatSeen(); setTimeout(() => chatHead(chatUnread()), 0); });
+    }
+    const me = vocalMe();
+    if (CH.open || S.section === 'chat') chatSeen();
+    const un = chatUnread();
+    if (!isChan(CH.conv) && !chatPeople(me).some(([slug]) => slug === CH.conv)) CH.conv = 'team';
+    CH.el.classList.toggle('priv', !isChan(CH.conv));
+    chatHead(un);
+    renderNavBadges();
+    if (S.section === 'chat') { chatPagePaint(live); return; }
+    if (!CH.open) return;
+    const stSig = chatPeople(me).map(([sl]) => { const x = statusOf(sl); return sl + chatUnreadIn(sl) + (x.game ? 'g' : '') + x.st; }).join(',');
+    const convKey = CH.conv + '|' + CHANNELS.map(([id]) => chatUnreadIn(id)).join(',') + '|' + me + '|' + stSig;
+    if (convKey !== CH.convKey) { CH.convKey = convKey; CH.convs.replaceChildren(...chatConvButtons(me, 'chat-cv', false)); }
+    composerSync(CH.comp, me);
+    const atBottom = CH.list.scrollHeight - CH.list.scrollTop - CH.list.clientHeight < 40;
+    CH.list.replaceChildren(...chatRows(me));
     if (atBottom || live) CH.list.scrollTop = CH.list.scrollHeight;
-    CH.foot.replaceChildren(...[
-      CH.err ? h('p', { class: 'chat-err' }, '⚠ ' + CH.err) : null,
-      me ? h('div', { class: 'chat-form' }, CH.inp, h('button', { class: 'btn-fire chat-send', title: 'Envoyer', onclick: chatSend }, '➤'))
-        : h('button', { class: 'btn-ghost chat-who', onclick: askWho }, '👤 Choisis qui tu es pour écrire')].filter(Boolean));
+  }
+  // ----- Page « Discussion » (menu de gauche) : salons et messages privés à gauche, la conversation en grand -----
+  const CHP = { root: null, side: null, head: null, list: null, comp: null, inp: null, key: '' };
+  function renderChatPage() {
+    const view = $('view');
+    if (!CHP.root) {
+      CHP.side = h('nav', { class: 'cp-side' });
+      CHP.head = h('div', { class: 'cp-head' });
+      CHP.list = h('div', { class: 'chat-list cp-list', role: 'log', 'aria-live': 'polite' });
+      CHP.comp = chatComposer('cp-inp');
+      CHP.inp = CHP.comp.inp;
+      CHP.root = h('div', { class: 'cp' }, CHP.side, h('div', { class: 'cp-main' }, CHP.head, CHP.list, CHP.comp.foot));
+      CHP.root.addEventListener('mousedown', () => { chatSeen(); setTimeout(() => { chatHead(chatUnread()); renderNavBadges(); }, 0); });
+    }
+    if (view.firstChild !== CHP.root || view.childNodes.length !== 1) view.replaceChildren(CHP.root);
+    CHP.key = '';
+    chatPagePaint(true);
+    setTimeout(() => { if (!CHP.inp.disabled) CHP.inp.focus(); }, 30);
+  }
+  function chatPagePaint(live) {
+    if (!CHP.root || S.section !== 'chat') return;
+    const me = vocalMe();
+    const stSig = chatPeople(me).map(([sl]) => { const x = statusOf(sl); return sl + chatUnreadIn(sl) + (x.game ? 'g' : '') + x.st; }).join(',');
+    const key = CH.conv + '|' + CHANNELS.map(([id]) => chatUnreadIn(id)).join(',') + '|' + me + '|' + stSig;
+    if (key !== CHP.key) { CHP.key = key; CHP.side.replaceChildren(...chatConvButtons(me, 'cp-cv', true)); }
+    const ch = CHANNELS.find(([id]) => id === CH.conv);
+    CHP.head.replaceChildren(ch ? h('div', null, h('b', null, '# ' + ch[2]), h('span', { class: 'muted' }, ' · ' + ch[3]))
+      : h('div', { class: 'cp-dm' }, h('b', { class: 'chat-who-n', onclick: () => openProfile(CH.conv) }, '@ ' + vocalName(CH.conv)), stDot(CH.conv), h('span', { class: 'muted' }, ' · 🔒 messages privés')));
+    composerSync(CHP.comp, me);
+    const atBottom = CHP.list.scrollHeight - CHP.list.scrollTop - CHP.list.clientHeight < 60;
+    CHP.list.replaceChildren(...chatRows(me));
+    if (atBottom || live) CHP.list.scrollTop = CHP.list.scrollHeight;
+  }
+  // Pastille du menu « Discussion » : messages non lus (sans redessiner tout le menu).
+  function renderNavBadges() {
+    const n = chatUnread();
+    if (n === CH.navN) return;
+    CH.navN = n;
+    try { renderNav(); } catch (e) { /* */ }
   }
 
   // ----- Statut et carte de profil (Paramètres › Mon profil), envoyés aux FIRE ouverts de l'équipe -----
@@ -5927,7 +6007,7 @@
           h('div', { class: 'muted small' }, (p ? (p.role || roleOf(p).label) + ' · ' : coachOf(slug) ? 'Coach · ' : '') + (x.game ? '🎮 En game' : (ST_LABEL[x.st] || ST_LABEL.offline).join(' '))),
           x.bio ? h('p', { class: 'prof-bio' }, x.bio) : null,
           h('div', { class: 'row' },
-            canDm ? h('button', { class: 'btn-fire small-btn', onclick: () => { close(); chatOpen(true); chatConv(slug); } }, '💬 Message privé') : slug !== me ? h('span', { class: 'muted small' }, '🔒 Ne reçoit pas de messages privés') : null,
+            canDm ? h('button', { class: 'btn-fire small-btn', onclick: () => { close(); CH.conv = slug; go('chat'); } }, '💬 Message privé') : slug !== me ? h('span', { class: 'muted small' }, '🔒 Ne reçoit pas de messages privés') : null,
             p ? h('button', { class: 'btn-ghost', onclick: () => { close(); go('stats'); openPlayer(slug); } }, '📊 Ses stats') : null,
             slug === me ? h('button', { class: 'btn-ghost', onclick: () => { close(); S.setTab = 'profil'; go('settings'); } }, '✏️ Modifier mon profil') : null,
             h('button', { class: 'btn-ghost', onclick: close }, 'Fermer')))));
@@ -5941,8 +6021,8 @@
     const add = (ico, label, sub, run) => out.push({ ico, label, sub, run });
     document.querySelectorAll('.navbtn').forEach((b) => { const id = b.dataset.sec || b.getAttribute('data-id'); const t = (b.querySelector('.v2-lab') || b).textContent.replace(/\d+$/, '').trim(); if (t) add('📄', t, 'Page', () => b.click()); });
     S.players.filter((p) => p.slug).forEach((p) => add(roleOf(p).ico, String(p.pseudo).split('#')[0], 'Stats du joueur', () => { go('stats'); openPlayer(p.slug); }));
-    S.players.concat(S.coachs || []).filter((p) => p.slug && p.slug !== vocalMe()).forEach((p) => add('💬', 'Message à ' + String(p.pseudo).split('#')[0], 'Message privé', () => { chatOpen(true); chatConv(p.slug); }));
-    add('👥', 'Discussion de l’équipe', 'Discussion', () => { chatOpen(true); chatConv('team'); });
+    S.players.concat(S.coachs || []).filter((p) => p.slug && p.slug !== vocalMe()).forEach((p) => add('💬', 'Message à ' + String(p.pseudo).split('#')[0], 'Message privé', () => { CH.conv = p.slug; go('chat'); }));
+    CHANNELS.forEach(([id, ico, l]) => add(ico, '#' + l, 'Salon de discussion', () => { CH.conv = id; go('chat'); }));
     [['tier', 'Tier list'], ['matchup', 'Matchups'], ['otp', 'One-tricks'], ['puzzle', 'Puzzles de draft'], ['live', 'Draft en direct']].forEach(([k, l]) => add('⚡', l, 'Draft', () => { S.drTab = k; go('draft'); }));
     JMODES.concat(LMODES, QMODES).forEach(([k, l]) => add('🎮', l.replace(/^\S+\s/, ''), 'Détente', () => { go('jeux'); J.home = false; J.tab = k; render(); }));
     SET_TABS.forEach(([k, ico, l]) => add(ico, l, 'Paramètres', () => { S.setTab = k; go('settings'); }));

@@ -737,6 +737,8 @@ const CHAT = 'chat.json';
 const cleanMsg = (m) => {
   const o = { id: String((m && m.id) || '').replace(/[^\w-]/g, '').slice(0, 40), from: String((m && m.from) || '').slice(0, 80), text: str(m && m.text, 500), at: Math.min(Number(m && m.at) || Date.now(), Date.now() + 60000) };
   if (m && m.to) o.to = String(m.to).slice(0, 80);
+  // Salon de la discussion d'équipe (absent = #général).
+  if (m && !m.to && ['strat', 'games', 'detente'].includes(m.ch)) o.ch = m.ch;
   return o;
 };
 async function chat() {
@@ -763,7 +765,10 @@ async function chatSend(m) {
       if (!d.msgs.some((x) => x.id === msg.id)) d.msgs.push(msg);
       d.msgs.sort((a, b) => a.at - b.at);
       // 300 messages d'équipe et 600 messages privés au plus : les privés ne chassent pas ceux de l'équipe.
-      const team = d.msgs.filter((x) => !x.to).slice(-300), dm = d.msgs.filter((x) => x.to).slice(-600);
+      // 300 messages par salon et 600 messages privés au plus : un salon très actif ne chasse pas les autres.
+      const byCh = {};
+      d.msgs.filter((x) => !x.to).forEach((x) => { (byCh[x.ch || ''] = byCh[x.ch || ''] || []).push(x); });
+      const team = Object.values(byCh).flatMap((l) => l.slice(-300)), dm = d.msgs.filter((x) => x.to).slice(-600);
       d.msgs = team.concat(dm).sort((a, b) => a.at - b.at);
       const box = seal(d, 'chat');
       const r = await ghPut(tok, CHAT, box, cur && cur.sha, 'Discussion', dr);
