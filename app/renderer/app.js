@@ -2706,8 +2706,40 @@
       const yt = (extra) => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(`${A} vs ${B} ${laneTxt} ${extra}`.replace(/\s+/g, ' ').trim());
       const ll = `https://lolalytics.com/lol/${lolSlug(MU.a)}/vs/${lolSlug(MU.b)}/build/${MU.lane ? '?lane=' + MU.lane : ''}`;
       const link = (href, t, sub, cls) => h('a', { class: 'mu-link ' + (cls || ''), href, target: '_blank', rel: 'noopener' }, h('b', null, t), h('small', { class: 'muted' }, sub));
+      // L'essentiel du matchup directement dans FIRE (LoLalytics, Émeraude+) ; le détail est replié.
+      const key = `${MU.a}|${MU.b}|${MU.lane}`;
+      if (!MU.data) MU.data = {};
+      if (!MU.data[key] && window.fire.matchup) {
+        MU.data[key] = { loading: true };
+        window.fire.matchup(MU.a, MU.b, MU.lane).then((r) => { MU.data[key] = r || { ok: false }; }).catch((e) => { MU.data[key] = { ok: false, error: String(e) }; })
+          .finally(() => { if (S.section === 'draft' && S.drTab === 'matchup') renderMatchups(); });
+      }
+      const M = MU.data[key] || {};
+      const pct = (x) => `${fr(x, 1)} %`;
+      const sign = (x) => (x > 0 ? '+' : '') + fr(x, 1);
+      let stats;
+      if (M.loading) stats = h('p', { class: 'muted mu-load' }, 'Chargement des stats du matchup…');
+      else if (!M.ok) stats = h('p', { class: 'muted small' }, 'Stats du matchup indisponibles pour l’instant' + (M.error ? ` (${M.error})` : '') + '. Le bouton LoLalytics ci-dessous ouvre la page complète.');
+      else {
+        const verdict = M.wr >= 52 ? ['good', `${A} gagne ce matchup`] : M.wr <= 48 ? ['bad', `${A} perd ce matchup`] : ['', 'Matchup équilibré'];
+        const st = M.stats || {};
+        stats = h('div', { class: 'mu-stats' },
+          h('div', { class: 'mu-top' },
+            h('div', { class: 'mu-wr ' + verdict[0] }, h('b', null, pct(M.wr)), h('small', null, 'de victoires')),
+            h('div', { class: 'mu-sum' }, h('b', null, verdict[1]),
+              h('small', { class: 'muted' }, `${(M.games || 0).toLocaleString('fr-FR')} parties · ${M.elo ? M.elo.replace('EMERALD+', 'Émeraude+') : 'Émeraude+'} · patch ${M.patch || '?'}`),
+              M.diff ? h('small', { class: M.diff.v >= 0 ? 'good' : 'bad' }, `${sign(M.diff.v)} pts par rapport à ses autres matchups`) : null)),
+          buildBox(M.build, M.dd),
+          h('details', { class: 'mu-more' }, h('summary', null, 'Plus de détails'),
+            h('div', { class: 'mu-grid2' },
+              ...[['Kills', st.k], ['Morts', st.d], ['Assists', st.a], ['Dégâts', st.dmg], ['Dégâts subis', st.taken], ['Soins', st.heal], ['Golds', st.gold], ['Sbires', st.cs]]
+                .filter(([, x]) => x != null).map(([l, x]) => h('div', { class: 'mu-kv' }, h('small', { class: 'muted' }, l), h('b', null, x >= 1000 ? Math.round(x).toLocaleString('fr-FR') : fr(x, 1))))),
+            h('p', { class: 'muted small' }, `Moyennes de ${A} par partie dans ce matchup.`,
+              M.norm ? ` Une fois corrigé du niveau des deux champions : ${sign(M.norm.v)} pts.` : '', M.avg ? ` Taux de victoire moyen à cet elo : ${pct(M.avg)}.` : '')));
+      }
       res = h('div', { class: 'card mu-res' },
         h('h2', null, `${A} contre ${B}`),
+        stats,
         h('div', { class: 'mu-links' },
           link(yt('challenger'), '▶ Vidéos du matchup', 'YouTube · parties de joueurs Challenger et Grand Maître', 'yt'),
           link(yt('guide'), '▶ Guides du matchup', 'YouTube · explications et conseils', 'yt'),
@@ -2725,12 +2757,36 @@
   const OT_LANE = { top: 'Top', jungle: 'Jungle', middle: 'Mid', bottom: 'ADC', support: 'Support' };
   const OT_SHARD = { 5001: 'PV (selon le niveau)', 5005: 'Vitesse d’attaque', 5007: 'Accélération de compétence', 5008: 'Force adaptative', 5010: 'Vitesse de déplacement', 5011: 'PV', 5013: 'Ténacité et résistance aux ralentissements' };
   const OT_TIER = { challenger: '#5ad0ff', grandmaster: '#ff4d5e', master: '#b05cff', diamond: '#6b8cff', emerald: '#2fbf71' };
+  // Build compact : sorts, runes, départ, build principal, 4e objet, ordre des sorts (données LoLalytics, noms Data Dragon).
+  function buildBox(b, dd) {
+    b = b || {}; dd = dd || { runes: {}, spells: {} };
+    const v = (S.champList && S.champList.version) || '';
+    const img = (src, title, sz) => h('img', { class: 'ot-i', src, alt: title || '', title: title || '', width: sz || 34, height: sz || 34, onerror: (e) => { e.target.style.visibility = 'hidden'; } });
+    const item = (id) => img(`https://ddragon.leagueoflegends.com/cdn/${v}/img/item/${id}.png`, ((((J.data && J.data.items) || []).find((x) => x.id === String(id))) || {}).name || '');
+    const rune = (id, sz) => { const r = (dd.runes || {})[id]; return r ? img('https://ddragon.leagueoflegends.com/cdn/img/' + r.i, r.n, sz) : null; };
+    const spell = (k) => { const x = (dd.spells || {})[k]; return x ? img(`https://ddragon.leagueoflegends.com/cdn/${v}/img/spell/${x.i}`, x.n) : null; };
+    const grp = (t, ...kids) => h('div', { class: 'ot-g' }, h('small', { class: 'muted' }, t), h('div', { class: 'ot-row' }, ...kids));
+    const runesBox = (b.runes || []).length ? grp('Runes', ...b.runes.slice(0, 4).map((id, i) => rune(id, i ? 30 : 40)), h('span', { class: 'ot-sep' }), ...b.runes.slice(4).map((id) => rune(id, 30)),
+      (b.shards || []).length ? h('span', { class: 'ot-shards muted small' }, b.shards.map((x) => OT_SHARD[x] || x).join(' · ')) : null) : null;
+    return h('div', { class: 'ot-build' },
+      (b.spells || []).length ? grp('Sorts', ...b.spells.map(spell)) : null,
+      runesBox,
+      (b.start || []).length ? grp('Départ', ...b.start.map(item)) : null,
+      (b.core || []).length ? grp('Build principal', ...b.core.map((id, i) => [i ? h('span', { class: 'ot-arrow' }, '›') : null, item(id)])) : null,
+      (b.i4 || []).length ? grp('4e objet', ...b.i4.map((id, i) => [i ? h('span', { class: 'ot-or muted small' }, 'ou') : null, item(id)])) : null,
+      (b.skills || []).length ? grp('Ordre des sorts', ...b.skills.map((k, i) => [i ? h('span', { class: 'ot-arrow' }, '›') : null, h('b', { class: 'ot-key' }, k)])) : null);
+  }
   function renderOtp() {
     const view = $('view');
     if (newsFresh('draft').length) newsMark('draft', ['f:otp']);
     if (!OT.data && !OT.loading && window.fire.otp) {
       OT.loading = true;
-      window.fire.otp().then((d) => { OT.data = d || { champs: {} }; }).catch(() => { OT.data = { champs: {} }; }).finally(() => { OT.loading = false; if (S.section === 'draft' && S.drTab === 'otp') renderOtp(); });
+      window.fire.otp().then((d) => { OT.data = d || { champs: {} }; }).catch(() => { OT.data = { champs: {} }; }).finally(() => {
+        OT.loading = false;
+        // Pas encore de données (relevé pas encore publié, ou hors ligne) : on réessaiera à la prochaine ouverture de l'onglet.
+        if (!OT.data.champs || !Object.keys(OT.data.champs).length) { OT.empty = OT.data; OT.data = null; }
+        if (S.section === 'draft' && S.drTab === 'otp' && !OT.retried) { OT.retried = !!OT.empty; renderOtp(); }
+      });
     }
     const list = ((S.champList && S.champList.list) || []).slice().sort((x, y) => x.name.localeCompare(y.name, 'fr'));
     const v = (S.champList && S.champList.version) || '';
@@ -2747,25 +2803,13 @@
       list.length ? h('div', { class: 'mu-grid' + (OT.champ && !q ? ' ot-mini' : '') }, shown.map((c) => h('button', { class: 'mu-c' + (OT.champ === c.id ? ' sel' : ''), title: c.name, onclick: () => choose(c.id) }, champIcon(c.id, 44))))
         : h('p', { class: 'muted small' }, 'Chargement des champions…'));
     let res = null;
-    const D = OT.data;
+    const D = OT.data || OT.empty;
+    if (OT.data) OT.retried = false;
     if (OT.champ) {
       const c = D && D.champs ? D.champs[OT.champ] : null;
       const dd = (D && D.dd) || { runes: {}, spells: {} };
-      const img = (src, title, sz) => h('img', { class: 'ot-i', src, alt: title || '', title: title || '', width: sz || 34, height: sz || 34, onerror: (e) => { e.target.style.visibility = 'hidden'; } });
-      const item = (id) => img(`https://ddragon.leagueoflegends.com/cdn/${v}/img/item/${id}.png`, ((((J.data && J.data.items) || []).find((x) => x.id === String(id))) || {}).name || '');
-      const rune = (id, sz) => { const r = dd.runes[id]; return r ? img('https://ddragon.leagueoflegends.com/cdn/img/' + r.i, r.n, sz) : null; };
-      const spell = (k) => { const x = dd.spells[k]; return x ? img(`https://ddragon.leagueoflegends.com/cdn/${v}/img/spell/${x.i}`, x.n) : null; };
       const b = (c && c.build) || {};
-      const grp = (t, ...kids) => h('div', { class: 'ot-g' }, h('small', { class: 'muted' }, t), h('div', { class: 'ot-row' }, ...kids));
-      const runesBox = (b.runes || []).length ? grp('Runes', ...b.runes.slice(0, 4).map((id, i) => rune(id, i ? 30 : 40)), h('span', { class: 'ot-sep' }), ...b.runes.slice(4).map((id) => rune(id, 30)),
-        (b.shards || []).length ? h('span', { class: 'ot-shards muted small' }, b.shards.map((x) => OT_SHARD[x] || x).join(' · ')) : null) : null;
-      const build = c ? h('div', { class: 'ot-build' },
-        (b.spells || []).length ? grp('Sorts', ...b.spells.map(spell)) : null,
-        runesBox,
-        (b.start || []).length ? grp('Départ', ...b.start.map(item)) : null,
-        (b.core || []).length ? grp('Build principal', ...b.core.map((id, i) => [i ? h('span', { class: 'ot-arrow' }, '›') : null, item(id)])) : null,
-        (b.i4 || []).length ? grp('4e objet', ...b.i4.map((id, i) => [i ? h('span', { class: 'ot-or muted small' }, 'ou') : null, item(id)])) : null,
-        (b.skills || []).length ? grp('Ordre des sorts', ...b.skills.map((k, i) => [i ? h('span', { class: 'ot-arrow' }, '›') : null, h('b', { class: 'ot-key' }, k)])) : null) : null;
+      const build = c ? buildBox(b, D && D.dd) : null;
       const opgg = (r, n) => `https://www.op.gg/summoners/${r === 'kr' ? 'kr' : 'euw'}/${encodeURIComponent(String(n).replace('#', '-'))}`;
       const col = (reg, label) => {
         const ps = (c && c[reg]) || [];
@@ -2785,7 +2829,7 @@
             h('a', { class: 'btn-ghost', href: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(A + ' one trick challenger gameplay'), target: '_blank', rel: 'noopener' }, '▶ Vidéos d’OTP'),
             h('a', { class: 'btn-ghost', href: `https://mid.gg/champion/${encodeURIComponent(OT.champ)}`, target: '_blank', rel: 'noopener' }, '▶ VOD de pros'),
             h('button', { class: 'btn-ghost', onclick: () => window.fire.lcu.stats(`https://lolalytics.com/lol/${lolSlug(OT.champ)}/leaderboard/`) }, '📊 Classement complet'))),
-        build || (D && !c ? h('p', { class: 'muted' }, 'Pas encore de données pour ce champion (elles arrivent avec le relevé de la semaine).') : null),
+        build || (OT.loading ? h('p', { class: 'muted' }, 'Chargement des one-tricks…') : D && !c ? h('p', { class: 'muted' }, OT.empty ? 'Les données des one-tricks ne sont pas encore arrivées sur ce PC. Rouvre l’onglet dans un instant (il faut Internet).' : 'Pas encore de données pour ce champion (elles arrivent avec le relevé de la semaine).') : null),
         h('div', { class: 'ot-cols' }, col('kr', '🇰🇷 Corée'), col('euw', '🇪🇺 Europe')),
         h('p', { class: 'muted small' }, 'Clique sur un joueur pour ouvrir son profil op.gg dans ton navigateur : ses dernières parties, ses runes et ses objets. ',
           D && D.maj ? `Données : LoLalytics (Diamant IV et plus, au moins 50 parties et plus de 50 % de victoires sur 90 jours), relevées le ${dateFr(D.maj)}.` : ''));
@@ -2796,7 +2840,9 @@
   // ----- Tier list méta : Corée et Europe, par lane et par elo (LoLalytics, relevé chaque jour : tools/tierlist.py) -----
   const TL = { data: null, loading: false };
   const TL_LANES = [['top', 'Top'], ['jungle', 'Jungle'], ['middle', 'Mid'], ['bottom', 'ADC'], ['support', 'Support']];
-  const TL_ELOS = [['all', 'Tous les elos'], ['gold_plus', 'Or+'], ['platinum_plus', 'Platine+'], ['emerald_plus', 'Émeraude+'], ['diamond_plus', 'Diamant+'], ['master_plus', 'Maître+']];
+  const TL_RANKS = [['iron', 'Fer'], ['bronze', 'Bronze'], ['silver', 'Argent'], ['gold', 'Or'], ['platinum', 'Platine'], ['emerald', 'Émeraude'], ['diamond', 'Diamant'], ['master', 'Maître'], ['grandmaster', 'Grand Maître'], ['challenger', 'Challenger']];
+  const TL_PLUS = [['all', 'Tous les elos'], ['gold_plus', 'Or+'], ['platinum_plus', 'Platine+'], ['emerald_plus', 'Émeraude+'], ['diamond_plus', 'Diamant+'], ['master_plus', 'Maître+']];
+  const TL_ELOS = TL_PLUS.concat(TL_RANKS);
   const TL_REG = [['kr', 'Corée'], ['euw', 'Europe']];
   const tlPrefs = () => ({ region: 'kr', elo: 'emerald_plus', lane: 'top', off: false, ...load('fire.tl', {}) });
   async function renderTierList() {
@@ -2809,35 +2855,54 @@
     const set = (k, v) => { save('fire.tl', { ...P, [k]: v }); renderTierList(); };
     const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📊'),
       h('div', null, h('h1', { class: 'title' }, 'Tier list méta'),
-        h('p', { class: 'muted' }, 'Les champions les plus forts du moment, lane par lane, en Corée et en Europe. Choisis l’elo pour voir ce qui marche à ton niveau.')));
+        h('p', { class: 'muted' }, 'Les champions les plus forts du moment, lane par lane, en Corée et en Europe. Choisis ton rang, de Fer à Challenger, pour voir ce qui marche à ton niveau.')));
     const seg = (list, cur, k) => h('div', { class: 'row tl-seg' }, list.map(([id, label]) => h('button', { class: 'chip', 'aria-pressed': String(cur === id), onclick: () => set(k, id) }, label)));
     const filters = h('div', { class: 'card tl-filters' },
       seg(TL_REG, P.region, 'region'),
       seg(TL_LANES, P.lane, 'lane'),
-      h('div', { class: 'row tl-row' }, h('select', { class: 'inp tl-elo', onchange: (e) => set('elo', e.target.value) }, TL_ELOS.map(([id, label]) => h('option', { value: id, selected: P.elo === id ? true : null }, label))),
+      h('div', { class: 'row tl-row' }, h('select', { class: 'inp tl-elo', onchange: (e) => set('elo', e.target.value) },
+          h('optgroup', { label: 'Un seul rang' }, TL_RANKS.map(([id, label]) => h('option', { value: id, selected: P.elo === id ? true : null }, label))),
+          h('optgroup', { label: 'Ce rang et au-dessus' }, TL_PLUS.map(([id, label]) => h('option', { value: id, selected: P.elo === id ? true : null }, label)))),
         h('label', { class: 'tl-off' }, h('input', { type: 'checkbox', checked: P.off ? true : null, onchange: (e) => set('off', e.target.checked) }), 'Afficher les choix hors méta')));
     const D = TL.data;
-    let body;
+    let body, trend = null;
     if (!D) body = h('p', { class: 'muted' }, 'Chargement de la tier list…');
     else {
       const rows = (((D.data || {})[P.region] || {})[P.elo] || {})[P.lane] || [];
       const shown = rows.filter((r) => P.off || r.lane == null || r.lane >= 10);
+      // La même lane et le même elo dans l'autre région : la Corée donne souvent la tendance avant l'Europe.
+      const other = P.region === 'kr' ? 'euw' : 'kr';
+      const oRows = (((D.data || {})[other] || {})[P.elo] || {})[P.lane] || [];
+      const oTier = Object.fromEntries(oRows.map((r) => [r.id, r.tier]));
+      const TRANK = ['S+', 'S', 'S-', 'A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-'];
+      const rk = (t) => { const i = TRANK.indexOf(t); return i < 0 ? 99 : i; };
+      if (P.region === 'euw') {
+        const mine = Object.fromEntries(rows.map((r) => [r.id, r.tier]));
+        const rising = oRows.filter((r) => rk(r.tier) <= 2 && (mine[r.id] == null || rk(mine[r.id]) >= rk(r.tier) + 2)).slice(0, 6);
+        if (rising.length) trend = h('div', { class: 'card tl-trend' }, h('h3', null, '📈 Ce qui marche en Corée et pas encore en Europe'),
+          h('div', { class: 'tl-trend-l' }, rising.map((r) => h('span', { class: 'tl-tr' }, champIcon(r.id, 32), h('b', null, r.fr || r.name),
+            h('small', { class: 'muted' }, `🇰🇷 ${r.tier}`, mine[r.id] ? ` · 🇪🇺 ${mine[r.id]}` : ' · 🇪🇺 hors liste')))),
+          h('p', { class: 'muted small' }, 'Les joueurs coréens trouvent souvent les choix forts d’un patch avant l’Europe : ces champions pourraient monter chez nous.'));
+      }
       if (!shown.length) body = h('p', { class: 'muted' }, 'Pas encore de données pour ce choix.');
       else {
         body = h('div', { class: 'card tl-card' },
-          h('div', { class: 'tl-head' }, h('span', null, '#'), h('span', null, 'Champion'), h('span', null, 'Tier'), h('span', null, 'Victoires'), h('span', null, 'Pick'), h('span', null, 'Ban'), h('span', null, 'Parties')),
+          h('div', { class: 'tl-head' }, h('span', null, '#'), h('span', null, 'Champion'), h('span', null, 'Tier'), h('span', null, other === 'kr' ? '🇰🇷 Corée' : '🇪🇺 Europe'), h('span', null, 'Victoires'), h('span', null, 'Pick'), h('span', null, 'Ban'), h('span', null, 'Parties')),
           shown.map((r, i) => h('div', { class: 'tl-r' },
             h('span', { class: 'tl-n' }, String(i + 1)),
             h('span', { class: 'tl-c' }, champIcon(r.id, 36), h('b', null, r.fr || r.name), r.lane != null && r.lane < 10 ? h('span', { class: 'tl-offm' }, 'hors méta') : null),
             h('span', null, h('span', { class: 'tl-t t-' + r.tier.replace('+', 'p').replace('-', 'm') }, r.tier)),
+            h('span', null, oTier[r.id] ? h('span', { class: 'tl-t sm t-' + oTier[r.id].replace('+', 'p').replace('-', 'm') }, oTier[r.id]) : h('span', { class: 'muted small' }, '—')),
             h('span', { class: 'tl-wr ' + (r.wr >= 51 ? 'good' : r.wr < 49 ? 'bad' : '') }, `${fr(r.wr, 1)} %`, r.d != null ? h('small', null, `${r.d > 0 ? '+' : ''}${fr(r.d, 1)}`) : null),
             h('span', null, `${fr(r.pick, 1)} %`),
             h('span', null, `${fr(r.ban, 1)} %`),
             h('span', { class: 'muted' }, r.games.toLocaleString('fr-FR')))));
       }
     }
-    const foot = D && D.maj ? h('p', { class: 'muted small' }, `Données : ${D.source || 'LoLalytics'} · patch ${D.patch || '?'} · relevées le ${dateFr(D.maj)}, mises à jour chaque jour.`) : null;
-    view.replaceChildren(hero, draftTabs(), filters, body, foot);
+    const pt = (D && D.patches) || {};
+    const ptTxt = pt.kr && pt.euw && pt.kr !== pt.euw ? `patch ${pt.kr} en Corée, ${pt.euw} en Europe` : `patch ${(pt[P.region]) || (D && D.patch) || '?'}`;
+    const foot = D && D.maj ? h('p', { class: 'muted small' }, `Données : ${D.source || 'LoLalytics'} · ${ptTxt} · relevées le ${dateFr(D.maj)}, mises à jour chaque jour.`) : null;
+    view.replaceChildren(hero, draftTabs(), filters, trend, body, foot);
   }
 
   // ----- Puzzles de draft : la compo adverse est connue, 3 alliés aussi ; choisis le meilleur duo pour les 2 rôles restants. -----

@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.90",
+   "date": "2026-11-13",
+   "titre": "Matchups dans FIRE, tier list de Fer à Challenger",
+   "items": [
+    [
+     "new",
+     "Matchups : le taux de victoire du matchup, le verdict, les sorts, runes, objets et l'ordre des sorts s'affichent directement dans FIRE. « Plus de détails » ouvre les moyennes par partie (kills, dégâts, golds, sbires…)."
+    ],
+    [
+     "new",
+     "Tier list : chaque rang de Fer à Challenger (et toujours Or+, Émeraude+…). Une colonne montre le tier du même champion dans l'autre région."
+    ],
+    [
+     "new",
+     "Tier list Europe : « Ce qui marche en Corée et pas encore en Europe », pour avoir un temps d'avance sur la méta. Le patch de chaque région est indiqué."
+    ],
+    [
+     "fix",
+     "One-tricks : les données se rechargent si elles n'étaient pas encore arrivées (avant, l'onglet restait vide jusqu'au redémarrage)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.89",
    "date": "2026-11-13",
    "titre": "RGB partout et lanes animées",

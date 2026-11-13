@@ -344,6 +344,24 @@ async function otpDragon() {
     return otpDD;
   } catch (e) { return cached || { v: null, runes: {}, spells: {} }; }
 }
+// Matchup : la page publique LoLalytics du matchup, lue à la demande (gardée 6 h), pour l'afficher dans FIRE.
+const muCache = new Map();
+ipcMain.handle('matchup', async (e, a, b, lane) => {
+  const slug = (id) => (id === 'MonkeyKing' ? 'wukong' : String(id || '').toLowerCase().replace(/[^a-z0-9]/g, ''));
+  const ln = ['top', 'jungle', 'middle', 'bottom', 'support'].includes(lane) ? lane : '';
+  if (!slug(a) || !slug(b)) return { ok: false, error: 'champion manquant' };
+  const url = `https://lolalytics.com/lol/${slug(a)}/vs/${slug(b)}/build/${ln ? '?lane=' + ln : ''}`;
+  const hit = muCache.get(url);
+  const dd = await otpDragon();
+  if (hit && Date.now() - hit.at < 6 * 3600e3) return { ...hit.r, dd, url };
+  try {
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (FIRE LoL)', 'Accept-Language': 'en' } });
+    if (!r.ok) return { ok: false, error: 'HTTP ' + r.status, dd, url };
+    const out = require('./lolalytics').parseMatchup(await r.text());
+    if (out.ok) muCache.set(url, { at: Date.now(), r: out });
+    return { ...out, dd, url };
+  } catch (err) { return { ok: false, error: String((err && err.message) || err), dd, url }; }
+});
 ipcMain.handle('otp', async () => {
   const [d, dd] = await Promise.all([remoteJson(OTP_URL, 'otp.json'), otpDragon()]);
   return { ...(d || { champs: {} }), dd };

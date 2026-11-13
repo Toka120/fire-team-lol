@@ -2,7 +2,7 @@
 """Tier list méta (rubrique Draft de FIRE) : Corée et Europe de l'Ouest, par lane et par elo.
 
 Chaque jour (GitHub Actions), on relève les pages publiques « tier list » de LoLalytics :
-2 régions × 6 niveaux d'elo × 5 lanes. Pour chaque lane, les champions affichés (les mieux classés) avec
+2 régions × 16 niveaux d'elo (chaque rang de Fer à Challenger, et « Or+ » à « Maître+ ») × 5 lanes. Pour chaque lane, les champions affichés (les mieux classés) avec
 leur tier (S+, S, A…), taux de victoire, écart avec la moyenne, taux de pick et de ban, nombre de parties.
 
 Résultat : tierlist.json à la racine du dépôt (servi par GitHub Pages).
@@ -19,7 +19,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'tierlist.json'
 REGIONS = ['kr', 'euw']
-ELOS = ['all', 'gold_plus', 'platinum_plus', 'emerald_plus', 'diamond_plus', 'master_plus']
+# Chaque rang de Fer à Challenger, et les regroupements « et plus ».
+ELOS = ['all', 'iron', 'bronze', 'silver', 'gold', 'platinum', 'emerald', 'diamond', 'master', 'grandmaster', 'challenger',
+        'gold_plus', 'platinum_plus', 'emerald_plus', 'diamond_plus', 'master_plus']
 LANES = ['top', 'jungle', 'middle', 'bottom', 'support']
 UA = {'User-Agent': 'FIRE-LoL tierlist (outil d equipe, 1 releve par jour)', 'Accept-Language': 'en'}
 
@@ -91,7 +93,7 @@ def ddragon_ids():
 
 def main():
     idof, names = ddragon_ids()
-    data, patch, n = {}, '', 0
+    data, patch, n, patches = {}, '', 0, {}
     for region in REGIONS:
         for elo in ELOS:
             for lane in LANES:
@@ -102,6 +104,8 @@ def main():
                     print('échec', url, e, file=sys.stderr)
                     rows, p = [], ''
                 patch = patch or p
+                if p:
+                    patches.setdefault(region, p)
                 for r in rows:
                     r['id'] = idof.get(r['slug'])
                     r['fr'] = names.get(r['id'], r['name'])
@@ -109,11 +113,11 @@ def main():
                 data.setdefault(region, {}).setdefault(elo, {})[lane] = rows
                 n += len(rows)
                 print(region, elo, lane, len(rows), file=sys.stderr)
-                time.sleep(1.5)
+                time.sleep(1.2)
     if n < 100:
         print('trop peu de données, fichier non modifié', file=sys.stderr)
         sys.exit(1)
-    out = {'patch': patch, 'maj': time.strftime('%Y-%m-%d'), 'source': 'LoLalytics', 'regions': REGIONS, 'elos': ELOS, 'lanes': LANES, 'data': data}
+    out = {'patch': patch, 'patches': patches, 'maj': time.strftime('%Y-%m-%d'), 'source': 'LoLalytics', 'regions': REGIONS, 'elos': ELOS, 'lanes': LANES, 'data': data}
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     print('ok', n, 'lignes, patch', patch, file=sys.stderr)
 
