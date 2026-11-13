@@ -66,13 +66,33 @@ function skinList(c) {
   return (c.skins || []).filter((s) => !/\(/.test(s.name)).map((s) => ({ num: s.num, name: s.name === 'default' ? c.name : s.name, fx: 50, fy: 40, c: 0 }));
 }
 
+// Objets de la Faille (achetables, sans les consommables ni les objets réservés à un champion) pour les quiz.
+function itemList(j) {
+  const all = (j && j.data) || {};
+  const seen = new Set();
+  const out = [];
+  for (const [id, it] of Object.entries(all).sort((a, b) => Number(a[0]) - Number(b[0]))) {
+    if (!it || !it.maps || !it.maps['11'] || !it.gold || !it.gold.purchasable || !(it.gold.total > 0)) continue;
+    if (it.requiredChampion || it.requiredAlly || it.inStore === false || it.hideFromAll) continue;
+    const tags = it.tags || [];
+    if (tags.includes('Consumable') || tags.includes('Trinket') || Number(id) >= 200000) continue;
+    const name = strip(it.name || '');
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    out.push({ id, name, img: (it.image && it.image.full) || (id + '.png'), gold: it.gold.total, base: it.gold.base, from: (it.from || []).map(String), into: (it.into || []).map(String), tags, depth: it.depth || 1 });
+  }
+  const ids = new Set(out.map((x) => x.id));
+  out.forEach((x) => { x.from = x.from.filter((f) => ids.has(f)); x.into = x.into.filter((f) => ids.has(f)); });
+  return out;
+}
+
 // Liste des champions : sorts, passif, classes, ressource, portée, skins (Data Dragon) + région et année (univers).
 let mem = null;
 async function data() {
   let version = null;
   try { version = (await get(`${DD}/api/versions.json`, 15000))[0]; } catch (e) { /* hors ligne */ }
   const cache = mem || readJson('jeux.json');
-  if (cache && cache.fmt === 7 && (!version || cache.version === version)) { mem = cache; return { ok: true, ...cache, offline: !version }; }
+  if (cache && cache.fmt === 8 && (!version || cache.version === version)) { mem = cache; return { ok: true, ...cache, offline: !version }; }
   if (!version) return cache ? { ok: true, ...cache, offline: true } : { ok: false, error: 'hors ligne : données des champions indisponibles' };
   try {
     const full = await get(`${DD}/cdn/${version}/data/fr_FR/championFull.json`, 60000);
@@ -92,7 +112,8 @@ async function data() {
         id: c.id, key: c.key, name: c.name, title: c.title, tags: c.tags || [], partype: c.partype || 'Aucune',
         range: (c.stats && c.stats.attackrange) >= 300 ? 'Distance' : 'Mêlée',
         passive: { name: c.passive.name, img: c.passive.image.full, desc: strip(c.passive.description) },
-        spells: (c.spells || []).map((s, i) => ({ key: 'QWER'[i], name: s.name, img: s.image.full })),
+        spells: (c.spells || []).map((s, i) => ({ key: 'QWER'[i], name: s.name, img: s.image.full, cd: (s.cooldown || []).map(Number) })),
+        st: c.stats ? { hp: c.stats.hp, hpl: c.stats.hpperlevel, ms: c.stats.movespeed, ar: c.stats.armor, mr: c.stats.spellblock, ad: c.stats.attackdamage, as: c.stats.attackspeed, rg: c.stats.attackrange } : null,
         skins: skinList(c),
         vo: voiceList(c.key),
         emo: EMOJI[c.id] || null,
@@ -104,7 +125,9 @@ async function data() {
       };
     }).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
     const factions = (uni.factions || []).map((f) => ({ slug: f.slug, name: f.name, desc: strip(f.description), img: f.image && f.image.uri ? f.image.uri : null }));
-    mem = { fmt: 7, version, champs, factions, at: Date.now() };
+    let items = [];
+    try { items = itemList(await get(`${DD}/cdn/${version}/data/fr_FR/item.json`, 60000)); } catch (e) { /* les quiz d'objets attendront */ }
+    mem = { fmt: 8, version, champs, factions, items, at: Date.now() };
     writeJson('jeux.json', mem);
     return { ok: true, ...mem };
   } catch (e) {

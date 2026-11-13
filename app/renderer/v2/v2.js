@@ -93,7 +93,7 @@
     '🕒': 'controls.Heure', '📝': 'controls.Modifier', '🎥': 'sessions.Review', '📌': 'sessions.Autre',
     '⏱': 'controls.Heure', '⬇': 'Download', '🔵': 'Circle', '🔴': 'Circle',
     '📨': 'controls.Envoyer', '↗': 'ExternalLink', '🎞️': 'controls.Diaporama', '🆕': 'patchNotes.Nouveau', '🛠️': 'patchNotes.Corrigé', '🎮': 'navigation.Détente',
-    '🌊': 'detente.Lis la wave', '💰': 'controls.Recall, golds et objets', '🏳️': 'controls.Savoir concéder', '🧭': 'controls.Les bases de LoL',
+    '🌊': 'detente.Lis la wave', '🧪': 'detente.Recettes d’objets', '💰': 'controls.Recall, golds et objets', '🏳️': 'controls.Savoir concéder', '🧭': 'controls.Les bases de LoL',
   };
   // Le même emoji sert à plusieurs choses : le texte qui suit décide quand il est clair (« 🏆 Win rate » ≠ « 🏆 5c5 »).
   const BYTEXT = [

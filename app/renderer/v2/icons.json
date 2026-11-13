@@ -49,7 +49,11 @@
     "Bot lane": "MapPinned",
     "Trade ou pas ?": "Scale",
     "Vrai ou faux": "BadgeCheck",
-    "Que fais-tu ?": "Signpost"
+    "Que fais-tu ?": "Signpost",
+    "Temps de recharge": "Timer",
+    "Prix des objets": "Coins",
+    "Stats des champions": "ChartColumnBig",
+    "Recettes d’objets": "FlaskConical"
   },
   "micro": {
     "Esquive": "MoveHorizontal",

@@ -1570,6 +1570,8 @@
   // POOL : la nouvelle semaine (et ta tierlist modifiée par le coach) ; vue dès que la page s'ouvre.
   // Lanes et principes : chaque thème nouveau ou mis à jour ; vu quand on l'ouvre (marqué « Nouveau » d'ici là).
   const hashStr = (x) => { let h2 = 0; const t = String(x); for (let i = 0; i < t.length; i++) h2 = (h2 * 31 + t.charCodeAt(i)) | 0; return (h2 >>> 0).toString(36); };
+  // Jeux ajoutés récemment dans Détente : pastille « Nouveau » jusqu'à ce que le joueur les ouvre.
+  const JNEW = ['cdq', 'prix', 'stat', 'recette'];
   function newsIds(sec) {
     if (sec === 'pool') {
       const w = (S.pools || []).slice().sort((a, b) => String(b.debut || '').localeCompare(String(a.debut || '')))[0];
@@ -1581,6 +1583,7 @@
       return ids;
     }
     if (sec === 'guides') return (S.guides || []).map((t) => 'g:' + t.id + ':' + hashStr(JSON.stringify(t)));
+    if (sec === 'jeux') return JNEW.map((k) => 'f:' + k);
     return [];
   }
   function newsFresh(sec) {
@@ -1588,7 +1591,8 @@
     const ids = newsIds(sec);
     if (!ids.length) return [];
     // Première fois : tout ce qui existe déjà compte comme vu (pas de pluie de pastilles à l'installation).
-    if (!seen[sec]) { seen[sec] = ids; save('fire.seen', seen); return []; }
+    // Les nouveaux jeux (« f: ») restent à découvrir, même la première fois.
+    if (!seen[sec]) { seen[sec] = ids.filter((x) => !x.startsWith('f:')); save('fire.seen', seen); }
     return ids.filter((x) => !seen[sec].includes(x));
   }
   function newsMark(sec, ids) {
@@ -3017,7 +3021,7 @@
     const b = (id, label, badge, cls) => h('button', { class: 'navbtn' + (cls ? ' ' + cls : ''), 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
-    const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente'], ['train', '🎯', 'Micro'],
+    const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
       ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null],
       ['coach', '📣', 'Parole du coach', n || null], ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
@@ -4299,13 +4303,147 @@
     wave: 'La wave pousse vers qui ? Freeze, slow push, crash : lis la situation.', jgl: 'Où est le jungler adverse ? Lis les indices de la carte.', bot: 'Les situations de la bot lane : que faire ?',
     trade: 'Ce trade est-il bon ou mauvais ?', vf: 'Vrai ou faux sur les mécaniques du jeu.', quoi: 'Une situation de partie : quelle est la bonne décision ?',
   };
+
+  // ----- Quiz façon TierTest : 10 questions chronométrées, un rang de Fer à Challenger à la fin -----
+  // Données Data Dragon (temps de recharge, stats de base, prix et recettes des objets).
+  const QMODES = [['cdq', '⏱️ Temps de recharge'], ['prix', '💰 Prix des objets'], ['stat', '📊 Stats des champions'], ['recette', '🧪 Recettes d’objets']];
+  Object.assign(JDESC, {
+    cdq: 'Deux sorts : lequel a le plus long (ou le plus court) temps de recharge ?', prix: 'Combien coûte cet objet ? Au po près.',
+    stat: 'Vitesse, portée, PV, armure… quel champion en a le plus ?', recette: 'Il manque un composant dans la recette : lequel ?',
+  });
+  const QN = 10, QT = 12;
+  const QRANKS = [['Fer', '#6b6b6b'], ['Bronze', '#a0673d'], ['Argent', '#9aa7b4'], ['Or', '#e0b44c'], ['Platine', '#3fb6a8'], ['Émeraude', '#2fbf71'], ['Diamant', '#6b8cff'], ['Maître', '#b05cff'], ['Grand Maître', '#ff4d5e'], ['Challenger', '#5ad0ff']];
+  const qRank = (ok) => QRANKS[Math.max(0, Math.min(QRANKS.length - 1, ok - 1))];
+  const Q = {};
+  const qImg = (kind, img) => `${DD}/cdn/${J.data.version}/img/${kind}/${img}`;
+  const qNum = (n) => Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+  const QSTATS = [['ms', 'la plus grande vitesse de déplacement', 'Vitesse'], ['rg', 'la plus grande portée d’attaque', 'Portée'], ['hp', 'le plus de PV au niveau 1', 'PV'],
+    ['ar', 'le plus d’armure au niveau 1', 'Armure'], ['ad', 'le plus de dégâts d’attaque au niveau 1', 'AD'], ['as', 'la meilleure vitesse d’attaque de base', 'Vit. d’attaque']];
+  function qMake(mode) {
+    const D = J.data;
+    for (let tries = 0; tries < 60; tries++) {
+      if (mode === 'cdq') {
+        const sp = () => { const c = pick(D.champs); const s0 = pick(c.spells.filter((x) => x.cd && x.cd[0] > 0)); return s0 ? { c, s: s0, v: s0.cd[0] } : null; };
+        const a = sp(), b2 = sp();
+        if (!a || !b2 || a.c.id === b2.c.id || Math.abs(a.v - b2.v) < 1) continue;
+        const long = Math.random() < 0.6;
+        const good = (long ? a.v > b2.v : a.v < b2.v) ? 0 : 1;
+        return { kind: 'duel', q: `Quel sort a le plus ${long ? 'long' : 'court'} temps de recharge (rang 1) ?`, good,
+          opts: [a, b2].map((x) => ({ img: qImg('spell', x.s.img), t: x.s.name, sub: `${x.c.name} · ${x.s.key}`, val: qNum(x.v) + ' s' })) };
+      }
+      if (mode === 'stat') {
+        const [k, txt] = pick(QSTATS);
+        const cs = D.champs.filter((c) => c.st && c.st[k] != null);
+        const a = pick(cs), b2 = pick(cs);
+        if (a.id === b2.id || a.st[k] === b2.st[k]) continue;
+        const good = a.st[k] > b2.st[k] ? 0 : 1;
+        return { kind: 'duel', q: `Quel champion a ${txt} ?`, good,
+          opts: [a, b2].map((c) => ({ img: qImg('champion', c.id + '.png'), t: c.name, sub: c.title, val: qNum(c.st[k]) })) };
+      }
+      const items = (D.items || []);
+      if (!items.length) return null;
+      if (mode === 'prix') {
+        const it = pick(items.filter((x) => x.gold >= 300));
+        const step = it.gold >= 1500 ? 100 : 50;
+        const set = new Set([it.gold]);
+        while (set.size < 4) { const d = (1 + Math.floor(Math.random() * 6)) * step * (Math.random() < 0.5 ? -1 : 1); const v = it.gold + d; if (v > 0) set.add(v); }
+        const vals = [...set].sort((x, y) => x - y);
+        return { kind: 'choice', q: `Combien coûte ${it.name} ?`, item: it, good: vals.indexOf(it.gold), opts: vals.map((v) => ({ t: v.toLocaleString('fr-FR') + ' po' })) };
+      }
+      if (mode === 'recette') {
+        const byId = Object.fromEntries(items.map((x) => [x.id, x]));
+        const it = pick(items.filter((x) => x.from.length >= 2));
+        const hide = Math.floor(Math.random() * it.from.length);
+        const ans = byId[it.from[hide]];
+        const pool = items.filter((x) => x.id !== ans.id && !it.from.includes(x.id) && x.id !== it.id && Math.abs(x.depth - ans.depth) <= 1 && x.gold < it.gold);
+        if (pool.length < 3) continue;
+        const near = shuffle(pool.filter((x) => x.tags.some((t) => ans.tags.includes(t)))).slice(0, 3);
+        const wrong = near.length >= 3 ? near : shuffle(pool).slice(0, 3);
+        const opts = shuffle([ans, ...wrong]);
+        return { kind: 'choice', q: `Quel objet manque dans la recette de ${it.name} ?`, item: it, recipe: it.from.map((f, i) => (i === hide ? null : byId[f])), recipeAns: ans,
+          good: opts.indexOf(ans), opts: opts.map((x) => ({ img: qImg('item', x.img), t: x.name, val: x.gold.toLocaleString('fr-FR') + ' po' })) };
+      }
+    }
+    return null;
+  }
+  function qStart(mode) {
+    clearTimeout(Q.timer);
+    Q[mode] = { i: 0, ok: 0, q: qMake(mode), ans: null, log: [], done: false };
+    newsMark('jeux', ['f:' + mode]);
+  }
+  function qBest() { return load('fire.quiz', {}); }
+  function renderQuiz(mode) {
+    const out = [];
+    if (mode === 'prix' || mode === 'recette') { if (!(J.data.items || []).length) return [h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Les objets ne sont pas encore chargés. Relance l’application avec Internet pour mettre à jour les données.'))]; }
+    const best = qBest()[mode];
+    let R = Q[mode];
+    if (!R) {
+      out.push(h('div', { class: 'card qz-intro' }, h('h3', null, JDESC[mode]),
+        h('p', { class: 'muted' }, `${QN} questions, ${QT} secondes chacune. Ton score donne ton rang : de Fer (0-1) à Challenger (10/10).`),
+        best ? h('p', null, 'Ton record : ', h('b', { style: `color:${qRank(best.ok)[1]}` }, `${qRank(best.ok)[0]} · ${best.ok}/${QN}`)) : null,
+        h('button', { class: 'btn-fire', onclick: () => { qStart(mode); render(); } }, '▶ Lancer le quiz')));
+      return out;
+    }
+    if (R.done) {
+      const [rk, col] = qRank(R.ok);
+      out.push(h('div', { class: 'card qz-end', style: `--rk:${col}` }, h('div', { class: 'qz-rank' }, rk), h('p', { class: 'qz-score' }, `${R.ok} / ${QN} bonnes réponses`),
+        best && best.ok >= R.ok && !R.record ? h('p', { class: 'muted small' }, `Ton record : ${qRank(best.ok)[0]} (${best.ok}/${QN})`) : R.record ? h('p', { class: 'qz-rec' }, '🏆 Nouveau record !') : null,
+        h('div', { class: 'qz-log' }, R.log.map((x) => h('span', { class: x ? 'ok' : 'ko' }, x ? '✓' : '✗'))),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire', onclick: () => { qStart(mode); render(); } }, '🔁 Rejouer'), h('button', { class: 'btn-ghost', onclick: () => { Q[mode] = null; render(); } }, 'Retour'))));
+      return out;
+    }
+    const q = R.q;
+    if (!q) return [h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Pas assez de données pour ce quiz.'))];
+    const answered = R.ans != null;
+    const choose = (i) => {
+      if (R.ans != null) return;
+      clearTimeout(Q.timer);
+      R.ans = i; const good = i === q.good; if (good) R.ok++; R.log.push(good);
+      render();
+    };
+    const next = () => {
+      R.i++;
+      if (R.i >= QN) {
+        R.done = true;
+        const all = qBest();
+        if (!all[mode] || R.ok > all[mode].ok) { all[mode] = { ok: R.ok, at: Date.now() }; save('fire.quiz', all); R.record = true; }
+      } else { R.q = qMake(mode); R.ans = null; }
+      render();
+    };
+    if (!answered) { clearTimeout(Q.timer); Q.timer = setTimeout(() => { if (Q[mode] === R && R.q === q && R.ans == null && S.section === 'jeux' && J.tab === mode) choose(-1); }, QT * 1000); }
+    const cls = (i) => answered ? (i === q.good ? ' ok' : i === R.ans ? ' ko' : ' dim') : '';
+    let body;
+    if (q.kind === 'duel') {
+      body = h('div', { class: 'qz-duel' }, q.opts.map((o, i) => [i ? h('b', { class: 'qz-vs' }, 'VS') : null,
+        h('button', { class: 'qz-opt' + cls(i), disabled: answered ? true : null, onclick: () => choose(i) }, h('img', { src: o.img, alt: '', width: 72, height: 72 }),
+          h('b', null, o.t), h('small', { class: 'muted' }, o.sub), answered ? h('span', { class: 'qz-val' }, o.val) : null)]));
+    } else {
+      const head = h('div', { class: 'qz-item' }, h('img', { src: qImg('item', q.item.img), alt: '', width: 64, height: 64 }), h('b', null, q.item.name),
+        q.recipe ? h('div', { class: 'qz-recipe' }, q.recipe.map((x) => x ? h('img', { src: qImg('item', x.img), alt: x.name, title: x.name, width: 44, height: 44 })
+          : answered ? h('img', { class: 'qz-hole ok', src: qImg('item', q.recipeAns.img), alt: q.recipeAns.name, title: q.recipeAns.name, width: 44, height: 44 }) : h('span', { class: 'qz-hole' }, '?'))) : null,
+        answered && q.recipe ? h('small', { class: 'muted' }, `${q.item.name} : ${q.item.gold.toLocaleString('fr-FR')} po au total`) : null);
+      body = h('div', null, head, h('div', { class: 'qz-ch' + (q.opts[0].img ? ' img' : '') }, q.opts.map((o, i) => h('button', { class: 'l-btn qz-c' + cls(i), disabled: answered ? true : null, onclick: () => choose(i) },
+        o.img ? h('img', { src: o.img, alt: '', width: 36, height: 36 }) : null, h('span', null, o.t), o.val && answered ? h('small', { class: 'muted' }, ' ' + o.val) : null))));
+    }
+    out.push(h('div', { class: 'card l-card qz-card' },
+      h('div', { class: 'qz-top' }, h('span', null, `Question ${R.i + 1} / ${QN}`), h('div', { class: 'qz-log' }, R.log.map((x) => h('span', { class: x ? 'ok' : 'ko' }, x ? '✓' : '✗'))), h('b', null, `${R.ok} ✓`)),
+      !answered ? h('div', { class: 'lt-bar' }, h('i', { style: `animation-duration:${QT}s` })) : null,
+      h('h3', null, q.q), body,
+      answered ? h('div', { class: 'l-fb ' + (R.ans === q.good ? 'ok' : 'ko') }, h('b', null, R.ans === q.good ? '✅ Bien vu !' : R.ans === -1 ? '⏱️ Trop tard !' : '❌ Raté.'),
+        h('button', { class: 'btn-fire small-btn', onclick: next }, R.i + 1 >= QN ? 'Voir mon rang ▶' : 'Question suivante ▶')) : null));
+    return out;
+  }
   function jeuxHome() {
     const card = ([k, l], learn) => {
       const m = String(l).match(/^(\S+)\s+(.*)$/) || [null, '🎮', l];
       return h('button', { class: 'jg-card' + (learn ? ' learn' : ''), onclick: () => { J.home = false; J.tab = k; render(); window.scrollTo(0, 0); } },
-        h('span', { class: 'jg-ico' }, m[1]), h('span', { class: 'jg-txt' }, h('b', null, m[2]), h('small', { class: 'muted' }, JDESC[k] || '')), h('span', { class: 'jg-go' }, 'Jouer'));
+        h('span', { class: 'jg-ico' }, m[1]), h('span', { class: 'jg-txt' }, h('b', null, m[2], newsFresh('jeux').includes('f:' + k) ? h('span', { class: 'new-tag' }, 'Nouveau') : null), h('small', { class: 'muted' }, JDESC[k] || ''),
+          QMODES.some(([q]) => q === k) && qBest()[k] ? h('small', { class: 'jg-rec', style: `color:${qRank(qBest()[k].ok)[1]}` }, `🏆 Record : ${qRank(qBest()[k].ok)[0]} (${qBest()[k].ok}/${QN})`) : null),
+        h('span', { class: 'jg-go' }, 'Jouer'));
     };
     return [
+      h('h2', { class: 'hub-sec' }, h('span', null, '🧠 Quiz de connaissances'), h('small', { class: 'muted' }, '10 questions, un rang de Fer à Challenger')),
+      h('div', { class: 'jg-grid' }, QMODES.map((x) => card(x, false))),
       h('h2', { class: 'hub-sec' }, h('span', null, '🎮 Deviner le champion'), h('small', { class: 'muted' }, 'autant de parties que tu veux')),
       h('div', { class: 'jg-grid' }, JMODES.map((x) => card(x, false))),
       h('h2', { class: 'hub-sec' }, h('span', null, '🎓 Apprendre en jouant'), h('small', { class: 'muted' }, 'des situations de vraies parties')),
@@ -4314,7 +4452,7 @@
   }
   function renderJeux() {
     const view = $('view');
-    const cur = JMODES.concat(LMODES).find(([k]) => k === J.tab);
+    const cur = JMODES.concat(LMODES, QMODES).find(([k]) => k === J.tab);
     const nodes = [h('header', { class: 'sec-hero' + (J.home ? '' : ' compact') }, h('div', { class: 'sec-ico' }, '🎮'),
       h('div', null, h('h1', { class: 'title' }, 'Détente'), J.home ? h('p', { class: 'muted' }, 'Des jeux rapides pour se détendre entre deux games, et d’autres pour progresser en jouant.') : null))];
     if (J.home) { nodes.push(...jeuxHome()); view.replaceChildren(...nodes); return; }
@@ -4330,6 +4468,7 @@
       return;
     }
     if (J.tab === 'lore') { nodes.push(...renderLore()); view.replaceChildren(...nodes); return; }
+    if (QMODES.some(([k]) => k === J.tab)) { nodes.push(...renderQuiz(J.tab)); view.replaceChildren(...nodes); return; }
     // League of Listen : le vrai jeu (sons de chaque sort Q W E R, site lynge.tv) intégré dans l'app,
     // ou notre version avec les bruitages de l'écran de sélection.
     if (J.tab === 'listen') {

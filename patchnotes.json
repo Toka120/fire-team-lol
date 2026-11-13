@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.85",
+   "date": "2026-11-13",
+   "titre": "Quiz de connaissances",
+   "items": [
+    [
+     "new",
+     "Détente › Quiz de connaissances : 4 quiz de 10 questions chronométrées, avec un rang de Fer à Challenger à la fin."
+    ],
+    [
+     "new",
+     "Temps de recharge (quel sort recharge le plus longtemps), Prix des objets, Stats des champions (vitesse, portée, PV, armure…) et Recettes d'objets."
+    ],
+    [
+     "improve",
+     "Ton record s'affiche sur chaque quiz, et une pastille « Nouveau » signale les jeux pas encore essayés."
+    ]
+   ]
+  },
+  {
    "v": "1.10.84",
    "date": "2026-11-13",
    "titre": "Réglages voix et vidéo façon Discord",
