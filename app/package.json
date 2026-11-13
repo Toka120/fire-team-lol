@@ -1,14 +1,14 @@
 {
   "name": "fire-lol",
   "productName": "FIRE LoL",
-  "version": "1.10.67",
+  "version": "1.10.68",
   "description": "FIRE LoL - les stats de l'équipe, à jour depuis dpm.lol",
   "main": "main.js",
   "author": "Toka120",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "vendor": "node -e \"const fs=require('fs');fs.mkdirSync('renderer/vendor',{recursive:true});fs.copyFileSync('node_modules/d3/dist/d3.min.js','renderer/vendor/d3.min.js');fs.copyFileSync('node_modules/peerjs/dist/peerjs.min.js','renderer/vendor/peerjs.min.js');const W='node_modules/@sapphi-red/web-noise-suppressor/dist/';fs.copyFileSync(W+'rnnoise/workletProcessor.js','renderer/vendor/rnnoise-worklet.js');fs.copyFileSync(W+'rnnoise.wasm','renderer/vendor/rnnoise.wasm');fs.copyFileSync(W+'rnnoise_simd.wasm','renderer/vendor/rnnoise_simd.wasm')\"",
+    "vendor": "node vendor.js",
     "start": "npm run vendor && electron .",
     "dist": "npm run vendor && electron-builder --win nsis portable --publish never",
     "store": "npm run vendor && electron-builder --win appx --publish never"
@@ -17,6 +17,9 @@
     "d3": "7.9.0",
     "peerjs": "1.5.5",
     "@sapphi-red/web-noise-suppressor": "0.4.1",
+    "@fontsource/inter": "5.3.0",
+    "@fontsource/cinzel": "5.3.0",
+    "lucide-static": "1.72.0",
     "electron": "45.3.0",
     "electron-builder": "25.1.8"
   },

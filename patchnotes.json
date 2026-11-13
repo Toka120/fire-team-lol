@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.68",
+   "date": "2026-11-13",
+   "titre": "Aperçu de l'interface V2",
+   "items": [
+    [
+     "new",
+     "Paramètres › ✨ Interface V2 (aperçu) : la nouvelle interface en construction, à activer sur son PC (réservé au mode coach pour l'instant). Sans l'aperçu, rien ne change."
+    ],
+    [
+     "new",
+     "V2 : barre latérale en 4 groupes (Équipe, Jeu, Apprendre, Social), Patch notes et Paramètres en bas, nouvelles couleurs (or), polices Inter et Cinzel, icônes Lucide à la place des emojis système."
+    ],
+    [
+     "improve",
+     "V2 : cartes, boutons, onglets, champs, bandeaux des joueurs et discussion redessinés selon la nouvelle charte. Les thèmes de couleur restent disponibles. La suite arrive page par page."
+    ]
+   ]
+  },
+  {
    "v": "1.10.67",
    "date": "2026-11-12",
    "titre": "Puzzles de draft",

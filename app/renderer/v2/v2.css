@@ -1,0 +1,193 @@
+/* FIRE V2 — aperçu. Toutes les règles sont limitées à html.v2 : sans l'aperçu, l'interface V1 ne change pas.
+   Référence : charte V2 (fire-v2.css, COMPOSANTS.md, icons.json) + DECISIONS-V2.md.
+   Les jetons V1 (--bg, --panel, --fire1…) sont redéfinis avec les valeurs V2 : tout l'existant prend la palette. */
+
+html.v2 {
+  color-scheme: dark;
+  --bg: #0B0D10; --panel: #12161C; --panel2: #1A2029; --line: #2A323D;
+  --fg: #F2F4F7; --muted: #A2ADBC;
+  --fire1: #F5A524; --fire2: #F5A524; --fire3: #F5A524;
+  --ok: #39C58A; --bad: #EF6670; --warn: #E8C56A;
+  --r: 16px; --glow: transparent; --bar: var(--bg);
+  /* Jetons V2 */
+  --v2-blue: #579DFF; --v2-red: #EF6670;
+  --v2-sel: color-mix(in srgb, var(--fire1) 12%, var(--panel));
+  --v2-ok-bg: color-mix(in srgb, var(--ok) 12%, var(--panel));
+  --v2-bad-bg: color-mix(in srgb, var(--bad) 12%, var(--panel));
+  --v2-warn-bg: color-mix(in srgb, var(--warn) 12%, var(--panel));
+  --v2-shadow: 0 8px 24px rgb(0 0 0 / 24%);
+  --v2-side: 240px; --v2-pad: 32px;
+  --v2-ease: cubic-bezier(.2, 0, 0, 1);
+  --v2-font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --v2-display: 'Cinzel', Georgia, serif;
+}
+/* Thèmes : identifiants réels de FIRE (sans attribut = FIRE). Seuls fond, surfaces et bordure changent. */
+html.v2[data-theme=bleu]  { --bg: #0A101A; --panel: #111B2A; --panel2: #1A293D; --line: #30445F; }
+html.v2[data-theme=rouge] { --bg: #150D10; --panel: #21151A; --panel2: #302027; --line: #49313B; }
+html.v2[data-theme=vert]  { --bg: #0B1310; --panel: #121F1A; --panel2: #1C2D26; --line: #30473C; }
+html.v2[data-theme=jaune] { --bg: #141209; --panel: #201D12; --panel2: #302B1C; --line: #49412B; }
+html.v2[data-theme=noir]  { --bg: #050607; --panel: #0D0F12; --panel2: #171A1F; --line: #292E36; }
+html.v2[data-theme=gris]  { --bg: #16181C; --panel: #20242A; --panel2: #2B3038; --line: #414955; }
+
+html.v2 body { background: var(--bg); color: var(--fg); font: 400 14px/24px var(--v2-font); font-variant-numeric: tabular-nums; }
+html.v2 * { scrollbar-width: thin; scrollbar-color: var(--line) var(--panel); }
+html.v2 :focus-visible { outline: 2px solid var(--fire1); outline-offset: 2px; }
+html.v2 .muted { color: var(--muted); }
+html.v2 .small { font-size: 12px; line-height: 16px; }
+html.v2 h2 { font: 600 20px/28px var(--v2-font); }
+html.v2 a:not(.btn-fire):not(.btn-ghost):not(.navbtn) { color: var(--fg); text-underline-offset: 3px; }
+html.v2 a:not(.btn-fire):not(.btn-ghost):not(.navbtn):hover { color: var(--muted); }
+
+/* ---------- Icônes Lucide ---------- */
+html.v2 .v2i { width: 20px; height: 20px; flex: 0 0 auto; stroke: currentColor; stroke-width: 1.75; fill: none; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+
+/* ---------- Cadre : barre latérale + zone principale ---------- */
+html.v2 .shell { display: grid; grid-template-columns: var(--v2-side) minmax(0, 1fr); min-height: 100vh; }
+html.v2 .v2-side { position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 10; background: var(--panel); border-right: 1px solid var(--line); padding: 16px 16px 80px; display: flex; flex-direction: column; gap: 24px; }
+html.v2 .v2-brand { display: flex; align-items: center; gap: 8px; padding: 0 8px; font: 700 18px/24px var(--v2-font); color: var(--fire1); }
+html.v2 .v2-brand img { width: 32px; height: 32px; border-radius: 8px; }
+html.v2 .v2-main { min-width: 0; display: flex; flex-direction: column; }
+html.v2 .topbar .brand-sm { display: none; }
+html.v2 #nav.mainnav { display: flex; flex-direction: column; gap: 24px; flex: 1; flex-wrap: nowrap; }
+html.v2 .v2-group { display: flex; flex-direction: column; gap: 2px; }
+html.v2 .v2-group-t { margin: 0 0 8px; padding: 0 16px; color: var(--muted); font: 600 12px/16px var(--v2-font); text-transform: uppercase; letter-spacing: .08em; }
+html.v2 .v2-group.foot { margin-top: auto; border-top: 1px solid var(--line); padding-top: 16px; }
+html.v2 .navbtn { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 8px 16px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: 600 14px/24px var(--v2-font); text-align: left; transition: background-color 120ms var(--v2-ease), color 120ms var(--v2-ease); }
+html.v2 .navbtn:hover { background: var(--panel2); color: var(--fg); border-color: transparent; }
+html.v2 .navbtn[aria-current=page] { background: var(--v2-sel); color: var(--fire1); box-shadow: inset 2px 0 var(--fire1); border-color: transparent; }
+html.v2 .navbtn .v2-lab { flex: 1; min-width: 0; }
+html.v2 .navbtn .nbadge { margin-left: auto; min-width: 24px; height: 24px; padding: 4px 8px; border-radius: 8px; background: var(--bad); color: var(--bg); font: 600 12px/16px var(--v2-font); animation: none; }
+/* « En direct » : toujours rouge, jamais or, sans animation infinie */
+html.v2 .navbtn.navlive { box-shadow: inset 2px 0 var(--bad); border-color: transparent !important; }
+html.v2 .navbtn.navlive .nbadge { background: var(--v2-bad-bg); color: var(--bad); animation: none; }
+
+/* Barre d'état (retour, texte de mise à jour, période, actualisation) */
+html.v2 .topbar { position: sticky; top: 0; z-index: 5; min-height: 48px; padding: 4px var(--v2-pad); gap: 16px; background: var(--bg); border-bottom: 1px solid var(--line); backdrop-filter: none; flex-wrap: nowrap; }
+html.v2 .topbar .statusbar { flex: 1; min-width: 0; padding: 0; border: 0; min-height: 0; font: 400 12px/16px var(--v2-font); color: var(--muted); overflow-wrap: anywhere; }
+html.v2 .topbar .spacer { display: none; }
+html.v2 .period { font: 400 12px/16px var(--v2-font); color: var(--muted); display: flex; align-items: center; gap: 8px; }
+html.v2 #refresh { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; }
+html.v2 .view { padding: var(--v2-pad); gap: 32px; max-width: 1600px; }
+html.v2 .view > * { animation: v2-in 160ms var(--v2-ease) both !important; }
+@keyframes v2-in { from { opacity: 0; } to { opacity: 1; } }
+html.v2 .hub-grid > *, html.v2 .theme-grid > *, html.v2 .cgrid > *, html.v2 .fgrid > * { animation: none !important; }
+
+/* ---------- En-tête de page ---------- */
+html.v2 .sec-hero { padding: 24px; gap: 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); box-shadow: none; }
+html.v2 .sec-hero::before, html.v2 .sec-hero::after { display: none; }
+html.v2 .sec-ico { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 8px; background: var(--panel2); color: var(--fg); font-size: 24px; filter: none; flex: 0 0 auto; }
+html.v2 .sec-ico .v2i { width: 24px; height: 24px; }
+html.v2 .title { font: 600 32px/40px var(--v2-display); letter-spacing: 0; text-transform: none; font-variant: normal; }
+html.v2 .sec-hero p { margin: 8px 0 0; color: var(--muted); }
+
+/* ---------- Cartes ---------- */
+html.v2 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: none; }
+html.v2 .card h2 { font: 600 16px/24px var(--v2-font); }
+html.v2 .empty-state { padding: 48px 24px; font-size: 14px; color: var(--muted); }
+
+/* ---------- Boutons ---------- */
+html.v2 .btn-fire { min-height: 40px; padding: 8px 16px; border: 1px solid transparent; border-radius: 8px; background: var(--fire1); color: #0B0D10; font: 600 14px/24px var(--v2-font); box-shadow: none; text-shadow: none; filter: none; }
+html.v2 .btn-fire:hover { background: color-mix(in srgb, var(--fg) 8%, var(--fire1)); filter: none; }
+html.v2 .btn-fire.small-btn { width: auto; padding: 8px 16px; font-size: 14px; }
+html.v2 .btn-ghost { min-height: 40px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2); color: var(--fg); font: 600 14px/24px var(--v2-font); }
+html.v2 .btn-ghost:hover { border-color: var(--muted); }
+html.v2 .btn-fire:disabled, html.v2 .btn-ghost:disabled, html.v2 .seg:disabled { opacity: .4; }
+html.v2 .linkbtn { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- Onglets et pastilles : rectangles arrondis, actif bordé or + fond teinté ---------- */
+html.v2 .tab, html.v2 .chip, html.v2 .seg, html.v2 .plan-tab {
+  min-height: 40px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--muted);
+  font: 600 14px/24px var(--v2-font); transition: background-color 120ms var(--v2-ease), border-color 120ms var(--v2-ease), color 120ms var(--v2-ease);
+}
+html.v2 .tab:hover, html.v2 .chip:hover, html.v2 .seg:hover, html.v2 .plan-tab:hover { background: var(--panel2); color: var(--fg); }
+html.v2 .tab[aria-selected=true], html.v2 .chip[aria-pressed=true], html.v2 .seg[aria-pressed=true], html.v2 .plan-tab[aria-pressed=true] {
+  border-color: var(--fire1); background: var(--v2-sel); color: var(--fg);
+}
+html.v2 .plan-tab-n { background: var(--bad); color: var(--bg); border-radius: 8px; font: 600 12px/16px var(--v2-font); min-width: 24px; height: 24px; }
+html.v2 .jeu-tabs { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; gap: 8px; }
+
+/* ---------- Champs ---------- */
+html.v2 .inp, html.v2 select, html.v2 input[type=date] {
+  min-height: 40px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel2); color: var(--fg); font: 400 14px/24px var(--v2-font);
+}
+html.v2 .inp:hover, html.v2 select:hover { border-color: var(--muted); }
+html.v2 .inp:focus { border-color: var(--fire1); }
+html.v2 .inp::placeholder { color: var(--muted); opacity: 1; }
+html.v2 input[type=checkbox] { accent-color: var(--fire1); width: 18px; height: 18px; }
+html.v2 input[type=range] { accent-color: var(--fire1); }
+
+/* ---------- Bandeaux des joueurs : teinte V2 selon le thème des données ---------- */
+html.v2 .pcard.banded { --b1: #FF9D3D; --b2: #FF9D3D; --bt: #0B0D10; }
+html.v2 .pcard.b-ruby, html.v2 .tag.tag-cap.b-ruby { --b1: #EF6A9D; --b2: #EF6A9D; --bt: #0B0D10; }
+html.v2 .pcard.b-fire, html.v2 .tag.tag-cap.b-fire { --b1: #FF9D3D; --b2: #FF9D3D; --bt: #0B0D10; }
+html.v2 .pcard.b-gold, html.v2 .tag.tag-cap.b-gold { --b1: #F5A524; --b2: #F5A524; --bt: #0B0D10; }
+html.v2 .pcard.b-star, html.v2 .tag.tag-cap.b-star { --b1: #579DFF; --b2: #579DFF; --bt: #0B0D10; }
+html.v2 .pcard.b-emerald, html.v2 .tag.tag-cap.b-emerald { --b1: #39C58A; --b2: #39C58A; --bt: #0B0D10; }
+html.v2 .pcard.b-blade, html.v2 .tag.tag-cap.b-blade { --b1: #63D8D5; --b2: #63D8D5; --bt: #0B0D10; }
+html.v2 .pcard { border-radius: 16px; border: 1px solid var(--line); background: var(--panel); }
+html.v2 .pcard:hover, html.v2 .pcard:focus-visible { transform: none; background: var(--panel2); border-color: var(--muted); box-shadow: none; }
+html.v2 .pcard.banded, html.v2 .pcard.banded:hover, html.v2 .pcard.banded:focus-visible { border-color: var(--line); box-shadow: none; }
+html.v2 .pcap { padding: 8px 16px; background: var(--b1); color: var(--bt); font: 600 12px/16px var(--v2-font); letter-spacing: .08em; display: flex; justify-content: center; align-items: center; gap: 8px; }
+html.v2 .pcap .v2i { width: 16px; height: 16px; }
+html.v2 .skin-bg::after { background: linear-gradient(180deg, rgb(11 13 16 / 55%) 0%, rgb(11 13 16 / 78%) 50%, rgb(11 13 16 / 94%) 100%); }
+html.v2 .hero.has-skin { border-radius: 16px; border-color: var(--line); }
+html.v2 .hero.has-skin .skin-bg::after { background: linear-gradient(90deg, rgb(11 13 16 / 96%) 0%, rgb(11 13 16 / 84%) 45%, rgb(11 13 16 / 40%) 100%); }
+
+/* ---------- Cartes de stats d'équipe : surface neutre ---------- */
+html.v2 .team-card, html.v2 .team-card.t5 { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: none; }
+html.v2 .team-card:hover, html.v2 .team-card:focus { transform: none; background: var(--panel2); border-color: var(--muted); }
+html.v2 .tab .v2i, html.v2 .plan-tab .v2i, html.v2 .chip .v2i, html.v2 .seg .v2i { width: 20px; height: 20px; }
+html.v2 .card > h2 .v2i, html.v2 .settings-card h2 .v2i { margin-right: 8px; color: var(--muted); }
+html.v2 .hub-sec > span .v2i { margin-right: 8px; }
+html.v2 .role .ico .v2i { width: 16px; height: 16px; }
+html.v2 #chat .chat-t { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+/* Réduite : tout le libellé tient sur une ligne (la barre entière est cliquable, la flèche n'est utile qu'ouverte). */
+html.v2 #chat:not(.open) { width: 224px; }
+html.v2 #chat:not(.open) .chat-bar { padding: 8px 12px; }
+html.v2 #chat:not(.open) .chat-chev { display: none; }
+
+/* ---------- Divers ---------- */
+html.v2 .flash { border-radius: 8px; background: var(--v2-ok-bg); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+html.v2 .tip { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--v2-shadow); font: 400 12px/16px var(--v2-font); }
+html.v2 .plan-note { color: var(--warn); background: var(--v2-warn-bg); border-color: color-mix(in srgb, var(--warn) 55%, transparent); box-shadow: none; border-radius: 8px; font: 600 16px/24px var(--v2-font); }
+
+/* ---------- Discussion : réduite 208×48 dans la barre latérale, ouverte 352 ---------- */
+html.v2 #chat { left: 16px; bottom: 16px; width: 208px; z-index: 30; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); box-shadow: var(--v2-shadow); }
+html.v2 #chat.open { width: 352px; }
+html.v2 #chat .chat-bar { min-height: 48px; padding: 8px 16px; border-radius: 16px; background: transparent; font: 600 14px/24px var(--v2-font); }
+html.v2 #chat .chat-bar:hover { background: var(--panel2); }
+html.v2 #chat.open .chat-bar { border-radius: 16px 16px 0 0; border-bottom: 1px solid var(--line); }
+html.v2 #chat.unread .chat-bar { animation: none; box-shadow: inset 2px 0 var(--bad); }
+html.v2 #chat .chat-n { background: var(--bad); color: var(--bg); border-radius: 8px; }
+html.v2 #chat .chat-body { height: min(432px, 60vh); }
+html.v2 #chat .chat-inp { border-radius: 8px; background: var(--panel2); }
+html.v2 #chat .chat-inp:focus { border-color: var(--fire1); }
+html.v2 #chat .chat-m.mine .chat-mh b { color: var(--fg); }
+html.v2 #chat .chat-send { background: var(--fire1); color: #0B0D10; border-radius: 8px; }
+html.v2 body { padding-bottom: 0; }
+
+/* ---------- Fenêtres moins larges ---------- */
+@media (max-width: 1599px) { html.v2 { --v2-side: 224px; --v2-pad: 24px; } html.v2 #chat:not(.open) { width: 208px; } html.v2 #chat:not(.open) .chat-t { font-size: 13px; } }
+@media (max-width: 1279px) {
+  html.v2 { --v2-side: 72px; }
+  html.v2 .v2-side { padding: 16px 8px 80px; gap: 16px; }
+  html.v2 .v2-brand span, html.v2 .v2-group-t, html.v2 .navbtn .v2-lab { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  html.v2 .v2-brand { justify-content: center; padding: 0; }
+  html.v2 .navbtn { justify-content: center; padding: 8px; position: relative; }
+  html.v2 .navbtn .nbadge { position: absolute; right: 0; top: 0; min-width: 16px; height: 16px; padding: 0 4px; font-size: 11px; line-height: 16px; }
+  html.v2 .v2-group + .v2-group { border-top: 1px solid var(--line); padding-top: 8px; }
+  html.v2 #chat:not(.open) { width: 40px; }
+  html.v2 #chat:not(.open) .chat-t, html.v2 #chat:not(.open) .chat-chev { display: none; }
+}
+@media (max-width: 1023px) { html.v2 { --v2-pad: 16px; } }
+
+/* Réduire les animations (réglage Windows) */
+@media (prefers-reduced-motion: reduce) {
+  html.v2 *, html.v2 *::before, html.v2 *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* Réglage de l'aperçu dans Paramètres (visible en V1 comme en V2) */
+.v2-optin { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.v2-optin input { margin-top: 4px; }
