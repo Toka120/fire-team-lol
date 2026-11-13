@@ -261,6 +261,36 @@ ipcMain.handle('config', async () => {
 });
 const PUZ_URL = 'https://toka120.github.io/fire-team-lol/puzzles-draft.json';
 const TIER_URL = 'https://toka120.github.io/fire-team-lol/tierlist.json';
+// ---------- Partie en direct : API locale officielle de Riot (Live Client Data, port 2999, seulement pendant une partie) ----------
+// Lecture seule, sur ce PC uniquement : aucune lecture de la mémoire du jeu, rien d'injecté (compatible Vanguard).
+// Le certificat de cette API est auto-signé par Riot : on l'accepte seulement pour 127.0.0.1:2999.
+function liveClient() {
+  return new Promise((ok) => {
+    const req = require('https').get({ host: '127.0.0.1', port: 2999, path: '/liveclientdata/allgamedata', rejectUnauthorized: false, timeout: 2500 }, (res) => {
+      let b = ''; res.setEncoding('utf8'); res.on('data', (c) => { b += c; if (b.length > 2e6) req.destroy(); });
+      res.on('end', () => { try { ok(res.statusCode === 200 ? JSON.parse(b) : null); } catch (e) { ok(null); } });
+    });
+    req.on('timeout', () => req.destroy()); req.on('error', () => ok(null));
+  });
+}
+function liveSummary(d) {
+  if (!d || !Array.isArray(d.allPlayers) || !d.gameData) return null;
+  const champ = (p) => String(p.rawChampionName || '').split('_').pop() || String(p.championName || '');
+  return {
+    mode: String(d.gameData.gameMode || ''), time: Math.round(Number(d.gameData.gameTime) || 0),
+    me: String((d.activePlayer && (d.activePlayer.riotId || d.activePlayer.summonerName)) || ''), at: Date.now(),
+    players: d.allPlayers.slice(0, 12).map((p) => ({ n: String(p.riotId || p.summonerName || ''), c: champ(p), team: p.team === 'CHAOS' ? 'CHAOS' : 'ORDER',
+      k: (p.scores || {}).kills || 0, d: (p.scores || {}).deaths || 0, a: (p.scores || {}).assists || 0, cs: (p.scores || {}).creepScore || 0, lvl: p.level || 0, pos: String(p.position || '') })),
+  };
+}
+let liveLast = null;
+setInterval(async () => {
+  const g = liveSummary(await liveClient());
+  if (!g && !liveLast) return;
+  liveLast = g;
+  if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('live:update', g);
+}, 5000);
+
 // ---------- Clips instantanés : rangés dans Vidéos\FIRE Clips ----------
 const CLIP_MAX = 150 * 1024 * 1024;
 const clipDir = () => path.join(app.getPath('videos'), 'FIRE Clips');

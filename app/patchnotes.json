@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.80",
+   "date": "2026-11-13",
+   "titre": "Matchups et parties en direct",
+   "items": [
+    [
+     "new",
+     "Draft › Matchups : choisis ton champion et ton adversaire (et la lane) ; FIRE ouvre des vidéos gratuites du matchup sur YouTube (parties de joueurs Challenger, guides), les VOD de pros sur mid.gg, et les stats et runes du matchup."
+    ],
+    [
+     "new",
+     "Stats des joueurs › En game maintenant : quand un joueur de FIRE est en partie, sa game s'affiche en direct en haut de l'accueil (les 10 champions, KDA, niveau, CS, durée), et le menu montre combien de joueurs sont en game. FIRE lit l'API locale officielle de Riot sur le PC du joueur (rien dans le jeu, compatible Vanguard) et l'envoie aux FIRE ouverts de l'équipe."
+    ]
+   ]
+  },
+  {
    "v": "1.10.79",
    "date": "2026-11-13",
    "titre": "Tier list méta et nouveaux thèmes",

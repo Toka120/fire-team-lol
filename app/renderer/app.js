@@ -780,11 +780,69 @@
         (S.coachs || []).length ? h('p', { class: 'muted small hub-coachs' }, '🎓 Coachs : ', (S.coachs || []).map((c) => h('b', null, c.pseudo)).reduce((a, x, i) => (i ? a.concat(' · ', x) : [x]), [])) : null,
         S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif : ${S.obj.games} games par semaine (du lundi au dimanche) sur les champions obligatoires, réparties comme chacun veut. Cette semaine : du ${dateFr(S.obj.debut)} au ${dateFr(S.obj.fin)}.`) : null)),
       homeNotes(),
+      liveSection(),
       teamCards(),
       h('div', { class: 'more-row hub-more' }, h('button', { class: 'btn-ghost more-btn', onclick: () => { S.hubMore = !S.hubMore; render(); } }, S.hubMore ? '➖ Moins de détails' : '➕ Plus de détails')),
       // Les titulaires (Team FIRE) d'abord, les remplaçants dans leur propre catégorie en dessous.
       ...hubSections(start)
     ].filter(Boolean));
+  }
+
+  // ----- Parties en direct : la mienne (API locale de Riot) et celles des coéquipiers (envoyées par leur FIRE) -----
+  const LIVE = { mine: null, lastSend: 0, sig: '' };
+  function liveAll() {
+    const out = {};
+    try { Object.assign(out, (FV().state().lives) || {}); } catch (e) { /* vocal pas prêt */ }
+    const me = vocalMe();
+    if (LIVE.mine && me) out[me] = LIVE.mine;
+    return out;
+  }
+  function liveInit() {
+    if (!window.fire.live) return;
+    window.fire.live.on((g) => {
+      LIVE.mine = g;
+      const now = Date.now();
+      if (!g || now - LIVE.lastSend > 15000) { LIVE.lastSend = now; try { FV().liveSend(g); } catch (e) { /* hors ligne */ } }
+      liveRefresh();
+    });
+    try { FV().onChange(() => liveRefresh()); } catch (e) { /* */ }
+  }
+  function liveRefresh() {
+    const all = liveAll();
+    const sig = Object.entries(all).map(([k, g]) => k + ':' + g.time).sort().join('|');
+    if (sig === LIVE.sig) return;
+    const keysChanged = Object.keys(all).sort().join() !== LIVE.sig.split('|').map((x) => x.split(':')[0]).filter(Boolean).sort().join();
+    LIVE.sig = sig;
+    if (keysChanged) renderNav();
+    if (S.section === 'stats' && S.view === 'hub' && !typing()) {
+      const cur = document.querySelector('.live-sec');
+      const next = liveSection();
+      if (cur && next) cur.replaceWith(next); else if (cur || next) render();
+    }
+  }
+  const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+  function liveSection() {
+    const all = liveAll();
+    if (!Object.keys(all).length) return null;
+    // Plusieurs joueurs de FIRE dans la même partie : une seule carte.
+    const games = [];
+    for (const [slug, g] of Object.entries(all)) {
+      const key = g.players.map((p) => p.n).sort().join('|');
+      const ex = games.find((x) => x.key === key);
+      if (ex) { ex.slugs.push(slug); if (g.at > ex.g.at) ex.g = g; } else games.push({ key, g, slugs: [slug] });
+    }
+    const ours = new Set(S.players.map((p) => String(p.pseudo || '').toLowerCase()));
+    const team = (g, side) => h('div', { class: 'lv-team ' + (side === 'ORDER' ? 'blue' : 'red') }, g.players.filter((p) => p.team === side).map((p) =>
+      h('div', { class: 'lv-p' + (ours.has(p.n.toLowerCase()) ? ' ours' : '') }, champIcon(p.c, 24),
+        h('span', { class: 'lv-n' }, h('b', null, p.n.split('#')[0]), h('small', { class: 'muted' }, ` niv. ${p.lvl} · ${p.cs} CS`)),
+        h('span', { class: 'lv-k' }, `${p.k} / ${p.d} / ${p.a}`))));
+    const modes = { CLASSIC: 'Faille de l’invocateur', ARAM: 'ARAM', CHERRY: 'Arena', URF: 'URF', PRACTICETOOL: 'Entraînement' };
+    return h('section', { class: 'live-sec' },
+      h('h2', { class: 'hub-sec' }, h('span', { class: 'lv-dot' }), h('span', null, 'En game maintenant'), h('small', { class: 'muted' }, `${Object.keys(all).length} joueur${Object.keys(all).length > 1 ? 's' : ''} de FIRE`)),
+      games.map(({ g, slugs }) => h('div', { class: 'card lv-card' },
+        h('div', { class: 'lv-head' }, h('span', { class: 'lv-live' }, 'EN DIRECT'), h('b', null, slugs.map((x) => (S.players.find((p) => p.slug === x) || {}).pseudo || vocalName(x)).map((x) => String(x).split('#')[0]).join(', ')),
+          h('span', { class: 'muted' }, `${modes[g.mode] || g.mode} · ${mmss(g.time)}`)),
+        h('div', { class: 'lv-teams' }, team(g, 'ORDER'), team(g, 'CHAOS')))));
   }
 
   const isSub = (p) => !!(p.remplacant || /rempla|bench|suppl/i.test(p.role || ''));
@@ -1899,6 +1957,7 @@
     });
     if (window.fire.keys) { window.fire.keys.on(keyAction); setTimeout(() => syncKeys(true), 1500); }
     FV().onSoundRequest(soundAsk);
+    liveInit();
     // Clips : enregistrement continu si activé sur ce PC ; ta voix y entre quand tu es en appel.
     if (window.FireClips) { FireClips.onChange(() => { if (S.section === 'vocal' && VX.drawer) renderVocal(); }); setTimeout(() => clipsApply().catch(() => {}), 4000); }
     // Tableau tactique : messages du salon et état envoyé à chaque personne qui arrive.
@@ -2477,6 +2536,7 @@
   function renderDraft() {
     if (S.drTab === 'puzzle') return renderPuzzles();
     if (S.drTab === 'tier') return renderTierList();
+    if (S.drTab === 'matchup') return renderMatchups();
     renderDraftLive();
     const hero = $('view').querySelector('.sec-hero');
     if (hero) hero.after(draftTabs());
@@ -2487,7 +2547,52 @@
     return h('div', { class: 'row plan-tabs' },
       tab('live', '⚡ Draft en direct'),
       tab('tier', '📊 Tier list'),
+      tab('matchup', '⚔️ Matchups'),
       tab('puzzle', '🧩 Puzzles de draft', pzDue() ? h('span', { class: 'plan-tab-n' }, '!') : null));
+  }
+
+  // ----- Matchups : ton champion contre un adversaire → vidéos gratuites (YouTube, VOD de pros) et stats du matchup -----
+  const MU = { a: null, b: null, side: 'a', q: '', lane: '' };
+  function renderMatchups() {
+    const view = $('view');
+    const list = ((S.champList && S.champList.list) || []).slice().sort((x, y) => x.name.localeCompare(y.name, 'fr'));
+    const norm = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+    const nameOf = (id) => (list.find((c) => c.id === id) || {}).name || id;
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '⚔️'),
+      h('div', null, h('h1', { class: 'title' }, 'Matchups'),
+        h('p', { class: 'muted' }, 'Choisis ton champion et ton adversaire : FIRE t’ouvre des vidéos gratuites de ce matchup (YouTube, VOD de pros) et ses statistiques.')));
+    const slot = (k, label) => h('button', { class: 'mu-slot' + (MU.side === k ? ' on' : ''), onclick: () => { MU.side = k; renderMatchups(); } },
+      MU[k] ? champIcon(MU[k], 56) : h('span', { class: 'mu-q' }, '?'), h('span', null, h('small', { class: 'muted' }, label), h('b', null, MU[k] ? nameOf(MU[k]) : 'Choisir')));
+    const q = norm(MU.q);
+    const grid = h('div', { class: 'mu-grid' }, list.filter((c) => !q || norm(c.name).includes(q) || norm(c.id).includes(q)).map((c) =>
+      h('button', { class: 'mu-c' + (MU.a === c.id || MU.b === c.id ? ' sel' : ''), title: c.name, onclick: () => {
+        MU[MU.side] = c.id; if (MU.side === 'a' && !MU.b) MU.side = 'b'; MU.q = ''; renderMatchups();
+        if (MU.a && MU.b) { const r = document.querySelector('.mu-res'); if (r) r.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      } }, champIcon(c.id, 44))));
+    const search = h('input', { class: 'inp mu-search', placeholder: 'Rechercher un champion…', value: MU.q, oninput: (e) => { MU.q = e.target.value; const pos = e.target.selectionStart; renderMatchups(); const el = document.querySelector('.mu-search'); if (el) { el.focus(); el.setSelectionRange(pos, pos); } } });
+    const lanes = [['', 'Toutes les lanes'], ['top', 'Top'], ['jungle', 'Jungle'], ['middle', 'Mid'], ['bottom', 'ADC'], ['support', 'Support']];
+    const pick = h('div', { class: 'card mu-pick' },
+      h('div', { class: 'mu-slots' }, slot('a', 'Ton champion'), h('span', { class: 'mu-vs' }, 'VS'), slot('b', 'Adversaire'),
+        MU.a || MU.b ? h('button', { class: 'btn-ghost', onclick: () => { MU.a = MU.b = null; MU.side = 'a'; renderMatchups(); } }, 'Effacer') : null),
+      h('div', { class: 'row' }, search, h('select', { class: 'inp mu-lane', onchange: (e) => { MU.lane = e.target.value; renderMatchups(); } }, lanes.map(([k, t]) => h('option', { value: k, selected: MU.lane === k ? true : null }, t)))),
+      list.length ? grid : h('p', { class: 'muted small' }, 'Chargement des champions…'));
+    let res = null;
+    if (MU.a && MU.b) {
+      const A = nameOf(MU.a), B = nameOf(MU.b);
+      const laneTxt = { top: 'top', jungle: 'jungle', middle: 'mid', bottom: 'adc', support: 'support' }[MU.lane] || '';
+      const yt = (extra) => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(`${A} vs ${B} ${laneTxt} ${extra}`.replace(/\s+/g, ' ').trim());
+      const ll = `https://lolalytics.com/lol/${lolSlug(MU.a)}/vs/${lolSlug(MU.b)}/build/${MU.lane ? '?lane=' + MU.lane : ''}`;
+      const link = (href, t, sub, cls) => h('a', { class: 'mu-link ' + (cls || ''), href, target: '_blank', rel: 'noopener' }, h('b', null, t), h('small', { class: 'muted' }, sub));
+      res = h('div', { class: 'card mu-res' },
+        h('h2', null, `${A} contre ${B}`),
+        h('div', { class: 'mu-links' },
+          link(yt('challenger'), '▶ Vidéos du matchup', 'YouTube · parties de joueurs Challenger et Grand Maître', 'yt'),
+          link(yt('guide'), '▶ Guides du matchup', 'YouTube · explications et conseils', 'yt'),
+          link(`https://mid.gg/champion/${encodeURIComponent(MU.a)}`, '▶ VOD de pros sur ' + A, 'mid.gg · parties pro avec build, runes et chronologie (choisis le matchup sur la page)'),
+          h('button', { class: 'mu-link', onclick: () => window.fire.lcu.stats(ll) }, h('b', null, '📊 Stats et runes du matchup'), h('small', { class: 'muted' }, 'LoLalytics · taux de victoire, runes et objets contre ' + B))),
+        h('p', { class: 'muted small' }, 'Les vidéos s’ouvrent dans ton navigateur, gratuitement. Rien n’est téléchargé.'));
+    }
+    view.replaceChildren(hero, draftTabs(), pick, res);
   }
 
   // ----- Tier list méta : Corée et Europe, par lane et par elo (LoLalytics, relevé chaque jour : tools/tierlist.py) -----
@@ -2818,7 +2923,7 @@
     const b = (id, label, badge, cls) => h('button', { class: 'navbtn' + (cls ? ' ' + cls : ''), 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
-    const items = [['stats', '📊', 'Stats des joueurs'], ['pool', '🧙', 'POOL'], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente'], ['train', '🎯', 'Micro'],
+    const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL'], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente'], ['train', '🎯', 'Micro'],
       ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes'],
       ['coach', '📣', 'Parole du coach', n || null], ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.

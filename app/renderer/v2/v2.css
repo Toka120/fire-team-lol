@@ -610,3 +610,10 @@ html.v2[data-theme=neon] .v2-side, html.v2[data-theme=futur] .v2-side, html.v2[d
 html.v2[data-theme=ocean] .v2-side, html.v2[data-theme=violet] .v2-side, html.v2[data-theme=cafe] .v2-side, html.v2[data-theme=hextech] .v2-side { background: color-mix(in srgb, var(--panel) 88%, transparent); backdrop-filter: blur(8px); }
 html.v2[data-theme] .topbar { background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(8px); }
 html.v2 .v2-brand { color: var(--fire1); }
+html.v2 .mu-slot, html.v2 .mu-link, html.v2 .mu-grid { border-radius: 8px; }
+html.v2 .mu-vs { font: 700 20px/28px var(--v2-font); }
+html.v2 .mu-lane { width: auto; }
+html.v2 .mu-lane, .mu-lane { max-width: 240px; flex: 0 0 auto; }
+html.v2 .live-sec { gap: 8px; }
+html.v2 .lv-card { padding: 10px 14px; }
+html.v2 .navbtn .v2-lab { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

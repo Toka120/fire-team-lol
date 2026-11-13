@@ -725,13 +725,14 @@
   }
 
   // ---------- Invitations : chaque FIRE ouvert garde une petite adresse « hall » pour recevoir une invitation ----------
-  const L = { peer: null, prefix: '', me: null, ids: [], onInvite: null, last: {}, timer: null, links: {}, here: {}, beat: null };
+  const L = { peer: null, prefix: '', me: null, ids: [], onInvite: null, last: {}, timer: null, links: {}, here: {}, live: {}, beat: null, liveBusy: false };
   // Présence : qui est en vocal, vu depuis n'importe quel FIRE ouvert (même sans être dans le salon).
   // Chaque membre en appel prévient les autres toutes les 20 s ; sans nouvelle depuis 60 s, on le considère parti.
   function onHall(from, m) {
     if (!m) return;
     if (m.t === 'invite' && L.onInvite) L.onInvite(from, String(m.room || 'equipe').slice(0, 20));
     if (m.t === 'chat' && m.msg && L.onChat && m.msg.from === from) L.onChat(m.msg);
+    if (m.t === 'live') { const g = cleanLive(m.g); if (g) L.live[from] = { g, t: Date.now() + 45000 }; else delete L.live[from]; emit(); return; }
     if (m.t === 'here') { if (m.on) L.here[from] = { t: Date.now() + 60000, room: String(m.room || 'equipe').slice(0, 20) }; else delete L.here[from]; emit(); }
   }
   function link(slug) {
@@ -754,7 +755,27 @@
     clearInterval(L.beat);
     if (V.on) { beacon(true); L.beat = setInterval(() => { if (V.on) beacon(true); }, 20000); }
   }
-  setInterval(() => { const now = Date.now(); let ch = false; for (const [k, x] of Object.entries(L.here)) if (x.t < now) { delete L.here[k]; ch = true; } if (ch) emit(); }, 5000);
+  setInterval(() => { const now = Date.now(); let ch = false; for (const obj of [L.here, L.live]) for (const [k, x] of Object.entries(obj)) if (x.t < now) { delete obj[k]; ch = true; } if (ch) emit(); }, 5000);
+  // Partie en direct d'un coéquipier (lue sur son PC par l'API locale officielle de Riot) : on ne garde que des champs connus.
+  function cleanLive(g) {
+    if (!g || typeof g !== 'object' || !Array.isArray(g.players) || g.players.length > 12) return null;
+    const str = (x, n) => String(x == null ? '' : x).slice(0, n);
+    const num = (x) => (Number.isFinite(Number(x)) ? Math.max(0, Math.min(99999, Number(x))) : 0);
+    return {
+      mode: str(g.mode, 30), time: num(g.time), me: str(g.me, 40), at: num(g.at) || Date.now(),
+      players: g.players.map((p) => ({ n: str(p.n, 40), c: str(p.c, 30).replace(/[^A-Za-z0-9]/g, ''), team: p.team === 'CHAOS' ? 'CHAOS' : 'ORDER',
+        k: num(p.k), d: num(p.d), a: num(p.a), cs: num(p.cs), lvl: num(p.lvl), pos: str(p.pos, 10) })),
+    };
+  }
+  // Ma partie en direct envoyée à l'équipe (FIRE ouvert chez eux), toutes les 15 s pendant une game ; null à la fin.
+  async function liveSend(g) {
+    if (L.liveBusy || !L.peer) return;
+    L.liveBusy = true;
+    try {
+      const others = L.ids.filter((x) => x !== L.me);
+      await Promise.all(others.map(async (x) => { const dc = await link(x); if (dc) { try { dc.send({ t: 'live', g }); } catch (e) { /* */ } } }));
+    } finally { L.liveBusy = false; }
+  }
   const lid = (slug) => L.prefix + 'hall' + slug.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
   async function lobby(opts) {
     if (!window.Peer || !opts || !opts.me) return;
@@ -800,7 +821,7 @@
 
   window.FireVoice = {
     join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, setStreamSound, requestSound, addScreenSound, watchStream,
-    onSoundRequest: (f) => { V.onSndReq = f; }, appSend, onApp: (f) => { V.onApp = f; }, onPeer: (f) => { V.onPeer = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
+    onSoundRequest: (f) => { V.onSndReq = f; }, appSend, liveSend, onApp: (f) => { V.onApp = f; }, onPeer: (f) => { V.onPeer = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
     clearErr: () => { V.err = ''; emit(); },
     // Définition et images/s de chaque écran partagé que je reçois (affichées sur la vidéo).
     recvInfo: async () => {
@@ -839,6 +860,7 @@
       cam: V.cam, screen: V.screen, ai: !!AI.node,
       members: Object.entries(V.conns).map(([s, k]) => ({ slug: s, ok: !!k.out, remote: k.remote || {} })),
       here: Object.keys(L.here).filter((x) => x !== V.me && L.here[x].t > Date.now()),
+      lives: Object.fromEntries(Object.entries(L.live).filter(([, x]) => x.t > Date.now()).map(([k, x]) => [k, x.g])),
       rooms: Object.fromEntries(Object.entries(L.here).filter(([x, e]) => x !== V.me && e.t > Date.now()).map(([x, e]) => [x, e.room])),
       room: V.room,
       videos: Object.entries(V.vin).filter(([, v]) => v.stream).map(([key, v]) => ({ slug: key.split(':')[0], kind: key.split(':')[1], stream: v.stream, sound: !!v.snd })),
