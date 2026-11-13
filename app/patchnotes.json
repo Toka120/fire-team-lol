@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.70",
+   "date": "2026-11-13",
+   "titre": "Interface V2 : POOL",
+   "items": [
+    [
+     "improve",
+     "V2 : page POOL passée à la nouvelle charte. Obligatoire est toujours en or (cercle pointé), Maîtrisé toujours en bleu (badge), dans les rangées de tierlist, les légendes, les changements de la semaine et l'éditeur."
+    ],
+    [
+     "improve",
+     "V2 : rangées de tierlist, répartition des games, notes d'analyse, cartes champion et sélecteur de champions redessinés ; les emojis système des boutons deviennent des icônes."
+    ]
+   ]
+  },
+  {
    "v": "1.10.69",
    "date": "2026-11-13",
    "titre": "Interface V2 : stats et profils",
