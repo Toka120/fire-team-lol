@@ -1111,6 +1111,7 @@
   async function mmLive(g) {
     if (!window.FireMinimap || !window.fire.parties || SUB()) return;
     const c = mmCfg();
+    if (g && c.on && !c.rect && !MM.told) { MM.told = true; deskNotify({ title: '🗺️ Revue de parties', body: 'Règle une fois la mini-carte (Outils › Revue de parties › Régler) pour voir les champions bouger dans tes prochaines revues.', section: 'revue', silent: true }).catch(() => {}); }
     if (!g || !c.on || !c.rect) { if (MM.running) { FireMinimap.stop(); MM.running = false; MM.key = ''; } return; }
     const key = g.players.map((p) => p.n).sort().join('|');
     if (MM.running && MM.key === key) return;
@@ -1186,6 +1187,16 @@
   const RV_IN = { T1_L: [1171, 3571], T1_C: [3203, 3208], T1_R: [3452, 1236], T2_L: [11261, 13676], T2_C: [11598, 11667], T2_R: [13604, 11316] };
   const RV_PIT = { drag: [9866, 4414], baron: [5007, 10471], atakhan: [7400, 7400] };
   const rvXY = (c) => [c[0] / 14870 * 100, (1 - c[1] / 14870) * 100];
+  // Nom d'une tour ou d'un inhibiteur dans les événements de Riot (« Turret_T2_L_03_A », « Barracks_T1_C1 »…) → clé de la carte.
+  function rvBuilding(name, inhib) {
+    const n = String(name || '');
+    const team = /_T1_|_T1$|Order|_100_/i.test(n) ? 'T1' : /_T2_|_T2$|Chaos|_200_/i.test(n) ? 'T2' : '';
+    const lane = /_L_|_L\d|_Top/i.test(n) ? 'L' : /_C_|_C\d|_Mid/i.test(n) ? 'C' : /_R_|_R\d|_Bot/i.test(n) ? 'R' : '';
+    if (!team || !lane) return null;
+    if (inhib) return `${team}_${lane}`;
+    const tier = (n.match(/_(\d\d)_/) || [])[1];
+    return tier ? `${team}_${lane}_${tier}` : null;
+  }
   function rvTeams(g) {
     const team = {}, champ = {};
     for (const p of g.players || []) { team[p.n] = p.team; team[p.n.split('#')[0]] = p.team; champ[p.n] = p.c; champ[p.n.split('#')[0]] = p.c; }
@@ -1201,8 +1212,8 @@
       if (e.t > t) break;
       const kt = tOf(e.k);
       if (e.x === 'ChampionKill') { const vt = tOf(e.v); const tm = kt || (vt === 'ORDER' ? 'CHAOS' : vt === 'CHAOS' ? 'ORDER' : ''); if (tm) st.kills[tm]++; }
-      else if (e.x === 'TurretKilled') { const m = String(e.tw).match(/T([12])_([LCR])_(\d\d)/); if (m) st.towers[`T${m[1]}_${m[2]}_${m[3]}`] = e.t; }
-      else if (e.x === 'InhibKilled') { const m = String(e.tw).match(/T([12])_([LCR])/); if (m) st.inhibs[`T${m[1]}_${m[2]}`] = e.t; }
+      else if (e.x === 'TurretKilled') { const k = rvBuilding(e.tw); if (k) st.towers[k] = e.t; else if (kt) st.towers[(kt === 'ORDER' ? 'T2' : 'T1') + '_?_' + e.t] = e.t; }
+      else if (e.x === 'InhibKilled') { const k = rvBuilding(e.tw, true); if (k) st.inhibs[k] = e.t; }
       else if (e.x === 'DragonKill' && kt) st.drag[kt].push(e.dr);
       else if (e.x === 'BaronKill' && kt) st.baron[kt]++;
       else if (e.x === 'HordeKill' && kt) st.grubs[kt]++;
@@ -1286,7 +1297,8 @@
     const tools = h('div', { class: 'row rv-tools' }, ['#ff6b3d', '#3dd8ff', '#ffe14d', '#3ddc84', '#ffffff'].map((c) => h('button', { class: 'rv-col' + (RV.col === c ? ' on' : ''), style: `background:${c}`, title: 'Couleur du crayon', onclick: (e) => { RV.col = c; e.target.parentElement.querySelectorAll('.rv-col').forEach((x) => x.classList.toggle('on', x === e.target)); } })),
       h('button', { class: 'btn-ghost', onclick: () => { RV.strokes.pop(); RV.show = null; rvDrawPaint(); } }, '↶ Annuler'),
       h('button', { class: 'btn-ghost', onclick: () => { RV.strokes = []; RV.show = null; rvDrawPaint(); } }, '🧽 Effacer'),
-      h('small', { class: 'muted' }, 'Dessine sur la carte, puis ajoute une note : le dessin y est joint.'));
+      h('small', { class: 'muted' }, 'Dessine sur la carte, puis ajoute une note : le dessin y est joint.'),
+      !(g.pos || []).length ? h('p', { class: 'small rv-nopos' }, '🗺️ Pas de positions pour cette partie : la lecture de la mini-carte n’était pas encore réglée. Règle-la dans « Revue de parties » (liste des parties), puis joue une nouvelle game : les champions bougeront sur la carte.') : null);
     const board = h('div', { class: 'rv-board' });
     const tl = h('div', { class: 'rv-tl' });
     const feed = h('div', { class: 'rv-feed' });
@@ -1346,7 +1358,7 @@
           pts.push(h('span', { class: 'rv-champ ' + (pl.team === 'ORDER' ? 'blue' : 'red') + (pl.n === g.me ? ' me' : ''), style: `left:${x.q[0] / 10}%;top:${x.q[1] / 10}%;opacity:${x.age > 4 ? 0.45 : 1}`, title: FC.champName(pl.c) }, champIcon(pl.c, 26))); });
       }
       for (const e of st.recent) {
-        const c = e.x === 'DragonKill' ? RV_PIT.drag : /Baron|Herald|Horde/.test(e.x) ? RV_PIT.baron : e.x === 'AtakhanKill' ? RV_PIT.atakhan : e.x === 'TurretKilled' ? (() => { const m = String(e.tw).match(/T([12])_([LCR])_(\d\d)/); return m && RV_TW[`T${m[1]}_${m[2]}_${m[3]}`]; })() : e.x === 'InhibKilled' ? (() => { const m = String(e.tw).match(/T([12])_([LCR])/); return m && RV_IN[`T${m[1]}_${m[2]}`]; })() : null;
+        const c = e.x === 'DragonKill' ? RV_PIT.drag : /Baron|Herald|Horde/.test(e.x) ? RV_PIT.baron : e.x === 'AtakhanKill' ? RV_PIT.atakhan : e.x === 'TurretKilled' ? RV_TW[rvBuilding(e.tw)] : e.x === 'InhibKilled' ? RV_IN[rvBuilding(e.tw, true)] : null;
         if (c) pts.push(dot(c, 'ping ' + (e.kt === 'ORDER' ? 'blue' : 'red'), ''));
       }
       ov.replaceChildren(...pts);

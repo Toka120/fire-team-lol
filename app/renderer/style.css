@@ -2541,3 +2541,4 @@ html.sub-mode #chat { display: none !important; }
 .mm-box { position: absolute; border: 3px solid #3ddc84; box-shadow: 0 0 0 9999px #0007; cursor: move; border-radius: 4px; }
 .mm-card .row { gap: 10px; align-items: center; }
 .mm-card input[type=range] { flex: 1; }
+.rv-nopos { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: #ffc24b1a; border: 1px solid #ffc24b55; }

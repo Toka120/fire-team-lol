@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.119",
+   "date": "2026-11-14",
+   "titre": "Revue : tours et mini-carte",
+   "items": [
+    [
+     "fix",
+     "Revue de parties : les tours et les inhibiteurs détruits sont mieux reconnus dans les événements de Riot. Ils s'affichent détruits sur la carte et comptent dans le score."
+    ],
+    [
+     "improve",
+     "Une partie sans positions de champions le dit clairement sous la carte, et explique comment régler la lecture de la mini-carte. En game, si la mini-carte n'est pas encore réglée, FIRE te le rappelle une fois."
+    ]
+   ]
+  },
+  {
    "v": "1.10.118",
    "date": "2026-11-13",
    "titre": "Analyse de parties poussée à fond, champions sur la carte",
