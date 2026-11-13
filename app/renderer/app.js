@@ -259,6 +259,9 @@
     if (window.fire.onNotifyGo) window.fire.onNotifyGo((sec) => { if (sec === 'chat') chatOpen(true); else if (sec) go(sec); });
     if (window.fire.background) window.fire.background.get().then((b) => { S.bg = b; if (S.section === 'settings' && !typing()) renderSettings(); }).catch(() => {});
     renderUpdate();
+    // Page d'ouverture choisie dans Paramètres (ou la dernière page ouverte).
+    { const st = load('fire.start', 'stats'); const sec = st === 'last' ? load('fire.lastSection', 'stats') : st;
+      if (sec && sec !== 'stats' && START_PAGES.some(([k]) => k === sec)) go(sec); }
     render();
     chatInit();
     loadGuides();
@@ -565,6 +568,35 @@
       ] : null);
   }
 
+  // Ouverture de FIRE : la page affichée au démarrage et l'écran (moniteur) où la fenêtre apparaît.
+  const START_PAGES = [['stats', '📊 Stats des joueurs'], ['pool', '🧙 POOL'], ['planning', '📅 Planning'], ['draft', '⚡ Draft'], ['jeux', '🎮 Détente'], ['train', '🎯 Micro'],
+    ['vocal', '🎙️ Vocal'], ['guides', '📚 Lanes et principes'], ['coach', '📣 Parole du coach'], ['worlds', '🏆 E-sport'], ['lolpatch', '📜 Patchs LoL']];
+  const SCR = { list: null, current: 'last', here: null, loading: false };
+  function startCard() {
+    if (!SCR.list && !SCR.loading && window.fire.win) {
+      SCR.loading = true;
+      window.fire.win.displays().then((r) => { SCR.list = r.list || []; SCR.current = r.current || 'last'; SCR.here = r.here; }).catch(() => { SCR.list = []; })
+        .finally(() => { SCR.loading = false; if (S.section === 'settings' && !typing()) renderSettings(); });
+    }
+    const st = load('fire.start', 'stats');
+    const setScr = (id) => { SCR.current = id; window.fire.win.setDisplay(id).then(() => window.fire.win.displays()).then((r) => { SCR.here = r.here; renderSettings(); }).catch(() => {}); renderSettings(); };
+    const screens = SCR.list || [];
+    return h('div', { class: 'card settings-card' },
+      h('h2', null, '🚀 Ouverture de FIRE'),
+      h('p', { class: 'muted small' }, 'Choisis la page qui s’affiche quand tu ouvres FIRE, et l’écran où la fenêtre apparaît.'),
+      h('h3', { class: 'th-gt' }, 'Page d’ouverture'),
+      h('div', { class: 'row st-row' }, h('select', { class: 'inp st-sel', onchange: (e) => { save('fire.start', e.target.value); renderSettings(); } },
+        h('option', { value: 'last', selected: st === 'last' ? true : null }, '↩️ La dernière page ouverte'),
+        START_PAGES.map(([k, l]) => h('option', { value: k, selected: st === k ? true : null }, l)))),
+      window.fire.win ? [h('h3', { class: 'th-gt' }, 'Écran d’apparition'),
+        h('div', { class: 'scr-grid' },
+          h('button', { class: 'scr' + (SCR.current === 'last' ? ' on' : ''), onclick: () => setScr('last') }, h('span', { class: 'scr-ico' }, '↩️'), h('b', null, 'Là où je l’ai laissé'), h('small', { class: 'muted' }, 'Même écran, même taille et même position qu’à la fermeture')),
+          h('button', { class: 'scr' + (SCR.current === 'primary' ? ' on' : ''), onclick: () => setScr('primary') }, h('span', { class: 'scr-ico' }, '🖥️'), h('b', null, 'Écran principal'), h('small', { class: 'muted' }, 'Celui choisi comme principal dans Windows')),
+          screens.map((d) => h('button', { class: 'scr' + (SCR.current === d.id ? ' on' : ''), onclick: () => setScr(d.id) },
+            h('span', { class: 'scr-ico scr-n' }, String(d.n)), h('b', null, `Écran ${d.n}` + (d.primary ? ' (principal)' : '')),
+            h('small', { class: 'muted' }, `${d.w} × ${d.h}` + (d.label ? ` · ${d.label}` : '') + (SCR.here === d.id ? ' · FIRE est ici' : ''))))),
+        screens.length === 1 ? h('p', { class: 'muted small' }, 'Un seul écran est branché pour l’instant. Branche ton deuxième écran pour le choisir ici.') : null] : null);
+  }
   // Polices d'écriture : un aperçu par police, pour le texte et pour les titres, et la taille du texte.
   function fontCard() {
     const f = fontPrefs();
@@ -636,6 +668,7 @@
               h('span', { class: 'th-prev' }, h('i', { class: 'th-side' }), h('span', { class: 'th-body' }, h('b', { class: 'th-tt' }, label), h('i', { class: 'th-line' }), h('i', { class: 'th-line s' }), h('i', { class: 'th-btn' }))),
               grp ? h('small', { class: 'muted th-desc' }, desc) : null)))))),
       fontCard(),
+      startCard(),
       // Interface : la V2 est active pour tout le monde ; l'ancienne reste disponible en cas de souci.
       window.FIREV2 ? h('div', { class: 'card settings-card' },
         h('h2', null, '✨ Interface'),
@@ -1610,6 +1643,7 @@
   function go(sec) {
     if (sec !== S.section) S.prevSection = S.section;
     S.section = sec;
+    if (START_PAGES.some(([k]) => k === sec)) save('fire.lastSection', sec);
     if (sec === 'guides') { S.theme = null; S.guideCat = null; }
     if (sec === 'coach') S.ficheId = null;
     if (sec === 'stats') { S.view = 'hub'; S.player = null; }

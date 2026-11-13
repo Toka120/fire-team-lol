@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.92",
+   "date": "2026-11-13",
+   "titre": "Ouverture de FIRE",
+   "items": [
+    [
+     "new",
+     "Paramètres › Ouverture de FIRE : choisis l'écran où FIRE apparaît (écran 1, écran 2, l'écran principal, ou là où tu l'as laissé), avec sa résolution."
+    ],
+    [
+     "new",
+     "Page d'ouverture : choisis la page affichée au démarrage (Stats, POOL, Planning, Draft, Détente, Vocal…) ou la dernière page ouverte."
+    ],
+    [
+     "improve",
+     "FIRE se rouvre à la même taille et à la même place qu'à la fermeture, et en plein écran s'il l'était."
+    ]
+   ]
+  },
+  {
    "v": "1.10.91",
    "date": "2026-11-13",
    "titre": "Polices d'écriture",

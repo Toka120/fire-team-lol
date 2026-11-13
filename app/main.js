@@ -1,7 +1,7 @@
 // FIRE LoL - application de bureau (Electron).
 // Lit les stats des joueurs sur dpm.lol dans une fenêtre cachée, puis les affiche.
 
-const { app, BrowserWindow, ipcMain, session, shell, Notification, Tray, Menu, desktopCapturer, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, session, shell, Notification, Tray, Menu, desktopCapturer, globalShortcut, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -78,16 +78,68 @@ function relaunchMode() {
   } catch (e) { return null; }
 }
 
+// Écran (moniteur) où FIRE s'ouvre : 'last' (là où il était fermé, par défaut), 'primary' (écran principal) ou l'id d'un écran.
+const winPath = () => path.join(app.getPath('userData'), 'fenetre.json');
+function winPrefs() { try { return { display: 'last', ...JSON.parse(fs.readFileSync(winPath(), 'utf8')) }; } catch (e) { return { display: 'last' }; } }
+function saveWinPrefs(p) { try { fs.writeFileSync(winPath(), JSON.stringify(p)); } catch (e) { /* facultatif */ } }
+function displayList() {
+  const prim = screen.getPrimaryDisplay().id;
+  return screen.getAllDisplays().map((d, i) => ({ id: String(d.id), n: i + 1, primary: d.id === prim, w: d.size.width, h: d.size.height, label: d.label || '' }));
+}
+// Fenêtre centrée sur un écran donné (taille d'origine, réduite si l'écran est petit).
+function boundsOn(d) {
+  const a = d.workArea;
+  const w = Math.min(1320, a.width - 40), h = Math.min(880, a.height - 40);
+  return { x: Math.round(a.x + (a.width - w) / 2), y: Math.round(a.y + (a.height - h) / 2), width: w, height: h };
+}
+function startBounds() {
+  const p = winPrefs();
+  const all = screen.getAllDisplays();
+  if (p.display === 'primary') return { b: boundsOn(screen.getPrimaryDisplay()) };
+  if (p.display && p.display !== 'last') { const d = all.find((x) => String(x.id) === String(p.display)); if (d) return { b: boundsOn(d) }; }
+  // Dernière position, si elle est encore visible sur un écran branché.
+  const b = p.bounds;
+  if (b && all.some((d) => { const a = d.workArea; return b.x + 100 < a.x + a.width && b.x + b.width - 100 > a.x && b.y + 40 < a.y + a.height && b.y >= a.y - 20; })) return { b: { x: b.x, y: b.y, width: b.width, height: b.height }, max: !!b.max };
+  return { b: null };
+}
+function trackBounds(win) {
+  let t = null;
+  const keep = () => {
+    clearTimeout(t);
+    t = setTimeout(() => {
+      if (!win || win.isDestroyed() || win.isMinimized() || !win.isVisible()) return;
+      const max = win.isMaximized();
+      const b = max ? (winPrefs().bounds || win.getNormalBounds()) : win.getBounds();
+      saveWinPrefs({ ...winPrefs(), bounds: { ...(max ? win.getNormalBounds() : b), max } });
+    }, 600);
+  };
+  win.on('move', keep); win.on('resize', keep); win.on('maximize', keep); win.on('unmaximize', keep);
+}
+ipcMain.handle('window:displays', () => ({ list: displayList(), current: winPrefs().display || 'last',
+  here: mainWin && !mainWin.isDestroyed() ? String(screen.getDisplayMatching(mainWin.getBounds()).id) : null }));
+ipcMain.handle('window:setDisplay', (e, id) => {
+  const v = id === 'primary' || id === 'last' ? id : String(id || 'last');
+  saveWinPrefs({ ...winPrefs(), display: v });
+  // On y va tout de suite (sauf « dernière position » : la fenêtre reste où elle est).
+  if (v !== 'last' && mainWin && !mainWin.isDestroyed()) {
+    const d = v === 'primary' ? screen.getPrimaryDisplay() : screen.getAllDisplays().find((x) => String(x.id) === v);
+    if (d) { if (mainWin.isMaximized()) mainWin.unmaximize(); mainWin.setBounds(boundsOn(d)); }
+  }
+  return true;
+});
+
 function createMainWindow(forceShow) {
   // Lancement avec Windows ou relance discrète : FIRE démarre caché (icône près de l'horloge),
   // pour ne jamais s'afficher par-dessus une partie en cours.
   const mode = forceShow ? null : relaunchMode();
   const hidden = !forceShow && (startHidden || mode === 'tray');
   const minimized = !hidden && mode === 'min';
+  const sb = startBounds();
   mainWin = new BrowserWindow({
     show: !hidden && !minimized,
     width: 1320,
     height: 880,
+    ...(sb.b || {}),
     minWidth: 900,
     minHeight: 640,
     backgroundColor: '#0B0D10',
@@ -103,6 +155,9 @@ function createMainWindow(forceShow) {
       backgroundThrottling: false
     }
   });
+  // Agrandie en plein écran si elle l'était, sans jamais faire apparaître une fenêtre censée rester cachée.
+  if (sb.max) { if (!hidden && !minimized) mainWin.maximize(); else mainWin.once('show', () => { try { mainWin.maximize(); } catch (e) { /* */ } }); }
+  trackBounds(mainWin);
   if (hidden) ensureTray();
   // Relance après une mise à jour automatique : la fenêtre revient réduite dans la barre des tâches,
   // sans prendre la main (on ne passe jamais devant un jeu).
