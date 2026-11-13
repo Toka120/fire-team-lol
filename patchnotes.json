@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.83",
+   "date": "2026-11-13",
+   "titre": "Arbre des points forts",
+   "items": [
+    [
+     "new",
+     "Profil d'un joueur › Points forts : un arbre façon DPM Lens. 7 domaines notés sur 100 (Combat, Phase de lane, Farm et golds, Objectifs, Vision, Survie, Impact d'équipe), comparés à un joueur de son rôle niveau Émeraude ; la note globale au centre, chaque stat en feuille. Son point fort et le domaine à travailler sont mis en avant ; un clic sur un domaine montre le détail."
+    ]
+   ]
+  },
+  {
    "v": "1.10.82",
    "date": "2026-11-13",
    "titre": "Lanes et principes et Détente refaits",

@@ -86,7 +86,7 @@
     '➕': 'controls.Ajouter', '➖': 'Minus', '💀': 'controls.Morts', '⏱️': 'controls.Heure', '🐉': 'esport.Dragons', '🪱': 'esport.Larves',
     '👾': 'esport.Barons', '🩸': 'Droplet', '👁️': 'controls.La vision', '🌾': 'Wheat', '⭐': 'controls.Maîtrisé', '❔': 'controls.Incertain',
     '✅': 'CircleCheck', '❌': 'CircleX', '💪': 'BicepsFlexed', '📖': 'BookOpen', '🧭': 'Compass', '🤝': 'micro.Duo', '👥': 'Users',
-    '🥶': 'TrendingDown', '👉': 'controls.Suivant', '🧑‍🏫': 'controls.Coach', '📜': 'navigation.Patch notes', '🧙': 'navigation.POOL',
+    '🥶': 'TrendingDown', '❤️': 'Heart', '👉': 'controls.Suivant', '🧑‍🏫': 'controls.Coach', '📜': 'navigation.Patch notes', '🧙': 'navigation.POOL',
     '🏰': 'esport.Tours', '⌛': 'controls.Sans réponse', '🐢': 'Turtle', '🙋': 'controls.Identité',
     '💤': 'Moon', '😴': 'Moon', '🔎': 'controls.Recherche', '👌': 'controls.Valider', '💡': 'Lightbulb', '💾': 'Save',
     '🧠': 'controls.Mental et progression', '✍️': 'controls.Modifier', '⏳': 'controls.Sans réponse',
@@ -97,7 +97,7 @@
   };
   // Le même emoji sert à plusieurs choses : le texte qui suit décide quand il est clair (« 🏆 Win rate » ≠ « 🏆 5c5 »).
   const BYTEXT = [
-    [/^Stats et contenu/, 'settings.Stats et contenu'], [/^Tier list/, 'ChartNoAxesColumnIncreasing'], [/^Matchups/, 'Swords'], [/^Actualiser/, 'controls.Actualiser'],
+    [/^Stats et contenu/, 'settings.Stats et contenu'], [/^Tier list/, 'ChartNoAxesColumnIncreasing'], [/^Points forts/, 'Network'], [/^Arbre des points forts/, 'Network'], [/^Matchups/, 'Swords'], [/^Actualiser/, 'controls.Actualiser'],
     [/^Win rate/i, 'controls.Win rate'], [/^KDA/, 'controls.KDA'], [/^Morts/, 'controls.Morts'], [/^Vision/, 'controls.La vision'],
     [/^Remplaçants/, 'ArrowLeftRight'], [/^Golds à 15/, 'controls.Recall, golds et objets'], [/^Premier sang/, 'Droplet'],
     [/^Obligatoire/, 'controls.Obligatoire'], [/^Maîtrisé/, 'controls.Maîtrisé'], [/^(Hors pool|Autres champions)/, 'controls.Incertain'],
@@ -125,7 +125,7 @@
     '🔕': 'voice.Casque coupé', '📞': 'voice.Quitter', '🔴': 'voice.EN DIRECT', '👑': 'ribbons.Chef d’équipe' };
   const ROLES = { '🛡️': 'roles.Top', '🌲': 'roles.Jungle', '✨': 'roles.Mid', '🏹': 'roles.ADC', '💞': 'roles.Support' };
   // Petites icônes seules (cartes d'analyse, points forts d'équipe, objectifs d'une game).
-  const ICO_SEL = '.acard-ico, .tf-ico, .pz-lane, .cat-ico, .pj-ico, .princ-ico, .pc-ico, .tier-ico, .pk-b, .ibtn, .apill-ico, .mini-tag, .pool-card table.t td';
+  const ICO_SEL = '.acard-ico, .tf-ico, .pz-lane, .cat-ico, .pj-ico, .princ-ico, .lens-ico, .pc-ico, .tier-ico, .pk-b, .ibtn, .apill-ico, .mini-tag, .pool-card table.t td';
   // Libellés où 🎯 ⭐ ❔ apparaissent au milieu du texte (légendes POOL, changements de tierlist).
   const CAT_SEL = '.acard-chip, .chg, .catleg > span, .pool-hero p, .week-banner .wb-main .muted.small, .card-editor > p.muted.small';
   const OBJ = { '🩸': 'Droplet', '⚔️': 'Swords', '🐉': 'esport.Dragons', '🪱': 'esport.Larves', '👾': 'esport.Barons', '⏱️': 'controls.Heure', '🏰': 'esport.Tours' };

@@ -1153,14 +1153,47 @@
       later(() => streak(sb, rows));
     }
 
-    const tabs = [['resume', '📊 Résumé'], ['jours', '📅 Jour par jour'], ['champions', '🧙 Champions'], ['lexique', '📖 Comprendre les stats']];
+    const tabs = [['resume', '📊 Résumé'], ['lens', '🌳 Points forts'], ['jours', '📅 Jour par jour'], ['champions', '🧙 Champions'], ['lexique', '📖 Comprendre les stats']];
     view.append(h('nav', { class: 'tabs' }, tabs.map(([id, l]) => h('button', { class: 'tab', 'aria-selected': String(S.tab === id), onclick: () => { S.tab = id; render(); } }, l))));
     const page = h('section', { class: 'page' });
     view.append(page);
     if (S.tab === 'resume') pageResume(page, p, R, rep, rows, s, days, d, obj);
+    else if (S.tab === 'lens') pageLens(page, p, rows);
     else if (S.tab === 'jours') pageJours(page, p, R, rows, s, days);
     else if (S.tab === 'champions') pageChamps(page, p, champs, obj);
     else pageLexique(page, p, R, rep);
+  }
+
+  // Arbre des points forts : 6-7 domaines notés sur 100 (lens.js), l'arbre à droite, le détail à gauche.
+  function pageLens(page, p, rows) {
+    if (!window.FireLens) return;
+    if (rows.length < 3) { page.append(h('div', { class: 'card empty-state' }, 'Il faut au moins 3 games sur la période pour dessiner l’arbre des points forts.')); return; }
+    const A = FireLens.analyse(rows, p.role_id);
+    const ring = (score, color) => {
+      const r = 18, c = 2 * Math.PI * r, off = c * (1 - (score || 0) / 100);
+      const sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      sv.setAttribute('viewBox', '0 0 44 44'); sv.setAttribute('class', 'lens-ring');
+      sv.innerHTML = `<circle cx="22" cy="22" r="${r}" fill="none" stroke="var(--panel2)" stroke-width="5"/><circle cx="22" cy="22" r="${r}" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 22 22)"/><text x="22" y="23" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="700" fill="var(--fg)">${score}</text>`;
+      return sv;
+    };
+    S.lensOpen = S.lensOpen || {};
+    const cards = h('div', { class: 'lens-cards' }, A.domains.map((d) => {
+      const open = !!S.lensOpen[d.id];
+      return h('div', { class: 'lens-card' + (A.weakest === d.id ? ' weak' : '') + (A.best === d.id ? ' best' : ''), style: `--lc:${d.color}` },
+        h('button', { class: 'lens-head', onclick: () => { S.lensOpen[d.id] = !open; render(); } },
+          h('span', { class: 'lens-ico' }, d.ico), h('b', null, d.label),
+          A.weakest === d.id ? h('span', { class: 'lens-tag weak' }, 'À travailler') : A.best === d.id ? h('span', { class: 'lens-tag best' }, 'Point fort') : null,
+          ring(d.score, d.color)),
+        open ? h('div', { class: 'lens-stats' }, d.stats.map((x) => h('div', { class: 'lens-stat' },
+          h('span', null, x.label), h('b', null, FireLens.fmt(x.k, x.val)),
+          h('span', { class: 'lens-bar' }, h('i', { style: `width:${x.score == null ? 0 : x.score}%;background:${x.score >= 60 ? 'var(--ok)' : x.score < 40 ? 'var(--bad)' : 'var(--warn)'}` }))))) : null);
+    }));
+    const weak = A.domains.find((d) => d.id === A.weakest), best = A.domains.find((d) => d.id === A.best);
+    page.append(h('div', { class: 'card lens' },
+      h('div', { class: 'lens-top' }, h('div', null, h('h2', null, '🌳 Arbre des points forts'),
+        h('p', { class: 'muted small' }, `Sur ${A.games} games, comparé à un joueur ${roleOf(p).label} de niveau Émeraude : 50 = au niveau, plus = mieux. Clique sur un domaine pour voir le détail, survole l’arbre pour les valeurs.`)),
+        best && weak ? h('p', { class: 'lens-sum' }, h('span', { class: 'lens-tag best' }, best.label), ' est son point fort · ', h('span', { class: 'lens-tag weak' }, weak.label), ' est à travailler') : null),
+      h('div', { class: 'lens-body' }, cards, h('div', { class: 'lens-tree' }, FireLens.tree(A)))));
   }
 
   function pageResume(page, p, R, rep, rows, s, days, d, obj) {
