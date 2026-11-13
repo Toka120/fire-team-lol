@@ -648,6 +648,18 @@ ipcMain.handle('parties:save', (e, d) => {
     fs.mkdirSync(partiesDir(), { recursive: true }); fs.writeFileSync(path.join(partiesDir(), d.id + '.json'), txt); return true;
   } catch (err) { return false; }
 });
+// Positions lues sur la mini-carte (rubrique Revue) : ajoutées à la partie en cours d'enregistrement.
+ipcMain.on('parties:pos', (e, t, pts) => {
+  if (!REC || !Array.isArray(pts) || pts.length > 12) return;
+  REC.pos = REC.pos || [];
+  if (REC.pos.length > 8000) return;
+  REC.pos.push({ t: Math.max(0, Math.round(Number(t) || 0)), p: pts.map((x) => (Array.isArray(x) ? [x[0] | 0, x[1] | 0, x[2] | 0] : null)) });
+});
+// Icônes Data Dragon lues par FIRE (pour la mini-carte : pas de problème d'origine dans le canvas).
+ipcMain.handle('dd:image', async (e, p) => {
+  if (!/^cdn\/[\w.]+\/img\/champion\/[A-Za-z0-9]+\.png$/.test(String(p || ''))) return null;
+  try { const r = await fetch('https://ddragon.leagueoflegends.com/' + p); return r.ok ? Buffer.from(await r.arrayBuffer()) : null; } catch (err) { return null; }
+});
 ipcMain.handle('parties:delete', (e, id) => { try { if (!/^\d+$/.test(String(id))) return false; fs.unlinkSync(path.join(partiesDir(), id + '.json')); return true; } catch (err) { return false; } });
 
 // ---------- Clips instantanés : rangés dans Vidéos\FIRE Clips ----------
@@ -859,7 +871,16 @@ function dpmSession() {
 }
 
 // Exécutée DANS la page dpm.lol (même origine que son API). Doit rester autonome.
-async function grab(puuid, cutoff, maxPages) {
+async function grab(puuid, cutoff, maxPages, full) {
+  // Analyse de parties : pour les 20 dernières games, on garde le détail complet du joueur (build, sorts, notes dpm…).
+  const DROP = ['summonerId', 'profileIcon', 'pagePath', 'displayName', 'puuid', 'skillEvolves', 'playerAugment1', 'playerAugment2', 'playerAugment3', 'playerAugment4', 'playerAugment5', 'playerAugment6', 'placement', 'gameCreation'];
+  const games = [];
+  const slim = (p) => {
+    const o = {};
+    for (const [k, v] of Object.entries(p)) if (!DROP.includes(k)) o[k] = v;
+    o.itemActions = (p.itemActions || []).slice(0, 80).map((a) => [Math.round((a.timestamp || 0) / 1000), a.id, a.action === 'purchase' ? 1 : a.action === 'sell' ? 2 : 3]);
+    return o;
+  };
   const F = ['championName', 'win', 'opponentChampionName', 'lane', 'kills', 'deaths', 'assists', 'killParticipation',
     'totalMinionsKilled', 'neutralMinionsKilled', 'goldPerMinute', 'damagePerMinute', 'teamDamagePercentage',
     'visionScorePerMinute', 'controlWardsPlaced', 'stealthWardsPlaced', 'wardTakedowns', 'csDiffAt15', 'goldDiffAt15',
@@ -883,6 +904,7 @@ async function grab(puuid, cutoff, maxPages) {
       const o = { id: m.gameId, t: m.gameCreation, d: m.gameDuration, q: m.queueId };
       for (const k of F) o[k] = p[k];
       matches.push(o);
+      if (full && games.length < 20) games.push({ id: m.gameId, t: m.gameCreation, d: m.gameDuration, q: m.queueId, p: slim(p) });
     }
     if (j.matches[j.matches.length - 1].gameCreation < cutoff) break;
   }
@@ -896,7 +918,7 @@ async function grab(puuid, cutoff, maxPages) {
   } catch (e) { /* stats du split facultatives */ }
   const txt = (document.querySelector('main') || document.body).innerText || '';
   const m = txt.match(/(?:CLASS[ÉE] SOLO|RANKED SOLO)\s*\n([^\n]+)\n([^\n]+)/i);
-  return { matches, champs, rank: m ? m[1].trim() : '', record: m ? m[2].trim() : '' };
+  return { matches, champs, rank: m ? m[1].trim() : '', record: m ? m[2].trim() : '', ...(full ? { games } : {}) };
 }
 
 async function fetchPlayer(player, days) {
@@ -935,7 +957,7 @@ async function fetchPlayer(player, days) {
     const cutoff = Date.now() - days * 86400000;
     // Jusqu'à 70 pages de 15 games pour un joueur dont on veut toute l'année (stats_depuis), 14 sinon.
     const pages = Math.max(1, Math.min(70, Number(player.pages) || 14));
-    const data = await win.webContents.executeJavaScript(`(${grab.toString()})(${JSON.stringify(puuid)}, ${cutoff}, ${pages})`);
+    const data = await win.webContents.executeJavaScript(`(${grab.toString()})(${JSON.stringify(puuid)}, ${cutoff}, ${pages}, ${player.full ? 'true' : 'false'})`);
     return { ok: true, puuid, at: Date.now(), ...data };
   } catch (e) {
     return { ok: false, error: String((e && e.message) || e) };

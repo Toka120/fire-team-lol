@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "1.10.118",
+   "date": "2026-11-13",
+   "titre": "Analyse de parties poussée à fond, champions sur la carte",
+   "items": [
+    [
+     "new",
+     "Analyse de parties, refaite (réservée aux titulaires) : choisis un joueur de l'équipe ou cherche n'importe qui. Vue d'ensemble des 20 dernières games : victoires, KDA, note moyenne de la partie, classement moyen parmi les 10 joueurs, nombre de fois 1er et sur le podium, profil de jeu (d'où viennent ses points : lane, objectifs, jeu d'équipe, jungle) avec sa force et son point à travailler, et champions joués."
+    ],
+    [
+     "new",
+     "Chaque game en détail : note de la partie avec son détail par catégorie et son classement (sur 10 et dans l'équipe), verdict « ce qui a marché / à travailler », combat (KDA, participation, part des dégâts, solo kills…), lane (écarts d'or, de sbires et d'XP à 15 min, plaques, niveau 2), vision et objectifs."
+    ],
+    [
+     "new",
+     "Toujours dans la game : le build minute par minute avec les icônes, l'ordre des sorts niveau par niveau (Q W E R), les pings, et la comparaison avec sa moyenne."
+    ],
+    [
+     "new",
+     "Revue de parties : les champions bougent sur la carte. Pendant tes games, FIRE lit ta mini-carte à l'écran une fois par seconde et y reconnaît les 10 champions (il ne voit que ce que tu vois). À régler une fois : « Régler (capture dans 5 s) » dans Revue de parties, puis place le cadre sur ta mini-carte. La taille des icônes se règle toute seule pendant la première minute."
+    ],
+    [
+     "improve",
+     "Les remplaçants n'ont plus accès à l'Analyse ni à la Revue de parties."
+    ]
+   ]
+  },
+  {
    "v": "1.10.117",
    "date": "2026-11-13",
    "titre": "Revue de parties",

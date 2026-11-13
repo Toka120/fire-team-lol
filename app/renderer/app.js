@@ -1104,6 +1104,75 @@
 
 
 
+
+  // ----- Suivi de la mini-carte pendant la partie (pour voir les champions bouger dans la Revue) -----
+  const mmCfg = () => ({ on: true, rect: null, src: '', frac: 0.085, ...load('fire.mm', {}) });
+  const MM = { key: '', running: false };
+  async function mmLive(g) {
+    if (!window.FireMinimap || !window.fire.parties || SUB()) return;
+    const c = mmCfg();
+    if (!g || !c.on || !c.rect) { if (MM.running) { FireMinimap.stop(); MM.running = false; MM.key = ''; } return; }
+    const key = g.players.map((p) => p.n).sort().join('|');
+    if (MM.running && MM.key === key) return;
+    if (MM.busy) return;
+    MM.busy = true; MM.key = key;
+    try {
+      let src = c.src;
+      if (!src && window.fire.screen) { const l = await window.fire.screen.sources().catch(() => []); const sc = (l || []).find((x) => x.screen); src = sc && sc.id; }
+      if (!src) return;
+      const players = g.players.map((p) => ({ c: p.c }));
+      await FireMinimap.start({ sourceId: src, rect: c.rect, frac: c.frac, fixed: !!c.fracOk, players, ver: (S.champList && S.champList.version) || '',
+        onScale: (f) => save('fire.mm', { ...mmCfg(), frac: f, fracOk: true }),
+        onPos: (pts) => { const L = LIVE.mine; if (!L) return; const t = L.time + (Date.now() - (L.at || Date.now())) / 1000; window.fire.parties.pos(t, pts); } });
+      MM.running = FireMinimap.state().on;
+    } finally { MM.busy = false; }
+  }
+  // Réglage du cadre de la mini-carte : une image de l'écran prise quelques secondes après le clic (le temps de revenir en jeu).
+  async function mmCalibrate(delay) {
+    const c = mmCfg();
+    let src = c.src;
+    const list = window.fire.screen ? await window.fire.screen.sources().catch(() => []) : [];
+    const screens = (list || []).filter((x) => x.screen);
+    if (!src && screens[0]) src = screens[0].id;
+    if (!src) { alert('Aucun écran trouvé.'); return; }
+    let shot;
+    try { shot = await FireMinimap.snapshot(src, delay); } catch (e) { alert('Capture de l’écran impossible.'); return; }
+    const W = shot.w, H = shot.h;
+    const r = c.rect || (() => { const sz = Math.round(H * 0.255), m = Math.round(H * 0.004); return { x: (W - sz - m) / W, y: (H - sz - m) / H, w: sz / W, h: sz / H }; })();
+    const st = { x: r.x * W, y: r.y * H, s: r.w * W };
+    const box = h('div', { class: 'mm-box' });
+    const img = h('img', { src: shot.url, class: 'mm-img', draggable: 'false' });
+    const wrap = h('div', { class: 'mm-wrap' }, img, box);
+    const place = () => { const k = img.clientWidth / W; Object.assign(box.style, { left: st.x * k + 'px', top: st.y * k + 'px', width: st.s * k + 'px', height: st.s * k + 'px' }); };
+    let drag = null;
+    box.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, sx: st.x, sy: st.y }; box.setPointerCapture(e.pointerId); });
+    box.addEventListener('pointermove', (e) => { if (!drag) return; const k = img.clientWidth / W; st.x = Math.max(0, Math.min(W - st.s, drag.sx + (e.clientX - drag.x) / k)); st.y = Math.max(0, Math.min(H - st.s, drag.sy + (e.clientY - drag.y) / k)); place(); });
+    box.addEventListener('pointerup', () => { drag = null; });
+    const size = h('input', { type: 'range', min: Math.round(H * 0.12), max: Math.round(H * 0.5), value: Math.round(st.s), oninput: (e) => { const ns = Number(e.target.value); st.x = Math.min(W - ns, st.x + (st.s - ns)); st.y = Math.min(H - ns, st.y + (st.s - ns)); st.s = ns; place(); } });
+    const ovl = h('div', { class: 'popup-modal mm-modal' }, h('div', { class: 'card mm-card' },
+      h('h3', null, '🗺️ Place le cadre sur ta mini-carte'),
+      h('p', { class: 'muted small' }, 'Fais glisser le carré pour qu’il entoure exactement la mini-carte, et règle sa taille avec le curseur. FIRE ne lira que ce carré, une fois par seconde, pendant tes games.'),
+      wrap, h('div', { class: 'row' }, h('small', null, 'Taille'), size,
+        screens.length > 1 ? h('select', { class: 'inp', onchange: async (e) => { save('fire.mm', { ...mmCfg(), src: e.target.value }); ovl.remove(); mmCalibrate(0); } }, screens.map((x) => h('option', { value: x.id, selected: x.id === src ? true : null }, x.name))) : null),
+      h('div', { class: 'row' },
+        h('button', { class: 'btn-fire small-btn', onclick: () => { save('fire.mm', { ...mmCfg(), src, rect: { x: st.x / W, y: st.y / H, w: st.s / W, h: st.s / H }, fracOk: false }); ovl.remove(); vocalToast('Mini-carte réglée ✓', true); if (S.section === 'revue') renderRevue(); } }, '✅ Enregistrer'),
+        h('button', { class: 'btn-ghost', onclick: () => ovl.remove() }, 'Annuler'))));
+    document.body.append(ovl);
+    if (img.complete) place(); else img.onload = place;
+    window.addEventListener('resize', place);
+  }
+  function mmCard() {
+    const c = mmCfg();
+    return h('div', { class: 'card mm-set' },
+      h('div', { class: 'row' }, h('b', null, '🗺️ Voir les champions bouger'),
+        h('label', { class: 'vs-sw mm-sw' }, h('span', null, h('small', null, c.on ? 'Activé' : 'Désactivé')), h('input', { type: 'checkbox', class: 'vs-tog', checked: c.on ? true : null, onchange: (e) => { save('fire.mm', { ...mmCfg(), on: e.target.checked }); renderRevue(); } }))),
+      h('p', { class: 'muted small' }, 'Pendant tes games, FIRE lit ta mini-carte à l’écran une fois par seconde et y repère les 10 champions, pour les montrer sur la carte de la Revue. Il ne voit que ce que tu vois (brouillard de guerre). Rien n’est lu dans le jeu.'),
+      h('div', { class: 'row' },
+        h('span', { class: c.rect ? 'good small' : 'bad small' }, c.rect ? '✓ Cadre de la mini-carte réglé' : '⚠ À régler une fois'),
+        h('button', { class: 'btn-ghost', onclick: () => { vocalToast('Retourne dans le jeu : capture dans 5 secondes…', true); mmCalibrate(5000); } }, '⏱ Régler (capture dans 5 s)'),
+        h('button', { class: 'btn-ghost', onclick: () => mmCalibrate(0) }, 'Régler maintenant')));
+  }
+
   // ===== Revue de parties : chaque game jouée est enregistrée par FIRE (API locale officielle de Riot) et se revoit ici =====
   // Carte avec tours, inhibiteurs et objectifs dans le temps, tableau à chaque instant, timeline des kills et objectifs,
   // clips de la partie, dessins et notes horodatées. Une partie peut être partagée avec l'équipe pour la revoir ensemble.
@@ -1193,6 +1262,7 @@
         h('button', { class: 'plan-tab', 'aria-pressed': String(RV.tab !== 'team'), onclick: () => { RV.tab = 'mine'; rvLoadList(); renderRevue(); } }, `🎮 Mes parties (${(RV.list || []).length})`),
         SUB() ? null : h('button', { class: 'plan-tab', 'aria-pressed': String(RV.tab === 'team'), onclick: () => { RV.tab = 'team'; rvLoadTeam(); renderRevue(); } }, `👥 Revues de l’équipe (${(RV.team || []).length})`)),
       RV.err ? h('p', { class: 'muted small' }, '⚠ ' + RV.err) : null,
+      RV.tab !== 'team' ? mmCard() : null,
       list.length ? h('div', { class: 'rv-list' }, list.map((x) => card(x, RV.tab === 'team' ? 'team' : 'local')))
         : h('div', { class: 'card' }, h('p', { class: 'muted' }, RV.tab === 'team' ? 'Aucune revue partagée pour l’instant. Ouvre une de tes parties et clique sur « Partager avec l’équipe ».' : 'Aucune partie enregistrée pour l’instant. Joue une game avec FIRE ouvert : elle apparaîtra ici à la fin de la partie.')));
   }
@@ -1267,6 +1337,14 @@
       for (const [k, c] of Object.entries(RV_IN)) pts.push(dot(c, 'inh ' + (k.startsWith('T1') ? 'blue' : 'red') + (st.inhibs[k] != null ? ' down' : ''), 'Inhibiteur'));
       pts.push(dot(RV_PIT.drag, 'pit', `Dragons : bleus ${st.drag.ORDER.length} · rouges ${st.drag.CHAOS.length}`, '🐉'));
       pts.push(dot(RV_PIT.baron, 'pit', 'Nashor / Héraut / Larves', '🟣'));
+      // Champions : dernière position lue sur la mini-carte (moins de 10 s), plus pâle quand elle date un peu.
+      if (Array.isArray(g.pos) && g.pos.length) {
+        let i = g.pos.length - 1; while (i > 0 && g.pos[i].t > t) i--;
+        const seen = new Array((g.players || []).length).fill(null);
+        for (let j = i; j >= 0 && t - g.pos[j].t <= 10; j--) (g.pos[j].p || []).forEach((q, k) => { if (q && !seen[k]) seen[k] = { q, age: t - g.pos[j].t }; });
+        seen.forEach((x, k) => { if (!x) return; const pl = g.players[k];
+          pts.push(h('span', { class: 'rv-champ ' + (pl.team === 'ORDER' ? 'blue' : 'red') + (pl.n === g.me ? ' me' : ''), style: `left:${x.q[0] / 10}%;top:${x.q[1] / 10}%;opacity:${x.age > 4 ? 0.45 : 1}`, title: FC.champName(pl.c) }, champIcon(pl.c, 26))); });
+      }
       for (const e of st.recent) {
         const c = e.x === 'DragonKill' ? RV_PIT.drag : /Baron|Herald|Horde/.test(e.x) ? RV_PIT.baron : e.x === 'AtakhanKill' ? RV_PIT.atakhan : e.x === 'TurretKilled' ? (() => { const m = String(e.tw).match(/T([12])_([LCR])_(\d\d)/); return m && RV_TW[`T${m[1]}_${m[2]}_${m[3]}`]; })() : e.x === 'InhibKilled' ? (() => { const m = String(e.tw).match(/T([12])_([LCR])/); return m && RV_IN[`T${m[1]}_${m[2]}`]; })() : null;
         if (c) pts.push(dot(c, 'ping ' + (e.kt === 'ORDER' ? 'blue' : 'red'), ''));
@@ -1430,7 +1508,7 @@
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🧰'), h('div', null, h('h1', { class: 'title' }, 'Outils'),
         h('p', { class: 'muted' }, 'Tout ce qu’il faut pour progresser, rangé par thème.'))),
       h('div', { class: 'row meet-tabs' },
-        h('button', { class: 'btn-fire small-btn', onclick: () => go('parties') }, '🔎 Analyse de parties'),
+        SUB() ? null : h('button', { class: 'btn-fire small-btn', onclick: () => go('parties') }, '🔬 Analyse de parties'),
         meetOk() ? h('button', { class: 'btn-ghost', onclick: () => go('reunion') }, '🧑‍🏫 Salle de réunion (coachs)') : null,
         h('button', { class: 'btn-ghost', onclick: () => go('draft') }, '⚡ Draft, matchups et tier list')),
       ...TOOL_CATS.flatMap(([title, list]) => [h('h2', { class: 'hub-sec' }, h('span', null, title)),
@@ -1438,68 +1516,170 @@
           h('span', { class: 'meet-ico' }, t.ico), h('b', null, t.name), h('small', { class: 'muted' }, t.desc), h('span', { class: 'meet-go' }, 'Ouvrir →'))))]));
   }
 
-  // ===== Analyse de parties : les dernières games de n'importe quel joueur (dpm.lol), analysées une par une =====
-  const PT = { mode: 'moi', region: 'EUW', name: '', tag: '', busy: false, err: '', sel: null, extra: {}, recent: load('fire.pt.recent', []) };
+  // ===== Analyse de parties (titulaires) : les 20 dernières games d'un joueur, chacune décortiquée =====
+  // Pas les mêmes infos que « Stats des joueurs » : ici chaque game a sa note dpm.lol détaillée (lane, objectifs, jeu
+  // d'équipe, jungle), son classement parmi les 10 joueurs, le build dans l'ordre avec les minutes, l'ordre des sorts,
+  // la vision, les pings et un verdict « ce qui a marché / à travailler ».
+  const PT = { mode: 'equipe', region: 'EUW', name: '', tag: '', busy: false, err: '', who: null, game: null, recent: load('fire.pt.recent', []), G: {} };
   const PT_REG = ['EUW', 'EUNE', 'NA', 'KR', 'BR', 'LAN', 'LAS', 'OCE', 'TR', 'RU', 'JP'];
   const LANE_ROLE = { TOP: 'top', JUNGLE: 'jungle', MIDDLE: 'mid', BOTTOM: 'adc', UTILITY: 'support' };
+  const PT_CAT = { global: ['💥', 'Impact sur la partie'], lane: ['🛣️', 'Phase de lane'], objectives: ['🐉', 'Objectifs'], team: ['🤝', 'Jeu d’équipe'], jungle: ['🌲', 'Jungle'], gameState: ['🏁', 'Résultat'] };
+  const PT_DET = { kills: 'Kills', deaths: 'Morts', assists: 'Assists', csm: 'Sbires / min', goldPerMinute: 'Or / min', damagePerMinute: 'Dégâts / min', visionScorePerMinute: 'Vision / min', firstBlood: 'First blood',
+    champExperienceDiff: 'Écart d’XP', goldDiff: 'Écart d’or', visionDiff: 'Écart de vision', maxCsAdvantageOnLaneOpponent: 'Avance de sbires max', riftHerald: 'Héraut', dragon: 'Dragons', baron: 'Nashor', horde: 'Larves',
+    damageDealtToObjectives: 'Dégâts aux objectifs', epicMonsterSteals: 'Vols d’objectifs', killParticipation: 'Participation aux kills', damageTakenOnTeamPercentage: 'Part des dégâts encaissés', teamDamagePercentage: 'Part des dégâts de l’équipe',
+    win: 'Victoire', initialCrabCount: 'Carapateurs du début', scuttleCrabKills: 'Carapateurs', jungleCsBefore10Minutes: 'Camps avant 10 min', enemyJungleMonsterKills: 'Camps adverses volés', buffsStolen: 'Buffs volés', pickKillWithAlly: 'Picks avec un allié' };
+  const ptRank = (r) => (r === 1 ? '1er' : r ? r + 'e' : '—');
+  async function ptLoad(slug, puuid) {
+    PT.busy = true; PT.err = ''; renderParties();
+    let r; try { r = await window.fire.fetchPlayer({ slug, puuid: puuid || null, pages: 2, full: true }, 31); } catch (e) { r = { ok: false, error: String(e) }; }
+    PT.busy = false;
+    if (!r || !r.ok || !Array.isArray(r.games)) { PT.err = `Lecture impossible sur dpm.lol (${(r && r.error) || 'erreur'}).`; renderParties(); return false; }
+    PT.G[slug] = { at: Date.now(), games: r.games, rank: r.rank, record: r.record };
+    renderParties();
+    return true;
+  }
   async function ptSearch(name, tag, region) {
     name = String(name || '').trim(); tag = String(tag || '').trim().replace(/^#/, '');
     if (!name || !tag) { PT.err = 'Entre le pseudo et le tag (ex. Faker # EUW).'; renderParties(); return; }
     const slug = encodeURIComponent(name) + '-' + encodeURIComponent(tag);
-    const known = S.players.find((p) => p.slug === slug);
     PT.recent = [{ name, tag, region }].concat(PT.recent.filter((x) => !(x.name.toLowerCase() === name.toLowerCase() && x.tag.toLowerCase() === tag.toLowerCase()))).slice(0, 6);
     save('fire.pt.recent', PT.recent);
-    PT.err = ''; PT.sel = slug;
-    if (known && S.data[slug]) { PT.extra[slug] = null; renderParties(); return; }
-    PT.busy = true; renderParties();
-    let r; try { r = await window.fire.fetchPlayer({ slug, puuid: null, pages: 8 }, 31); } catch (e) { r = { ok: false, error: String(e) }; }
-    PT.busy = false;
-    if (!r || !r.ok) { PT.err = `Impossible de lire ${name}#${tag} sur dpm.lol (${(r && r.error) || 'erreur'}). Vérifie le pseudo et le tag.`; PT.sel = null; renderParties(); return; }
-    // Poste le plus joué en Solo/Duo, pour les repères de l'analyse.
-    const cnt = {}; (r.matches || []).forEach((m) => { const k = LANE_ROLE[m.lane]; if (k) cnt[k] = (cnt[k] || 0) + 1; });
-    const role_id = Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([k]) => k)[0] || 'mid';
-    PT.extra[slug] = { slug, pseudo: name + '#' + tag, role: FC.ROLES[role_id].label + ' · recherche', role_id, temp: true, region };
-    S.data[slug] = r; S.status[slug] = { state: 'ok' };
-    renderParties();
+    PT.who = { slug, pseudo: name + '#' + tag }; PT.game = null;
+    if (!PT.G[slug]) await ptLoad(slug); else renderParties();
   }
+  function ptPick(p) { PT.who = { slug: p.slug, pseudo: p.pseudo, puuid: p.puuid }; PT.game = null; if (!PT.G[p.slug] || Date.now() - PT.G[p.slug].at > 10 * 60000) ptLoad(p.slug, p.puuid || (load('fire.puuids', {}) || {})[p.slug]); else renderParties(); }
   function renderParties() {
     const view = $('view');
-    const meP = S.players.find((p) => p.slug === S.moi);
+    const titulaires = S.players.filter((p) => p.slug && !p.pending && !isSub(p));
     const field = (lab, el) => h('label', { class: 'pt-f' }, h('small', null, lab), el);
     const nameI = h('input', { class: 'inp', placeholder: 'Faker', value: PT.name, oninput: (e) => { PT.name = e.target.value; } });
     const tagI = h('input', { class: 'inp', placeholder: 'EUW', value: PT.tag, oninput: (e) => { PT.tag = e.target.value; } });
     const go2 = () => ptSearch(PT.name, PT.tag, PT.region);
     [nameI, tagI].forEach((x) => x.addEventListener('keydown', (e) => { if (e.key === 'Enter') go2(); }));
-    // Coller « Pseudo#TAG » dans le champ pseudo remplit les deux.
     nameI.addEventListener('paste', (e) => { const t = (e.clipboardData && e.clipboardData.getData('text')) || ''; if (t.includes('#')) { e.preventDefault(); const j = t.lastIndexOf('#'); PT.name = t.slice(0, j).trim(); PT.tag = t.slice(j + 1).trim(); renderParties(); } });
-    const head = h('div', { class: 'pt-head' },
-      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🔎'), h('div', null, h('h1', { class: 'title' }, 'Analyse de parties'),
-        h('p', { class: 'muted' }, 'Retrouve les dernières games classées de n’importe quel joueur et analyse-les une par une.'))),
+    if (!PT.who && S.moi && titulaires.some((p) => p.slug === S.moi)) { const me = titulaires.find((p) => p.slug === S.moi); PT.who = { slug: me.slug, pseudo: me.pseudo, puuid: me.puuid }; }
+    const head = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🔬'), h('div', null, h('h1', { class: 'title' }, 'Analyse de parties'),
+        h('p', { class: 'muted' }, 'Chaque game décortiquée : la note de la partie et son détail, le classement parmi les 10 joueurs, la lane, le build minute par minute, l’ordre des sorts, la vision, et ce qu’il faut retenir.'))),
       h('div', { class: 'row pt-modes' },
-        h('button', { class: 'plan-tab', 'aria-pressed': String(PT.mode === 'moi'), onclick: () => { PT.mode = 'moi'; PT.sel = S.moi; renderParties(); } }, '👤 Mon compte'),
-        h('button', { class: 'plan-tab', 'aria-pressed': String(PT.mode === 'manuel'), onclick: () => { PT.mode = 'manuel'; PT.sel = PT.sel === S.moi ? null : PT.sel; renderParties(); } }, '🔎 Recherche manuelle')),
-      PT.mode === 'manuel' ? [
-        PT.recent.length ? h('div', { class: 'row pt-recent' }, h('small', { class: 'muted' }, 'Dernières recherches'),
+        h('button', { class: 'plan-tab', 'aria-pressed': String(PT.mode === 'equipe'), onclick: () => { PT.mode = 'equipe'; renderParties(); } }, '🔥 L’équipe'),
+        h('button', { class: 'plan-tab', 'aria-pressed': String(PT.mode === 'manuel'), onclick: () => { PT.mode = 'manuel'; renderParties(); } }, '🔎 Recherche manuelle')),
+      PT.mode === 'equipe' ? h('div', { class: 'row pt-roster' }, titulaires.map((p) => h('button', { class: 'chip' + (PT.who && PT.who.slug === p.slug ? ' on' : ''), 'aria-pressed': String(!!(PT.who && PT.who.slug === p.slug)), onclick: () => ptPick(p) }, roleOf(p).ico + ' ' + String(p.pseudo).split('#')[0])))
+        : [PT.recent.length ? h('div', { class: 'row pt-recent' }, h('small', { class: 'muted' }, 'Dernières recherches'),
           PT.recent.map((x) => h('button', { class: 'chip', onclick: () => { PT.name = x.name; PT.tag = x.tag; PT.region = x.region || 'EUW'; ptSearch(x.name, x.tag, x.region); } }, h('b', null, x.name), h('span', { class: 'muted' }, '#' + x.tag + ' · ' + (x.region || 'EUW'))))) : null,
-        h('div', { class: 'card pt-form' },
-          field('Région', h('select', { class: 'inp', onchange: (e) => { PT.region = e.target.value; } }, PT_REG.map((r) => h('option', { value: r, selected: PT.region === r ? true : null }, r)))),
-          field('Pseudo', nameI), h('span', { class: 'pt-hash' }, '#'), field('Tag', tagI),
-          h('button', { class: 'btn-fire small-btn', disabled: PT.busy ? true : null, onclick: go2 }, PT.busy ? 'Recherche…' : 'Chercher')),
-        PT.err ? h('p', { class: 'bad small' }, '⚠ ' + PT.err) : null,
-        PT.busy ? h('div', { class: 'card' }, h('p', { class: 'muted' }, '⏳ Lecture des parties sur dpm.lol… (20 à 40 secondes)')) : null] : null);
-    const slug = PT.mode === 'moi' ? S.moi : PT.sel;
-    if (!slug || PT.busy) {
-      view.replaceChildren(...[head, PT.mode === 'moi' && !meP ? h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Choisis d’abord qui tu es.'), h('button', { class: 'btn-fire small-btn', onclick: () => askWho() }, 'Qui es-tu ?'))
-        : !PT.busy && PT.mode === 'manuel' ? h('p', { class: 'muted small' }, 'Astuce : colle directement « Pseudo#TAG » dans le champ Pseudo.') : null].flat().filter(Boolean));
-      return;
-    }
-    // Analyse : la même page que celle d'un joueur de l'équipe (résumé, points forts, jour par jour avec chaque game, champions).
-    if (S.player !== slug) { S.player = slug; S.tab = 'jours'; S.jour = 'tous'; }
-    if (!S.data[slug] && PT.mode === 'moi') { view.replaceChildren(...[head, h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Tes stats sont en cours de lecture…'))].flat().filter(Boolean)); return; }
-    renderPlayer();
-    view.prepend(...[head].flat().filter(Boolean));
+          h('div', { class: 'card pt-form' },
+            field('Région', h('select', { class: 'inp', onchange: (e) => { PT.region = e.target.value; } }, PT_REG.map((r) => h('option', { value: r, selected: PT.region === r ? true : null }, r)))),
+            field('Pseudo', nameI), h('span', { class: 'pt-hash' }, '#'), field('Tag', tagI),
+            h('button', { class: 'btn-fire small-btn', disabled: PT.busy ? true : null, onclick: go2 }, PT.busy ? 'Recherche…' : 'Chercher'))],
+      PT.err ? h('p', { class: 'bad small' }, '⚠ ' + PT.err) : null,
+      PT.busy ? h('div', { class: 'card' }, h('p', { class: 'muted' }, '⏳ Lecture des 20 dernières games sur dpm.lol… (20 à 40 secondes)')) : null].flat().filter(Boolean);
+    const D = PT.who && PT.G[PT.who.slug];
+    if (!PT.who || PT.busy) { view.replaceChildren(...head, !PT.who && !PT.busy ? h('div', { class: 'card' }, h('p', { class: 'muted' }, PT.mode === 'equipe' ? 'Choisis un joueur de l’équipe.' : 'Cherche un joueur.')) : null); return; }
+    if (!D) { if (!PT.busy && !PT.err) ptLoad(PT.who.slug, PT.who.puuid || (load('fire.puuids', {}) || {})[PT.who.slug]); view.replaceChildren(...head); return; }
+    if (PT.game != null) { const g = D.games.find((x) => x.id === PT.game); if (g) { view.replaceChildren(...head, ptGame(g, D)); return; } }
+    view.replaceChildren(...head, ...ptOverview(D));
   }
-
+  // Vue d'ensemble des 20 dernières games.
+  function ptOverview(D) {
+    const gs = D.games;
+    if (!gs.length) return [h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Aucune game récente.'))];
+    const n = gs.length, w = gs.filter((g) => g.p.win).length;
+    const avg = (f) => { const xs = gs.map(f).filter((x) => x != null && !isNaN(x)); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null; };
+    const K = avg((g) => g.p.kills), De = avg((g) => g.p.deaths), A = avg((g) => g.p.assists);
+    const score = avg((g) => g.p.dpmScore), rk = avg((g) => g.p.dpmScoreRank);
+    const mvp = gs.filter((g) => g.p.dpmScoreRank === 1).length, top3 = gs.filter((g) => g.p.dpmScoreRank && g.p.dpmScoreRank <= 3).length;
+    // Profil : moyenne de chaque partie de la note (forces et faiblesses).
+    const cats = Object.keys(PT_CAT).filter((k) => k !== 'gameState').map((k) => [k, avg((g) => g.p.dpmScoreDetails && g.p.dpmScoreDetails[k] ? g.p.dpmScoreDetails[k].score : null)]).filter(([, v]) => v != null);
+    const mx = Math.max(1, ...cats.map(([, v]) => Math.abs(v)));
+    const sorted = cats.slice().sort((a, b) => b[1] - a[1]);
+    const champs = {}; gs.forEach((g) => { const c = (champs[g.p.championName] = champs[g.p.championName] || { n: 0, w: 0, s: 0 }); c.n++; if (g.p.win) c.w++; c.s += g.p.dpmScore || 0; });
+    const stat = (lab, val, sub) => h('div', { class: 'pt-stat' }, h('small', { class: 'muted' }, lab), h('b', null, val), sub ? h('small', { class: 'muted' }, sub) : null);
+    return [
+      h('div', { class: 'card pt-ov' }, h('div', { class: 'pt-ovh' }, h('h2', null, PT.who.pseudo), D.rank ? h('span', { class: 'chip' }, D.rank) : null, h('small', { class: 'muted' }, `${n} dernières games, toutes files`)),
+        h('div', { class: 'pt-stats' }, stat('Victoires', `${w} V – ${n - w} D`, `${fr(w / n * 100)} %`), stat('KDA moyen', `${fr(K, 1)} / ${fr(De, 1)} / ${fr(A, 1)}`, `${fr((K + A) / Math.max(1, De), 2)} KDA`),
+          stat('Note moyenne', fr(score, 1), 'note dpm.lol de la partie'), stat('Classement moyen', rk ? fr(rk, 1) + 'e / 10' : '—', `${mvp} fois 1er · ${top3} fois sur le podium`))),
+      h('div', { class: 'pt-two' },
+        h('div', { class: 'card' }, h('h3', null, '🧬 Profil de jeu'), h('p', { class: 'muted small' }, 'D’où viennent ses points, en moyenne (au-dessus de 0 : il apporte ; en dessous : il coûte).'),
+          cats.map(([k, v]) => h('div', { class: 'pt-bar' }, h('span', null, PT_CAT[k][0] + ' ' + PT_CAT[k][1]), h('div', { class: 'pt-track' }, h('i', { class: v >= 0 ? 'pos' : 'neg', style: `width:${Math.abs(v) / mx * 50}%;${v >= 0 ? 'left:50%' : 'right:50%'}` })), h('b', null, (v > 0 ? '+' : '') + fr(v, 1)))),
+          sorted.length >= 2 ? h('p', { class: 'small' }, '💪 Force : ', h('b', null, PT_CAT[sorted[0][0]][1]), ' · ⚠️ À travailler : ', h('b', null, PT_CAT[sorted[sorted.length - 1][0]][1])) : null),
+        h('div', { class: 'card' }, h('h3', null, '🧙 Champions joués'),
+          Object.entries(champs).sort((a, b) => b[1].n - a[1].n).map(([c, x]) => h('div', { class: 'pt-ch' }, champIcon(c, 28), h('b', null, FC.champName(c)), h('small', { class: 'muted' }, `${x.n} game${x.n > 1 ? 's' : ''} · ${fr(x.w / x.n * 100)} % · note ${fr(x.s / x.n, 1)}`))))),
+      h('h2', { class: 'hub-sec' }, h('span', null, '🎮 Les games'), h('small', { class: 'muted' }, 'clique sur une game pour l’analyse complète')),
+      h('div', { class: 'pt-games' }, gs.map((g) => { const p = g.p;
+        return h('button', { class: 'pt-g ' + (p.win ? 'win' : 'lose'), onclick: () => { PT.game = g.id; renderParties(); window.scrollTo(0, 0); } },
+          h('span', { class: 'pt-gc' }, champIcon(p.championName, 40), p.opponentChampionName ? h('small', { class: 'muted' }, 'vs') : null, p.opponentChampionName ? champIcon(p.opponentChampionName, 26) : null),
+          h('span', { class: 'pt-gi' }, h('b', null, `${p.kills} / ${p.deaths} / ${p.assists}`), h('small', { class: 'muted' }, `${gameModeLabel({ queue: { id: g.q } })} · ${mmss(g.d)} · ${dayFrT(g.t)}`)),
+          h('span', { class: 'pt-gs' }, h('b', null, fr(p.dpmScore, 1)), h('small', null, ptRank(p.dpmScoreRank) + ' / 10')),
+          h('span', { class: 'pt-gr' }, p.win ? 'Victoire' : 'Défaite')); }))];
+  }
+  // Une game en détail.
+  function ptGame(g, D) {
+    const p = g.p, min = Math.max(1, g.d / 60), v = (S.champList && S.champList.version) || '';
+    const role = LANE_ROLE[p.lane] || 'mid', sup = role === 'support', jgl = role === 'jungle';
+    const cs = (p.totalMinionsKilled || 0) + (p.neutralMinionsKilled || 0);
+    const item = (id, sz) => id ? h('img', { class: 'pt-it', src: `https://ddragon.leagueoflegends.com/cdn/${v}/img/item/${id}.png`, width: sz || 30, height: sz || 30, alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } }) : h('span', { class: 'pt-it empty' });
+    const kv = (lab, val, cls) => h('div', { class: 'pt-kv' + (cls ? ' ' + cls : '') }, h('small', { class: 'muted' }, lab), h('b', null, val));
+    const sg2 = (x, d) => (x == null ? '—' : (x > 0 ? '+' : '') + fr(x, d || 0));
+    // Verdict : ce qui a marché, ce qui est à travailler (seuils simples, toujours vrais).
+    const good = [], bad = [];
+    if (p.dpmScoreRank === 1) good.push('Meilleur joueur de la partie (1er sur 10).'); else if (p.dpmScoreRank >= 9) bad.push(`Parmi les moins influents de la partie (${p.dpmScoreRank}e sur 10).`);
+    if (p.deaths <= 2 && g.d > 1200) good.push(`Très peu de morts (${p.deaths}).`); else if (p.deaths >= 8) bad.push(`Beaucoup de morts (${p.deaths}) : chaque mort donne de l’or et du temps à l’adversaire.`);
+    if (p.killParticipation >= 60) good.push(`Présent dans ${fr(p.killParticipation)} % des kills de l’équipe.`); else if (p.killParticipation != null && p.killParticipation < 35 && role !== 'top') bad.push(`Seulement ${fr(p.killParticipation)} % de participation aux kills.`);
+    if (!sup && !jgl) { const c = cs / min; if (c >= 7.5) good.push(`Bon farm : ${fr(c, 1)} sbires / min.`); else if (c < 5.5) bad.push(`Farm à améliorer : ${fr(c, 1)} sbires / min (objectif 7+).`); }
+    if (p.goldDiffAt15 >= 500) good.push(`Lane gagnée : ${sg2(p.goldDiffAt15)} or à 15 min.`); else if (p.goldDiffAt15 <= -500) bad.push(`Lane perdue : ${sg2(p.goldDiffAt15)} or à 15 min.`);
+    if (p.csDiffAt15 <= -15 && !sup) bad.push(`${sg2(p.csDiffAt15)} sbires d’écart à 15 min.`);
+    const vpm = p.visionScorePerMinute || 0;
+    if ((sup && vpm >= 2) || (!sup && vpm >= 1.1)) good.push(`Bonne vision : ${fr(vpm, 2)} / min.`); else if ((sup && vpm < 1.5) || (!sup && vpm < 0.6)) bad.push(`Vision faible : ${fr(vpm, 2)} / min${sup ? ' (support : vise 2+)' : ''}.`);
+    if (!p.controlWardsPlaced && g.d > 1200) bad.push('Aucune balise de contrôle posée.');
+    if (p.teamDamagePercentage >= 28 && !sup) good.push(`${fr(p.teamDamagePercentage)} % des dégâts de l’équipe.`);
+    if (p.soloKills >= 2) good.push(`${p.soloKills} solo kills.`);
+    if (p.turretPlatesTaken >= 2) good.push(`${p.turretPlatesTaken} plaques de tour prises.`);
+    if (p.isFirstToHitLevel2) good.push('Premier niveau 2 de la lane.');
+    if (p.epicMonsterSteals) good.push(`${p.epicMonsterSteals} objectif${p.epicMonsterSteals > 1 ? 's' : ''} volé${p.epicMonsterSteals > 1 ? 's' : ''}.`);
+    if ((p.enemyMissingPings || 0) === 0 && g.d > 1200 && (role === 'mid' || sup)) bad.push('Aucun ping « disparu » : préviens quand ton adversaire quitte la lane.');
+    // Comparaison avec sa moyenne sur les 20 games.
+    const avg = (f) => { const xs = D.games.map(f).filter((x) => x != null && !isNaN(x)); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null; };
+    const cmp = (val, a, up) => (a == null || val == null ? null : h('small', { class: (val >= a) === up ? 'good' : 'bad' }, val >= a ? ' ▲' : ' ▼'));
+    const det = p.dpmScoreDetails || {};
+    const cats = Object.keys(PT_CAT).filter((k) => det[k]);
+    const mx = Math.max(1, ...cats.map((k) => Math.abs(det[k].score || 0)));
+    const SK = ['', 'Q', 'W', 'E', 'R'];
+    const buys = (p.itemActions || []).filter((a) => a[2] === 1);
+    const groups = []; for (const a of buys) { const last = groups[groups.length - 1]; if (last && a[0] - last.t < 40) last.ids.push(a[1]); else groups.push({ t: a[0], ids: [a[1]] }); }
+    return h('div', { class: 'pt-game' },
+      h('div', { class: 'row pt-gh' }, h('button', { class: 'btn-ghost', onclick: () => { PT.game = null; renderParties(); } }, '← Les games'),
+        champIcon(p.championName, 48), h('div', null, h('h2', null, `${FC.champName(p.championName)}${p.opponentChampionName ? ' contre ' + FC.champName(p.opponentChampionName) : ''}`),
+          h('small', { class: 'muted' }, `${gameModeLabel({ queue: { id: g.q } })} · ${mmss(g.d)} · ${new Date(g.t).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}`)),
+        h('span', { class: 'pt-res ' + (p.win ? 'win' : 'lose') }, p.win ? 'Victoire' : 'Défaite')),
+      h('div', { class: 'pt-two' },
+        h('div', { class: 'card' }, h('h3', null, '🏅 Note de la partie'),
+          h('div', { class: 'pt-note' }, h('b', null, fr(p.dpmScore, 1)), h('span', null, `${ptRank(p.dpmScoreRank)} sur 10 joueurs · ${ptRank(p.dpmScoreTeamRank)} de son équipe`)),
+          cats.map((k) => { const c = det[k]; const sc = c.score || 0;
+            return h('details', { class: 'pt-cat' }, h('summary', null, h('span', null, PT_CAT[k][0] + ' ' + PT_CAT[k][1]), h('div', { class: 'pt-track' }, h('i', { class: sc >= 0 ? 'pos' : 'neg', style: `width:${Math.abs(sc) / mx * 50}%;${sc >= 0 ? 'left:50%' : 'right:50%'}` })), h('b', null, (sc > 0 ? '+' : '') + fr(sc, 1))),
+              h('div', { class: 'pt-det' }, Object.entries(c.details || {}).map(([dk, dv]) => h('span', { class: dv > 0 ? 'good' : dv < 0 ? 'bad' : 'muted' }, `${PT_DET[dk] || dk} ${dv > 0 ? '+' : ''}${fr(dv, 1)}`)))); }),
+          h('p', { class: 'muted small' }, 'Chaque ligne : ce que cette partie du jeu lui a rapporté (ou coûté) dans la note. Clique pour le détail.')),
+        h('div', { class: 'card' }, h('h3', null, '🧾 Le verdict'),
+          good.length ? h('div', { class: 'pt-vd good' }, h('b', null, '✅ Ce qui a marché'), h('ul', null, good.map((x) => h('li', null, x)))) : null,
+          bad.length ? h('div', { class: 'pt-vd bad' }, h('b', null, '⚠️ À travailler'), h('ul', null, bad.map((x) => h('li', null, x)))) : null,
+          !good.length && !bad.length ? h('p', { class: 'muted' }, 'Partie dans la moyenne, rien de marquant.') : null)),
+      h('div', { class: 'pt-three' },
+        h('div', { class: 'card' }, h('h3', null, '⚔️ Combat'),
+          h('div', { class: 'pt-kvs' }, kv('KDA', `${p.kills} / ${p.deaths} / ${p.assists}`), kv('Participation', fr(p.killParticipation) + ' %'), kv('Dégâts / min', fr(p.damagePerMinute), ''), kv('Part des dégâts', fr(p.teamDamagePercentage) + ' %'),
+            kv('Dégâts encaissés', fr(p.damageTakenOnTeamPercentage) + ' % équipe'), kv('Solo kills', p.soloKills || 0), kv('Picks avec un allié', p.pickKillWithAlly || 0), kv('Alliés sauvés', p.saveAllyFromDeath || 0))),
+        h('div', { class: 'card' }, h('h3', null, '🛣️ Lane'),
+          h('div', { class: 'pt-kvs' }, kv('Or à 15 min', sg2(p.goldDiffAt15), p.goldDiffAt15 > 0 ? 'good' : p.goldDiffAt15 < 0 ? 'bad' : ''), kv('Sbires à 15 min', sg2(p.csDiffAt15), p.csDiffAt15 > 0 ? 'good' : p.csDiffAt15 < 0 ? 'bad' : ''),
+            kv('XP à 15 min', sg2(p.xpDiffAt15), p.xpDiffAt15 > 0 ? 'good' : p.xpDiffAt15 < 0 ? 'bad' : ''), kv('Sbires / min', fr(cs / min, 1)), kv('Sbires de lane (10 min)', p.laneMinionsFirst10Minutes != null ? fr(p.laneMinionsFirst10Minutes) : '—'),
+            kv('Plaques prises', p.turretPlatesTaken || 0), kv('Niveau 2 en premier', p.isFirstToHitLevel2 ? 'Oui' : 'Non'), jgl ? kv('Camps avant 10 min', fr(p.jungleCsBefore10Minutes)) : null, jgl ? kv('Carapateurs', p.scuttleCrabKills || 0) : null)),
+        h('div', { class: 'card' }, h('h3', null, '👁️ Vision et objectifs'),
+          h('div', { class: 'pt-kvs' }, kv('Vision / min', fr(vpm, 2)), kv('Wards posées', p.stealthWardsPlaced || 0), kv('Balises de contrôle', p.controlWardsPlaced || 0), kv('Wards détruites', p.wardTakedowns || 0),
+            kv('Dragons', p.dragon || 0), kv('Nashor', p.baron || 0), kv('Larves', p.horde || 0), kv('Tours', p.turretTakedowns || 0), kv('Dégâts aux objectifs', fr(p.damageDealtToObjectives)), kv('Vols', p.epicMonsterSteals || 0)))),
+      h('div', { class: 'card' }, h('h3', null, '🛒 Le build, minute par minute'),
+        h('div', { class: 'row pt-final' }, h('small', { class: 'muted' }, 'Objets finaux'), ...(p.itemIds || []).map((id) => item(id, 34))),
+        h('div', { class: 'pt-build' }, groups.map((x) => h('div', { class: 'pt-buy' }, h('small', { class: 'muted' }, mmss(x.t)), h('div', { class: 'row' }, x.ids.map((id) => item(id, 28)))))),
+        (p.skillLevelUps || []).length ? [h('h3', null, '📈 Ordre des sorts'), h('div', { class: 'pt-skills' }, [1, 2, 3, 4].map((sk) => h('div', { class: 'pt-skr' }, h('b', null, SK[sk]), ...Array.from({ length: 18 }, (_, i) => h('i', { class: p.skillLevelUps[i] === sk ? 'on s' + sk : '' }, p.skillLevelUps[i] === sk ? String(i + 1) : '')))))] : null),
+      h('div', { class: 'card' }, h('h3', null, '📣 Communication (pings)'),
+        h('div', { class: 'pt-kvs' }, kv('Disparu', p.enemyMissingPings || 0), kv('En route', p.onMyWayPings || 0), kv('Pousser', p.pushPings || 0), kv('Besoin de vision', p.needVisionPings || 0), kv('Vision ennemie', p.enemyVisionPings || 0), kv('Aidez-moi', p.assistMePings || 0)),
+        h('p', { class: 'muted small' }, 'Comparé à sa moyenne des 20 games : note ', fr(avg((x) => x.p.dpmScore), 1), cmp(p.dpmScore, avg((x) => x.p.dpmScore), true), ' · morts ', fr(avg((x) => x.p.deaths), 1), cmp(p.deaths, avg((x) => x.p.deaths), false), ' · vision ', fr(avg((x) => x.p.visionScorePerMinute), 2), cmp(vpm, avg((x) => x.p.visionScorePerMinute), true))));
+  }
   // ===== Salle de réunion des coachs : les outils pour enseigner, ouverts dans FIRE =====
   const MEET_TOOLS = [
     { k: 'riftkit', ico: '🗺️', name: 'RiftKit', url: 'https://kdx.gg/riftkit', desc: 'Carte de la Faille : charge un match ou monte une situation avec les champions, les objectifs, le tableau des scores, la timeline, les graphiques d’or et de dégâts, et des annotations.' },
@@ -1970,6 +2150,7 @@
       LIVE.mine = g;
       const now = Date.now();
       if (g) autoClipCheck(g);
+      mmLive(g);
       if (g && g.events) { g = { ...g }; delete g.events; LIVE.mine = g; }
       if (!g || now - LIVE.lastSend > 5000) { LIVE.lastSend = now; try { FV().liveSend(UX.hideLive ? null : g); } catch (e) { /* hors ligne */ } }
       if (!!g !== !!LIVE.wasIn) { LIVE.wasIn = !!g; statusPush(); }
@@ -2359,7 +2540,7 @@
 
   // ----- Page joueur -----
   function renderPlayer() {
-    const p = S.players.find((x) => x.slug === S.player) || (S.section === 'parties' ? PT.extra[S.player] : null);
+    const p = S.players.find((x) => x.slug === S.player);
     const view = $('view');
     if (!p) { S.view = 'hub'; renderHub(); return; }
     const R = roleOf(p);
@@ -4636,7 +4817,7 @@
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['parcours', '🗺️', 'Parcours'],
-      ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔎', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
+      ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
     if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), items.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }
@@ -7329,7 +7510,7 @@
   // restent chiffrés et illisibles. Les titulaires leur envoient de PC à PC un petit paquet chiffré pour eux :
   // les séances du planning d'équipe (sans les dispos des coachs ni les réponses de chacun).
   const SUB = () => !!(S.coachState && S.coachState.remplacant);
-  const SUB_OK = new Set(['stats', 'planning', 'jeux', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils', 'parties', 'revue']);
+  const SUB_OK = new Set(['stats', 'planning', 'jeux', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);
   const roomOk = (r) => !SUB() || (r && r.id !== 'coaching' && !r.staff);
   const subSlugs = () => S.players.filter((p) => p.slug && isSub(p)).map((p) => p.slug);
   function subInit() {
