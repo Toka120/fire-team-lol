@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.77",
+   "date": "2026-11-13",
+   "titre": "Le salon n'entend plus que toi",
+   "items": [
+    [
+     "improve",
+     "Vocal : le micro ne s'ouvre plus que pour TA voix. FIRE apprend ton niveau en quelques phrases et ignore les voix au fond de la pièce (la famille, la télé), même quand elles parlent."
+    ],
+    [
+     "improve",
+     "Vocal : les clics de clavier et de souris, les coups sur le micro ou sur le bureau n'ouvrent plus jamais le micro (FIRE vérifie que c'est bien une voix, avec sa hauteur)."
+    ],
+    [
+     "fix",
+     "Vocal : ta voix n'est plus hachée. Une fois ouvert, le micro reste ouvert tant que tu parles, consonnes et fins de mots comprises ; l'anti-réverbération attend la fin des mots avant d'agir."
+    ],
+    [
+     "improve",
+     "Réglages de la voix remis au mieux pour tout le monde automatiquement : IA anti-bruit, anti-clavier, voix claire, détection de la voix activés ; gain automatique de Windows coupé (il remontait le micro entre les phrases et faisait entendre le fond de la pièce)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.76",
    "date": "2026-11-13",
    "titre": "La nouvelle interface pour tout le monde",

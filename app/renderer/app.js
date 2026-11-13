@@ -2190,7 +2190,7 @@
         c.vad === 'manual' ? field('Seuil', range('gate', 0, 60, 1, (x) => `${x - 60} dB`)) : null,
         h('p', { class: 'vs-hint' }, c.vad === 'manual' ? 'La barre doit dépasser le trait orange quand tu parles, et rester dessous quand tu tapes au clavier.'
           : c.vad === 'off' ? 'Tout ce que capte ton micro est envoyé, même entre tes phrases.'
-            : 'FIRE n’ouvre ton micro que quand il reconnaît une voix : les clics de clavier et de souris, trop courts et trop aigus, sont ignorés. Le seuil s’adapte au bruit de ta pièce.'),
+            : 'FIRE n’ouvre ton micro que quand il reconnaît TA voix : il apprend ton niveau en quelques phrases, et ignore les voix au fond de la pièce, le clavier, la souris et les coups sur le micro ou le bureau. Une fois ouvert, il reste ouvert tant que tu parles.'),
         sw('ai', 'Suppression du bruit par IA', v.ai ? 'Active : efface clavier, souris, ventilateur pendant que tu parles.' : 'Efface clavier, souris, ventilateur pendant que tu parles (RNNoise).'),
         h('button', { class: 'vs-btn' + (v.monitor ? ' on' : ''), onclick: () => FV().setMonitor(!v.monitor) }, v.monitor ? '⏹ Arrêter le test' : '🎧 Tester mon micro (tu t’entends)')),
       h('section', { class: 'vs-sec' }, h('h3', null, vi('vol'), 'Traitement de la voix'),

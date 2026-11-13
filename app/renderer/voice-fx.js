@@ -25,8 +25,8 @@ class FireVoiceFx extends AudioWorkletProcessor {
     this.lf = 0; this.ls = 0; this.klA = k(1); this.klR = k(20); this.klsA = k(30); this.klsR = k(150);
     this.clickGain = 1; this.hold = 0; this.holdN = Math.round(fs * 0.03); this.kRel = k(25); this.kAtk = k(0.5);
     // Expandeur : enveloppe du signal, niveau de la voix (suit les crêtes, redescend lentement).
-    this.env = 0; this.keA = k(1.5); this.keR = k(45); this.peak = 0; this.kpR = k(1500);
-    this.g = 1; this.kgUp = k(0.5); this.kgDown = k(40);
+    this.env = 0; this.keA = k(1.5); this.keR = k(45); this.peak = 0; this.kpR = k(2500); this.eh = 0; this.ehN = Math.round(fs * 0.12);
+    this.g = 1; this.kgUp = k(0.5); this.kgDown = k(60);
     // Anticipation de 3 ms : la baisse des aigus est en place quand le clic arrive (3 ms de retard, inaudible).
     this.la = Math.round(fs * 0.003); this.lbLo = new Float32Array(this.la + 1); this.lbHi = new Float32Array(this.la + 1); this.li = 0;
     this.port.onmessage = (e) => { const d = e.data || {}; if ('keys' in d) this.keys = !!d.keys; if ('dry' in d) this.dry = !!d.dry; };
@@ -65,9 +65,12 @@ class FireVoiceFx extends AudioWorkletProcessor {
         this.env = a > this.env ? this.keA * this.env + (1 - this.keA) * a : this.keR * this.env + (1 - this.keR) * a;
         this.peak = this.env > this.peak ? this.env : this.kpR * this.peak;
         // Sous « voix − 22 dB », on baisse de 2:1, au plus de 12 dB : la queue de réverbération s'efface vite.
-        const thr = this.peak * 0.08;
+        // Sous « ta voix − 20 dB » (réverbération, voix au fond de la pièce), on baisse jusqu'à −14 dB,
+        // après 120 ms de maintien : les petites pauses entre les syllabes ne sont pas touchées.
+        const thr = this.peak * 0.1;
         let tg = 1;
-        if (this.env < thr && this.peak > 1e-4) tg = Math.max(0.25, this.env / thr);
+        if (this.env >= thr) this.eh = this.ehN; else if (this.eh > 0) this.eh--;
+        if (this.eh === 0 && this.peak > 1e-4) tg = Math.max(0.2, this.env / thr);
         // Remonte tout de suite quand tu reparles (aucun début de mot mangé), redescend en douceur.
         this.g = tg > this.g ? this.kgUp * this.g + (1 - this.kgUp) * tg : this.kgDown * this.g + (1 - this.kgDown) * tg;
         y *= this.g;

@@ -9,13 +9,20 @@
   'use strict';
   const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }];
   const CFG_KEY = 'fire.vocal.cfg', VOL_KEY = 'fire.vocal.vols', LMUTE_KEY = 'fire.vocal.lmute';
-  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, clarity: true, keys: true, vad: 'auto', recvQ: 'auto', streamSound: true, duck: true, duckAmt: 0.5, ec: true, agc: true, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15 };
+  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, clarity: true, keys: true, vad: 'auto', recvQ: 'auto', streamSound: true, duck: true, duckAmt: 0.5, ec: true, agc: false, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15 };
   const rd = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   const wr = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
 
   const V = {
     on: false, joining: false, err: '', me: null, prefix: '', ids: [], peer: null,
-    cfg: (() => { const c = Object.assign({}, DEF, rd(CFG_KEY, {})); if (!c.vad) { c.vad = 'auto'; c.gate = 20; } return c; })(), vols: rd(VOL_KEY, {}), lmute: rd(LMUTE_KEY, {}),
+    cfg: (() => {
+      const c = Object.assign({}, DEF, rd(CFG_KEY, {}));
+      if (!c.vad) { c.vad = 'auto'; c.gate = 20; }
+      // 1.10.77 : nouveaux réglages de base pour tout le monde (filtres au maximum, gain automatique de Windows coupé :
+      // il remontait le micro entre les phrases et faisait entendre les voix au fond de la pièce).
+      if ((c.audioRev || 0) < 2) { Object.assign(c, { ai: true, ns: true, ec: true, agc: false, hp: true, clarity: true, keys: true, vad: c.vad === 'off' ? 'auto' : c.vad, audioRev: 2 }); wr(CFG_KEY, c); }
+      return c;
+    })(), vols: rd(VOL_KEY, {}), lmute: rd(LMUTE_KEY, {}),
     mute: false, deaf: false, monitor: false, level: 0, gateOpen: false, gateUntil: 0,
     conns: {}, vout: {}, vin: {}, cam: null, screen: null, speaking: {}, listeners: [],
     ctx: null, g: null, raw: null, rawSrc: null, timer: null, probe: null
@@ -165,13 +172,58 @@
   }
   function applyGains() { for (const [s, k] of Object.entries(V.conns)) if (k.out) k.out.el.volume = remoteGain(s); }
 
-  // Porte de bruit, niveau du micro et pastilles « parle » : toutes les 50 ms.
-  // Détection de la voix, toutes les 20 ms :
-  // - niveau RMS (énergie réelle, pas le pic : un clic de clavier a un gros pic mais peu d'énergie) ;
-  // - part de l'énergie dans les fréquences de la voix (250-3500 Hz) : le clavier est surtout dans les aigus ;
-  // - il faut 3 mesures de suite (60 ms) pour ouvrir : un clic dure moins longtemps qu'une syllabe ;
-  // - en automatique, le seuil suit le bruit de fond de la pièce.
-  const VAD = { run: 0, nf: -70 };
+  // Détection de la voix, toutes les 20 ms. Pour que le salon n'entende QUE toi :
+  // - voisement : une voix a une hauteur (vibration des cordes vocales, 70-400 Hz) ; un clic de clavier, un coup sur
+  //   le bureau ou sur le micro n'en ont pas, ils n'ouvrent donc jamais le micro ;
+  // - proximité : FIRE apprend le niveau de TA voix (près du micro). Une voix au fond de la pièce arrive 15 à 30 dB
+  //   plus bas : elle n'ouvre pas le micro ;
+  // - ouverture : il faut 3 mesures de voix de suite (60 ms), le retard de 80 ms évite de manger le début du mot ;
+  // - maintien : une fois ouvert, le micro reste ouvert tant que tu parles (même les consonnes et fins de mots
+  //   plus faibles), puis 700 ms après la dernière syllabe : ta voix n'est plus hachée.
+  const VAD = { run: 0, nf: -70, me: -30, learned: 0, lastVoice: -1e9, ds: new Float32Array(256) };
+  // Hauteur de la voix : autocorrélation sur le signal ramené à 12 kHz (léger, 20 ms de son).
+  function voicing(td, sr) {
+    const f = Math.max(1, Math.round(sr / 12000)), ds = VAD.ds, n = Math.min(ds.length, Math.floor(td.length / f));
+    let mean = 0;
+    for (let i = 0; i < n; i++) { let a = 0; for (let k = 0; k < f; k++) a += td[i * f + k]; ds[i] = a / f; mean += ds[i]; }
+    mean /= n;
+    for (let i = 0; i < n; i++) ds[i] -= mean;
+    const lo = Math.floor(12000 / 400), hi = Math.min(n - 64, Math.ceil(12000 / 70));
+    let best = 0;
+    for (let lag = lo; lag <= hi; lag++) {
+      let xy = 0, xx = 0, yy = 0;
+      for (let i = 0; i + lag < n; i++) { const a = ds[i], b = ds[i + lag]; xy += a * b; xx += a * a; yy += b * b; }
+      const r = xy / Math.sqrt(xx * yy + 1e-12);
+      if (r > best) best = r;
+    }
+    return best;
+  }
+  // Décision (testable à part) : renvoie l'état de la porte à partir des mesures d'une trame.
+  function vadStep(db, ratio, voiced, now, mode, gate) {
+    if (db < VAD.nf) VAD.nf = VAD.nf * 0.7 + db * 0.3; else VAD.nf = Math.min(db, VAD.nf + 0.04);
+    // Tant que ta voix n'est pas apprise, seule une voix forte (proche du micro) compte.
+    const learned = VAD.learned >= 25;
+    const near = learned ? Math.max(VAD.me - 14, -56) : -44;
+    const isVoice = voiced > 0.5 && ratio > 0.4;
+    let start, keep;
+    if (mode === 'manual') {
+      start = db > -60 + (gate || 0) && isVoice;
+      keep = db > -66 + (gate || 0);
+    } else {
+      start = db > Math.max(VAD.nf + 9, near) && isVoice;
+      keep = db > Math.max(VAD.nf + 5, near - 10);
+    }
+    if (start) VAD.lastVoice = now;
+    VAD.run = start ? VAD.run + 1 : 0;
+    const open = now < V.gateUntil;
+    // Le micro reste ouvert tant que tu parles : sons plus faibles (consonnes, fins de mots) tant qu'une syllabe
+    // de ta voix a été entendue il y a moins de 350 ms. Un clic ou un coup, sans voix, ne le garde pas ouvert.
+    if (VAD.run >= 3 || (open && keep && now - (VAD.lastVoice || -1e9) < 350)) V.gateUntil = now + 600;
+    // Niveau de ta voix (le haut de ta voix normale) : monte vite, redescend lentement, appris seulement quand tu parles.
+    if (VAD.run >= 3 && voiced > 0.6 && db > -50) { VAD.me = !VAD.learned ? db : db > VAD.me ? VAD.me * 0.9 + db * 0.1 : VAD.me * 0.995 + db * 0.005; VAD.learned++; }
+    if (mode === 'off') return true;
+    return now < V.gateUntil;
+  }
   function tick() {
     if (!V.g || !V.raw) return;
     const g = V.g, c = V.cfg;
@@ -184,15 +236,8 @@
     let voice = 0, all = 0;
     for (let i = 1; i < g.fd.length; i++) { const f = i * hz; if (f < 100 || f > 12000) continue; const p = Math.pow(10, g.fd[i] / 10); all += p; if (f >= 250 && f <= 3500) voice += p; }
     const ratio = all > 0 ? voice / all : 0;
-    // Bruit de fond : descend vite vers les moments calmes, remonte très lentement.
-    if (db < VAD.nf) VAD.nf = VAD.nf * 0.7 + db * 0.3; else VAD.nf = Math.min(db, VAD.nf + 0.04);
-    const now = performance.now();
-    let speech;
-    if (c.vad === 'manual') speech = db > -60 + (c.gate || 0) && ratio > 0.45;
-    else speech = db > Math.max(VAD.nf + 9, -60) && ratio > 0.5;
-    VAD.run = speech ? VAD.run + 1 : 0;
-    if (c.vad === 'off') V.gateOpen = true;
-    else { if (VAD.run >= 3) V.gateUntil = now + 650; V.gateOpen = now < V.gateUntil; }
+    const voiced = db > -65 ? voicing(g.td, V.ctx.sampleRate) : 0;
+    V.gateOpen = vadStep(db, ratio, voiced, performance.now(), c.vad, c.gate);
     const target = V.mute ? 0 : V.gateOpen ? 1 : 0;
     g.gate.gain.setTargetAtTime(target, V.ctx.currentTime, target ? 0.004 : 0.08);
     let ch = false;
@@ -786,6 +831,7 @@
     level: () => V.level, gateOpen: () => V.gateOpen, fxReady: () => !!FX.node,
     // Ta voix telle que le salon l'entend (pour les clips), seulement pendant un appel.
     micStream: () => (V.on && V.g ? V.g.send.stream : null),
+    _vad: { voicing, vadStep, state: VAD, reset: () => { Object.assign(VAD, { run: 0, nf: -70, me: -30, learned: 0, lastVoice: -1e9 }); V.gateUntil = 0; } },
     onChange: (f) => V.listeners.push(f),
     state: () => ({
       on: V.on, joining: V.joining, err: V.err, me: V.me, mute: V.mute, deaf: V.deaf, monitor: V.monitor,
