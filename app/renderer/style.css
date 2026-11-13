@@ -2190,3 +2190,14 @@ html.chat-page #chat{display:none}
 .bgp-l.s{width:55%}
 .bgp-btn{display:block;margin-top:auto;height:10px;width:40%;border-radius:5px;background:var(--fire1)}
 .bgp-tag{position:absolute;top:8px;right:10px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:rgb(0 0 0 / 55%);color:#fff}
+
+/* Menu clic droit d'un membre (comme Discord) */
+.cx-red{color:#f87171!important}
+.cx-red:hover{background:rgb(239 68 68 / 16%)!important}
+.cx-red.strong{font-weight:800}
+.cx-modh{color:#f87171;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.cx-subh{display:flex;justify-content:space-between;align-items:center}
+.cx-arrow{opacity:.7}
+.cx-sub{padding-left:10px;border-left:2px solid var(--line);margin:2px 0 4px 10px}
+.prof-note{margin:4px 0;padding:8px 12px;border-radius:10px;background:color-mix(in srgb,var(--fire1) 10%,var(--panel2));white-space:pre-wrap}
+#vctx{max-height:calc(100vh - 16px);overflow-y:auto}

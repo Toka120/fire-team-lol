@@ -327,6 +327,7 @@
     render();
     chatInit();
     actInit();
+    modInit();
     loadGuides();
     window.fire.coach.state().then((c) => { S.coachState = c; if (S.section === 'coach' && !typing()) render(); }).catch(() => {});
     loadFiches();
@@ -2460,7 +2461,8 @@
   const FV = () => window.FireVoice;
   const vocalMe = () => S.moi || (S.coachState && S.coachState.coach ? 'coach' : null);
   const coachOf = (slug) => (S.coachs || []).find((c) => c.slug === slug) || null;
-  const vocalName = (slug) => slug === 'coach' ? 'Coach' : coachOf(slug) ? coachOf(slug).pseudo : shortName((S.players.find((p) => p.slug === slug) || {}).pseudo || slug);
+  // Pseudo choisi par moi pour quelqu'un (« Changer le pseudo », visible seulement par moi).
+  const vocalName = (slug) => (load('fire.nicks', {})[slug]) || (slug === 'coach' ? 'Coach' : coachOf(slug) ? coachOf(slug).pseudo : shortName((S.players.find((p) => p.slug === slug) || {}).pseudo || slug));
   const vocalIds = () => S.players.map((p) => p.slug).filter(Boolean).concat((S.coachs || []).map((c) => c.slug), 'coach');
   const ini = (slug) => vocalName(slug).slice(0, 2).toUpperCase();
   // Qui est en vocal : les gens connectés avec moi si je suis dans le salon, sinon ce que les autres FIRE annoncent.
@@ -2515,6 +2517,7 @@
   }
   function vocalJoin(roomId) {
     if (!vocalMe()) return;
+    if (modBlocked()) { vocalToast(`Tu es exclu du vocal jusqu’à ${hm(MOD.me.until)}.`, false); return; }
     actLog('vocal', 'Rejoint le salon vocal ' + roomOf(typeof roomId === 'string' ? roomId : (VX.room || load('fire.vocal.room', 'equipe'))).name);
     const v = FV().state();
     const id = roomOf(typeof roomId === 'string' ? roomId : (VX.room || load('fire.vocal.room', 'equipe'))).id;
@@ -2771,7 +2774,7 @@
   function vctxOpen(x, y, build) {
     vctxClose();
     const m = h('div', { id: 'vctx', oncontextmenu: (e) => e.preventDefault() });
-    const paint = () => m.replaceChildren(...build(paint).filter(Boolean));
+    const paint = () => m.replaceChildren(...build(paint).flat(4).filter(Boolean));
     paint(); document.body.append(m);
     const r = m.getBoundingClientRect();
     m.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px';
@@ -2807,16 +2810,94 @@
       ];
     });
   }
+  // Clic droit sur quelqu'un (vocal, discussion) : comme Discord. La partie rouge (modération) est réservée au créateur, aux coachs et aux modérateurs.
   function personMenu(t, x, y) {
+    const slug = t.slug, me = vocalMe();
+    let open = '';
     vctxOpen(x, y, (paint) => {
-      const v = FV().state();
-      const lm = !!v.lmute[t.slug];
+      let v = null;
+      try { v = FV().state(); } catch (e) { v = null; }
+      const inCall = !!(v && v.on && v.members.some((m) => m.slug === slug));
+      const lm = !!(v && v.lmute[slug]);
+      const camOff = !!(VX.hideCam && VX.hideCam[slug]);
+      const nicks = load('fire.nicks', {});
+      const staff = isStaff() && slug !== me;
+      const there = (v && v.rooms && v.rooms[slug]) || (inCall ? v.room : null);
+      const sub = (key, label, kids) => [h('button', { class: 'cx-item cx-subh' + (open === key ? ' on' : ''), onclick: () => { open = open === key ? '' : key; paint(); } }, h('span', null, label), h('span', { class: 'cx-arrow' }, open === key ? '▾' : '›')),
+        open === key ? h('div', { class: 'cx-sub' }, kids) : null];
+      const mod = (label, cmd, done, cls) => cxItem(label, async () => { vctxClose(); const ok = await modDo(slug, cmd, done); vocalToast(ok ? done : `${vocalName(slug)} n’a pas FIRE ouvert : commande pas reçue.`, ok); }, null, 'cx-red' + (cls ? ' ' + cls : ''));
       return [
-        h('div', { class: 'cx-head' }, vocalName(t.slug)),
-        cxRange('Volume', Math.min(5, v.vols[t.slug] ?? 1), 0, 5, (n) => FV().setVol(t.slug, n)),
-        cxCheck('Rendre muet pour moi', lm, () => { FV().setLocalMute(t.slug, !lm); setTimeout(paint, 50); })
+        h('div', { class: 'cx-head' }, vocalName(slug), roleBadge(slug)),
+        cxItem('Profil', () => { vctxClose(); openProfile(slug); }),
+        cxItem('Envoyer un message', () => { vctxClose(); CH.conv = slug; go('chat'); }),
+        cxItem('Ajouter une note', () => { vctxClose(); const notes = load('fire.unotes', {}); const n = prompt(`Ta note sur ${vocalName(slug)} (visible seulement par toi) :`, notes[slug] || ''); if (n != null) { if (n.trim()) notes[slug] = n.trim().slice(0, 300); else delete notes[slug]; save('fire.unotes', notes); } }),
+        cxSep(),
+        v ? cxRange('Volume de l’utilisateur', Math.min(5, v.vols[slug] ?? 1), 0, 5, (n) => FV().setVol(slug, n)) : null,
+        v ? cxCheck('Rendre muet', lm, () => { FV().setLocalMute(slug, !lm); setTimeout(paint, 50); }) : null,
+        cxCheck('Désactiver la vidéo', camOff, () => { VX.hideCam = VX.hideCam || {}; if (camOff) delete VX.hideCam[slug]; else VX.hideCam[slug] = true; renderVocal(); setTimeout(paint, 50); }),
+        cxItem('Changer le pseudo', () => { vctxClose(); const n = prompt(`Pseudo de ${vocalName(slug)} pour toi seulement (vide = pseudo normal) :`, nicks[slug] || ''); if (n != null) { if (n.trim()) nicks[slug] = n.trim().slice(0, 24); else delete nicks[slug]; save('fire.nicks', nicks); render(); } }),
+        cxItem('Inviter dans mon salon', () => { vctxClose(); try { FV().invite(slug); vocalToast(`Invitation envoyée à ${vocalName(slug)}`, true); } catch (e) { /* */ } }),
+        staff ? [cxSep(),
+          ...sub('roles', 'Rôles', [cxCheck('Modérateur', isModo(slug), async () => { const set = new Set(STF.modos || []); if (set.has(slug)) set.delete(slug); else set.add(slug);
+            const r = await window.fire.staff.rolesSave([...set], me).catch(() => null); if (r && r.ok) { STF.modos = r.modos; save('fire.modos', r.modos); renderNav(); } else vocalToast('Seuls un coach et le créateur choisissent les modérateurs.', false); paint(); })]),
+          ...sub('move', 'Déplacer vers', ROOMS.filter((r) => r.id !== there).map((r) => cxItem(`${r.ico} ${r.name}`, async () => { vctxClose(); const ok = await modDo(slug, { a: 'move', room: r.id }, `${vocalName(slug)} déplacé vers ${r.name}`); vocalToast(ok ? `${vocalName(slug)} déplacé vers ${r.name}` : 'Commande pas reçue (FIRE fermé ?)', ok); }))),
+          cxSep(),
+          h('div', { class: 'cx-head cx-modh' }, '🛡️ Modération'),
+          mod(MODS.has(slug, 'mute') ? 'Rendre la parole' : 'Rendre muet sur le serveur', { a: 'mute', on: !MODS.has(slug, 'mute') }, MODS.has(slug, 'mute') ? `${vocalName(slug)} peut de nouveau parler` : `${vocalName(slug)} est rendu muet`),
+          mod(MODS.has(slug, 'deaf') ? 'Retirer la sourdine' : 'Mettre en sourdine sur le serveur', { a: 'deaf', on: !MODS.has(slug, 'deaf') }, MODS.has(slug, 'deaf') ? `${vocalName(slug)} entend de nouveau` : `${vocalName(slug)} est mis en sourdine`),
+          inCall || there ? mod('Déconnecter', { a: 'kick' }, `${vocalName(slug)} est déconnecté du vocal`) : null,
+          mod(`Exclure ${vocalName(slug)} (10 min)`, { a: 'timeout', min: 10 }, `${vocalName(slug)} est exclu 10 minutes`),
+          mod(`Expulser ${vocalName(slug)} (1 h)`, { a: 'timeout', min: 60 }, `${vocalName(slug)} est expulsé pour 1 heure`),
+          mod(`Bannir ${vocalName(slug)} (24 h)`, { a: 'timeout', min: 1440 }, `${vocalName(slug)} est banni pour 24 heures`, 'strong'),
+          MODS.has(slug, 'timeout') ? mod('Lever l’exclusion', { a: 'untimeout' }, `Exclusion de ${vocalName(slug)} levée`) : null] : null,
       ];
     });
+  }
+  // ----- Modération du vocal et de la discussion : commandes envoyées au FIRE du membre -----
+  // Ce que j'ai appliqué aux autres (pour afficher « Rendre la parole » au lieu de « Rendre muet »), gardé sur ce PC.
+  const MODS = { st: load('fire.modsent', {}), has(slug, k) { const x = this.st[slug] || {}; return k === 'timeout' ? (x.until || 0) > Date.now() : !!x[k]; } };
+  async function modDo(slug, cmd, label) {
+    let ok = false;
+    try { ok = await FV().modSend(slug, cmd); } catch (e) { ok = false; }
+    if (ok) {
+      const x = MODS.st[slug] = MODS.st[slug] || {};
+      if (cmd.a === 'mute' || cmd.a === 'deaf') x[cmd.a] = !!cmd.on;
+      if (cmd.a === 'timeout') x.until = Date.now() + cmd.min * 60000;
+      if (cmd.a === 'untimeout') x.until = 0;
+      save('fire.modsent', MODS.st);
+      actLog('modo', label);
+    }
+    return ok;
+  }
+  // Les commandes reçues : seulement si elles viennent du créateur, d'un coach ou d'un modérateur.
+  const MOD = { me: load('fire.mod', {}) };
+  const isStaffSlug = (slug) => !!(coachOf(slug) || slug === 'coach' || (STF.modos || []).includes(slug) || ((S.cfg && S.cfg.admins) || []).some((a) => a.slug === slug));
+  const modBlocked = () => (MOD.me.until || 0) > Date.now();
+  function modReceive(from, c) {
+    if (!isStaffSlug(from)) return;
+    const who = vocalName(from);
+    let v = null; try { v = FV().state(); } catch (e) { /* */ }
+    if (c.a === 'move' && c.room) { const r = roomOf(c.room); if (v && v.on) { FV().leave(); setTimeout(() => vocalJoin(r.id), 600); } VX.room = r.id; save('fire.vocal.room', r.id); vocalToast(`${who} t’a déplacé vers ${r.name}`, true); }
+    if (c.a === 'mute') { MOD.me.mute = c.on; if (c.on) FV().setMute(true); vocalToast(c.on ? `${who} t’a rendu muet` : `${who} t’a rendu la parole`, !c.on); }
+    if (c.a === 'deaf') { MOD.me.deaf = c.on; if (c.on) FV().setDeaf(true); else FV().setDeaf(false); vocalToast(c.on ? `${who} t’a mis en sourdine` : `${who} a retiré ta sourdine`, !c.on); }
+    if (c.a === 'kick') { if (v && v.on) FV().leave(); vocalToast(`${who} t’a déconnecté du vocal`, false); }
+    if (c.a === 'timeout') { MOD.me.until = Date.now() + c.min * 60000; if (v && v.on) FV().leave(); popup('⛔ Exclusion', `${who} t’a exclu du vocal et de la discussion pour ${c.min >= 60 ? Math.round(c.min / 60) + ' h' : c.min + ' min'}.`, null); }
+    if (c.a === 'untimeout') { MOD.me.until = 0; vocalToast(`${who} a levé ton exclusion`, true); }
+    save('fire.mod', MOD.me);
+    actLog('modo', `Reçu de ${who} : ${c.a}`);
+    render();
+  }
+  function modInit() {
+    try {
+      FV().onMod((from, c) => modReceive(from, c));
+      // Rendu muet ou en sourdine par le staff : on ne peut pas se le retirer soi-même.
+      FV().onChange(() => {
+        const v = FV().state();
+        if (MOD.me.mute && !v.mute) FV().setMute(true);
+        if (MOD.me.deaf && !v.deaf) FV().setDeaf(true);
+        if (modBlocked() && v.on) FV().leave();
+      });
+    } catch (e) { /* vocal pas prêt */ }
   }
   // Quelqu'un demande le son de mon partage d'écran : je choisis.
   function soundAsk(from) {
@@ -3126,7 +3207,7 @@
 
     // Dans le salon.
     const people = [{ slug: me, ok: true, remote: { mute: v.mute, deaf: v.deaf, cam: !!v.cam, screen: !!v.screen } }].concat(v.members.filter((m) => m.ok));
-    const camOf = (slug) => (slug === me ? (load('fire.vocal.selfcam', true) ? v.cam : null) : (v.videos.find((x) => x.slug === slug && x.kind === 'cam') || {}).stream);
+    const camOf = (slug) => (slug === me ? (load('fire.vocal.selfcam', true) ? v.cam : null) : (VX.hideCam && VX.hideCam[slug]) ? null : (v.videos.find((x) => x.slug === slug && x.kind === 'cam') || {}).stream);
     const screens = [];
     if (v.screen) screens.push({ key: 'me:screen', slug: me, stream: v.screen, mine: true });
     v.videos.filter((x) => x.kind === 'screen').forEach((x) => screens.push({ key: x.slug + ':screen', slug: x.slug, stream: x.stream, sound: x.sound }));
@@ -6082,6 +6163,7 @@
     const inp = chatInput();
     const text = inp.value.trim().slice(0, 500);
     if (!text || !me || CH.sending) return;
+    if (modBlocked()) { CH.err = `Tu es exclu de la discussion jusqu’à ${hm(MOD.me.until)}.`; chatPaint(); return; }
     const msg = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), from: me, text, at: Date.now() };
     if (CH.conv.startsWith('ch:')) msg.ch = CH.conv.slice(3);
     else if (CH.conv !== 'team') msg.to = CH.conv;
@@ -6130,7 +6212,7 @@
       const grouped = last && last.from === m.from && m.at - last.at < 5 * 60000;
       const col = st(m.from).color;
       rows.push(h('div', { class: 'chat-m' + (m.from === me ? ' mine' : '') + (grouped ? ' grp' : '') },
-        grouped ? null : h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n', style: col ? `color:${col}` : '', title: 'Voir sa carte de profil', onclick: () => openProfile(m.from) }, chatWho(m.from)), roleBadge(m.from), h('span', { class: 'muted' }, hm(m.at)),
+        grouped ? null : h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n', style: col ? `color:${col}` : '', title: 'Voir sa carte de profil (clic droit : plus d’options)', onclick: () => openProfile(m.from), oncontextmenu: (e) => { if (m.from === vocalMe()) return; e.preventDefault(); personMenu({ slug: m.from }, e.clientX, e.clientY); } }, chatWho(m.from)), roleBadge(m.from), h('span', { class: 'muted' }, hm(m.at)),
           isStaff() && !m.to ? h('button', { class: 'chat-del', title: 'Supprimer ce message (modération)', onclick: () => chatModDelete(m) }, '🗑') : null),
         h('div', { class: 'chat-tx' }, m.text)));
       last = m;
@@ -6159,7 +6241,7 @@
     if (c.inp.placeholder !== ph) c.inp.placeholder = ph;
   }
   function chatConvButtons(me, cls, full) {
-    const btn = (id, ico, label, title, dot) => { const n = chatUnreadIn(id); return h('button', { class: cls + (CH.conv === id ? ' on' : ''), title, onclick: () => chatConv(id) },
+    const btn = (id, ico, label, title, dot) => { const n = chatUnreadIn(id); return h('button', { class: cls + (CH.conv === id ? ' on' : ''), title, onclick: () => chatConv(id), oncontextmenu: dot ? (e) => { e.preventDefault(); personMenu({ slug: id }, e.clientX, e.clientY); } : null },
       h('span', { class: 'chat-cv-i' }, ico), h('span', { class: 'chat-cv-l' }, label), dot ? stDot(id) : null, n && CH.conv !== id ? h('span', { class: 'chat-cv-n' }, String(n)) : null); };
     const chans = CHANNELS.map(([id, ico, label, desc]) => btn(id, full ? '#' : ico, full ? label : '#' + label, desc, false));
     const dms = me ? chatPeople(me).map(([slug, ico, label]) => btn(slug, ico, label, 'Message privé avec ' + label, true)) : [];
@@ -6289,6 +6371,7 @@
           h('div', { class: 'prof-name', style: x.color ? `color:${x.color}` : '' }, vocalName(slug), stDot(slug)),
           h('div', { class: 'muted small' }, (p ? (p.role || roleOf(p).label) + ' · ' : coachOf(slug) ? 'Coach · ' : '') + (x.game ? '🎮 En game' : (ST_LABEL[x.st] || ST_LABEL.offline).join(' '))),
           x.bio ? h('p', { class: 'prof-bio' }, x.bio) : null,
+          load('fire.unotes', {})[slug] ? h('p', { class: 'prof-note' }, h('small', { class: 'muted' }, '📝 Ta note (visible seulement par toi)'), h('br'), load('fire.unotes', {})[slug]) : null,
           h('div', { class: 'row' },
             canDm ? h('button', { class: 'btn-fire small-btn', onclick: () => { close(); CH.conv = slug; go('chat'); } }, '💬 Message privé') : slug !== me ? h('span', { class: 'muted small' }, '🔒 Ne reçoit pas de messages privés') : null,
             p ? h('button', { class: 'btn-ghost', onclick: () => { close(); go('stats'); openPlayer(slug); } }, '📊 Ses stats') : null,

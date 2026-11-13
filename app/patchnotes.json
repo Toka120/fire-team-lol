@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.102",
+   "date": "2026-11-13",
+   "titre": "Clic droit comme Discord",
+   "items": [
+    [
+     "new",
+     "Clic droit sur quelqu'un (dans le vocal, sur un nom de la discussion ou dans les messages privés), comme Discord : Profil, Envoyer un message, Ajouter une note (visible par toi seul), Volume jusqu'à 500 %, Rendre muet, Désactiver sa vidéo, Changer son pseudo (pour toi), Inviter dans mon salon."
+    ],
+    [
+     "new",
+     "Pour le créateur, les coachs et les modérateurs, en rouge : Rôles, Déplacer vers un autre salon, Rendre muet ou mettre en sourdine sur le serveur, Déconnecter, Exclure 10 min, Expulser 1 h, Bannir 24 h (vocal et discussion)."
+    ],
+    [
+     "improve",
+     "Un membre rendu muet par le staff ne peut pas se redonner la parole lui-même. Chaque action de modération est notée dans le carnet de bord."
+    ]
+   ]
+  },
+  {
    "v": "1.10.101",
    "date": "2026-11-13",
    "titre": "Interrupteurs lisibles",

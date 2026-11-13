@@ -761,6 +761,8 @@
     if (!m) return;
     if (m.t === 'invite' && L.onInvite) L.onInvite(from, String(m.room || 'equipe').slice(0, 20));
     if (m.t === 'chat' && m.msg && L.onChat && m.msg.from === from) L.onChat(m.msg);
+    // Commande de modération (déplacer, rendre muet, déconnecter, exclure…) : FIRE vérifie qui l'envoie avant d'obéir.
+    if (m.t === 'mod' && m.a && L.onMod) { L.onMod(from, { a: String(m.a).slice(0, 12), room: String(m.room || '').slice(0, 20), on: !!m.on, min: Math.max(0, Math.min(10080, Number(m.min) || 0)) }); return; }
     if (m.t === 'status') { const st = cleanStatus(m.s); if (st) L.status[from] = { ...st, t: Date.now() + 150000 }; else delete L.status[from]; emit(); return; }
     if (m.t === 'live') { const g = cleanLive(m.g); if (g) L.live[from] = { g, t: Date.now() + 45000 }; else delete L.live[from]; emit(); return; }
     if (m.t === 'here') { if (m.on) L.here[from] = { t: Date.now() + 60000, room: String(m.room || 'equipe').slice(0, 20) }; else delete L.here[from]; emit(); }
@@ -814,6 +816,13 @@
       const others = L.ids.filter((x) => x !== L.me);
       await Promise.all(others.map(async (x) => { const dc = await link(x); if (dc) { try { dc.send({ t: 'status', s: st }); } catch (e) { /* */ } } }));
     } finally { L.stBusy = false; }
+  }
+  // Envoi d'une commande de modération à un membre (son FIRE l'applique s'il me reconnaît comme staff).
+  async function modSend(to, cmd) {
+    if (!L.peer || !to || to === L.me) return false;
+    const dc = await link(to);
+    if (!dc) return false;
+    try { dc.send({ t: 'mod', ...cmd }); return true; } catch (e) { return false; }
   }
   // Ma partie en direct envoyée à l'équipe (FIRE ouvert chez eux), toutes les 15 s pendant une game ; null à la fin.
   async function liveSend(g) {
@@ -869,7 +878,7 @@
 
   window.FireVoice = {
     join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, setStreamSound, requestSound, addScreenSound, watchStream,
-    onSoundRequest: (f) => { V.onSndReq = f; }, appSend, liveSend, statusSend, onApp: (f) => { V.onApp = f; }, onPeer: (f) => { V.onPeer = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
+    onSoundRequest: (f) => { V.onSndReq = f; }, appSend, liveSend, statusSend, modSend, onMod: (f) => { L.onMod = f; }, onApp: (f) => { V.onApp = f; }, onPeer: (f) => { V.onPeer = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
     clearErr: () => { V.err = ''; emit(); },
     // Définition et images/s de chaque écran partagé que je reçois (affichées sur la vidéo).
     recvInfo: async () => {
