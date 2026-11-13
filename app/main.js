@@ -321,6 +321,33 @@ ipcMain.handle('clips:show', (e, p) => { if (p && inClips(p)) shell.showItemInFo
 ipcMain.handle('clips:delete', (e, p) => { try { if (!inClips(p)) return false; fs.unlinkSync(p); return true; } catch (err) { return false; } });
 ipcMain.handle('puzzles:draft', async () => (await remoteJson(PUZ_URL, 'puzzles-draft.json')) || { puzzles: [] });
 ipcMain.handle('tierlist', async () => (await remoteJson(TIER_URL, 'tierlist.json')) || { data: {} });
+// One-tricks : classement LoLalytics par champion (relevé chaque semaine) + noms et icônes des runes et sorts (Data Dragon).
+const OTP_URL = 'https://toka120.github.io/fire-team-lol/otp.json';
+let otpDD = null;
+async function otpDragon() {
+  if (otpDD) return otpDD;
+  const cached = (() => { try { return JSON.parse(fs.readFileSync(cachePath('otp-dd.json'), 'utf8')); } catch (e) { return null; } })();
+  try {
+    const v = (await (await fetch('https://ddragon.leagueoflegends.com/api/versions.json')).json())[0];
+    if (cached && cached.v === v) { otpDD = cached; return otpDD; }
+    const base = `https://ddragon.leagueoflegends.com/cdn/${v}/data/fr_FR/`;
+    const [rr, su] = await Promise.all([fetch(base + 'runesReforged.json').then((r) => r.json()), fetch(base + 'summoner.json').then((r) => r.json())]);
+    const runes = {};
+    for (const tree of rr) {
+      runes[tree.id] = { n: tree.name, i: tree.icon };
+      for (const slot of tree.slots || []) for (const x of slot.runes || []) runes[x.id] = { n: x.name, i: x.icon, t: tree.id };
+    }
+    const spells = {};
+    Object.values(su.data || {}).forEach((x) => { spells[x.key] = { n: x.name, i: x.image && x.image.full }; });
+    otpDD = { v, runes, spells };
+    try { fs.writeFileSync(cachePath('otp-dd.json'), JSON.stringify(otpDD)); } catch (e) { /* ignore */ }
+    return otpDD;
+  } catch (e) { return cached || { v: null, runes: {}, spells: {} }; }
+}
+ipcMain.handle('otp', async () => {
+  const [d, dd] = await Promise.all([remoteJson(OTP_URL, 'otp.json'), otpDragon()]);
+  return { ...(d || { champs: {} }), dd };
+});
 ipcMain.handle('guides', async () => (await remoteJson(GUIDES_URL, 'guides.json')) || { themes: [] });
 // Patch notes : version en ligne (à jour même avant d'installer), sinon la copie livrée avec l'application.
 ipcMain.handle('patchnotes', async () => {

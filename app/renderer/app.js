@@ -1584,6 +1584,7 @@
     }
     if (sec === 'guides') return (S.guides || []).map((t) => 'g:' + t.id + ':' + hashStr(JSON.stringify(t)));
     if (sec === 'jeux') return JNEW.map((k) => 'f:' + k);
+    if (sec === 'draft') return ['f:otp'];
     return [];
   }
   function newsFresh(sec) {
@@ -2583,7 +2584,7 @@
   const POSLANE = { top: 'top', jungle: 'jungle', middle: 'middle', bottom: 'bottom', utility: 'support' };
   const POSCAT = { top: 'top', jungle: 'jungle', middle: 'mid', bottom: 'adc', utility: 'support' };
   const live = (d) => d && (d.phase === 'ChampSelect' || d.phase === 'InProgress');
-  function draftBadge() { return live(DR.d) ? (DR.d.phase === 'InProgress' ? 'EN JEU' : 'LIVE') : null; }
+  function draftBadge() { return live(DR.d) ? (DR.d.phase === 'InProgress' ? 'EN JEU' : 'LIVE') : (newsCount('draft') ? String(newsCount('draft')) : null); }
   async function pollDraft() {
     if (!window.fire.lcu || DR.inflight) return;
     DR.inflight = true;
@@ -2635,6 +2636,7 @@
     if (S.drTab === 'puzzle') return renderPuzzles();
     if (S.drTab === 'tier') return renderTierList();
     if (S.drTab === 'matchup') return renderMatchups();
+    if (S.drTab === 'otp') return renderOtp();
     renderDraftLive();
     const hero = $('view').querySelector('.sec-hero');
     if (hero) hero.after(draftTabs());
@@ -2646,6 +2648,7 @@
       tab('live', '⚡ Draft en direct'),
       tab('tier', '📊 Tier list'),
       tab('matchup', '⚔️ Matchups'),
+      tab('otp', '🎖️ One-tricks', newsFresh('draft').includes('f:otp') ? h('span', { class: 'plan-tab-n' }, 'new') : null),
       tab('puzzle', '🧩 Puzzles de draft', pzDue() ? h('span', { class: 'plan-tab-n' }, '!') : null));
   }
 
@@ -2691,6 +2694,81 @@
         h('p', { class: 'muted small' }, 'Les vidéos s’ouvrent dans ton navigateur, gratuitement. Rien n’est téléchargé.'));
     }
     view.replaceChildren(hero, draftTabs(), pick, res);
+  }
+
+
+  // ----- One-tricks : les meilleurs joueurs de chaque champion en Corée et en Europe, et le build des Maîtres+ -----
+  // Classement LoLalytics (Diamant IV+, plus de 50 % de victoires, 50 parties ou plus en 90 jours), relevé chaque semaine (tools/otp.py).
+  const OT = { data: null, loading: false, q: '', champ: load('fire.otp', null) };
+  const OT_LANE = { top: 'Top', jungle: 'Jungle', middle: 'Mid', bottom: 'ADC', support: 'Support' };
+  const OT_SHARD = { 5001: 'PV (selon le niveau)', 5005: 'Vitesse d’attaque', 5007: 'Accélération de compétence', 5008: 'Force adaptative', 5010: 'Vitesse de déplacement', 5011: 'PV', 5013: 'Ténacité et résistance aux ralentissements' };
+  const OT_TIER = { challenger: '#5ad0ff', grandmaster: '#ff4d5e', master: '#b05cff', diamond: '#6b8cff', emerald: '#2fbf71' };
+  function renderOtp() {
+    const view = $('view');
+    if (newsFresh('draft').length) newsMark('draft', ['f:otp']);
+    if (!OT.data && !OT.loading && window.fire.otp) {
+      OT.loading = true;
+      window.fire.otp().then((d) => { OT.data = d || { champs: {} }; }).catch(() => { OT.data = { champs: {} }; }).finally(() => { OT.loading = false; if (S.section === 'draft' && S.drTab === 'otp') renderOtp(); });
+    }
+    const list = ((S.champList && S.champList.list) || []).slice().sort((x, y) => x.name.localeCompare(y.name, 'fr'));
+    const v = (S.champList && S.champList.version) || '';
+    const norm = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+    const nameOf = (id) => (list.find((c) => c.id === id) || {}).name || id;
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎖️'),
+      h('div', null, h('h1', { class: 'title' }, 'One-tricks'),
+        h('p', { class: 'muted' }, 'Les meilleurs spécialistes de chaque champion en Corée et en Europe : leur rang, leurs stats, leur profil, et le build des joueurs Maître+.')));
+    const q = norm(OT.q);
+    const choose = (id) => { OT.champ = id; OT.q = ''; save('fire.otp', id); renderOtp(); const r = document.querySelector('.ot-res'); if (r) r.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    const search = h('input', { class: 'inp mu-search ot-search', placeholder: 'Rechercher un champion…', value: OT.q, oninput: (e) => { OT.q = e.target.value; const pos = e.target.selectionStart; renderOtp(); const el = document.querySelector('.ot-search'); if (el) { el.focus(); el.setSelectionRange(pos, pos); } } });
+    const shown = list.filter((c) => !q || norm(c.name).includes(q) || norm(c.id).includes(q));
+    const pick = h('div', { class: 'card mu-pick' }, h('div', { class: 'row' }, search),
+      list.length ? h('div', { class: 'mu-grid' + (OT.champ && !q ? ' ot-mini' : '') }, shown.map((c) => h('button', { class: 'mu-c' + (OT.champ === c.id ? ' sel' : ''), title: c.name, onclick: () => choose(c.id) }, champIcon(c.id, 44))))
+        : h('p', { class: 'muted small' }, 'Chargement des champions…'));
+    let res = null;
+    const D = OT.data;
+    if (OT.champ) {
+      const c = D && D.champs ? D.champs[OT.champ] : null;
+      const dd = (D && D.dd) || { runes: {}, spells: {} };
+      const img = (src, title, sz) => h('img', { class: 'ot-i', src, alt: title || '', title: title || '', width: sz || 34, height: sz || 34, onerror: (e) => { e.target.style.visibility = 'hidden'; } });
+      const item = (id) => img(`https://ddragon.leagueoflegends.com/cdn/${v}/img/item/${id}.png`, ((((J.data && J.data.items) || []).find((x) => x.id === String(id))) || {}).name || '');
+      const rune = (id, sz) => { const r = dd.runes[id]; return r ? img('https://ddragon.leagueoflegends.com/cdn/img/' + r.i, r.n, sz) : null; };
+      const spell = (k) => { const x = dd.spells[k]; return x ? img(`https://ddragon.leagueoflegends.com/cdn/${v}/img/spell/${x.i}`, x.n) : null; };
+      const b = (c && c.build) || {};
+      const grp = (t, ...kids) => h('div', { class: 'ot-g' }, h('small', { class: 'muted' }, t), h('div', { class: 'ot-row' }, ...kids));
+      const runesBox = (b.runes || []).length ? grp('Runes', ...b.runes.slice(0, 4).map((id, i) => rune(id, i ? 30 : 40)), h('span', { class: 'ot-sep' }), ...b.runes.slice(4).map((id) => rune(id, 30)),
+        (b.shards || []).length ? h('span', { class: 'ot-shards muted small' }, b.shards.map((x) => OT_SHARD[x] || x).join(' · ')) : null) : null;
+      const build = c ? h('div', { class: 'ot-build' },
+        (b.spells || []).length ? grp('Sorts', ...b.spells.map(spell)) : null,
+        runesBox,
+        (b.start || []).length ? grp('Départ', ...b.start.map(item)) : null,
+        (b.core || []).length ? grp('Build principal', ...b.core.map((id, i) => [i ? h('span', { class: 'ot-arrow' }, '›') : null, item(id)])) : null,
+        (b.i4 || []).length ? grp('4e objet', ...b.i4.map((id, i) => [i ? h('span', { class: 'ot-or muted small' }, 'ou') : null, item(id)])) : null,
+        (b.skills || []).length ? grp('Ordre des sorts', ...b.skills.map((k, i) => [i ? h('span', { class: 'ot-arrow' }, '›') : null, h('b', { class: 'ot-key' }, k)])) : null) : null;
+      const opgg = (r, n) => `https://www.op.gg/summoners/${r === 'kr' ? 'kr' : 'euw'}/${encodeURIComponent(String(n).replace('#', '-'))}`;
+      const col = (reg, label) => {
+        const ps = (c && c[reg]) || [];
+        return h('div', { class: 'ot-col' }, h('h3', null, label, h('small', { class: 'muted' }, ` · ${ps.length} joueur${ps.length > 1 ? 's' : ''}`)),
+          ps.length ? ps.map((p, i) => h('a', { class: 'ot-p', href: opgg(reg, p.n), target: '_blank', rel: 'noopener', title: 'Ouvrir son profil op.gg (historique, builds de ses parties)' },
+            h('span', { class: 'ot-n' }, String(i + 1)),
+            h('span', { class: 'ot-tier', style: `color:${OT_TIER[p.t] || 'var(--muted)'}` }, p.d || p.t),
+            h('span', { class: 'ot-name' }, h('b', null, p.n.split('#')[0]), h('small', { class: 'muted' }, '#' + (p.n.split('#')[1] || '') + (p.l && p.l.length ? ' · ' + p.l.map((l) => OT_LANE[l] || l).join(', ') : ''))),
+            h('span', { class: 'ot-wr ' + (p.wr >= 60 ? 'good' : '') }, `${fr(p.wr, 1)} %`, h('small', { class: 'muted' }, `${p.g} parties`)),
+            h('span', { class: 'ot-go' }, '↗')))
+            : h('p', { class: 'muted small' }, D ? 'Pas de one-trick classé pour ce champion dans cette région.' : 'Chargement…'));
+      };
+      const A = nameOf(OT.champ);
+      res = h('div', { class: 'card ot-res' },
+        h('div', { class: 'ot-head' }, champIcon(OT.champ, 64), h('div', null, h('h2', null, A), h('small', { class: 'muted' }, D && D.maj ? `Build des joueurs Maître+ · patch ${D.patch || '?'}` : 'Chargement des données…')),
+          h('div', { class: 'ot-links' },
+            h('a', { class: 'btn-ghost', href: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(A + ' one trick challenger gameplay'), target: '_blank', rel: 'noopener' }, '▶ Vidéos d’OTP'),
+            h('a', { class: 'btn-ghost', href: `https://mid.gg/champion/${encodeURIComponent(OT.champ)}`, target: '_blank', rel: 'noopener' }, '▶ VOD de pros'),
+            h('button', { class: 'btn-ghost', onclick: () => window.fire.lcu.stats(`https://lolalytics.com/lol/${lolSlug(OT.champ)}/leaderboard/`) }, '📊 Classement complet'))),
+        build || (D && !c ? h('p', { class: 'muted' }, 'Pas encore de données pour ce champion (elles arrivent avec le relevé de la semaine).') : null),
+        h('div', { class: 'ot-cols' }, col('kr', '🇰🇷 Corée'), col('euw', '🇪🇺 Europe')),
+        h('p', { class: 'muted small' }, 'Clique sur un joueur pour ouvrir son profil op.gg dans ton navigateur : ses dernières parties, ses runes et ses objets. ',
+          D && D.maj ? `Données : LoLalytics (Diamant IV et plus, au moins 50 parties et plus de 50 % de victoires sur 90 jours), relevées le ${dateFr(D.maj)}.` : ''));
+    } else res = h('p', { class: 'muted ot-hint' }, '👆 Choisis un champion pour voir ses one-tricks.');
+    view.replaceChildren(hero, draftTabs(), res && OT.champ ? res : pick, res && OT.champ ? pick : res);
   }
 
   // ----- Tier list méta : Corée et Europe, par lane et par elo (LoLalytics, relevé chaque jour : tools/tierlist.py) -----

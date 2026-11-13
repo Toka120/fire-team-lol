@@ -1,0 +1,32 @@
+name: One-tricks (chaque semaine)
+
+# Relève les classements par champion de LoLalytics (Corée et Europe) et le build Maître+ de chaque champion,
+# puis régénère otp.json, lu par l'onglet Draft › One-tricks de FIRE (servi par GitHub Pages).
+on:
+  schedule:
+    - cron: '41 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  otp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 tools/otp.py
+      - name: Publier les one-tricks
+        shell: bash
+        run: |
+          git config user.name "FIRE one-tricks"
+          git config user.email "actions@users.noreply.github.com"
+          git add otp.json
+          if git diff --cached --quiet; then echo "rien de neuf"; exit 0; fi
+          git commit -m "One-tricks : relevé de la semaine"
+          git pull --rebase origin main
+          git push origin HEAD:main

@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.86",
+   "date": "2026-11-13",
+   "titre": "One-tricks",
+   "items": [
+    [
+     "new",
+     "Draft › One-tricks : les 10 meilleurs spécialistes de chaque champion en Corée et en Europe (rang, victoires, parties, lanes)."
+    ],
+    [
+     "new",
+     "Le build des joueurs Maître+ : sorts, runes, objets de départ, build principal, 4e objet et ordre des sorts."
+    ],
+    [
+     "improve",
+     "Un clic sur un joueur ouvre son profil op.gg, avec ses dernières parties. Liens vers des vidéos d'OTP et les VOD de pros. Données mises à jour chaque semaine."
+    ]
+   ]
+  },
+  {
    "v": "1.10.85",
    "date": "2026-11-13",
    "titre": "Quiz de connaissances",

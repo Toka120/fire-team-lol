@@ -1863,3 +1863,34 @@ img.qz-hole.ok{border:2px solid var(--ok)}
 .qz-end .qz-log{justify-content:center;margin:12px 0 16px}
 .qz-end .row{justify-content:center}
 .jg-rec{display:block;font-weight:700;margin-top:4px}
+
+/* One-tricks */
+.ot-res{display:flex;flex-direction:column;gap:14px}
+.ot-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ot-head h2{margin:0}
+.ot-head img{border-radius:14px}
+.ot-links{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.ot-links a{text-decoration:none}
+.ot-build{display:flex;flex-wrap:wrap;gap:12px 22px;padding:12px 14px;border-radius:14px;background:var(--panel2);border:1px solid var(--line)}
+.ot-g{display:flex;flex-direction:column;gap:6px}
+.ot-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ot-i{border-radius:8px;background:#0006}
+.ot-sep{width:1px;height:26px;background:var(--line);margin:0 4px}
+.ot-shards{flex-basis:100%;font-size:11px}
+.ot-arrow{color:var(--muted);font-weight:700}
+.ot-key{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:var(--panel);border:1px solid var(--fire1);color:var(--fire1)}
+.ot-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:1000px){.ot-cols{grid-template-columns:1fr}}
+.ot-col h3{margin:0 0 8px}
+.ot-p{display:grid;grid-template-columns:22px 44px 1fr auto 18px;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;color:var(--fg);text-decoration:none;border:1px solid transparent}
+.ot-p:nth-child(odd){background:var(--panel2)}
+.ot-p:hover{border-color:var(--fire1)}
+.ot-n{color:var(--muted);font-size:12px;text-align:center}
+.ot-tier{font-weight:800;font-size:12px;text-align:center}
+.ot-name{display:flex;flex-direction:column;min-width:0}
+.ot-name b,.ot-name small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ot-wr{display:flex;flex-direction:column;align-items:flex-end;font-weight:700}
+.ot-wr.good{color:var(--ok)}
+.ot-go{color:var(--muted)}
+.mu-grid.ot-mini{max-height:180px;overflow:auto}
+.ot-hint{text-align:center;margin:10px 0}
