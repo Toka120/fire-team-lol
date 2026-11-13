@@ -542,3 +542,36 @@ html.v2 body { padding-bottom: 0; }
 /* Réglage de l'aperçu dans Paramètres (visible en V1 comme en V2) */
 .v2-optin { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
 .v2-optin input { margin-top: 4px; }
+
+/* ---------- Accueil des stats : tout tient sur un écran (l'équipe visible sans défiler) ---------- */
+html.v2 .view:has(.team-cards) { gap: 16px; padding-top: 20px; }
+html.v2 .view:has(.team-cards) .sec-hero { padding: 16px 20px; }
+html.v2 .view:has(.team-cards) .sec-hero .title { font-size: 28px; line-height: 36px; }
+html.v2 .view:has(.team-cards) .sec-hero p { margin-top: 4px; }
+html.v2 .view:has(.team-cards) .sec-hero .small { line-height: 18px; }
+html.v2 .team-cards { margin: 0; gap: 16px; }
+html.v2 .team-card { padding: 14px 20px; gap: 16px; }
+html.v2 .team-card .team-card-txt { gap: 4px; }
+html.v2 .team-card .ring svg { width: 88px; height: 88px; }
+html.v2 .hub-more { margin: -8px 0 -8px; justify-content: flex-end; }
+html.v2 .hub-more .more-btn { min-height: 32px; padding: 4px 12px; font-size: 13px; }
+html.v2 .hub-sec { margin: 0; padding-bottom: 6px; }
+html.v2 .hub-sec.subs { margin-top: 8px; }
+/* Cartes des joueurs : plus compactes, compteur du coach sur une seule ligne */
+html.v2 .hub-grid { gap: 12px; }
+html.v2 .hub-grid .pcard { padding: 14px; gap: 6px; }
+html.v2 .hub-grid .pcard.banded { padding-top: 40px; }
+html.v2 .hub-grid .pname { font-size: 18px; line-height: 24px; }
+html.v2 .hub-grid .objline { font-size: 12px; line-height: 16px; }
+html.v2 .hub-grid .objline .muted { white-space: nowrap; }
+html.v2 .bonus-ctl.compact { padding: 6px; gap: 4px; flex-wrap: nowrap; }
+html.v2 .bonus-ctl.compact .bonus-l { flex-basis: auto; display: none; }
+html.v2 .bonus-ctl.compact .bonus-b { min-width: 30px; min-height: 28px; padding: 2px 4px; }
+html.v2 .bonus-ctl.compact .bonus-v { min-width: 36px; font-size: 13px; }
+html.v2 .pool-jump { top: 49px; padding: 8px 0; background: var(--bg); border-bottom: 1px solid var(--line); }
+html.v2 .pj-btn { border-radius: 8px; font: 600 13px/20px var(--v2-font); min-height: 36px; }
+html.v2 .pj-btn.me { border-color: var(--fire1); background: var(--v2-sel); }
+html.v2 .pj-ico { display: inline-grid; place-items: center; color: var(--muted); }
+html.v2 .pj-ico .v2i { width: 16px; height: 16px; }
+html.v2 .pool-card { scroll-margin-top: 112px; }
+html.v2 .pm-n { background: var(--v2-bad-bg); }

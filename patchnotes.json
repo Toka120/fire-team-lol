@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.78",
+   "date": "2026-11-13",
+   "titre": "Accueil compact et POOL plus rapide",
+   "items": [
+    [
+     "improve",
+     "Stats des joueurs : l'accueil est plus compact, la Team FIRE se voit sans défiler."
+    ],
+    [
+     "new",
+     "POOL : les pseudos de l'équipe sont en haut de la page et y restent pendant le défilement ; un clic amène directement à la tierlist du joueur."
+    ],
+    [
+     "improve",
+     "POOL : chaque joueur affiche sa tierlist et son objectif ; la répartition, les alertes et les cartes champion s'ouvrent avec le bouton « Détails » (avec le nombre de points à surveiller)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.77",
    "date": "2026-11-13",
    "titre": "Le salon n'entend plus que toi",

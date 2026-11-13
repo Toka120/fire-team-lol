@@ -4815,7 +4815,12 @@
       w && w.note ? h('div', { class: 'wb-note md' }, md(w.note)) : null,
       !w ? h('p', { class: 'muted small' }, coach ? 'Aucune tierlist publiée : crée la première semaine avec « Nouvelle semaine ».' : 'Pas encore de tierlist publiée : voici le pool de départ et son analyse.') : null));
 
-    for (const p of S.players.filter((x) => x.slug)) nodes.push(poolCard(p, w, prev, rng, obj));
+    // Accès direct : un clic sur un pseudo amène à sa carte (la barre reste en haut pendant le défilement).
+    const poolPlayers = S.players.filter((x) => x.slug);
+    nodes.splice(1, 0, h('nav', { class: 'pool-jump', 'aria-label': 'Aller au joueur' }, poolPlayers.map((p) => h('button', { class: 'pj-btn' + (S.moi === p.slug ? ' me' : ''),
+      onclick: () => { const el = document.getElementById('pool-' + p.slug); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
+      h('span', { class: 'pj-ico' }, roleOf(p).ico), p.pseudo.split('#')[0]))));
+    for (const p of poolPlayers) nodes.push(poolCard(p, w, prev, rng, obj));
     view.replaceChildren(...nodes.filter(Boolean));
   }
 
@@ -4902,9 +4907,16 @@
     const o = d && obj ? FC.objectif({ ...p, pool_ids: tiers.O }, d.matches, obj) : null;
     const sup = p.role_id === 'support';
     const group = (title, list, small, empty) => h('div', { class: 'cgroup' }, h('h3', null, title), list.length ? h('div', { class: 'cgrid' + (small ? ' small' : '') }, list.map((c) => champCard(c, small))) : h('p', { class: 'muted small' }, empty));
+    // Le détail (répartition, alertes, cartes champion, tableau) est replié : bouton « Détails ».
+    S.poolOpen = S.poolOpen || {};
+    const open = !!S.poolOpen[p.slug];
+    const alerts = A ? A.notes.filter((n) => n.kind === 'bad' || n.kind === 'warn').length : 0;
+    const toggle = A ? h('button', { class: 'btn-ghost pool-more' + (open ? ' on' : ''), 'aria-expanded': String(open), onclick: () => { S.poolOpen[p.slug] = !open; render(); } },
+      open ? '➖ Masquer les détails' : '➕ Détails', !open && alerts ? h('span', { class: 'pm-n' }, `${alerts} à surveiller`) : null) : null;
     const body = A ? [
       o ? progress(o, true) : null,
-      catBar({ oblig: A.tot.oblig.games, maitrise: A.tot.maitrise.games, autres: A.tot.autres.games }),
+      toggle,
+      ...(!open ? [] : [catBar({ oblig: A.tot.oblig.games, maitrise: A.tot.maitrise.games, autres: A.tot.autres.games }),
       alertPills(A.notes),
       group('🎯 Obligatoires', A.oblig, false, 'Aucun champion obligatoire.'),
       group('⭐ Maîtrisés', A.maitrise, false, 'Aucun champion maîtrisé.'),
@@ -4914,9 +4926,9 @@
         h('tbody', null, [...A.oblig.map((c) => ['🎯', c]), ...A.maitrise.map((c) => ['⭐', c]), ...A.autres.map((c) => ['❔', c])].map(([k, c]) => h('tr', null,
           h('td', { class: 'l' }, h('span', { class: 'tcell' }, champIcon(c.id, 22), c.champion)), h('td', null, k), h('td', null, c.games), h('td', null, c.games ? `${c.wins} – ${c.losses}` : '—'),
           h('td', { class: c.wr == null ? '' : c.wr >= 50 ? 'good' : 'bad' }, fr(c.wr, 1)), h('td', null, fr(c.kda, 2)), h('td', null, sup ? fr(c.vision, 1) : fr(c.cs_min, 1)),
-          h('td', { class: c.gold15 > 0 ? 'good' : c.gold15 < 0 ? 'bad' : '' }, sg(c.gold15)), h('td', null, c.split ? `${c.split.games} g · ${fr(c.split.wr)} %` : '—')))))))
+          h('td', { class: c.gold15 > 0 ? 'good' : c.gold15 < 0 ? 'bad' : '' }, sg(c.gold15)), h('td', null, c.split ? `${c.split.games} g · ${fr(c.split.wr)} %` : '—')))))))])
     ] : [h('p', { class: 'muted small' }, 'Lecture des stats sur dpm.lol…')];
-    return h('article', { class: 'card pool-card' }, head, changes,
+    return h('article', { class: 'card pool-card', id: 'pool-' + p.slug }, head, changes,
       fallback ? h('p', { class: 'muted small' }, 'Pas encore de tierlist pour cette semaine : voici son pool de départ.' + (canEdit(p.slug) ? ' Clique sur ✏️ pour la créer.' : '')) : null,
       tierRows, ...body.filter(Boolean));
   }

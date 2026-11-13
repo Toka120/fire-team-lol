@@ -102,7 +102,7 @@
     [/^Remplaçants/, 'ArrowLeftRight'], [/^Golds à 15/, 'controls.Recall, golds et objets'], [/^Premier sang/, 'Droplet'],
     [/^Obligatoire/, 'controls.Obligatoire'], [/^Maîtrisé/, 'controls.Maîtrisé'], [/^(Hors pool|Autres champions)/, 'controls.Incertain'],
     [/^Dragons/, 'esport.Dragons'], [/^Baron/, 'esport.Barons'], [/^Larves/, 'esport.Larves'], [/^Coachs?\b/, 'controls.Coach'],
-    [/^Plus de détails/, 'controls.Ajouter'], [/^Moins de détails/, 'Minus'], [/^(Vos )?[Pp]oints forts/, 'BicepsFlexed'],
+    [/^Plus de détails/, 'controls.Ajouter'], [/^Moins de détails/, 'Minus'], [/^Détails/, 'controls.Ajouter'], [/^Masquer les détails/, 'Minus'], [/^(Vos )?[Pp]oints forts/, 'BicepsFlexed'],
     [/^À travailler/, 'controls.Notification importante'], [/^Mauvaises actions/, 'CircleX'], [/^Bonnes actions/, 'CircleCheck'],
     [/^La stratégie/, 'controls.Objectifs et macro'], [/^Comprendre les stats/, 'BookOpen'], [/^Bilan et stratégie/, 'Compass'],
     [/^Qui joue avec qui/, 'micro.Duo'], [/^Stats de l’équipe · .*5c5/, 'sessions.5c5'], [/^Stats de l’équipe/, 'sessions.Flex'],
@@ -113,7 +113,7 @@
   // Stats, profils et analyse d'équipe : libellés système uniquement (jamais les notes, fiches ou messages).
   const STAT_SEL = '.tile-h, .acol > h3, .cgroup > h3, .catpill, .bdg, .team-kick, .hp, .more-btn, .tags > .tag:not(.tag-cap), '
     + '.objline > span, .hub-coachs, .team-h, .ta-k, .ta-keep, .wr-g, .tg-q, .pstatus, .cc .m > span, .bonus-l, .sec-hero p.muted.small, '
-    + '.btn-fire, .btn-ghost, .fld-inline, .verdict, .pk-mode, .pc-head > .tag, .plan-type, .plan-note, .pc-name, .pc-hr, .plan-hours, '
+    + '.btn-fire, .btn-ghost, .pool-more, .fld-inline, .verdict, .pk-mode, .pc-head > .tag, .plan-type, .plan-note, .pc-name, .pc-hr, .plan-hours, '
     + '.dr-live, .dr-timer, .dr-teams h3, .card > h3, '
     + '.jt-label, .cchip, .diapo-tag, .tr-head b, .pk-tag, .nrow > span, h2:not(.md h2)';
   // Planning : réponses des joueurs et demandes de créneau (Présent ✓, Incertain ?, Absent ✕, Sans réponse ⌛).
@@ -125,7 +125,7 @@
     '🔕': 'voice.Casque coupé', '📞': 'voice.Quitter', '🔴': 'voice.EN DIRECT', '👑': 'ribbons.Chef d’équipe' };
   const ROLES = { '🛡️': 'roles.Top', '🌲': 'roles.Jungle', '✨': 'roles.Mid', '🏹': 'roles.ADC', '💞': 'roles.Support' };
   // Petites icônes seules (cartes d'analyse, points forts d'équipe, objectifs d'une game).
-  const ICO_SEL = '.acard-ico, .tf-ico, .pz-lane, .cat-ico, .pc-ico, .tier-ico, .pk-b, .ibtn, .apill-ico, .mini-tag, .pool-card table.t td';
+  const ICO_SEL = '.acard-ico, .tf-ico, .pz-lane, .cat-ico, .pj-ico, .pc-ico, .tier-ico, .pk-b, .ibtn, .apill-ico, .mini-tag, .pool-card table.t td';
   // Libellés où 🎯 ⭐ ❔ apparaissent au milieu du texte (légendes POOL, changements de tierlist).
   const CAT_SEL = '.acard-chip, .chg, .catleg > span, .pool-hero p, .week-banner .wb-main .muted.small, .card-editor > p.muted.small';
   const OBJ = { '🩸': 'Droplet', '⚔️': 'Swords', '🐉': 'esport.Dragons', '🪱': 'esport.Larves', '👾': 'esport.Barons', '⏱️': 'controls.Heure', '🏰': 'esport.Tours' };

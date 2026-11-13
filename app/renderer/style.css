@@ -1646,3 +1646,12 @@ body{padding-bottom:46px}
 .clips-view .row{display:flex;gap:8px;flex-wrap:wrap}
 .clips-view .btn-fire,.clips-view .btn-ghost{width:auto}
 @media (max-width:900px){.clips-body{grid-template-columns:1fr}}
+
+/* ---------- POOL : accès direct aux joueurs et détail replié ---------- */
+.pool-jump{position:sticky;top:0;z-index:6;display:flex;gap:8px;flex-wrap:wrap;padding:10px 0;background:var(--bg)}
+.pj-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.pj-btn:hover{border-color:var(--fire1)}
+.pj-btn.me{border-color:var(--fire1)}
+.pool-card{scroll-margin-top:72px}
+.pool-more{align-self:flex-start;width:auto;display:inline-flex;align-items:center;gap:8px}
+.pm-n{font-size:12px;font-weight:700;color:var(--bad);background:rgba(239,90,90,.12);border-radius:8px;padding:2px 8px}
