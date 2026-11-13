@@ -20,7 +20,8 @@
     "Paramètres": "Settings",
     "Discussion": "MessagesSquare",
     "Carnet de bord": "NotebookTabs",
-    "Clips": "Clapperboard"
+    "Clips": "Clapperboard",
+    "Salle de réunion": "Presentation"
   },
   "roles": {
     "Top": "Shield",

@@ -2334,3 +2334,12 @@ html.v2 .pk-mode.mT > .v2i { color: #3ddc84; }
 html.sub-mode #chat { display: none !important; }
 .sub-banner { border-color: #3ddc8466; }
 .sub-banner p { margin: 4px 0 0; }
+
+/* ===== Salle de réunion ===== */
+.meet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+.meet-card { display: flex; flex-direction: column; gap: 8px; text-align: left; cursor: pointer; color: inherit; font: inherit; transition: transform .12s, border-color .12s; }
+.meet-card:hover { transform: translateY(-2px); border-color: var(--accent, #ff6b3d); }
+.meet-ico { font-size: 30px; }
+.meet-card b { font-size: 17px; }
+.meet-go { margin-top: auto; font-weight: 700; color: var(--accent, #ff6b3d); }
+.meet-tabs { gap: 6px; margin: 6px 0; flex-wrap: wrap; }

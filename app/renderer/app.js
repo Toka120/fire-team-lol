@@ -1051,15 +1051,18 @@
     if (!WEB.open) { S.section = WEB.from || 'stats'; render(); return; }
     const view = $('view');
     const nav = (a) => window.fire.web.nav(a);
+    const inMeet = WEB.from === 'reunion';
     const bar = h('div', { class: 'web-bar' },
-      h('button', { class: 'btn-fire small-btn web-home', onclick: () => webClose() }, '← Retour à FIRE'),
+      h('button', { class: 'btn-fire small-btn web-home', onclick: () => webClose() }, inMeet ? '← Salle de réunion' : '← Retour à FIRE'),
       h('button', { class: 'web-b', title: 'Page précédente', disabled: WEB.back ? null : true, onclick: () => nav('back') }, '‹'),
       h('button', { class: 'web-b', title: 'Page suivante', disabled: WEB.fwd ? null : true, onclick: () => nav('fwd') }, '›'),
       h('button', { class: 'web-b', title: WEB.loading ? 'Arrêter' : 'Recharger', onclick: () => nav(WEB.loading ? 'stop' : 'reload') }, WEB.loading ? '✕' : '⟳'),
       h('div', { class: 'web-addr' }, h('span', { class: 'web-lock' }, '🔒'), h('b', null, webHost(WEB.url)), h('span', { class: 'muted' }, WEB.title ? ' · ' + WEB.title : ''),
         WEB.loading ? h('i', { class: 'web-spin' }) : null));
     const slot = h('div', { id: 'web-slot', class: 'web-slot' }, WEB.error ? h('div', { class: 'web-err' }, h('b', null, 'Page indisponible'), h('p', { class: 'muted' }, WEB.error)) : null);
-    view.replaceChildren(bar, slot);
+    // Salle de réunion : on passe d'un outil à l'autre sans revenir en arrière.
+    const tools = inMeet ? h('div', { class: 'row meet-tabs' }, MEET_TOOLS.map((t) => h('button', { class: 'chip', 'aria-pressed': String(webHost(WEB.url) === webHost(t.url) && (t.k !== 'll' || /lol-map/.test(WEB.url))), onclick: () => webOpen(t.url) }, t.ico + ' ' + t.name))) : null;
+    view.replaceChildren(...[bar, tools, slot].filter(Boolean));
     requestAnimationFrame(() => {
       const r = webRect(); if (r) window.fire.web.bounds(r);
       if (!WEB.ro && window.ResizeObserver) { WEB.ro = new ResizeObserver(() => { const rr = webRect(); if (rr && WEB.open) window.fire.web.bounds(rr); }); WEB.ro.observe(document.getElementById('web-slot')); }
@@ -1087,11 +1090,36 @@
   }
 
 
+  // ===== Salle de réunion des coachs : les outils pour enseigner, ouverts dans FIRE =====
+  const MEET_TOOLS = [
+    { k: 'riftkit', ico: '🗺️', name: 'RiftKit', url: 'https://kdx.gg/riftkit', desc: 'Carte de la Faille : charge un match ou monte une situation avec les champions, les objectifs, le tableau des scores, la timeline, les graphiques d’or et de dégâts, et des annotations.' },
+    { k: 'll', ico: '🧭', name: 'Level Legendary · Map Planner', url: 'https://levellegendary.com/tools/lol-map/', desc: 'La Faille en 3D : place les 10 champions, dessine les actions, pose wards et camps, et vérifie les vraies portées des sorts et des tours et les zones de freeze, à n’importe quel niveau et build.' },
+    { k: 'replays', ico: '🎬', name: 'Replays.lol (bêta)', url: 'https://beta.replays.lol/', desc: 'Enregistre les games automatiquement et sort une revue vidéo par IA dès la fin de la partie, avec ce qu’il faut améliorer. Son client s’installe sur le PC du joueur.' },
+    { k: 'lolvalue', ico: '💎', name: 'LoLValue', url: 'https://lolvalue.com/', desc: 'Temps passé sur LoL, valeur du compte et des skins d’un joueur.' },
+  ];
+  const meetOk = () => !SUB() && !!(S.coachState && (S.coachState.coach || S.coachState.admin));
+  function renderReunion() {
+    const view = $('view');
+    if (!meetOk()) { view.replaceChildren(h('div', { class: 'card' }, h('p', null, 'La salle de réunion est réservée aux coachs.'))); return; }
+    view.replaceChildren(
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🧑‍🏫'), h('div', null, h('h1', { class: 'title' }, 'Salle de réunion'),
+        h('p', { class: 'muted' }, 'Les outils pour enseigner, ouverts directement dans FIRE. Partage ton écran dans le salon vocal pour montrer l’outil aux joueurs.'))),
+      h('div', { class: 'meet-grid' }, MEET_TOOLS.map((t) => h('button', { class: 'card meet-card', onclick: () => webOpen(t.url) },
+        h('span', { class: 'meet-ico' }, t.ico), h('b', null, t.name), h('small', { class: 'muted' }, t.desc), h('span', { class: 'meet-go' }, 'Ouvrir →')))),
+      h('div', { class: 'card meet-tips' }, h('h3', null, '🎙️ Pour une séance'),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn-ghost', onclick: () => go('vocal') }, '🎙️ Ouvrir le vocal'),
+          h('button', { class: 'btn-ghost', onclick: () => go('coach') }, '📣 Parole du coach'),
+          h('button', { class: 'btn-ghost', onclick: () => go('pool') }, '🧙 POOL'),
+          h('button', { class: 'btn-ghost', onclick: () => go('draft') }, '⚡ Draft')),
+        h('p', { class: 'muted small' }, 'Astuce : dans le vocal, le tableau tactique de FIRE permet aussi à tout le salon de dessiner sur la carte en même temps.')));
+  }
+
   // ===== Carnet de bord (staff) : ce que fait chaque membre dans FIRE, notes du staff, modération, rôles =====
   // Chaque FIRE note ses actions (pages ouvertes, messages, vocal, planning, POOL, quiz, clips…) et les envoie toutes les
   // 3 minutes dans le fichier d'activité du joueur (chiffré avec le code d'équipe). Le contenu des messages privés n'est jamais noté.
   const PAGE_NAMES = { stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
-    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', web: 'navigateur' };
+    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', web: 'navigateur' };
   const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
   function actLog(k, d) {
     if (!vocalMe() || !window.fire.staff) return;
@@ -1459,7 +1487,7 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'carnet' || S.section === 'clips' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'carnet' || S.section === 'clips' || S.section === 'reunion' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -1467,6 +1495,7 @@
     else if (S.section === 'chat') renderChatPage();
     else if (S.section === 'carnet') renderCarnet();
     else if (S.section === 'clips') renderClipsPage();
+    else if (S.section === 'reunion') renderReunion();
     else if (S.section === 'pool') renderPool();
     else if (S.section === 'planning') renderPlanning();
     else if (S.section === 'jeux') renderJeux();
@@ -4191,7 +4220,7 @@
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null],
-      ['coach', '📣', 'Parole du coach', n || null], ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
+      ['coach', '📣', 'Parole du coach', n || null], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
     if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), items.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }

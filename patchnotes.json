@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "1.10.110",
+   "date": "2026-11-13",
+   "titre": "Salle de réunion des coachs",
+   "items": [
+    [
+     "new",
+     "Salle de réunion (rubrique Apprendre, pour les coachs et le créateur) : les outils pour enseigner, ouverts directement dans FIRE."
+    ],
+    [
+     "new",
+     "RiftKit : la carte de la Faille, pour charger un match ou monter une situation avec champions, objectifs, timeline, graphiques d'or et de dégâts, et annotations."
+    ],
+    [
+     "new",
+     "Level Legendary · Map Planner : la Faille en 3D, avec les 10 champions, les dessins, les wards, et les vraies portées des sorts et des tours."
+    ],
+    [
+     "new",
+     "Replays.lol (bêta) : revue vidéo par IA de chaque game. Et LoLValue : temps de jeu et valeur du compte."
+    ],
+    [
+     "improve",
+     "Dans un outil, des onglets permettent de passer directement à un autre, et « ← Salle de réunion » ramène à la salle."
+    ]
+   ]
+  },
+  {
    "v": "1.10.109",
    "date": "2026-11-13",
    "titre": "Code remplaçants",
