@@ -2033,3 +2033,37 @@ html[data-streamer] #chat .chat-bar::after{content:'📺';margin-left:6px}
 .qs-ico{text-align:center}
 .qs-help{margin:10px 2px 0}
 .qs-none{padding:10px}
+
+/* ===== Paramètres plein écran, comme Discord ===== */
+.set-ovl{position:fixed;inset:0;z-index:900;display:flex;background:var(--bg);animation:setIn .18s ease}
+@keyframes setIn{from{opacity:0;transform:scale(1.02)}to{opacity:1;transform:none}}
+.set-left{flex:1 0 220px;display:flex;justify-content:flex-end;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto}
+.set-side{width:232px;padding:56px 8px 40px 16px;display:flex;flex-direction:column;gap:1px}
+.set-search{margin-bottom:10px;padding:6px 10px;font-size:13px}
+.set-gt{padding:12px 10px 6px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.set-sep{height:1px;background:var(--line);margin:8px 10px}
+.set-ovl .set-tab{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;border:none;background:none;color:var(--muted);font:inherit;font-size:15px;font-weight:500;text-align:left;cursor:pointer;box-shadow:none}
+.set-ovl .set-tab:hover{background:var(--panel2);color:var(--fg)}
+.set-ovl .set-tab.on{background:color-mix(in srgb,var(--fg) 12%,var(--panel));color:var(--fg);box-shadow:none}
+.set-content{flex:1 1 800px;display:flex;align-items:flex-start;overflow-y:auto;background:var(--bg)}
+.set-page{flex:1;max-width:760px;padding:56px 40px 80px;display:flex;flex-direction:column;gap:0;min-width:0}
+.set-title{font-size:20px;line-height:24px;margin:0 0 20px;font-weight:700}
+.set-subs{display:flex;gap:24px;border-bottom:1px solid var(--line);margin:-6px 0 18px}
+.set-sub{padding:0 0 12px;border:none;background:none;color:var(--muted);font:inherit;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.set-sub:hover{color:var(--fg)}
+.set-sub.on{color:var(--fg);border-bottom-color:var(--fire1)}
+/* Dans les paramètres, les blocs deviennent des sections séparées par un trait (pas de cartes), comme Discord */
+.set-ovl .set-page .card{background:none!important;border:none!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;box-shadow:none!important;padding:0 0 24px!important;margin:0 0 24px;backdrop-filter:none!important}
+.set-ovl .set-page .card::before,.set-ovl .set-page .card::after{display:none!important}
+.set-ovl .set-page .card:last-child{border-bottom:none!important}
+.set-ovl .set-page .card h2{font-size:12px!important;line-height:16px;font-weight:800!important;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)!important;margin:0 0 10px;font-family:inherit!important;background:none!important;-webkit-text-fill-color:currentColor}
+.set-close{position:sticky;top:56px;flex:0 0 72px;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:56px;margin-top:0}
+.set-x{width:36px;height:36px;border-radius:50%;border:2px solid var(--muted);background:none;color:var(--muted);font-size:16px;cursor:pointer}
+.set-x:hover{border-color:var(--fg);color:var(--fg);background:var(--panel2)}
+.set-close small{font-size:11px;font-weight:700;color:var(--muted)}
+.set-news{padding:10px 0;border-bottom:1px solid var(--line)}
+.set-news ul{margin:6px 0 0 18px;padding:0}
+.set-news li{margin:3px 0;color:var(--muted)}
+html.set-open #chat{display:none}
+html.set-open body{overflow:hidden}
+@media (max-width:900px){.set-left{flex:0 0 200px}.set-side{width:200px}.set-page{padding:40px 20px}}

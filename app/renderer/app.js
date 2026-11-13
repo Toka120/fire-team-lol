@@ -678,8 +678,15 @@
   }
 
   // ----- Paramètres façon Discord : catégories à gauche, réglages à droite -----
-  const SET_TABS = [['profil', '👤', 'Mon profil'], ['apparence', '🎨', 'Apparence'], ['access', '♿', 'Accessibilité'], ['notifs', '🔔', 'Notifications'], ['vocal', '🎙️', 'Voix'],
-    ['raccourcis', '⌨️', 'Raccourcis'], ['confid', '🔒', 'Confidentialité'], ['ouverture', '🚀', 'Ouverture de FIRE'], ['avance', '⚙️', 'Avancé'], ['apropos', 'ℹ️', 'Version et aide']];
+  // Comme Discord : des groupes (titres gris) et leurs sous-menus ; certaines pages ont des onglets en haut.
+  const SET_GROUPS = [
+    ['Paramètres utilisateur', [['compte', '🪪', 'Mon compte'], ['profil', '👤', 'Profil'], ['confid', '🔒', 'Confidentialité']]],
+    ['Application', [['apparence', '🎨', 'Apparence'], ['texte', '🔤', 'Polices et texte'], ['access', '♿', 'Accessibilité'], ['voix', '🎙️', 'Voix et vidéo'],
+      ['notifs', '🔔', 'Notifications'], ['raccourcis', '⌨️', 'Raccourcis clavier'], ['streamer', '📺', 'Mode streamer'], ['ouverture', '🚀', 'Ouverture de FIRE'], ['avance', '⚙️', 'Avancé']]],
+    ['FIRE LoL', [['nouveautes', '🆕', 'Nouveautés'], ['maj', '🔄', 'Mises à jour'], ['bug', '🐞', 'Signaler un bug'], ['apropos', 'ℹ️', 'À propos']]],
+  ];
+  const SET_TABS = SET_GROUPS.flatMap(([, items]) => items);
+  const SET_SUB = { apparence: [['theme', 'Thème'], ['couleurs', 'Couleur et fond'], ['affichage', 'Affichage']], notifs: [['alertes', 'Alertes'], ['dnd', 'Ne pas déranger'], ['son', 'Son']], profil: [['statut', 'Statut'], ['carte', 'Carte de profil']] };
   const uxBox = (checked, label, sub, onchange, disabled) => h('label', { class: 'nrow ux-row' + (disabled ? ' off' : '') },
     h('input', { type: 'checkbox', checked: checked ? true : null, disabled: disabled ? true : null, onchange: (e) => onchange(e.target.checked) }),
     h('span', null, h('b', null, label), sub ? h('small', { class: 'muted' }, sub) : null));
@@ -926,27 +933,81 @@
           h('a', { href: 'https://github.com/Toka120/fire-team-lol/releases', target: '_blank' }, 'toutes les versions'), ' · ',
           h('a', { href: 'https://toka120.github.io/fire-team-lol/confidentialite.html', target: '_blank' }, 'confidentialité')),
         h('p', { class: 'muted small' }, "FIRE LoL n'est pas approuvé par Riot Games et ne reflète pas les opinions de Riot Games ni de quiconque officiellement impliqué dans la production ou la gestion des propriétés de Riot Games. Riot Games et toutes les propriétés associées sont des marques commerciales ou des marques déposées de Riot Games, Inc."));
-    // Catégories façon Discord : menu à gauche, réglages de la catégorie à droite.
-    const tab = SET_TABS.some(([k]) => k === S.setTab) ? S.setTab : 'profil';
+    // Comme Discord : plein écran, groupes et sous-menus à gauche, la page à droite, « Échap » pour fermer.
+    const tab = SET_TABS.some(([k]) => k === S.setTab) ? S.setTab : 'compte';
+    const [pWho, pStatus, pCard] = profilCards();
+    const [aTheme, aAccent, aBg, , aDisp] = appearanceCards(C.theme);
+    const [cStream, cDm, cLive] = privacyCards();
+    const [nDnd, nSon] = notifExtraCards();
+    const sub = SET_SUB[tab] ? (SET_SUB[tab].some(([k]) => k === S.setSub) ? S.setSub : SET_SUB[tab][0][0]) : null;
     const pages = {
-      profil: () => profilCards(),
-      apparence: () => appearanceCards(C.theme),
+      compte: () => [pWho, C.access],
+      profil: () => ({ statut: [pStatus], carte: [pCard] }[sub]),
+      confid: () => [cDm, cLive],
+      apparence: () => ({ theme: [aTheme], couleurs: [aAccent, aBg], affichage: [aDisp] }[sub]),
+      texte: () => [fontCard()],
       access: () => accessCards(),
-      notifs: () => [notifCard(), ...notifExtraCards()],
-      vocal: () => vocalCards(),
+      voix: () => vocalCards(),
+      notifs: () => ({ alertes: [notifCard()], dnd: [nDnd], son: [nSon] }[sub]),
       raccourcis: () => shortcutCards(),
-      confid: () => privacyCards(),
+      streamer: () => [cStream],
       ouverture: () => [startCard(), C.v2],
-      avance: () => advancedCards([C.content, C.access]),
-      apropos: () => [C.version, C.bug, C.about],
+      avance: () => advancedCards([C.content]),
+      nouveautes: () => [newsCard()],
+      maj: () => [C.version],
+      bug: () => [C.bug],
+      apropos: () => [C.about],
     };
-    const nav = h('nav', { class: 'set-nav' }, SET_TABS.map(([k, ico, label]) => h('button', { class: 'set-tab' + (k === tab ? ' on' : ''), onclick: () => { S.setTab = k; renderSettings(); window.scrollTo(0, 0); } },
-      h('span', { class: 'set-ico' }, ico), h('span', null, label), k === 'apropos' && behind ? h('span', { class: 'set-n' }, '1') : null)));
+    const q = String(S.setQ || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const match = (label) => !q || label.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(q);
+    const side = h('nav', { class: 'set-side' },
+      h('input', { class: 'inp set-search', placeholder: 'Rechercher', value: S.setQ || '', oninput: (e) => { S.setQ = e.target.value; const pos = e.target.selectionStart; renderSettings(); const el = document.querySelector('.set-search'); if (el) { el.focus(); el.setSelectionRange(pos, pos); } } }),
+      SET_GROUPS.map(([title, items]) => {
+        const shown = items.filter(([, , l]) => match(l));
+        return shown.length ? [h('div', { class: 'set-gt' }, title), shown.map(([k, ico, label]) => h('button', { class: 'set-tab' + (k === tab ? ' on' : ''), onclick: () => { S.setTab = k; S.setSub = null; renderSettings(); const m = document.querySelector('.set-content'); if (m) m.scrollTop = 0; } },
+          h('span', { class: 'set-ico' }, ico), h('span', null, label), k === 'maj' && behind ? h('span', { class: 'set-n' }, '1') : null)), h('div', { class: 'set-sep' })] : null;
+      }));
     const cur = SET_TABS.find(([k]) => k === tab);
-    view.replaceChildren(
-      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '⚙️'), h('div', null, h('h1', { class: 'title' }, 'Paramètres'), h('p', { class: 'muted' }, 'Profil, apparence, notifications, voix, raccourcis, confidentialité… Astuce : Ctrl+K pour aller n’importe où.'))),
-      h('div', { class: 'set-wrap' }, nav, h('div', { class: 'set-main' }, h('h2', { class: 'set-h' }, cur[1] + ' ' + cur[2]), ...pages[tab]().filter(Boolean))));
+    const subBar = SET_SUB[tab] ? h('div', { class: 'set-subs' }, SET_SUB[tab].map(([k, l]) => h('button', { class: 'set-sub' + (k === sub ? ' on' : ''), onclick: () => { S.setSub = k; renderSettings(); } }, l))) : null;
+    const box = setOverlay();
+    box.replaceChildren(
+      h('div', { class: 'set-left' }, side),
+      h('div', { class: 'set-content' },
+        h('div', { class: 'set-page' }, h('h1', { class: 'set-title' }, cur[2]), subBar, ...(pages[tab]() || []).filter(Boolean)),
+        h('div', { class: 'set-close' }, h('button', { class: 'set-x', title: 'Fermer (Échap)', onclick: () => setClose() }, '✕'), h('small', null, 'ÉCHAP'))));
   }
+  // Fenêtre plein écran des paramètres, par-dessus FIRE (comme Discord).
+  function setOverlay() {
+    let el = document.getElementById('set-ovl');
+    if (!el) {
+      el = h('div', { id: 'set-ovl', class: 'set-ovl', role: 'dialog', 'aria-label': 'Paramètres' });
+      document.body.append(el);
+      document.documentElement.classList.add('set-open');
+    }
+    return el;
+  }
+  function setClose(silent) {
+    const el = document.getElementById('set-ovl');
+    if (!el) return;
+    el.remove();
+    document.documentElement.classList.remove('set-open');
+    if (!silent && S.section === 'settings') go(S.prevSection && S.prevSection !== 'settings' ? S.prevSection : 'stats');
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !document.getElementById('set-ovl')) return;
+    if (document.querySelector('.qs, .prof-pop, .who, .bug-modal')) return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '') && e.target.value) return;
+    e.preventDefault(); setClose();
+  });
+  // Nouveautés : les dernières versions de FIRE, en bref, avec un lien vers toutes les notes.
+  function newsCard() {
+    const list = Array.isArray(S.patch) ? S.patch : [];
+    return h('div', { class: 'card settings-card' }, h('h2', null, '🆕 Les dernières nouveautés'),
+      list.length ? list.slice(0, 4).map((v) => h('div', { class: 'set-news' }, h('b', null, `v${v.v} · ${v.titre}`), h('ul', null, (v.items || []).slice(0, 4).map(([, t]) => h('li', null, t)))))
+        : h('p', { class: 'muted' }, 'Chargement…'),
+      h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => go('patch') }, 'Voir toutes les notes de version')));
+  }
+
   // ---------- Lecture dpm.lol ----------
   // Un joueur peut changer de compte : « comptes » liste ses comptes, chacun avec ses dates.
   // Un ancien compte (jusqu_au) garde toutes ses games jusqu'à ce jour inclus, le nouveau (depuis) compte à partir de ce jour.
@@ -1891,7 +1952,8 @@
   const pourLabel = (p) => (!p || p === 'tous') ? "Toute l'équipe" : String(p).split(/\s+/).map((r) => (FC.ROLES[r] ? FC.ROLES[r].label : r)).join(' et ');
 
   function go(sec) {
-    if (sec !== S.section) S.prevSection = S.section;
+    if (sec !== S.section && S.section !== 'settings') S.prevSection = S.section;
+    if (sec !== 'settings') setClose(true);
     S.section = sec;
     if (START_PAGES.some(([k]) => k === sec)) save('fire.lastSection', sec);
     if (sec === 'guides') { S.theme = null; S.guideCat = null; }

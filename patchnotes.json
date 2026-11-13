@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.94",
+   "date": "2026-11-13",
+   "titre": "Paramètres comme Discord",
+   "items": [
+    [
+     "improve",
+     "Les Paramètres s'ouvrent en plein écran comme dans Discord : groupes Utilisateur, Application et FIRE LoL à gauche, avec leurs sous-menus, et une recherche."
+    ],
+    [
+     "improve",
+     "Onglets en haut des pages chargées : Apparence (Thème, Couleur et fond, Affichage), Notifications (Alertes, Ne pas déranger, Son), Profil (Statut, Carte de profil)."
+    ],
+    [
+     "new",
+     "Nouvelles pages : Mon compte, Mode streamer, Mises à jour, Nouveautés (les dernières notes de version en bref)."
+    ],
+    [
+     "improve",
+     "Croix ou touche Échap pour fermer : tu reviens sur la page où tu étais."
+    ]
+   ]
+  },
+  {
    "v": "1.10.93",
    "date": "2026-11-13",
    "titre": "Paramètres façon Discord",
