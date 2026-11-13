@@ -2218,3 +2218,16 @@ html.chat-page #chat{display:none}
 .pf-ch img{border-radius:10px}
 .pf-pick{flex-wrap:wrap;gap:6px}
 .pf-other{max-width:200px}
+
+/* ===== Nouveaux membres ===== */
+.nm-card { max-width: 560px; }
+.nm-card .fld { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.nm-card .ux-seg { flex-wrap: wrap; gap: 6px; }
+.nm-who { min-height: 18px; margin-top: -4px; }
+.nm-req { padding: 12px 14px; margin: 8px 0; }
+.nm-req.done { opacity: .65; }
+.nm-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.nm-st { margin-left: auto; font-size: 12px; font-weight: 700; }
+.nm-st.attente { color: #ffc24b; } .nm-st.ok { color: #3ddc84; } .nm-st.refus { color: #ff6b6b; }
+.nm-role { width: auto; min-width: 170px; }
+.nm-pend { border-color: #ffc24b66; }

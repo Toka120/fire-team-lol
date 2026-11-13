@@ -209,8 +209,10 @@ html.v2[data-theme=rgb] {
   --ta: var(--rgb1); --tb: var(--rgb2);
   --trainbow: linear-gradient(90deg, #ff3d6e, #ff9f3d, #ffe93d, #3dff8a, #3dd8ff, #b13dff, #ff3d6e);
   --trot: linear-gradient(var(--rgba), #ff3d6e, #ff9f3d, #ffe93d, #3dff8a, #3dd8ff, #b13dff, #ff3d6e);
-  animation: th-rgb-c1 8s linear infinite, th-rgb-c2 8s linear infinite, th-rgb-a 6s linear infinite;
 }
+/* Léger : les couleurs ne tournent plus sur toute la page (ça recalculait tout l'affichage 60 fois par seconde) ;
+   seuls quelques éléments (titres, menu, boutons) font défiler l'arc-en-ciel. */
+html.v2[data-theme=rgb] { --rgb1: #ff3d6e; --rgb2: #3dd8ff; --rgba: 90deg; }
 html.v2[data-theme=rgb] body { background: radial-gradient(800px 500px at 100% 0%, color-mix(in srgb, var(--rgb1) 22%, transparent), transparent 60%), radial-gradient(800px 500px at 0% 100%, color-mix(in srgb, var(--rgb2) 22%, transparent), transparent 60%), var(--bg); background-attachment: fixed; }
 /* Textes en arc-en-ciel qui défile */
 html.v2[data-theme=rgb] :is(.title, .v2-brand span, .hub-sec > span:first-child, .card h2, .team-h, .qz-rank) { background: var(--trainbow); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: th-rgb 5s linear infinite; text-shadow: none; }

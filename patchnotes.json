@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.104",
+   "date": "2026-11-13",
+   "titre": "Plus de « ne répond pas » et accueil des nouveaux",
+   "items": [
+    [
+     "fix",
+     "FIRE ne doit plus se figer (« ne répond pas ») : le thème RGB n'anime plus toute la page en continu, et les profils et statuts du vocal sont recalculés beaucoup moins souvent."
+    ],
+    [
+     "fix",
+     "Si l'affichage reste bloqué plus de 20 secondes, FIRE se recharge tout seul. Chaque blocage est noté dans diagnostic.log (dossier de FIRE) pour qu'on trouve la cause."
+    ],
+    [
+     "new",
+     "Nouveaux membres : quand quelqu'un arrive avec le code d'équipe et n'est pas dans la liste, il clique « Je ne suis pas dans la liste », colle son lien dpm.lol et choisit son poste. Ses stats se chargent tout de suite pour lui."
+    ],
+    [
+     "new",
+     "Carnet de bord, onglet « Demandes » : le créateur, les coachs et le chef d'équipe voient le profil dpm.lol du nouveau, choisissent son poste et l'acceptent ou le refusent. Une fois accepté, toute l'équipe le voit, et il reçoit un message de bienvenue."
+    ]
+   ]
+  },
+  {
    "v": "1.10.103",
    "date": "2026-11-13",
    "titre": "Profils étoffés",

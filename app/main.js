@@ -156,6 +156,17 @@ function createMainWindow(forceShow) {
     }
   });
   // Agrandie en plein écran si elle l'était, sans jamais faire apparaître une fenêtre censée rester cachée.
+  // « Ne répond pas » : on note quand et combien de temps (diagnostic.log), et si l'affichage reste bloqué 20 s,
+  // FIRE le recharge tout seul plutôt que de laisser une fenêtre figée.
+  let hangAt = 0, hangTimer = null;
+  const diag = (line) => { try { fs.appendFileSync(path.join(app.getPath('userData'), 'diagnostic.log'), `${new Date().toISOString()} ${line}\n`); } catch (e) { /* */ } };
+  mainWin.on('unresponsive', () => {
+    hangAt = Date.now(); diag('affichage bloqué');
+    clearTimeout(hangTimer);
+    hangTimer = setTimeout(() => { if (hangAt && mainWin && !mainWin.isDestroyed()) { diag('rechargement après 20 s bloqué'); mainWin.webContents.forcefullyCrashRenderer(); mainWin.webContents.reload(); } }, 20000);
+  });
+  mainWin.on('responsive', () => { if (hangAt) diag(`débloqué après ${Math.round((Date.now() - hangAt) / 1000)} s`); hangAt = 0; clearTimeout(hangTimer); });
+  mainWin.webContents.on('render-process-gone', (e, d) => { diag('affichage arrêté : ' + (d && d.reason)); if (d && d.reason !== 'clean-exit' && mainWin && !mainWin.isDestroyed()) setTimeout(() => { try { mainWin.webContents.reload(); } catch (err) { /* */ } }, 1500); });
   if (sb.max) { if (!hidden && !minimized) mainWin.maximize(); else mainWin.once('show', () => { try { mainWin.maximize(); } catch (e) { /* */ } }); }
   trackBounds(mainWin);
   if (hidden) ensureTray();
@@ -547,6 +558,9 @@ ipcMain.handle('planning', () => coach.planning());
 ipcMain.handle('chat', () => coach.chat());
 ipcMain.handle('salons', () => coach.salons());
 ipcMain.handle('admin:setup', () => coach.adminSetup());
+ipcMain.handle('membres', () => coach.membres());
+ipcMain.handle('membres:demande', (e, m) => coach.membreDemande(m || {}));
+ipcMain.handle('membres:decision', (e, slug, ok, role, who) => coach.membreDecision(String(slug || ''), !!ok, role, who));
 ipcMain.handle('roles', () => coach.roles());
 ipcMain.handle('roles:save', (e, modos, who) => coach.rolesSave(modos, who));
 ipcMain.handle('act:push', (e, slug, evts) => coach.activityPush(slug, evts));

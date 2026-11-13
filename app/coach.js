@@ -935,6 +935,45 @@ async function chatDelete(id, who) {
     return { ok: true };
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
+// ---------- Nouveaux membres : demande d'entrée (lien dpm.lol), validée par le créateur, un coach ou le chef d'équipe ----------
+const MEMBRES = 'membres.json';
+const ROLE_RE = /^(Top|Jungle|Mid|ADC|Support)( \(Remplaçant\))?$/;
+function cleanMembre(m) {
+  const slug = String((m && m.slug) || '').replace(/[^\w%.~-]/g, '').slice(0, 80);
+  if (!slug || slug.length < 3) return null;
+  return { slug, pseudo: str(m.pseudo, 40) || slug, role: ROLE_RE.test(String(m.role || '')) ? m.role : 'Mid (Remplaçant)', note: str(m.note, 140),
+    statut: ['attente', 'ok', 'refus'].includes(m.statut) ? m.statut : 'attente', at: Number(m.at) || Date.now(), par: str(m.par, 80) };
+}
+async function membres() {
+  try { const d = await teamRead(MEMBRES); return { ok: true, membres: (d && Array.isArray(d.membres) ? d.membres : []).map(cleanMembre).filter(Boolean), gerer: isStaffHere() }; }
+  catch (e) { return { ok: false, error: 'liste des membres illisible avec ce code', membres: [] }; }
+}
+async function membreDemande(m) {
+  const n = cleanMembre({ ...m, statut: 'attente', at: Date.now(), par: '' });
+  if (!n) return { ok: false, error: 'lien dpm.lol invalide' };
+  try {
+    const d = await teamWrite(MEMBRES, (cur) => {
+      const l = (cur && Array.isArray(cur.membres) ? cur.membres : []).filter((x) => x.slug !== n.slug || x.statut === 'ok');
+      if (!l.some((x) => x.slug === n.slug)) l.push(n);
+      return { membres: l.slice(-100) };
+    }, 'Demande d\'entrée');
+    activityPush(n.slug, [{ t: Date.now(), k: 'app', d: `Demande à rejoindre l'équipe (${n.role})` }]).catch(() => {});
+    return { ok: true, membres: d.membres };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+async function membreDecision(slug, ok, role, who) {
+  if (!isStaffHere()) return { ok: false, error: "réservé au créateur, aux coachs et au chef d'équipe" };
+  try {
+    const d = await teamWrite(MEMBRES, (cur) => {
+      const l = cur && Array.isArray(cur.membres) ? cur.membres : [];
+      const x = l.find((y) => y.slug === slug);
+      if (x) { x.statut = ok ? 'ok' : 'refus'; if (ROLE_RE.test(String(role || ''))) x.role = role; x.par = String(who || '').slice(0, 80); x.decide = Date.now(); }
+      return { membres: l.filter((y) => y.statut !== 'refus' || Date.now() - (y.decide || 0) < 30 * 86400000) };
+    }, ok ? 'Membre accepté' : 'Membre refusé');
+    activityPush(who, [{ t: Date.now(), k: 'roles', d: (ok ? 'Membre accepté : ' : 'Demande refusée : ') + decodeURIComponent(String(slug)) }]).catch(() => {});
+    return { ok: true, membres: d.membres };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
 async function chatSend(m) {
   const dr = getConfig().data_repo || null;
   const tok = dr ? await teamToken() : null;
@@ -1045,4 +1084,4 @@ async function closeBug(id) {
   } catch (e) { return { ok: false, error: String(e.message || e) }; }
 }
 
-module.exports = { chat, chatSend, chatDelete, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

@@ -246,6 +246,7 @@
     S.cfg = await window.fire.config();
     try { S.version = await window.fire.version(); } catch (e) { /* inconnue */ }
     S.players = (S.cfg && S.cfg.joueurs) || [];
+    membresMerge(load('fire.membres', []));
     S.coachs = (S.cfg && Array.isArray(S.cfg.coachs) && S.cfg.coachs) || [];
     S.cfgObj = (S.cfg && S.cfg.objectif && S.cfg.objectif.debut) ? S.cfg.objectif : null;
     S.obj = weeklyObj(S.cfgObj);
@@ -1118,7 +1119,7 @@
     staffLoad();
   }
   // Rôles : créateur (son PC), coach, chef d'équipe, modérateurs (choisis par le coach ou le créateur).
-  const STF = { modos: load('fire.modos', []), tab: 'activite', act: null, notes: null, loading: false, who: '', kind: '', msg: '', edit: null, admin: null };
+  const STF = { modos: load('fire.modos', []), tab: load('fire.membres', []).some((m) => m.statut === 'attente') ? 'demandes' : 'activite', act: null, notes: null, loading: false, who: '', kind: '', msg: '', edit: null, admin: null };
   async function staffLoad() {
     if (!window.fire.staff) return;
     try { const r = await window.fire.staff.roles(); if (r && r.ok) { STF.modos = r.modos || []; save('fire.modos', STF.modos); renderNav(); } } catch (e) { /* */ }
@@ -1154,7 +1155,8 @@
     const view = $('view');
     if (!isStaff()) { view.replaceChildren(h('div', { class: 'card' }, h('p', null, 'Le carnet de bord est réservé au staff (créateur, coachs, chef d’équipe, modérateurs).'))); return; }
     if (!STF.act && !STF.loading) staffFetch();
-    const tabs = [['activite', '👥 Activité de chacun'], ['journal', '📜 Journal'], ['notes', '📒 Notes du staff'], ['modo', '🛡️ Modération'], ['roles', '👑 Rôles']];
+    const nPend = NM.list.filter((m) => m.statut === 'attente').length;
+    const tabs = [['demandes', `🆕 Demandes${nPend ? ' (' + nPend + ')' : ''}`], ['activite', '👥 Activité de chacun'], ['journal', '📜 Journal'], ['notes', '📒 Notes du staff'], ['modo', '🛡️ Modération'], ['roles', '👑 Rôles']];
     const tabBar = h('div', { class: 'row plan-tabs' }, tabs.map(([k, l]) => h('button', { class: 'plan-tab', 'aria-pressed': String(STF.tab === k), onclick: () => { STF.tab = k; renderCarnet(); } }, l)),
       h('button', { class: 'btn-ghost', onclick: () => { STF.act = null; staffFetch(); renderCarnet(); } }, STF.loading ? 'Chargement…' : '⟳ Actualiser'));
     const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📒'), h('div', null, h('h1', { class: 'title' }, 'Carnet de bord'),
@@ -1163,6 +1165,26 @@
     let body;
     const allEvts = () => Object.entries(A).flatMap(([sl, x]) => (x.evts || []).map((e) => ({ ...e, who: sl }))).sort((a, b) => b.t - a.t);
     if (STF.err && !STF.act) body = h('div', { class: 'card' }, h('p', { class: 'bad' }, '⚠ ' + STF.err));
+    else if (STF.tab === 'demandes') {
+      const canDecide = S.coachState.coach || S.coachState.chef || S.coachState.admin;
+      const list = NM.list.slice().sort((a, b) => (a.statut === 'attente' ? -1 : 1) - (b.statut === 'attente' ? -1 : 1) || b.at - a.at);
+      body = h('div', null,
+        h('p', { class: 'muted small' }, 'Les nouveaux qui ont rejoint FIRE avec le code d’équipe. Vérifie leur profil dpm.lol, choisis leur poste, puis accepte : toute l’équipe les voit dans les 2 minutes.'),
+        list.length ? list.map((m) => {
+          const sel = { role: m.role };
+          return h('div', { class: 'card nm-req' + (m.statut !== 'attente' ? ' done' : '') },
+            h('div', { class: 'nm-h' }, h('b', null, (FC.ROLES[roleIdOf(m.role)] || {}).ico + ' ' + m.pseudo), h('span', { class: 'chip' }, m.role),
+              h('small', { class: 'muted' }, `${dayFrT(m.at)} ${hm(m.at)}`), h('span', { class: 'nm-st ' + m.statut }, m.statut === 'attente' ? '⏳ En attente' : m.statut === 'ok' ? `✅ Accepté${m.par ? ' par ' + vocalName(m.par) : ''}` : '❌ Refusé')),
+            m.note ? h('p', { class: 'small' }, '« ' + m.note + ' »') : null,
+            h('div', { class: 'row' },
+              h('button', { class: 'btn-ghost', onclick: () => webOpen('https://dpm.lol/' + m.slug) }, '📊 Voir son profil dpm.lol'),
+              m.statut === 'attente' && canDecide ? [
+                h('select', { class: 'inp nm-role', onchange: (e) => { sel.role = e.target.value; } }, ['Top', 'Jungle', 'Mid', 'ADC', 'Support'].flatMap((r) => [r, r + ' (Remplaçant)']).map((r) => h('option', { value: r, selected: r === m.role ? true : null }, r))),
+                h('button', { class: 'btn-fire small-btn', onclick: async () => { const r = await window.fire.staff.decision(m.slug, true, sel.role, vocalMe()).catch((e) => ({ ok: false, error: String(e) })); if (r && r.ok) { NM.list = r.membres; save('fire.membres', NM.list); membresMerge(NM.list); refreshAll(); renderNav(); } else alert('⚠ ' + ((r && r.error) || 'erreur')); renderCarnet(); } }, '✅ Accepter'),
+                h('button', { class: 'btn-ghost', onclick: async () => { if (!confirm(`Refuser la demande de ${m.pseudo} ?`)) return; const r = await window.fire.staff.decision(m.slug, false, '', vocalMe()).catch((e) => ({ ok: false, error: String(e) })); if (r && r.ok) { NM.list = r.membres; save('fire.membres', NM.list); renderNav(); } else alert('⚠ ' + ((r && r.error) || 'erreur')); renderCarnet(); } }, '❌ Refuser')]
+                : m.statut === 'attente' ? h('span', { class: 'muted small' }, 'Les modérateurs voient la demande ; le créateur, un coach ou le chef d’équipe la valide.') : null));
+        }) : h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Aucune demande pour l’instant.')));
+    }
     else if (STF.tab === 'activite') {
       const now = Date.now(), d1 = new Date(); d1.setHours(0, 0, 0, 0); const today = d1.getTime(), week = now - 7 * 86400000;
       body = h('div', { class: 'stf-grid' }, members().sort((a, b) => a[2].localeCompare(b[2], 'fr')).map(([sl, ico, name]) => {
@@ -1458,7 +1480,7 @@
     const start = periodStart();
     const view = $('view');
     view.replaceChildren(...[
-      newsBanner(),
+      newsBanner(), pendingBanner(),
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🔥'), h('div', null,
         h('h1', { class: 'title' }, "L'équipe"),
         h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · clique sur un joueur pour voir tout le détail.`),
@@ -2898,6 +2920,7 @@
       FV().onMod((from, c) => modReceive(from, c));
       // Rendu muet ou en sourdine par le staff : on ne peut pas se le retirer soi-même.
       FV().onChange(() => {
+        if (!MOD.me.mute && !MOD.me.deaf && !modBlocked()) return;
         const v = FV().state();
         if (MOD.me.mute && !v.mute) FV().setMute(true);
         if (MOD.me.deaf && !v.deaf) FV().setDeaf(true);
@@ -3940,12 +3963,18 @@
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null],
-      ['coach', '📣', 'Parole du coach', n || null], ...(isStaff() ? [['carnet', '📒', 'Carnet de bord']] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
+      ['coach', '📣', 'Parole du coach', n || null], ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
     if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), items.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }
     $('nav').replaceChildren(...items.map(([id, ico, label, badge, cls]) => b(id, ico + ' ' + label, badge, cls)));
   }
 
+  function pendingBanner() {
+    const pend = load('fire.pending', null);
+    if (!pend || !pend.slug) return null;
+    return h('div', { class: 'news nm-pend' }, h('span', { class: 'news-ico' }, '⏳'),
+      h('span', { class: 'news-txt' }, h('b', null, 'Ton profil attend la validation. '), 'Tes stats se chargent déjà pour toi ; le créateur, un coach ou le chef d’équipe va valider ta demande pour que toute l’équipe te voie.' + (pend.sent ? '' : ' (Demande pas encore envoyée : nouvel essai automatique.)')));
+  }
   function newsBanner() {
     const u = unseen().filter((f) => !(isNote(f) && isCommon(f)));
     if (!u.length) return null;
@@ -6343,11 +6372,13 @@
       FV().statusSend({ st: UX.status, game: !!(LIVE.mine), bio: UX.bio || '', color: UX.color || '', banner: UX.banner || null, dm: UX.dm || 'all', games: UX.games || [] });
     } catch (e) { /* hall pas prêt */ }
   }
+  const ST_CACHE = { at: 0, st: {}, prof: {} };
   function statusOf(slug) {
     if (slug === vocalMe()) return { st: UX.status === 'invisible' ? 'invisible' : UX.status, game: !!LIVE.mine, bio: UX.bio, color: UX.color, banner: UX.banner, dm: UX.dm, games: UX.games || [] };
-    let live = null;
-    try { live = (FV() && FV().state().statuses || {})[slug] || null; } catch (e) { /* */ }
-    const cached = (load('fire.profiles', {}) || {})[slug] || {};
+    // Lus au plus deux fois par seconde (FV().state() et le stockage local coûtent cher appelés pour chaque nom).
+    if (!ST_CACHE.at || Date.now() - ST_CACHE.at > 500) { let st = {}; try { st = (FV() && FV().state().statuses) || {}; } catch (e) { /* */ } ST_CACHE.st = st; ST_CACHE.prof = load('fire.profiles', {}) || {}; ST_CACHE.at = Date.now(); }
+    const live = ST_CACHE.st[slug] || null;
+    const cached = ST_CACHE.prof[slug] || {};
     return live ? { ...cached, ...live } : { ...cached, st: 'offline', game: false };
   }
   // Les cartes de profil reçues restent affichées même quand le coéquipier est hors ligne.
@@ -6490,18 +6521,120 @@
     CH.started = true;
     try { if (FV() && FV().onChat) FV().onChat((m) => chatMerge([m], true)); } catch (e) { /* */ }
     applySalons(SAL.data);
-    chatLoad(); salonsLoad();
-    setInterval(() => { chatLoad(); salonsLoad(); }, 2 * 60 * 1000);
+    chatLoad(); salonsLoad(); membresLoad(); pendingRetry();
+    setInterval(() => { chatLoad(); salonsLoad(); membresLoad(); pendingRetry(); }, 2 * 60 * 1000);
     // Statut : envoyé tout de suite, puis chaque minute ; les cartes reçues sont gardées.
     setTimeout(statusPush, 4000);
     setInterval(() => { statusPush(); profilesKeep(); chatPaint(); }, 60000);
-    try { FV().onChange(() => { profilesKeep(); }); } catch (e) { /* */ }
+    // Les cartes reçues sont gardées au plus toutes les 10 s (le vocal prévient très souvent : on ne relit pas tout à chaque fois).
+    try { let t = 0; FV().onChange(() => { if (Date.now() - t > 10000) { t = Date.now(); profilesKeep(); } }); } catch (e) { /* */ }
     // Mode streamer automatique : FIRE regarde si OBS ou Streamlabs est ouvert.
     if (window.fire.streamer) {
       window.fire.streamer.on((v) => { STREAM.detected = v; applyUx(); chatPaint(); if (S.section === 'settings' && !typing()) renderSettings(); });
       if (UX.streamer === 'auto') window.fire.streamer.watch(true).then((v) => { STREAM.detected = !!v; applyUx(); }).catch(() => {});
     }
     chatPaint();
+  }
+
+
+  // ===== Nouveaux membres : « Qui es-tu ? » → lien dpm.lol, rôle ; validé par le créateur, un coach ou le chef d'équipe =====
+  // En attendant, le profil du nouveau se charge chez lui (ses stats, sa carte) ; les autres le voient une fois accepté.
+  const roleIdOf = (role) => ({ top: 'top', jungle: 'jungle', mid: 'mid', adc: 'adc', support: 'support' })[String(role || '').split(' ')[0].toLowerCase()] || 'mid';
+  function membresMerge(list) {
+    const known = new Set(S.players.map((p) => p.slug));
+    for (const m of (list || []).filter((x) => x.statut === 'ok')) {
+      if (known.has(m.slug)) continue;
+      S.players.push({ slug: m.slug, pseudo: m.pseudo, role: m.role, role_id: roleIdOf(m.role), nouveau: true });
+      known.add(m.slug);
+    }
+    // Ma demande en attente : mon profil se charge pour moi seul.
+    const pend = load('fire.pending', null);
+    if (pend && pend.slug && !known.has(pend.slug)) S.players.push({ slug: pend.slug, pseudo: pend.pseudo, role: pend.role, role_id: roleIdOf(pend.role), pending: true });
+  }
+  const NM = { list: load('fire.membres', []), loading: false, seen: load('fire.membres.vus', []) };
+  async function membresLoad() {
+    if (!window.fire.staff || !window.fire.staff.membres || NM.loading) return;
+    NM.loading = true;
+    let r; try { r = await window.fire.staff.membres(); } catch (e) { r = null; }
+    NM.loading = false;
+    if (!r || !r.ok) return;
+    NM.list = r.membres || []; save('fire.membres', NM.list);
+    const before = S.players.length;
+    const pend = load('fire.pending', null);
+    if (pend) {
+      const mine = NM.list.find((m) => m.slug === pend.slug);
+      if (mine && mine.statut === 'ok') { save('fire.pending', null); const pl = S.players.find((p) => p.slug === pend.slug); if (pl) { delete pl.pending; pl.role = mine.role; pl.role_id = roleIdOf(mine.role); } popup('🎉 Bienvenue dans l’équipe !', `Ton profil a été validé${mine.par ? ' par ' + vocalName(mine.par) : ''}. Toute l’équipe te voit maintenant.`, 'stats'); }
+      if (mine && mine.statut === 'refus') { popup('Demande refusée', 'Le staff n’a pas validé ta demande. Parles-en à un coach ou au chef d’équipe.', null); }
+    }
+    membresMerge(NM.list);
+    // Staff : une nouvelle demande arrive → notification.
+    const waiting = NM.list.filter((m) => m.statut === 'attente');
+    if (isStaff()) {
+      const fresh = waiting.filter((m) => !NM.seen.includes(m.slug));
+      if (fresh.length) { notifyDesk('coach', '🆕 Demande pour rejoindre l’équipe', `${fresh.map((m) => m.pseudo).join(', ')} attend ta validation dans le carnet de bord.`, 'carnet'); NM.seen = NM.seen.concat(fresh.map((m) => m.slug)).slice(-100); save('fire.membres.vus', NM.seen); }
+    }
+    if (S.players.length !== before) { refreshAll(); }
+    renderNav();
+    if (S.section === 'carnet' && STF.tab === 'demandes' && !typing()) renderCarnet();
+  }
+  const pendingCount = () => (isStaff() ? NM.list.filter((m) => m.statut === 'attente').length : 0);
+  // Lien dpm.lol (ou Riot ID « Pseudo#TAG ») → identifiant dpm.lol et pseudo.
+  function dpmParse(txt) {
+    let t = String(txt || '').trim();
+    if (!t) return null;
+    let slug = '';
+    const m = t.match(/dpm\.lol\/([^?#\s]+)/i);
+    if (m) slug = m[1].replace(/\/+$/, '').split('/')[0];
+    else if (/#/.test(t)) { const [n, tag] = t.split('#'); if (!n.trim() || !tag.trim()) return null; slug = encodeURIComponent(n.trim()) + '-' + encodeURIComponent(tag.trim()); }
+    else return null;
+    let dec = slug; try { dec = decodeURIComponent(slug); } catch (e) { /* */ }
+    const i = dec.lastIndexOf('-');
+    if (i < 1) return null;
+    return { slug, pseudo: dec.slice(0, i).trim() + '#' + dec.slice(i + 1).trim() };
+  }
+  function askNew(prev) {
+    const box = h('div', { class: 'who' });
+    const st = { link: '', role: 'Mid', sub: false, note: '', err: '', busy: false };
+    const paint = () => {
+      const parsed = dpmParse(st.link);
+      box.replaceChildren(h('div', { class: 'who-card nm-card' },
+        h('div', { class: 'who-t' }, '🆕 Rejoindre l’équipe'),
+        h('p', { class: 'muted' }, 'Colle le lien de ton profil dpm.lol (ou ton Riot ID « Pseudo#TAG »). Ton profil se charge tout de suite pour toi. Le créateur, un coach ou le chef d’équipe le valide ensuite pour toute l’équipe.'),
+        h('label', { class: 'fld' }, h('span', null, 'Ton lien dpm.lol'), h('input', { class: 'inp', placeholder: 'https://dpm.lol/Pseudo-TAG', value: st.link, oninput: (e) => { st.link = e.target.value; st.err = ''; const k = document.querySelector('.nm-who'); const pp = dpmParse(st.link); if (k) k.textContent = pp ? '✓ ' + pp.pseudo : ''; } })),
+        h('div', { class: 'nm-who good small' }, parsed ? '✓ ' + parsed.pseudo : ''),
+        h('label', { class: 'fld' }, h('span', null, 'Ton poste'), h('div', { class: 'row ux-seg' }, ['Top', 'Jungle', 'Mid', 'ADC', 'Support'].map((r) => h('button', { class: 'chip', 'aria-pressed': String(st.role === r), onclick: () => { st.role = r; paint(); } }, (FC.ROLES[roleIdOf(r)] || {}).ico + ' ' + r)))),
+        h('label', { class: 'nrow' }, h('input', { type: 'checkbox', checked: st.sub ? true : null, onchange: (e) => { st.sub = e.target.checked; } }), h('span', null, 'Je suis remplaçant')),
+        h('label', { class: 'fld' }, h('span', null, 'Un mot pour le staff (facultatif)'), h('input', { class: 'inp', maxlength: 140, value: st.note, placeholder: 'Ex. : je suis le pote de Frost, main ADC', oninput: (e) => { st.note = e.target.value; } })),
+        st.err ? h('p', { class: 'bad small' }, '⚠ ' + st.err) : null,
+        h('div', { class: 'row' },
+          h('button', { class: 'btn-fire small-btn', disabled: st.busy ? true : null, onclick: async () => {
+            const pp = dpmParse(st.link);
+            if (!pp) { st.err = 'Colle un lien dpm.lol (ex. https://dpm.lol/Pseudo-TAG) ou ton Riot ID Pseudo#TAG.'; paint(); return; }
+            if (S.players.some((p) => p.slug === pp.slug && !p.pending)) { st.err = 'Ce joueur est déjà dans l’équipe : choisis-le dans la liste.'; paint(); return; }
+            st.busy = true; paint();
+            const role = st.role + (st.sub ? ' (Remplaçant)' : '');
+            const r = await window.fire.staff.demande({ slug: pp.slug, pseudo: pp.pseudo, role, note: st.note }).catch((e) => ({ ok: false, error: String(e) }));
+            st.busy = false;
+            // Même sans réseau, le profil se charge chez lui : la demande repartira à la prochaine ouverture.
+            save('fire.pending', { slug: pp.slug, pseudo: pp.pseudo, role, note: st.note, sent: !!(r && r.ok) });
+            save('fire.moi.demande', true);
+            S.moi = pp.slug; save('fire.moi', pp.slug);
+            membresMerge([]);
+            box.remove();
+            popup('⏳ Demande envoyée', (r && r.ok) ? 'Ton profil se charge. Il sera visible par toute l’équipe dès qu’un membre du staff l’aura validé.' : 'Ton profil se charge. La demande sera renvoyée automatiquement (' + ((r && r.error) || 'hors ligne') + ').', 'stats');
+            refreshAll(); go('stats');
+          } }, st.busy ? 'Envoi…' : '✅ Envoyer ma demande'),
+          h('button', { class: 'btn-ghost', onclick: () => { box.remove(); if (prev) askWho(); } }, '← Retour'))));
+    };
+    paint();
+    document.body.append(box);
+  }
+  // Demande pas encore partie (hors ligne au moment de l'envoi) : on la renvoie.
+  async function pendingRetry() {
+    const pend = load('fire.pending', null);
+    if (!pend || pend.sent || !window.fire.staff) return;
+    const r = await window.fire.staff.demande(pend).catch(() => null);
+    if (r && r.ok) save('fire.pending', { ...pend, sent: true });
   }
 
   function askWho() {
@@ -6515,11 +6648,11 @@
     const box = h('div', { class: 'who' }, h('div', { class: 'who-card' },
       h('div', { class: 'who-t' }, '👋 Qui es-tu ?'),
       h('p', { class: 'muted' }, 'Choisis ton pseudo : l’app te reconnaîtra, et dans POOL un seul bouton « ✏️ Faire ma tierlist » suffira. Tu pourras changer plus tard.'),
-      h('div', { class: 'who-grid' }, S.players.filter((x) => x.slug).map((p) => h('button', { class: 'who-p', onclick: () => close(p.slug) },
+      h('div', { class: 'who-grid' }, S.players.filter((x) => x.slug && !x.pending).map((p) => h('button', { class: 'who-p', onclick: () => close(p.slug) },
         h('span', { class: 'who-ico' }, roleOf(p).ico), h('span', { class: 'who-n' }, String(p.pseudo).split('#')[0]), h('span', { class: 'muted small' }, p.role || roleOf(p).label))),
         (S.coachs || []).map((c) => h('button', { class: 'who-p coach', onclick: () => close(c.slug) },
           h('span', { class: 'who-ico' }, '🎓'), h('span', { class: 'who-n' }, c.pseudo), h('span', { class: 'muted small' }, 'Coach')))),
-      h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => close(null) }, 'Plus tard'))));
+      h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => { box.remove(); askNew(true); } }, '🆕 Je ne suis pas dans la liste'), h('button', { class: 'btn-ghost', onclick: () => close(null) }, 'Plus tard'))));
     document.body.append(box);
   }
 
