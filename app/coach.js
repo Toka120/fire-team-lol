@@ -953,7 +953,9 @@ async function membreDemande(m) {
   if (!n) return { ok: false, error: 'lien dpm.lol invalide' };
   try {
     const d = await teamWrite(MEMBRES, (cur) => {
-      const l = (cur && Array.isArray(cur.membres) ? cur.membres : []).filter((x) => x.slug !== n.slug || x.statut === 'ok');
+      // Lien corrigé : l'ancienne demande (encore en attente) est remplacée.
+      const old = String((m && m.old) || '');
+      const l = (cur && Array.isArray(cur.membres) ? cur.membres : []).filter((x) => (x.slug !== n.slug || x.statut === 'ok') && !(old && x.slug === old && x.statut === 'attente'));
       if (!l.some((x) => x.slug === n.slug)) l.push(n);
       return { membres: l.slice(-100) };
     }, 'Demande d\'entrée');
@@ -961,15 +963,18 @@ async function membreDemande(m) {
     return { ok: true, membres: d.membres };
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
-async function membreDecision(slug, ok, role, who) {
+async function membreDecision(slug, ok, role, who, fix) {
   if (!isStaffHere()) return { ok: false, error: "réservé au créateur, aux coachs et au chef d'équipe" };
   try {
     const d = await teamWrite(MEMBRES, (cur) => {
       const l = cur && Array.isArray(cur.membres) ? cur.membres : [];
       const x = l.find((y) => y.slug === slug);
+      // Correction du lien dpm.lol par le staff (sans changer le statut).
+      if (x && fix && fix.slug) { const c = cleanMembre({ ...x, slug: fix.slug, pseudo: fix.pseudo || x.pseudo }); if (c && !l.some((y) => y !== x && y.slug === c.slug)) { x.slug = c.slug; x.pseudo = c.pseudo; } return { membres: l }; }
       if (x) { x.statut = ok ? 'ok' : 'refus'; if (ROLE_RE.test(String(role || ''))) x.role = role; x.par = String(who || '').slice(0, 80); x.decide = Date.now(); }
       return { membres: l.filter((y) => y.statut !== 'refus' || Date.now() - (y.decide || 0) < 30 * 86400000) };
-    }, ok ? 'Membre accepté' : 'Membre refusé');
+    }, fix ? 'Lien dpm.lol corrigé' : ok ? 'Membre accepté' : 'Membre refusé');
+    if (fix) return { ok: true, membres: d.membres };
     activityPush(who, [{ t: Date.now(), k: 'roles', d: (ok ? 'Membre accepté : ' : 'Demande refusée : ') + decodeURIComponent(String(slug)) }]).catch(() => {});
     return { ok: true, membres: d.membres };
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }

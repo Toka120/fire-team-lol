@@ -419,16 +419,49 @@ function lcuFromProcess() {
     });
   });
 }
-function lcuGet(p) {
+function lcuReq(method, p, body) {
   return new Promise((ok) => {
-    if (!LCU.port) return ok(null);
-    const req = require('https').get({ host: '127.0.0.1', port: LCU.port, path: p, rejectUnauthorized: false, timeout: 2500, headers: { Authorization: 'Basic ' + Buffer.from('riot:' + LCU.pass).toString('base64') } }, (res) => {
+    if (!LCU.port) return ok({ status: 0, data: null });
+    const data = body === undefined ? null : Buffer.from(JSON.stringify(body));
+    const req = require('https').request({ method, host: '127.0.0.1', port: LCU.port, path: p, rejectUnauthorized: false, timeout: 4000,
+      headers: { Authorization: 'Basic ' + Buffer.from('riot:' + LCU.pass).toString('base64'), Accept: 'application/json', ...(data ? { 'Content-Type': 'application/json', 'Content-Length': data.length } : {}) } }, (res) => {
       let b = ''; res.setEncoding('utf8'); res.on('data', (c) => { b += c; if (b.length > 2e6) req.destroy(); });
-      res.on('end', () => { try { ok(res.statusCode === 200 ? JSON.parse(b) : null); } catch (e) { ok(null); } });
+      res.on('end', () => { let j = null; try { j = b ? JSON.parse(b) : null; } catch (e) { /* */ } ok({ status: res.statusCode, data: j }); });
     });
-    req.on('timeout', () => req.destroy()); req.on('error', () => ok(null));
+    req.on('timeout', () => req.destroy()); req.on('error', () => ok({ status: 0, data: null }));
+    if (data) req.write(data);
+    req.end();
   });
 }
+async function lcuGet(p) { const r = await lcuReq('GET', p); return r.status === 200 ? r.data : null; }
+async function lcuConnect() {
+  if (LCU.port) { const r = await lcuReq('GET', '/lol-summoner/v1/current-summoner'); if (r.status === 200) return r.data; }
+  const f = lcuFind() || await lcuFromProcess();
+  if (!f) return null;
+  LCU.port = f.port; LCU.pass = f.pass;
+  const r = await lcuReq('GET', '/lol-summoner/v1/current-summoner');
+  return r.status === 200 ? r.data : null;
+}
+// Regarder la partie d'un coéquipier dans le mode spectateur officiel de LoL (le même que « Regarder » dans la liste d'amis).
+// Riot impose 3 minutes de délai : personne ne peut s'en servir pour tricher.
+ipcMain.handle('live:spectate', async (e, who) => {
+  try {
+    if (liveLast) return { ok: false, error: 'tu es déjà en game' };
+    const me = await lcuConnect();
+    if (!me) return { ok: false, error: 'ouvre le client League of Legends (connecté) puis réessaie' };
+    const puuid = String((who && who.puuid) || '').slice(0, 100), name = String((who && who.name) || '').slice(0, 60);
+    if (!puuid && !name) return { ok: false, error: 'partie introuvable' };
+    const tries = [
+      () => lcuReq('POST', '/lol-spectator/v1/spectate/launch', { allowObserveMode: 'ALL', dropInSpectateGameId: name.split('#')[0], gameQueueType: '', puuid }),
+      () => lcuReq('POST', '/lol-spectator/v1/buddy/spectate', name),
+      () => lcuReq('POST', '/lol-spectator/v1/buddy/spectate', name.split('#')[0]),
+    ];
+    let last = null;
+    for (const t of tries) { last = await t(); if (last.status >= 200 && last.status < 300) return { ok: true }; }
+    const msg = last && last.data && (last.data.message || last.data.errorCode);
+    return { ok: false, error: msg ? String(msg).slice(0, 160) : 'le client LoL a refusé (la partie a peut-être moins de 3 minutes)' };
+  } catch (err) { return { ok: false, error: String(err && err.message || err) }; }
+});
 async function lcuQueue() {
   if (LCU.queue && Date.now() - LCU.qAt < 60000) return LCU.queue;
   LCU.qAt = Date.now();
@@ -436,6 +469,8 @@ async function lcuQueue() {
   if (!s && Date.now() - LCU.at > 60000) { LCU.at = Date.now(); const f = lcuFind() || await lcuFromProcess(); if (f) { LCU.port = f.port; LCU.pass = f.pass; s = await lcuGet('/lol-gameflow/v1/session'); } }
   const q = s && s.gameData && s.gameData.queue;
   LCU.queue = q ? { id: Number(q.id) || 0, name: String(q.description || q.shortName || '').slice(0, 40), ranked: !!q.isRanked } : null;
+  LCU.gameId = s && s.gameData ? Number(s.gameData.gameId) || 0 : 0;
+  if (LCU.queue && !LCU.puuid) { const me = await lcuGet('/lol-summoner/v1/current-summoner'); if (me && me.puuid) LCU.puuid = String(me.puuid); }
   return LCU.queue;
 }
 // Événements de la partie (kills, assists, objectifs) pour les clips automatiques : seulement ceux du joueur de ce PC.
@@ -457,15 +492,45 @@ function liveSummary(d) {
     mode: String(d.gameData.gameMode || ''), time: Math.round(Number(d.gameData.gameTime) || 0),
     me: String((d.activePlayer && (d.activePlayer.riotId || d.activePlayer.summonerName)) || ''), at: Date.now(),
     players: d.allPlayers.slice(0, 12).map((p) => ({ n: String(p.riotId || p.summonerName || ''), c: champ(p), team: p.team === 'CHAOS' ? 'CHAOS' : 'ORDER',
-      k: (p.scores || {}).kills || 0, d: (p.scores || {}).deaths || 0, a: (p.scores || {}).assists || 0, cs: (p.scores || {}).creepScore || 0, lvl: p.level || 0, pos: String(p.position || '') })),
+      k: (p.scores || {}).kills || 0, d: (p.scores || {}).deaths || 0, a: (p.scores || {}).assists || 0, cs: (p.scores || {}).creepScore || 0, lvl: p.level || 0, pos: String(p.position || ''),
+      it: liveItems(p), sp: liveSpells(p), dead: p.isDead ? Math.ceil(Number(p.respawnTimer) || 0) : 0, ward: Math.round(((p.scores || {}).wardScore) || 0) })),
+    ...liveObjectives(d),
   };
+}
+// Objets dans l'ordre des emplacements (0 = vide, 6 = balise).
+function liveItems(p) { const out = [0, 0, 0, 0, 0, 0, 0]; for (const i of (p.items || [])) { const sl = Number(i.slot); if (sl >= 0 && sl < 7) out[sl] = Number(i.itemID) || 0; } return out; }
+function liveSpells(p) {
+  const s = p.summonerSpells || {};
+  return [s.summonerSpellOne, s.summonerSpellTwo].map((x) => { const r = String((x && x.rawDisplayName) || ''); const m = r.match(/SummonerSpell_(\w+?)_DisplayName/); return m ? m[1].slice(0, 30) : ''; });
+}
+// Score des objectifs et fil de la partie (kills, objectifs), à partir des événements de l'API locale.
+function liveObjectives(d) {
+  const team = {}, champ = {};
+  for (const p of d.allPlayers || []) { const n = String(p.riotId || p.summonerName || ''); const t = p.team === 'CHAOS' ? 'CHAOS' : 'ORDER'; const c = String(p.rawChampionName || '').split('_').pop(); team[n] = t; team[n.split('#')[0]] = t; champ[n] = c; champ[n.split('#')[0]] = c; }
+  const tOf = (x) => team[x] || team[String(x).split('#')[0]] || (/Turret_T1|Barracks_T1/.test(x) ? 'ORDER' : /Turret_T2|Barracks_T2/.test(x) ? 'CHAOS' : '');
+  const cOf = (x) => champ[x] || champ[String(x).split('#')[0]] || '';
+  const blank = () => ({ drag: [], baron: 0, herald: 0, grubs: 0, atakhan: 0, tower: 0, inhib: 0, kills: 0 });
+  const obj = { ORDER: blank(), CHAOS: blank() };
+  const feed = [];
+  for (const e of (d.events && d.events.Events) || []) {
+    const k = String(e.KillerName || ''), kt = tOf(k), t = Math.round(Number(e.EventTime) || 0), n = Array.isArray(e.Assisters) ? e.Assisters.length : 0;
+    if (e.EventName === 'ChampionKill') { if (kt) obj[kt].kills++; feed.push({ t, x: 'kill', team: kt, kc: cOf(k), vc: cOf(e.VictimName), n }); }
+    else if (e.EventName === 'DragonKill' && kt) { obj[kt].drag.push(String(e.DragonType || '').slice(0, 10)); feed.push({ t, x: 'drag', team: kt, kc: cOf(k), what: String(e.DragonType || ''), st: e.Stolen === 'True' }); }
+    else if (e.EventName === 'BaronKill' && kt) { obj[kt].baron++; feed.push({ t, x: 'baron', team: kt, kc: cOf(k), st: e.Stolen === 'True' }); }
+    else if (e.EventName === 'HeraldKill' && kt) { obj[kt].herald++; feed.push({ t, x: 'herald', team: kt, kc: cOf(k) }); }
+    else if (e.EventName === 'HordeKill' && kt) { obj[kt].grubs++; feed.push({ t, x: 'grubs', team: kt, kc: cOf(k) }); }
+    else if (e.EventName === 'AtakhanKill' && kt) { obj[kt].atakhan++; feed.push({ t, x: 'atakhan', team: kt, kc: cOf(k) }); }
+    else if (e.EventName === 'TurretKilled') { const vt = /_T1_/.test(String(e.TurretKilled)) ? 'CHAOS' : /_T2_/.test(String(e.TurretKilled)) ? 'ORDER' : kt; if (vt) obj[vt].tower++; feed.push({ t, x: 'tower', team: vt, kc: cOf(k) }); }
+    else if (e.EventName === 'InhibKilled') { const vt = /_T1_/.test(String(e.InhibKilled)) ? 'CHAOS' : /_T2_/.test(String(e.InhibKilled)) ? 'ORDER' : kt; if (vt) obj[vt].inhib++; feed.push({ t, x: 'inhib', team: vt, kc: cOf(k) }); }
+  }
+  return { obj, feed: feed.slice(-14) };
 }
 let liveLast = null;
 setInterval(async () => {
   const raw = await liveClient();
   const g = liveSummary(raw);
   if (!g && !liveLast) { LCU.queue = null; return; }
-  if (g) { const q = await lcuQueue().catch(() => null); if (q) g.queue = q; g.events = liveEvents(raw); }
+  if (g) { const q = await lcuQueue().catch(() => null); if (q) g.queue = q; if (LCU.puuid) g.puuid = LCU.puuid; g.events = liveEvents(raw); }
   liveLast = g;
   if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('live:update', g);
 }, 2500);
@@ -631,7 +696,7 @@ ipcMain.handle('salons', () => coach.salons());
 ipcMain.handle('admin:setup', () => coach.adminSetup());
 ipcMain.handle('membres', () => coach.membres());
 ipcMain.handle('membres:demande', (e, m) => coach.membreDemande(m || {}));
-ipcMain.handle('membres:decision', (e, slug, ok, role, who) => coach.membreDecision(String(slug || ''), !!ok, role, who));
+ipcMain.handle('membres:decision', (e, slug, ok, role, who, fix) => coach.membreDecision(String(slug || ''), !!ok, role, who, fix && typeof fix === 'object' ? { slug: String(fix.slug || ''), pseudo: String(fix.pseudo || '') } : null));
 ipcMain.handle('roles', () => coach.roles());
 ipcMain.handle('roles:save', (e, modos, who) => coach.rolesSave(modos, who));
 ipcMain.handle('act:push', (e, slug, evts) => coach.activityPush(slug, evts));

@@ -32,7 +32,7 @@ contextBridge.exposeInMainWorld('fire', {
   tierlist: call('tierlist'),
   otp: call('otp'),
   matchup: call('matchup'),
-  live: { on: (cb) => ipcRenderer.on('live:update', (e, g) => cb(g)) },
+  live: { on: (cb) => ipcRenderer.on('live:update', (e, g) => cb(g)), spectate: call('live:spectate') },
   clips: { save: call('clips:save'), list: call('clips:list'), read: call('clips:read'), show: call('clips:show'), del: call('clips:delete') },
   chat: { list: call('chat'), send: call('chat:send') },
   salons: { list: call('salons'), save: call('salons:save') },

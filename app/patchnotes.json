@@ -1,6 +1,37 @@
 {
  "versions": [
   {
+   "v": "1.10.106",
+   "date": "2026-11-13",
+   "titre": "Vocal réparé, chuchotement, corrections",
+   "items": [
+    [
+     "fix",
+     "Vocal : « Cannot create so many PeerConnections » ne doit plus arriver. FIRE laissait une connexion ouverte à chaque fois qu'il essayait de joindre un coéquipier dont FIRE était fermé, jusqu'à la limite de Chrome. Les tentatives ratées sont maintenant fermées, et FIRE attend avant de réessayer. Si la limite est quand même atteinte, il libère tout et rejoint le salon tout seul."
+    ],
+    [
+     "fix",
+     "Vocal : quand tu chuchotes, on t'entend. FIRE reconnaît le chuchotement (souffle sans hauteur de voix, dans la bande de la parole) et, le temps du chuchotement, laisse passer le micro sans la suppression IA, qui l'effaçait. Le clavier et les clics restent coupés."
+    ],
+    [
+     "fix",
+     "Paramètres › Signaler un bug : le bouton ouvre bien le formulaire."
+    ],
+    [
+     "fix",
+     "Un nouveau membre accepté (ou ta demande en attente) ne disparaît plus de la liste quelques minutes après l'ouverture de FIRE."
+    ],
+    [
+     "fix",
+     "Lien dpm.lol des nouveaux : remis automatiquement au bon format (espaces et accents), sinon le profil ne se chargeait pas."
+    ],
+    [
+     "new",
+     "Le staff peut corriger le lien dpm.lol d'un membre dans Carnet de bord › Demandes (« ✏️ Corriger le lien »). Un nouveau en attente peut corriger le sien depuis son bandeau."
+    ]
+   ]
+  },
+  {
    "v": "1.10.105",
    "date": "2026-11-13",
    "titre": "Clips automatiques et vocal qui reste",

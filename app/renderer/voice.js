@@ -146,13 +146,24 @@
     if (!V.rawSrc || !V.g) return;
     try { V.rawSrc.disconnect(); } catch (e) { /* */ }
     if (AI.node) { try { AI.node.disconnect(); AI.node.port.postMessage('destroy'); } catch (e) { /* */ } AI.node = null; }
+    // Deux chemins : « sec » (micro brut) et « IA » (RNNoise). Normalement l'IA passe ; quand tu chuchotes, FIRE bascule
+    // un instant sur le chemin sec, sinon RNNoise efface le chuchotement comme un bruit.
+    const g = V.g, c = V.ctx;
+    if (!g.dryG) {
+      g.dryG = c.createGain(); g.wetG = c.createGain(); g.dryG.connect(g.hp); g.wetG.connect(g.hp);
+      g.rawAn = c.createAnalyser(); g.rawAn.fftSize = 1024; g.rawAn.smoothingTimeConstant = 0;
+      g.rawTd = new Float32Array(1024); g.rawFd = new Float32Array(512);
+    }
+    V.rawSrc.connect(g.rawAn);
+    V.rawSrc.connect(g.dryG);
     if (V.cfg.ai && AI.ready && V.ctx.sampleRate === 48000) {
       try {
         AI.node = new AudioWorkletNode(V.ctx, '@sapphi-red/web-noise-suppressor/rnnoise', { processorOptions: { maxChannels: 1, wasmBinary: AI.wasm.slice(0) } });
-        V.rawSrc.connect(AI.node); AI.node.connect(V.g.hp); return;
+        V.rawSrc.connect(AI.node); AI.node.connect(g.wetG);
+        g.wetG.gain.value = 1; g.dryG.gain.value = 0; return;
       } catch (e) { AI.node = null; }
     }
-    V.rawSrc.connect(V.g.hp);
+    g.wetG.gain.value = 0; g.dryG.gain.value = 1;
   }
   function closeMic() {
     if (V.rawSrc) { try { V.rawSrc.disconnect(); } catch (e) { /* */ } }
@@ -209,7 +220,7 @@
   // - ouverture : il faut 3 mesures de voix de suite (60 ms), le retard de 80 ms évite de manger le début du mot ;
   // - maintien : une fois ouvert, le micro reste ouvert tant que tu parles (même les consonnes et fins de mots
   //   plus faibles), puis 700 ms après la dernière syllabe : ta voix n'est plus hachée.
-  const VAD = { run: 0, nf: -70, me: -30, learned: 0, lastVoice: -1e9, ds: new Float32Array(256) };
+  const VAD = { run: 0, nf: -70, rnf: -70, me: -30, learned: 0, lastVoice: -1e9, lastWhisper: -1e9, wrun: 0, dry: false, ds: new Float32Array(256) };
   // Hauteur de la voix : autocorrélation sur le signal ramené à 12 kHz (léger, 20 ms de son).
   function voicing(td, sr) {
     const f = Math.max(1, Math.round(sr / 12000)), ds = VAD.ds, n = Math.min(ds.length, Math.floor(td.length / f));
@@ -242,6 +253,21 @@
       start = db > Math.max(VAD.nf + 9, near) && isVoice;
       keep = db > Math.max(VAD.nf + 5, near - 10);
     }
+    // Chuchotement (pas de hauteur de voix) : il faut 160 ms de souffle continu dans la bande de la parole, au-dessus du
+    // bruit de fond. Les touches du clavier et les clics sont trop courts et trop aigus ; un ventilateur est appris comme bruit de fond.
+    if (mode !== 'off' && V.cfg.whisper !== false) {
+      const wdb = VAD.wdb != null ? VAD.wdb : db, wnf = VAD.wnf != null ? VAD.wnf : VAD.nf;
+      const wfloor = mode === 'manual' ? -66 + (gate || 0) : wnf + 7;
+      const isWh = voiced < 0.5 && VAD.wr > 0.55 && VAD.hr < 0.12 && wdb > wfloor && wdb > -75;
+      VAD.wrun = isWh ? (VAD.wrun || 0) + 1 : 0;
+      if (VAD.wrun >= 8) { VAD.lastVoice = now; VAD.lastWhisper = now; V.gateUntil = now + 500; }
+    }
+    // Pendant un chuchotement, le micro brut passe (l'IA l'effacerait) ; l'IA revient dès que tu parles normalement.
+    const g = V.g;
+    if (g && g.dryG && AI.node) {
+      const wh = now - (VAD.lastWhisper || -1e9) < 450 && !(voiced > 0.6);
+      if (wh !== VAD.dry) { VAD.dry = wh; const t = V.ctx.currentTime; g.dryG.gain.setTargetAtTime(wh ? 1 : 0, t, 0.03); g.wetG.gain.setTargetAtTime(wh ? 0 : 1, t, 0.03); }
+    }
     if (start) VAD.lastVoice = now;
     VAD.run = start ? VAD.run + 1 : 0;
     const open = now < V.gateUntil;
@@ -262,9 +288,22 @@
     V.level = Math.max(0, Math.min(128, (db + 60) / 60 * 128));
     g.an.getFloatFrequencyData(g.fd);
     const hz = V.ctx.sampleRate / g.an.fftSize;
-    let voice = 0, all = 0;
-    for (let i = 1; i < g.fd.length; i++) { const f = i * hz; if (f < 100 || f > 12000) continue; const p = Math.pow(10, g.fd[i] / 10); all += p; if (f >= 250 && f <= 3500) voice += p; }
+    let voice = 0, all = 0, wb = 0, hi = 0;
+    for (let i = 1; i < g.fd.length; i++) { const f = i * hz; if (f < 100 || f > 12000) continue; const p = Math.pow(10, g.fd[i] / 10); all += p; if (f >= 250 && f <= 3500) voice += p; if (f >= 900 && f <= 5500) wb += p; if (f > 7000) hi += p; }
     const ratio = all > 0 ? voice / all : 0;
+    // Chuchotement : souffle sans hauteur, concentré entre 0,9 et 5,5 kHz (un clic de clavier monte bien plus haut).
+    // Mesuré sur le micro brut (avant l'IA, qui efface les chuchotements).
+    VAD.wr = all > 0 ? wb / all : 0; VAD.hr = all > 0 ? hi / all : 0; VAD.wdb = db;
+    if (g.rawAn) {
+      g.rawAn.getFloatTimeDomainData(g.rawTd);
+      let rs = 0; for (const x of g.rawTd) rs += x * x;
+      const rdb = 10 * Math.log10(rs / g.rawTd.length + 1e-12) + 20 * Math.log10(Math.max(0.05, c.gain || 1));
+      g.rawAn.getFloatFrequencyData(g.rawFd);
+      let ra = 0, rw = 0, rh = 0;
+      for (let i = 1; i < g.rawFd.length; i++) { const f = i * hz; if (f < 100 || f > 12000) continue; const p = Math.pow(10, g.rawFd[i] / 10); ra += p; if (f >= 900 && f <= 5500) rw += p; if (f > 7000) rh += p; }
+      if (rdb < VAD.rnf) VAD.rnf = VAD.rnf * 0.7 + rdb * 0.3; else VAD.rnf = Math.min(rdb, VAD.rnf + 0.04);
+      VAD.wr = ra > 0 ? rw / ra : 0; VAD.hr = ra > 0 ? rh / ra : 0; VAD.wdb = rdb; VAD.wnf = VAD.rnf;
+    }
     const voiced = db > -65 ? voicing(g.td, V.ctx.sampleRate) : 0;
     V.gateOpen = vadStep(db, ratio, voiced, performance.now(), c.vad, c.gate);
     const target = (V.mute && !V.monitor) ? 0 : V.gateOpen ? 1 : 0;
@@ -580,8 +619,8 @@
   function drop(slug, sound) {
     const k = V.conns[slug]; if (!k) return;
     delete V.conns[slug]; delete V.speaking[slug];
-    try { k.call.close(); } catch (e) { /* déjà fermé */ }
-    if (k.ctl) { try { k.ctl.close(); } catch (e) { /* */ } }
+    kill(k.call);
+    if (k.ctl) kill(k.ctl);
     if (k.out) dropOut(k.out);
     closeVout(slug, null); closeVin(slug, 'cam'); closeVin(slug, 'screen');
     if (sound && k.out) blip(false);
@@ -685,6 +724,12 @@
       blip(true);
       presenceLoop();
     } catch (e) {
+      // Trop de connexions WebRTC ouvertes : on libère celles du hall, puis on réessaie une fois.
+      if (!opts._retry && /so many PeerConnections/i.test(String((e && e.message) || e))) {
+        cleanup(); pcLimit(e); V.joining = false; emit();
+        setTimeout(() => join({ ...opts, _retry: true }), 1500);
+        return;
+      }
       V.err = (e && e.name === 'NotAllowedError') ? 'accès au micro refusé (Windows › Paramètres › Confidentialité › Microphone)' : (e && e.name === 'NotFoundError') ? 'aucun micro trouvé' : (e && e.message) || String(e);
       cleanup();
     }
@@ -765,7 +810,8 @@
   }
 
   // ---------- Invitations : chaque FIRE ouvert garde une petite adresse « hall » pour recevoir une invitation ----------
-  const L = { peer: null, prefix: '', me: null, ids: [], onInvite: null, last: {}, timer: null, links: {}, here: {}, live: {}, status: {}, beat: null, liveBusy: false, stBusy: false };
+  const L = { peer: null, prefix: '', me: null, ids: [], onInvite: null, last: {}, timer: null, links: {}, here: {}, live: {}, status: {}, beat: null, liveBusy: false, stBusy: false,
+    pend: {}, down: {}, fails: {}, failFn: {}, opts: null };
   // Présence : qui est en vocal, vu depuis n'importe quel FIRE ouvert (même sans être dans le salon).
   // Chaque membre en appel prévient les autres toutes les 20 s ; sans nouvelle depuis 60 s, on le considère parti.
   function onHall(from, m) {
@@ -778,16 +824,56 @@
     if (m.t === 'live') { const g = cleanLive(m.g); if (g) L.live[from] = { g, t: Date.now() + 45000 }; else delete L.live[from]; emit(); return; }
     if (m.t === 'here') { if (m.on) L.here[from] = { t: Date.now() + 60000, room: String(m.room || 'equipe').slice(0, 20) }; else delete L.here[from]; emit(); }
   }
+  // Ferme vraiment une connexion (et sa connexion WebRTC) : Chrome n'en accepte que quelques centaines par fenêtre.
+  function kill(dc) {
+    if (!dc) return;
+    try { dc.close(); } catch (e) { /* */ }
+    try { if (dc.peerConnection && dc.peerConnection.connectionState !== 'closed') dc.peerConnection.close(); } catch (e) { /* */ }
+  }
+  // Lien « hall » vers un coéquipier. Un seul essai à la fois par personne ; si son FIRE est fermé, la tentative est
+  // fermée proprement et on attend avant de réessayer (20 s, puis 40 s, 80 s… jusqu'à 5 min). Sans ça, chaque message
+  // vers un FIRE fermé laissait une connexion WebRTC ouverte, jusqu'à « Cannot create so many PeerConnections ».
   function link(slug) {
     const cur = L.links[slug];
     if (cur && cur.open) return Promise.resolve(cur);
-    return new Promise((ok) => {
+    if (L.pend[slug]) return L.pend[slug];
+    if ((L.down[slug] || 0) > Date.now()) return Promise.resolve(null);
+    const pr = new Promise((ok) => {
       if (!L.peer || L.peer.destroyed || !L.peer.open) return ok(null);
-      const dc = L.peer.connect(lid(slug), { reliable: true });
-      const t = setTimeout(() => ok(null), 8000);
-      dc.on('open', () => { clearTimeout(t); L.links[slug] = dc; dc.on('data', (m) => onHall(slug, m)); dc.on('close', () => { if (L.links[slug] === dc) delete L.links[slug]; }); ok(dc); });
-      dc.on('error', () => { clearTimeout(t); ok(null); });
-    });
+      let dc;
+      try { dc = L.peer.connect(lid(slug), { reliable: true }); } catch (e) { pcLimit(e); return ok(null); }
+      let done = false;
+      const fail = () => {
+        if (done) return; done = true; clearTimeout(t); delete L.failFn[slug];
+        kill(dc);
+        const n = (L.fails[slug] || 0) + 1; L.fails[slug] = n;
+        L.down[slug] = Date.now() + Math.min(300000, 20000 * Math.pow(2, n - 1));
+        ok(null);
+      };
+      const t = setTimeout(fail, 8000);
+      L.failFn[slug] = fail;
+      dc.on('open', () => {
+        if (done) { kill(dc); return; }
+        done = true; clearTimeout(t); delete L.failFn[slug];
+        L.fails[slug] = 0; L.down[slug] = 0;
+        if (L.links[slug] && L.links[slug] !== dc) kill(L.links[slug]);
+        L.links[slug] = dc;
+        dc.on('data', (m) => onHall(slug, m));
+        dc.on('close', () => { if (L.links[slug] === dc) delete L.links[slug]; kill(dc); });
+        ok(dc);
+      });
+      dc.on('error', fail);
+    }).finally(() => { delete L.pend[slug]; });
+    L.pend[slug] = pr;
+    return pr;
+  }
+  // Limite de connexions atteinte malgré tout : on referme toutes les connexions du hall et on le relance.
+  function pcLimit(e) {
+    if (!/so many PeerConnections/i.test(String((e && e.message) || e))) return false;
+    try { if (L.peer) L.peer.destroy(); } catch (x) { /* */ }
+    L.links = {}; L.pend = {}; L.failFn = {};
+    if (L.opts) { L.peer = null; setTimeout(() => lobby(L.opts), 500); }
+    return true;
   }
   async function beacon(on) {
     const others = L.ids.filter((x) => x !== L.me);
@@ -808,7 +894,13 @@
       mode: str(g.mode, 30), time: num(g.time), me: str(g.me, 40), at: num(g.at) || Date.now(),
       queue: g.queue && typeof g.queue === 'object' ? { id: num(g.queue.id), name: str(g.queue.name, 40), ranked: !!g.queue.ranked } : null,
       players: g.players.map((p) => ({ n: str(p.n, 40), c: str(p.c, 30).replace(/[^A-Za-z0-9]/g, ''), team: p.team === 'CHAOS' ? 'CHAOS' : 'ORDER',
-        k: num(p.k), d: num(p.d), a: num(p.a), cs: num(p.cs), lvl: num(p.lvl), pos: str(p.pos, 10) })),
+        k: num(p.k), d: num(p.d), a: num(p.a), cs: num(p.cs), lvl: num(p.lvl), pos: str(p.pos, 10),
+        it: Array.isArray(p.it) ? p.it.slice(0, 7).map(num) : [], sp: Array.isArray(p.sp) ? p.sp.slice(0, 2).map((x) => str(x, 30).replace(/[^A-Za-z0-9]/g, '')) : [], dead: num(p.dead), ward: num(p.ward) })),
+      puuid: str(g.puuid, 100).replace(/[^\w-]/g, ''),
+      obj: g.obj && typeof g.obj === 'object' ? Object.fromEntries(['ORDER', 'CHAOS'].map((t) => { const o = g.obj[t] || {};
+        return [t, { drag: Array.isArray(o.drag) ? o.drag.slice(0, 10).map((x) => str(x, 10).replace(/[^A-Za-z]/g, '')) : [], baron: num(o.baron), herald: num(o.herald), grubs: num(o.grubs), atakhan: num(o.atakhan), tower: num(o.tower), inhib: num(o.inhib), kills: num(o.kills) }]; })) : null,
+      feed: Array.isArray(g.feed) ? g.feed.slice(-14).map((f) => ({ t: num(f.t), x: str(f.x, 8).replace(/[^a-z]/g, ''), team: f.team === 'CHAOS' ? 'CHAOS' : f.team === 'ORDER' ? 'ORDER' : '',
+        kc: str(f.kc, 30).replace(/[^A-Za-z0-9]/g, ''), vc: str(f.vc, 30).replace(/[^A-Za-z0-9]/g, ''), what: str(f.what, 10).replace(/[^A-Za-z]/g, ''), n: num(f.n), st: !!f.st })) : [],
     };
   }
   // Statut et petite carte de profil d'un coéquipier (Paramètres › Mon profil) : seulement des champs connus et courts.
@@ -850,7 +942,7 @@
   async function lobby(opts) {
     if (!window.Peer || !opts || !opts.me) return;
     const prefix = 'firelol-' + (await sha('FIRE-vocal:' + opts.code.trim().toUpperCase())).slice(0, 24) + '-';
-    L.ids = [...new Set(opts.ids.concat(opts.me))]; L.onInvite = opts.onInvite || L.onInvite;
+    L.ids = [...new Set(opts.ids.concat(opts.me))]; L.onInvite = opts.onInvite || L.onInvite; L.opts = opts;
     if (L.peer && !L.peer.destroyed && L.me === opts.me && L.prefix === prefix) return;
     if (L.peer) { try { L.peer.destroy(); } catch (e) { /* */ } }
     L.prefix = prefix; L.me = opts.me;
@@ -858,14 +950,22 @@
       const p = L.peer = new window.Peer(lid(L.me), { debug: 0, config: { iceServers: ICE } });
       p.on('connection', (dc) => {
         const from = L.ids.find((x) => lid(x) === dc.peer);
-        if (!from || from === L.me) { try { dc.close(); } catch (e) { /* */ } return; }
+        if (!from || from === L.me) { kill(dc); return; }
+        // Il vient de se connecter : son FIRE est ouvert, on peut de nouveau lui écrire tout de suite.
+        L.down[from] = 0; L.fails[from] = 0;
+        const old = L.links[from];
         L.links[from] = dc;
+        if (old && old !== dc) setTimeout(() => kill(old), 2000);
         dc.on('data', (m) => onHall(from, m));
-        dc.on('close', () => { if (L.links[from] === dc) delete L.links[from]; });
+        dc.on('close', () => { if (L.links[from] === dc) delete L.links[from]; kill(dc); });
       });
       p.on('disconnected', () => { setTimeout(() => { try { if (L.peer === p && !p.destroyed) p.reconnect(); } catch (e) { /* */ } }, 3000); });
       // Adresse encore prise (relance rapide) ou serveur coupé : on réessaie un peu plus tard.
-      p.on('error', (e) => { if (e.type === 'unavailable-id' || e.type === 'network' || e.type === 'server-error') { clearTimeout(L.timer); L.timer = setTimeout(() => { if (L.peer === p) { try { p.destroy(); } catch (x) { /* */ } start(); } }, 15000); } });
+      p.on('error', (e) => {
+        // « Could not connect to peer … » : ce coéquipier n'est pas en ligne, on abandonne tout de suite la tentative.
+        if (e.type === 'peer-unavailable') { const msg = String(e.message || ''); for (const [s, f] of Object.entries(L.failFn)) if (msg.includes(lid(s))) f(); return; }
+        if (pcLimit(e)) return;
+        if (e.type === 'unavailable-id' || e.type === 'network' || e.type === 'server-error') { clearTimeout(L.timer); L.timer = setTimeout(() => { if (L.peer === p) { try { p.destroy(); } catch (x) { /* */ } start(); } }, 15000); } });
     };
     start();
   }

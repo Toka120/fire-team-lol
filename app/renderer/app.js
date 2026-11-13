@@ -405,7 +405,9 @@
       const c = await window.fire.config();
       if (c && Array.isArray(c.joueurs) && c.joueurs.length) {
         S.cfg = c;
-        S.players = c.joueurs;
+        // Les membres acceptés (et ma demande en attente) ne sont pas dans joueurs.json : on les garde.
+        S.players = c.joueurs.slice();
+        membresMerge(load('fire.membres', []));
         S.coachs = Array.isArray(c.coachs) ? c.coachs : [];
         S.cfgObj = (c.objectif && c.objectif.debut) ? c.objectif : null;
         applyWeek();
@@ -1178,6 +1180,17 @@
             m.note ? h('p', { class: 'small' }, '« ' + m.note + ' »') : null,
             h('div', { class: 'row' },
               h('button', { class: 'btn-ghost', onclick: () => webOpen('https://dpm.lol/' + m.slug) }, '📊 Voir son profil dpm.lol'),
+              canDecide ? h('button', { class: 'btn-ghost', onclick: (e) => {
+                const row = e.target.closest('.nm-req'); if (!row || row.querySelector('.nm-fix')) return;
+                const inp = h('input', { class: 'inp', value: 'https://dpm.lol/' + m.slug, placeholder: 'https://dpm.lol/Pseudo-TAG ou Pseudo#TAG' });
+                const msg = h('small', { class: 'muted' }, '');
+                row.append(h('div', { class: 'row nm-fix' }, inp, h('button', { class: 'btn-fire small-btn', onclick: async () => {
+                  const pp = dpmParse(inp.value); if (!pp) { msg.textContent = 'Lien ou Riot ID invalide.'; return; }
+                  const r = await window.fire.staff.decision(m.slug, m.statut === 'ok', m.role, vocalMe(), { slug: pp.slug, pseudo: pp.pseudo }).catch((er) => ({ ok: false, error: String(er) }));
+                  if (r && r.ok) { NM.list = r.membres; save('fire.membres', NM.list); S.players = S.players.filter((x) => x.slug !== m.slug); delete S.data[m.slug]; delete S.status[m.slug]; membresMerge(NM.list); refreshAll(); renderCarnet(); }
+                  else msg.textContent = '⚠ ' + ((r && r.error) || 'erreur');
+                } }, 'Enregistrer'), msg));
+              } }, '✏️ Corriger le lien') : null,
               m.statut === 'attente' && canDecide ? [
                 h('select', { class: 'inp nm-role', onchange: (e) => { sel.role = e.target.value; } }, ['Top', 'Jungle', 'Mid', 'ADC', 'Support'].flatMap((r) => [r, r + ' (Remplaçant)']).map((r) => h('option', { value: r, selected: r === m.role ? true : null }, r))),
                 h('button', { class: 'btn-fire small-btn', onclick: async () => { const r = await window.fire.staff.decision(m.slug, true, sel.role, vocalMe()).catch((e) => ({ ok: false, error: String(e) })); if (r && r.ok) { NM.list = r.membres; save('fire.membres', NM.list); membresMerge(NM.list); refreshAll(); renderNav(); } else alert('⚠ ' + ((r && r.error) || 'erreur')); renderCarnet(); } }, '✅ Accepter'),
@@ -2407,7 +2420,7 @@
     const files = [...e.clipboardData.items].filter((i) => i.kind === 'file').map((i) => i.getAsFile()).filter(Boolean);
     if (files.length) { e.preventDefault(); addBugImages(files); }
   });
-  function openBug() { S.section = 'patch'; S.bug.open = true; S.bug.ok = false; S.bug.msg = ''; loadPatch(); render(); window.scrollTo(0, 0); setTimeout(() => { const x = $('bug-txt'); if (x) x.focus(); }, 60); }
+  function openBug() { setClose(true); S.section = 'patch'; renderNav(); S.bug.open = true; S.bug.ok = false; S.bug.msg = ''; loadPatch(); render(); window.scrollTo(0, 0); setTimeout(() => { const x = $('bug-txt'); if (x) x.focus(); }, 60); }
   async function sendBug() {
     const b = S.bug;
     if (b.busy) return;
@@ -4133,7 +4146,9 @@
     const pend = load('fire.pending', null);
     if (!pend || !pend.slug) return null;
     return h('div', { class: 'news nm-pend' }, h('span', { class: 'news-ico' }, '⏳'),
-      h('span', { class: 'news-txt' }, h('b', null, 'Ton profil attend la validation. '), 'Tes stats se chargent déjà pour toi ; le créateur, un coach ou le chef d’équipe va valider ta demande pour que toute l’équipe te voie.' + (pend.sent ? '' : ' (Demande pas encore envoyée : nouvel essai automatique.)')));
+      h('span', { class: 'news-txt' }, h('b', null, 'Ton profil attend la validation. '), 'Tes stats se chargent déjà pour toi ; le créateur, un coach ou le chef d’équipe va valider ta demande pour que toute l’équipe te voie.' + (pend.sent ? '' : ' (Demande pas encore envoyée : nouvel essai automatique.)'),
+        S.status[pend.slug] && S.status[pend.slug].state === 'error' ? h('span', { class: 'bad' }, ' Ton profil dpm.lol ne se charge pas : vérifie ton lien. ') : null),
+      h('button', { class: 'btn-ghost small-btn', onclick: () => askNew(false, pend) }, '✏️ Corriger mon lien dpm.lol'));
   }
   function newsBanner() {
     const u = unseen().filter((f) => !(isNote(f) && isCommon(f)));
@@ -6700,7 +6715,9 @@
   // ===== Nouveaux membres : « Qui es-tu ? » → lien dpm.lol, rôle ; validé par le créateur, un coach ou le chef d'équipe =====
   // En attendant, le profil du nouveau se charge chez lui (ses stats, sa carte) ; les autres le voient une fois accepté.
   const roleIdOf = (role) => ({ top: 'top', jungle: 'jungle', mid: 'mid', adc: 'adc', support: 'support' })[String(role || '').split(' ')[0].toLowerCase()] || 'mid';
-  function membresMerge(list) {
+  function membresMerge(list, prune) {
+    // Liste fraîche du serveur : un membre retiré ou dont le lien a été corrigé disparaît sous son ancien identifiant.
+    if (prune) S.players = S.players.filter((p) => !p.nouveau || (list || []).some((m) => m.slug === p.slug && m.statut === 'ok'));
     const known = new Set(S.players.map((p) => p.slug));
     for (const m of (list || []).filter((x) => x.statut === 'ok')) {
       if (known.has(m.slug)) continue;
@@ -6719,21 +6736,21 @@
     NM.loading = false;
     if (!r || !r.ok) return;
     NM.list = r.membres || []; save('fire.membres', NM.list);
-    const before = S.players.length;
+    const before = S.players.map((p) => p.slug).join('|');
     const pend = load('fire.pending', null);
     if (pend) {
       const mine = NM.list.find((m) => m.slug === pend.slug);
       if (mine && mine.statut === 'ok') { save('fire.pending', null); const pl = S.players.find((p) => p.slug === pend.slug); if (pl) { delete pl.pending; pl.role = mine.role; pl.role_id = roleIdOf(mine.role); } popup('🎉 Bienvenue dans l’équipe !', `Ton profil a été validé${mine.par ? ' par ' + vocalName(mine.par) : ''}. Toute l’équipe te voit maintenant.`, 'stats'); }
       if (mine && mine.statut === 'refus') { popup('Demande refusée', 'Le staff n’a pas validé ta demande. Parles-en à un coach ou au chef d’équipe.', null); }
     }
-    membresMerge(NM.list);
+    membresMerge(NM.list, true);
     // Staff : une nouvelle demande arrive → notification.
     const waiting = NM.list.filter((m) => m.statut === 'attente');
     if (isStaff()) {
       const fresh = waiting.filter((m) => !NM.seen.includes(m.slug));
       if (fresh.length) { notifyDesk('coach', '🆕 Demande pour rejoindre l’équipe', `${fresh.map((m) => m.pseudo).join(', ')} attend ta validation dans le carnet de bord.`, 'carnet'); NM.seen = NM.seen.concat(fresh.map((m) => m.slug)).slice(-100); save('fire.membres.vus', NM.seen); }
     }
-    if (S.players.length !== before) { refreshAll(); }
+    if (S.players.map((p) => p.slug).join('|') !== before) { refreshAll(); }
     renderNav();
     if (S.section === 'carnet' && STF.tab === 'demandes' && !typing()) renderCarnet();
   }
@@ -6743,18 +6760,21 @@
     let t = String(txt || '').trim();
     if (!t) return null;
     let slug = '';
-    const m = t.match(/dpm\.lol\/([^?#\s]+)/i);
+    const m = t.match(/dpm\.lol\/(?:[a-z]{2}\/)?([^?#]+)/i);
     if (m) slug = m[1].replace(/\/+$/, '').split('/')[0];
-    else if (/#/.test(t)) { const [n, tag] = t.split('#'); if (!n.trim() || !tag.trim()) return null; slug = encodeURIComponent(n.trim()) + '-' + encodeURIComponent(tag.trim()); }
+    else if (/#/.test(t)) { const j = t.lastIndexOf('#'); const n = t.slice(0, j), tag = t.slice(j + 1); if (!n.trim() || !tag.trim()) return null; slug = encodeURIComponent(n.trim()) + '-' + encodeURIComponent(tag.trim()); }
     else return null;
     let dec = slug; try { dec = decodeURIComponent(slug); } catch (e) { /* */ }
     const i = dec.lastIndexOf('-');
     if (i < 1) return null;
-    return { slug, pseudo: dec.slice(0, i).trim() + '#' + dec.slice(i + 1).trim() };
+    const name = dec.slice(0, i).trim(), tag = dec.slice(i + 1).trim();
+    if (!name || !tag) return null;
+    // Toujours la même forme que dpm.lol (espaces et accents encodés), sinon le profil est introuvable.
+    return { slug: encodeURIComponent(name) + '-' + encodeURIComponent(tag), pseudo: name + '#' + tag };
   }
-  function askNew(prev) {
+  function askNew(prev, pre) {
     const box = h('div', { class: 'who' });
-    const st = { link: '', role: 'Mid', sub: false, note: '', err: '', busy: false };
+    const st = { link: pre ? 'https://dpm.lol/' + pre.slug : '', role: pre ? String(pre.role || 'Mid').split(' ')[0] : 'Mid', sub: !!(pre && /Rempla/.test(pre.role || '')), note: (pre && pre.note) || '', err: '', busy: false };
     const paint = () => {
       const parsed = dpmParse(st.link);
       box.replaceChildren(h('div', { class: 'who-card nm-card' },
@@ -6773,7 +6793,8 @@
             if (S.players.some((p) => p.slug === pp.slug && !p.pending)) { st.err = 'Ce joueur est déjà dans l’équipe : choisis-le dans la liste.'; paint(); return; }
             st.busy = true; paint();
             const role = st.role + (st.sub ? ' (Remplaçant)' : '');
-            const r = await window.fire.staff.demande({ slug: pp.slug, pseudo: pp.pseudo, role, note: st.note }).catch((e) => ({ ok: false, error: String(e) }));
+            const r = await window.fire.staff.demande({ slug: pp.slug, pseudo: pp.pseudo, role, note: st.note, old: pre && pre.slug !== pp.slug ? pre.slug : '' }).catch((e) => ({ ok: false, error: String(e) }));
+            if (pre && pre.slug !== pp.slug) { S.players = S.players.filter((x) => !(x.pending && x.slug === pre.slug)); delete S.data[pre.slug]; delete S.status[pre.slug]; }
             st.busy = false;
             // Même sans réseau, le profil se charge chez lui : la demande repartira à la prochaine ouverture.
             save('fire.pending', { slug: pp.slug, pseudo: pp.pseudo, role, note: st.note, sent: !!(r && r.ok) });
