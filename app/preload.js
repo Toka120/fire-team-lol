@@ -4,6 +4,9 @@ const call = (ch) => (...a) => ipcRenderer.invoke(ch, ...a);
 
 contextBridge.exposeInMainWorld('fire', {
   config: call('config'),
+  // Navigateur intégré : les liens s'ouvrent dans FIRE.
+  web: { load: call('web:load'), bounds: call('web:bounds'), nav: call('web:nav'), hide: call('web:hide'), close: call('web:close'),
+    onOpen: (cb) => ipcRenderer.on('web:open', (e, u) => cb(u)), onState: (cb) => ipcRenderer.on('web:state', (e, st) => cb(st)), onEsc: (cb) => ipcRenderer.on('web:esc', () => cb()) },
   // Taille du texte (Paramètres › Polices d'écriture) : vrai zoom de la fenêtre, les clics restent justes partout.
   win: { displays: call('window:displays'), setDisplay: call('window:setDisplay'), soundComms: call('win:soundComms') },
   adv: { gpu: call('gpu:get'), setGpu: call('gpu:set'), restart: call('app:restart'), clearCache: call('cache:clear'), cacheSize: call('cache:size') },

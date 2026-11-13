@@ -2067,3 +2067,17 @@ html[data-streamer] #chat .chat-bar::after{content:'📺';margin-left:6px}
 html.set-open #chat{display:none}
 html.set-open body{overflow:hidden}
 @media (max-width:900px){.set-left{flex:0 0 200px}.set-side{width:200px}.set-page{padding:40px 20px}}
+
+/* Navigateur intégré */
+.web-bar{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:-12px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+.web-b{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font-size:18px;line-height:1;cursor:pointer}
+.web-b:disabled{opacity:.35;cursor:default}
+.web-b:hover:not(:disabled){border-color:var(--fire1)}
+.web-addr{flex:1;min-width:0;display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.web-addr .muted{overflow:hidden;text-overflow:ellipsis}
+.web-spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--fire1);animation:webspin .8s linear infinite;margin-left:auto;flex:none}
+@keyframes webspin{to{transform:rotate(360deg)}}
+.web-slot{border-radius:12px;background:var(--panel);border:1px solid var(--line);overflow:hidden;display:grid;place-items:center}
+.web-err{text-align:center}
+html.web-open #chat{display:none}
+html.web-open .view{max-width:none}

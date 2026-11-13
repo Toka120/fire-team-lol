@@ -1,7 +1,7 @@
 // FIRE LoL - application de bureau (Electron).
 // Lit les stats des joueurs sur dpm.lol dans une fenêtre cachée, puis les affiche.
 
-const { app, BrowserWindow, ipcMain, session, shell, Notification, Tray, Menu, desktopCapturer, globalShortcut, screen } = require('electron');
+const { app, BrowserWindow, WebContentsView, ipcMain, session, shell, Notification, Tray, Menu, desktopCapturer, globalShortcut, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -177,13 +177,11 @@ function createMainWindow(forceShow) {
   });
   hideAdSlots(mainWin.webContents);
   mainWin.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  // Les liens externes (dpm.lol, GitHub) s'ouvrent dans le navigateur par défaut.
-  mainWin.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https:\/\//.test(url)) shell.openExternal(url);
-    return { action: 'deny' };
-  });
+  // Les liens (op.gg, YouTube, dpm.lol, mid.gg…) s'ouvrent DANS FIRE, dans le navigateur intégré : on reste sur l'application.
+  // Seuls les téléchargements d'installeur passent par le navigateur de Windows.
+  mainWin.webContents.setWindowOpenHandler(({ url }) => { openLink(url); return { action: 'deny' }; });
   mainWin.webContents.on('will-navigate', (e, url) => {
-    if (!url.startsWith('file://')) { e.preventDefault(); if (/^https:\/\//.test(url)) shell.openExternal(url); }
+    if (!url.startsWith('file://')) { e.preventDefault(); openLink(url); }
   });
 }
 
@@ -255,21 +253,70 @@ const lcu = require('./lcu');
 ipcMain.handle('lcu:draft', () => lcu.draft().catch(() => ({ client: false, phase: 'None', allies: [], enemies: [] })));
 ipcMain.handle('lcu:runes', (e, key, pos) => lcu.runes(key, pos).catch((err) => ({ ok: false, error: String(err && err.message || err) })));
 ipcMain.handle('lcu:import', (e, raw, label, replaceId) => lcu.importPage(raw, label, replaceId).catch((err) => ({ ok: false, error: String(err && err.message || err) })));
-// Les stats du matchup s'ouvrent dans une fenêtre FIRE à part (le site ne se laisse pas intégrer dans une page).
-let statsWin = null;
-const STATS_OK = /^https:\/\/(www\.)?lolalytics\.com\//;
-ipcMain.handle('lcu:stats', (e, url) => {
-  if (!STATS_OK.test(String(url || ''))) return false;
-  if (!statsWin || statsWin.isDestroyed()) {
-    statsWin = new BrowserWindow({ width: 1240, height: 900, title: 'FIRE LoL · Stats du matchup', backgroundColor: '#0f0d0c', autoHideMenuBar: true,
-      icon: path.join(__dirname, 'assets', 'fire.ico'), webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true } });
-    statsWin.webContents.setWindowOpenHandler(({ url: u }) => { if (/^https:\/\//.test(u)) shell.openExternal(u); return { action: 'deny' }; });
-    statsWin.webContents.on('will-navigate', (ev, u) => { if (!STATS_OK.test(u)) { ev.preventDefault(); if (/^https:\/\//.test(u)) shell.openExternal(u); } });
-    statsWin.on('closed', () => { statsWin = null; });
-  }
-  statsWin.loadURL(url).catch(() => {});
-  statsWin.show(); statsWin.focus();
+// Les stats LoLalytics s'ouvrent aussi dans le navigateur intégré de FIRE.
+ipcMain.handle('lcu:stats', (e, url) => openLink(url));
+
+// ---------- Navigateur intégré : les pages web s'affichent dans FIRE, sous la barre de FIRE ----------
+// Une vue web posée sur la zone de contenu de la fenêtre (le renderer donne la place exacte et la barre d'outils).
+// Pas d'accès à FIRE ni au PC depuis ces pages : bac à sable, session séparée, aucune autorisation sauf le plein écran.
+let webView = null;
+const WEB_OK = /^https?:\/\//i;
+const isInstaller = (u) => /\.(exe|msi|msix|appx|zip)(\?|#|$)/i.test(u) || /\/releases\/(latest\/)?download\//.test(u);
+function webState() {
+  if (!webView || !mainWin || mainWin.isDestroyed()) return;
+  const wc = webView.webContents;
+  mainWin.webContents.send('web:state', { url: wc.getURL(), title: wc.getTitle(), loading: wc.isLoading(),
+    back: wc.navigationHistory.canGoBack(), fwd: wc.navigationHistory.canGoForward() });
+}
+function ensureWebView() {
+  if (webView && !webView.webContents.isDestroyed()) return webView;
+  const ses = session.fromPartition('persist:fire-web');
+  ses.setPermissionRequestHandler((wc, perm, cb) => cb(perm === 'fullscreen'));
+  webView = new WebContentsView({ webPreferences: { partition: 'persist:fire-web', sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: true } });
+  webView.setBackgroundColor('#0B0D10');
+  const wc = webView.webContents;
+  wc.setWindowOpenHandler(({ url }) => { if (isInstaller(url)) shell.openExternal(url); else if (WEB_OK.test(url)) wc.loadURL(url).catch(() => {}); return { action: 'deny' }; });
+  wc.on('will-navigate', (e, url) => { if (!WEB_OK.test(url)) e.preventDefault(); });
+  ['did-start-loading', 'did-stop-loading', 'page-title-updated', 'did-navigate', 'did-navigate-in-page'].forEach((ev) => wc.on(ev, webState));
+  wc.on('did-fail-load', (e, code, desc, url, main) => { if (main && code !== -3 && mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('web:state', { url, title: '', loading: false, error: desc || 'page introuvable' }); });
+  return webView;
+}
+function openLink(url) {
+  url = String(url || '');
+  if (!WEB_OK.test(url)) return false;
+  if (isInstaller(url)) { shell.openExternal(url); return true; }
+  if (!mainWin || mainWin.isDestroyed()) return false;
+  mainWin.webContents.send('web:open', url);
   return true;
+}
+ipcMain.handle('web:load', (e, url, rect) => {
+  if (!WEB_OK.test(String(url || '')) || !mainWin || mainWin.isDestroyed()) return false;
+  const v = ensureWebView();
+  if (!mainWin.contentView.children.includes(v)) mainWin.contentView.addChildView(v);
+  if (rect) v.setBounds(rect);
+  v.webContents.loadURL(url).catch(() => {});
+  return true;
+});
+ipcMain.handle('web:bounds', (e, rect) => {
+  if (!webView || !rect) return;
+  const r = { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.max(0, Math.round(rect.width)), height: Math.max(0, Math.round(rect.height)) };
+  webView.setBounds(r);
+});
+ipcMain.handle('web:nav', (e, a) => {
+  if (!webView) return;
+  const wc = webView.webContents, h = wc.navigationHistory;
+  if (a === 'back' && h.canGoBack()) h.goBack();
+  if (a === 'fwd' && h.canGoForward()) h.goForward();
+  if (a === 'reload') wc.reload();
+  if (a === 'stop') wc.stop();
+});
+// Cacher la page (une fenêtre de FIRE passe par-dessus) ou la fermer (retour à FIRE).
+ipcMain.handle('web:hide', (e, on) => { if (!webView || !mainWin || mainWin.isDestroyed()) return; if (on) mainWin.contentView.removeChildView(webView); else if (!mainWin.contentView.children.includes(webView)) mainWin.contentView.addChildView(webView); });
+ipcMain.handle('web:close', () => {
+  if (!webView) return;
+  try { if (mainWin && !mainWin.isDestroyed()) mainWin.contentView.removeChildView(webView); } catch (err) { /* */ }
+  try { webView.webContents.close(); } catch (err) { /* */ }
+  webView = null;
 });
 
 // Raccourcis clavier du salon vocal : enregistrés auprès de Windows, ils marchent aussi en pleine partie.

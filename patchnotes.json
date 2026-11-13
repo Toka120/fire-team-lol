@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.95",
+   "date": "2026-11-13",
+   "titre": "Tout s'ouvre dans FIRE",
+   "items": [
+    [
+     "new",
+     "Navigateur intégré : les liens (profils op.gg des one-tricks, vidéos YouTube, VOD mid.gg, dpm.lol, LoLalytics…) s'ouvrent directement dans FIRE, plus dans le navigateur."
+    ],
+    [
+     "new",
+     "Une barre en haut de la page : « ← Retour à FIRE », page précédente ou suivante, recharger, et le site affiché."
+    ],
+    [
+     "improve",
+     "Les pages web s'ouvrent à part de FIRE : elles n'ont accès ni à FIRE ni à ton PC. Seul le téléchargement de l'installeur passe encore par le navigateur de Windows."
+    ]
+   ]
+  },
+  {
    "v": "1.10.94",
    "date": "2026-11-13",
    "titre": "Paramètres comme Discord",

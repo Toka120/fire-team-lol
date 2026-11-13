@@ -976,6 +976,78 @@
         h('div', { class: 'set-page' }, h('h1', { class: 'set-title' }, cur[2]), subBar, ...(pages[tab]() || []).filter(Boolean)),
         h('div', { class: 'set-close' }, h('button', { class: 'set-x', title: 'Fermer (Échap)', onclick: () => setClose() }, '✕'), h('small', null, 'ÉCHAP'))));
   }
+
+  // ----- Navigateur intégré : les liens (op.gg, YouTube, mid.gg, dpm.lol, LoLalytics…) s'ouvrent dans FIRE -----
+  // La page web s'affiche à la place du contenu, sous une barre FIRE (retour, avancer, recharger, « ← Retour à FIRE »).
+  const WEB = { open: false, url: '', title: '', loading: false, back: false, fwd: false, error: '', from: null, ro: null };
+  const webZoom = () => (window.fire && window.fire.zoom ? (Number(fontPrefs().zoom) || 100) / 100 : 1);
+  function webRect() {
+    const slot = document.getElementById('web-slot');
+    if (!slot) return null;
+    // La page prend toute la hauteur restante de la fenêtre.
+    const top = slot.getBoundingClientRect().top;
+    slot.style.height = Math.max(200, window.innerHeight - top - 12) + 'px';
+    const r = slot.getBoundingClientRect(), z = webZoom();
+    return { x: r.left * z, y: r.top * z, width: r.width * z, height: r.height * z };
+  }
+  function webOpen(url) {
+    if (!window.fire.web || !/^https?:\/\//i.test(String(url || ''))) return;
+    if (!WEB.open) WEB.from = S.section === 'web' ? WEB.from : S.section;
+    WEB.open = true; WEB.url = url; WEB.title = ''; WEB.error = ''; WEB.loading = true;
+    if (S.section !== 'web') { S.prevSection = S.section; S.section = 'web'; }
+    document.documentElement.classList.add('web-open');
+    render();
+    window.scrollTo(0, 0);
+    requestAnimationFrame(() => window.fire.web.load(url, webRect()));
+  }
+  function webClose(silent) {
+    if (!WEB.open) return;
+    WEB.open = false;
+    document.documentElement.classList.remove('web-open');
+    if (WEB.ro) { WEB.ro.disconnect(); WEB.ro = null; }
+    try { window.fire.web.close(); } catch (e) { /* */ }
+    if (!silent) go(WEB.from && WEB.from !== 'web' ? WEB.from : 'stats');
+  }
+  const webHost = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } };
+  function renderWeb() {
+    if (!WEB.open) { S.section = WEB.from || 'stats'; render(); return; }
+    const view = $('view');
+    const nav = (a) => window.fire.web.nav(a);
+    const bar = h('div', { class: 'web-bar' },
+      h('button', { class: 'btn-fire small-btn web-home', onclick: () => webClose() }, '← Retour à FIRE'),
+      h('button', { class: 'web-b', title: 'Page précédente', disabled: WEB.back ? null : true, onclick: () => nav('back') }, '‹'),
+      h('button', { class: 'web-b', title: 'Page suivante', disabled: WEB.fwd ? null : true, onclick: () => nav('fwd') }, '›'),
+      h('button', { class: 'web-b', title: WEB.loading ? 'Arrêter' : 'Recharger', onclick: () => nav(WEB.loading ? 'stop' : 'reload') }, WEB.loading ? '✕' : '⟳'),
+      h('div', { class: 'web-addr' }, h('span', { class: 'web-lock' }, '🔒'), h('b', null, webHost(WEB.url)), h('span', { class: 'muted' }, WEB.title ? ' · ' + WEB.title : ''),
+        WEB.loading ? h('i', { class: 'web-spin' }) : null));
+    const slot = h('div', { id: 'web-slot', class: 'web-slot' }, WEB.error ? h('div', { class: 'web-err' }, h('b', null, 'Page indisponible'), h('p', { class: 'muted' }, WEB.error)) : null);
+    view.replaceChildren(bar, slot);
+    requestAnimationFrame(() => {
+      const r = webRect(); if (r) window.fire.web.bounds(r);
+      if (!WEB.ro && window.ResizeObserver) { WEB.ro = new ResizeObserver(() => { const rr = webRect(); if (rr && WEB.open) window.fire.web.bounds(rr); }); WEB.ro.observe(document.getElementById('web-slot')); }
+      else if (WEB.ro) { WEB.ro.disconnect(); WEB.ro.observe(document.getElementById('web-slot')); }
+    });
+  }
+  // Les fenêtres de FIRE (paramètres, recherche, profil…) passent par-dessus la page : on la cache le temps qu'elles sont ouvertes.
+  function webCovered() {
+    if (!WEB.open || !window.fire.web) return;
+    const cover = !!document.querySelector('#set-ovl, .qs, .prof-pop, .who, .popup-modal, .modal, .vs-modal, .lightbox');
+    if (cover !== WEB.covered) { WEB.covered = cover; window.fire.web.hide(cover); }
+  }
+  if (window.fire && window.fire.web) {
+    window.fire.web.onOpen((u) => webOpen(u));
+    window.fire.web.onState((st) => {
+      if (!WEB.open || !st) return;
+      Object.assign(WEB, { url: st.url || WEB.url, title: st.title || '', loading: !!st.loading, back: !!st.back, fwd: !!st.fwd, error: st.error || '' });
+      if (S.section === 'web') {
+        const bar = document.querySelector('.web-bar');
+        if (bar) renderWeb();
+      }
+    });
+    new MutationObserver(() => webCovered()).observe(document.body, { childList: true });
+    window.addEventListener('resize', () => { if (WEB.open) { const r = webRect(); if (r) window.fire.web.bounds(r); } });
+  }
+
   // Fenêtre plein écran des paramètres, par-dessus FIRE (comme Discord).
   function setOverlay() {
     let el = document.getElementById('set-ovl');
@@ -1144,10 +1216,11 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
+    else if (S.section === 'web') renderWeb();
     else if (S.section === 'pool') renderPool();
     else if (S.section === 'planning') renderPlanning();
     else if (S.section === 'jeux') renderJeux();
@@ -1954,6 +2027,7 @@
   function go(sec) {
     if (sec !== S.section && S.section !== 'settings') S.prevSection = S.section;
     if (sec !== 'settings') setClose(true);
+    if (sec !== 'web' && WEB.open) webClose(true);
     S.section = sec;
     if (START_PAGES.some(([k]) => k === sec)) save('fire.lastSection', sec);
     if (sec === 'guides') { S.theme = null; S.guideCat = null; }
