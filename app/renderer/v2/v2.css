@@ -369,6 +369,24 @@ html.v2 .pc-slot.mine-ok { box-shadow: inset 0 0 0 1px var(--ok); }
 html.v2 .pc-slot.mine-attente { box-shadow: inset 0 0 0 1px var(--warn); }
 html.v2 .pc-reqs { border-top-color: var(--line); }
 
+/* ---------- Draft ---------- */
+html.v2 :where(.dr-live, .dr-timer, .dr-teams h3, .card > h3) > .v2i:first-child { width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px; }
+html.v2 .dr-teams h3 > .v2i[data-i=Circle] { width: 12px; height: 12px; fill: currentColor; stroke: none; vertical-align: 0; }
+html.v2 .dr-teams > .card:first-child h3 > .v2i[data-i=Circle] { color: var(--v2-blue); }
+html.v2 .dr-teams > .card:last-child h3 > .v2i[data-i=Circle] { color: var(--bad); }
+html.v2 .dr-teams h3, html.v2 .card > h3 { font: 600 16px/24px var(--v2-font); }
+html.v2 .dr-status { padding: 16px 24px; }
+html.v2 .dr-live { color: var(--bad); font: 600 14px/24px var(--v2-font); display: inline-flex; align-items: center; }
+html.v2 .dr-timer { font: 600 14px/24px var(--v2-font); display: inline-flex; align-items: center; }
+html.v2 .dr-row { border-radius: 8px; }
+html.v2 .dr-row .cico, html.v2 .dr-empty, html.v2 .dr-vs .cico { border-radius: 8px; }
+html.v2 .dr-row.me { border-color: var(--fire1); background: var(--v2-sel); }
+html.v2 .dr-row.opp { border-color: var(--bad); background: var(--v2-bad-bg); }
+html.v2 .dr-vs-x { color: var(--fire1); font: 700 20px/28px var(--v2-font); }
+html.v2 .dr-page { border-radius: 16px; padding: 16px; }
+html.v2 .pz-lane { display: inline-grid; place-items: center; color: var(--muted); }
+html.v2 .pz-lane .v2i { width: 16px; height: 16px; }
+
 /* ---------- Divers ---------- */
 html.v2 .flash { border-radius: 8px; background: var(--v2-ok-bg); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
 html.v2 .tip { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--v2-shadow); font: 400 12px/16px var(--v2-font); }

@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.72",
+   "date": "2026-11-13",
+   "titre": "Interface V2 : Draft",
+   "items": [
+    [
+     "improve",
+     "V2 : Draft en direct et Puzzles de draft passés à la nouvelle charte : indicateur « en direct » rouge, minuteur, côtés bleu et rouge, lignes de lane en icônes de rôle, ton champion et ton vis-à-vis encadrés."
+    ],
+    [
+     "fix",
+     "V2 : les icônes s'appliquaient parfois en retard (fenêtre en arrière-plan) ; elles sont maintenant posées dès que la page change."
+    ]
+   ]
+  },
+  {
    "v": "1.10.71",
    "date": "2026-11-13",
    "titre": "Interface V2 : Planning",

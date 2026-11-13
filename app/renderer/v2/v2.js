@@ -90,6 +90,7 @@
     '💤': 'Moon', '😴': 'Moon', '🔎': 'controls.Recherche', '👌': 'controls.Valider', '💡': 'Lightbulb', '💾': 'Save',
     '🧠': 'controls.Mental et progression', '✍️': 'controls.Modifier', '⏳': 'controls.Sans réponse',
     '🕒': 'controls.Heure', '📝': 'controls.Modifier', '🎥': 'sessions.Review', '📌': 'sessions.Autre',
+    '⏱': 'controls.Heure', '⬇': 'Download', '🔵': 'Circle', '🔴': 'Circle',
   };
   // Le même emoji sert à plusieurs choses : le texte qui suit décide quand il est clair (« 🏆 Win rate » ≠ « 🏆 5c5 »).
   const BYTEXT = [
@@ -103,19 +104,20 @@
     [/^La stratégie/, 'controls.Objectifs et macro'], [/^Comprendre les stats/, 'BookOpen'], [/^Bilan et stratégie/, 'Compass'],
     [/^Qui joue avec qui/, 'micro.Duo'], [/^Stats de l’équipe · .*5c5/, 'sessions.5c5'], [/^Stats de l’équipe/, 'sessions.Flex'],
     [/victoires? de suite/, 'ribbons.L’acharné'], [/défaites? de suite/, 'TrendingDown'], [/hors pool/, 'controls.Incertain'],
-    [/^Scrim/, 'sessions.Scrim'], [/^Objectif/, 'controls.Objectif de la semaine'], [/^5c5/, 'sessions.5c5'], [/^Flex/, 'sessions.Flex'],
+    [/^Scrim/, 'sessions.Scrim'], [/^Sélection des champions/, 'voice.EN DIRECT'], [/^Objectif/, 'controls.Objectif de la semaine'], [/^5c5/, 'sessions.5c5'], [/^Flex/, 'sessions.Flex'],
   ];
   const LABEL_SEL = '.tab, .plan-tab, .chip, .card > h2, .settings-card h2, .hub-sec > span, .chat-t, .seg';
   // Stats, profils et analyse d'équipe : libellés système uniquement (jamais les notes, fiches ou messages).
   const STAT_SEL = '.tile-h, .acol > h3, .cgroup > h3, .catpill, .bdg, .team-kick, .hp, .more-btn, .tags > .tag:not(.tag-cap), '
     + '.objline > span, .hub-coachs, .team-h, .ta-k, .ta-keep, .wr-g, .tg-q, .pstatus, .cc .m > span, .bonus-l, .sec-hero p.muted.small, '
-    + '.btn-fire, .btn-ghost, .fld-inline, .verdict, .pk-mode, .pc-head > .tag, .plan-type, .plan-note, .pc-name, .pc-hr, .plan-hours';
+    + '.btn-fire, .btn-ghost, .fld-inline, .verdict, .pk-mode, .pc-head > .tag, .plan-type, .plan-note, .pc-name, .pc-hr, .plan-hours, '
+    + '.dr-live, .dr-timer, .dr-teams h3, .card > h3';
   // Planning : réponses des joueurs et demandes de créneau (Présent ✓, Incertain ?, Absent ✕, Sans réponse ⌛).
   const PLAN = { '✅': 'controls.Valider', '❔': 'controls.Incertain', '❌': 'controls.Fermer', '⏳': 'controls.Sans réponse' };
   const PLAN_SEL = '.plan-count > span, .plan-btn, .pc-state > span, .pc-me > span, .pc-req > span, .plan-tabs .tab';
   const ROLES = { '🛡️': 'roles.Top', '🌲': 'roles.Jungle', '✨': 'roles.Mid', '🏹': 'roles.ADC', '💞': 'roles.Support' };
   // Petites icônes seules (cartes d'analyse, points forts d'équipe, objectifs d'une game).
-  const ICO_SEL = '.acard-ico, .tf-ico, .pc-ico, .tier-ico, .pk-b, .ibtn, .apill-ico, .mini-tag, .pool-card table.t td';
+  const ICO_SEL = '.acard-ico, .tf-ico, .pz-lane, .pc-ico, .tier-ico, .pk-b, .ibtn, .apill-ico, .mini-tag, .pool-card table.t td';
   // Libellés où 🎯 ⭐ ❔ apparaissent au milieu du texte (légendes POOL, changements de tierlist).
   const CAT_SEL = '.acard-chip, .chg, .catleg > span, .pool-hero p, .week-banner .wb-main .muted.small, .card-editor > p.muted.small';
   const OBJ = { '🩸': 'Droplet', '⚔️': 'Swords', '🐉': 'esport.Dragons', '🪱': 'esport.Larves', '👾': 'esport.Barons', '⏱️': 'controls.Heure', '🏰': 'esport.Tours' };
@@ -227,7 +229,8 @@
     if (status) back ? back.after(status) : top.prepend(status);
     // Tout ce qui s'affiche (pages, discussion, fenêtres) passe par le remplacement des emojis système.
     let queued = false;
-    new MutationObserver(() => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; decorate(document.body); }); })
+    // setTimeout plutôt que requestAnimationFrame : une fenêtre cachée (barre des tâches) ne dessine plus d'images, et le remplacement ne doit pas rester en attente.
+    new MutationObserver(() => { if (queued) return; queued = true; setTimeout(() => { queued = false; decorate(document.body); }, 0); })
       .observe(document.body, { childList: true, subtree: true, characterData: true });
   }
 
