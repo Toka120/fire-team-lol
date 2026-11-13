@@ -1,9 +1,11 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
 const call = (ch) => (...a) => ipcRenderer.invoke(ch, ...a);
 
 contextBridge.exposeInMainWorld('fire', {
   config: call('config'),
+  // Taille du texte (Paramètres › Polices d'écriture) : vrai zoom de la fenêtre, les clics restent justes partout.
+  zoom: (f) => { const z = Number(f); if (z >= 0.8 && z <= 1.3) webFrame.setZoomFactor(z); },
   guides: call('guides'),
   patchnotes: call('patchnotes'),
   lolpatch: { list: call('lolpatch:list'), get: call('lolpatch:get') },

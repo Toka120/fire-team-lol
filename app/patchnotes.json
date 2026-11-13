@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.91",
+   "date": "2026-11-13",
+   "titre": "Polices d'écriture",
+   "items": [
+    [
+     "new",
+     "Paramètres › Polices d'écriture : choisis la police du texte (12 au choix : Poppins, Lexend, Rajdhani, Comic Neue…) et celle des titres (Cinzel, Orbitron, Bangers, Russo One, Press Start 2P…), avec un aperçu de chacune."
+    ],
+    [
+     "new",
+     "Taille du texte : Petite, Normale, Grande ou Très grande, pour toute l'application."
+    ],
+    [
+     "improve",
+     "« Selon le thème » garde la police de ton ambiance, et « Polices par défaut » remet tout comme avant."
+    ]
+   ]
+  },
+  {
    "v": "1.10.90",
    "date": "2026-11-13",
    "titre": "Matchups dans FIRE, tier list de Fer à Challenger",

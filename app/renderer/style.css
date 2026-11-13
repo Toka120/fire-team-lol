@@ -1935,3 +1935,13 @@ img.qz-hole.ok{border:2px solid var(--ok)}
 .tl-trend-l{display:flex;flex-wrap:wrap;gap:10px}
 .tl-tr{display:grid;grid-template-columns:32px auto;grid-template-rows:auto auto;column-gap:8px;align-items:center;padding:6px 12px 6px 6px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
 .tl-tr img{grid-row:1/3;border-radius:8px}
+
+/* Polices d'écriture choisies dans Paramètres (V1 : la V2 lit déjà --v2-font et --v2-display) */
+html[data-fui]:not(.v2) body{font-family:var(--v2-font)}
+html[data-ftitle]:not(.v2) .title{font-family:var(--v2-display)}
+.fnt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:6px}
+.fnt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.fnt:hover{border-color:var(--fire1)}
+.fnt[aria-pressed=true]{border-color:var(--fire1);box-shadow:0 0 0 3px color-mix(in srgb,var(--fire1) 25%,transparent)}
+.fnt-s{font-size:20px;line-height:26px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.fnt.t .fnt-s{font-size:22px}

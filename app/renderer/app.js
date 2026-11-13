@@ -32,6 +32,25 @@
     if (th && th[6]) el.setAttribute('data-skin', '1'); else el.removeAttribute('data-skin');
   };
   applyTheme(load('fire.theme', 'fire'));
+  // Polices d'écriture et taille du texte choisies dans Paramètres (vides = celles du thème).
+  const FONT_UI = [['', 'Selon le thème'], ['Inter', 'Inter'], ['Poppins', 'Poppins'], ['Nunito', 'Nunito'], ['Montserrat', 'Montserrat'], ['Lexend', 'Lexend (très lisible)'],
+    ['Outfit', 'Outfit'], ['Space Grotesk', 'Space Grotesk'], ['Rajdhani', 'Rajdhani (gamer)'], ['Fredoka', 'Fredoka (arrondie)'], ['Comic Neue', 'Comic Neue'], ['JetBrains Mono', 'JetBrains Mono (code)'], ['Segoe UI', 'Windows (Segoe UI)']];
+  const FONT_TITLE = [['', 'Selon le thème'], ['Cinzel', 'Cinzel (LoL)'], ['Orbitron', 'Orbitron (futuriste)'], ['Audiowide', 'Audiowide (néon)'], ['Bangers', 'Bangers (comics)'],
+    ['Russo One', 'Russo One (esport)'], ['Bebas Neue', 'Bebas Neue (affiche)'], ['Permanent Marker', 'Permanent Marker (feutre)'], ['Press Start 2P', 'Press Start 2P (rétro)'],
+    ['Fredoka', 'Fredoka (arrondie)'], ['Poppins', 'Poppins'], ['Montserrat', 'Montserrat'], ['JetBrains Mono', 'JetBrains Mono (code)'], ['=ui', 'Comme le texte']];
+  const fontPrefs = () => ({ ui: '', title: '', zoom: 100, ...load('fire.font', {}) });
+  function applyFonts() {
+    const f = fontPrefs(), el = document.documentElement;
+    const fam = (n) => `'${n}', 'Segoe UI', system-ui, sans-serif`;
+    if (f.ui) { el.style.setProperty('--v2-font', fam(f.ui)); el.setAttribute('data-fui', '1'); } else { el.style.removeProperty('--v2-font'); el.removeAttribute('data-fui'); }
+    const t = f.title === '=ui' ? (f.ui || 'Inter') : f.title;
+    if (t) { el.style.setProperty('--v2-display', fam(t)); el.style.setProperty('--ttitle', fam(t)); el.setAttribute('data-ftitle', '1'); }
+    else { el.style.removeProperty('--v2-display'); el.style.removeProperty('--ttitle'); el.removeAttribute('data-ftitle'); }
+    const z = [90, 100, 110, 120].includes(Number(f.zoom)) ? Number(f.zoom) : 100;
+    if (window.fire && window.fire.zoom) window.fire.zoom(z / 100);
+    else if (z !== 100) el.style.setProperty('zoom', String(z / 100)); else el.style.removeProperty('zoom');
+  }
+  applyFonts();
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
 
   const S = {
@@ -546,6 +565,23 @@
       ] : null);
   }
 
+  // Polices d'écriture : un aperçu par police, pour le texte et pour les titres, et la taille du texte.
+  function fontCard() {
+    const f = fontPrefs();
+    const set = (k, v) => { save('fire.font', { ...f, [k]: v }); applyFonts(); renderSettings(); };
+    const sample = (name, isTitle) => name === '' ? 'Thème' : name === '=ui' ? 'Texte' : isTitle ? 'Team FIRE' : 'Aa Bb 123';
+    const grid = (list, k, isTitle) => h('div', { class: 'fnt-grid' }, list.map(([id, label]) => h('button', { class: 'fnt' + (isTitle ? ' t' : ''), 'aria-pressed': String((f[k] || '') === id), onclick: () => set(k, id) },
+      h('span', { class: 'fnt-s', style: id && id !== '=ui' ? `font-family:'${id}', sans-serif` : '' }, sample(id, isTitle)), h('small', { class: 'muted' }, label))));
+    return h('div', { class: 'card settings-card' },
+      h('h2', null, '🔤 Polices d’écriture'),
+      h('p', { class: 'muted small' }, 'Choisis la police du texte et celle des titres. « Selon le thème » garde la police de ton thème. Le choix est gardé sur cet ordinateur.'),
+      h('h3', { class: 'th-gt' }, 'Texte'), grid(FONT_UI, 'ui', false),
+      h('h3', { class: 'th-gt' }, 'Titres'), grid(FONT_TITLE, 'title', true),
+      h('h3', { class: 'th-gt' }, 'Taille du texte'),
+      h('div', { class: 'row' }, [[90, 'Petite'], [100, 'Normale'], [110, 'Grande'], [120, 'Très grande']].map(([z, l]) =>
+        h('button', { class: 'chip', 'aria-pressed': String(Number(f.zoom || 100) === z), onclick: () => set('zoom', z) }, `${l} · ${z} %`))),
+      f.ui || f.title || Number(f.zoom || 100) !== 100 ? h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => { save('fire.font', {}); applyFonts(); renderSettings(); } }, '↺ Polices par défaut')) : null);
+  }
   function renderSettings() {
     if (S.section !== 'settings') return;
     const u = S.upd || {};
@@ -599,6 +635,7 @@
             h('button', { class: 'th-card th-' + id, 'aria-pressed': String(load('fire.theme', 'fire') === id), style: `--pa:${a};--pb:${b2};--pbg:${bg}`, onclick: () => { save('fire.theme', id); applyTheme(id); renderSettings(); } },
               h('span', { class: 'th-prev' }, h('i', { class: 'th-side' }), h('span', { class: 'th-body' }, h('b', { class: 'th-tt' }, label), h('i', { class: 'th-line' }), h('i', { class: 'th-line s' }), h('i', { class: 'th-btn' }))),
               grp ? h('small', { class: 'muted th-desc' }, desc) : null)))))),
+      fontCard(),
       // Interface : la V2 est active pour tout le monde ; l'ancienne reste disponible en cas de souci.
       window.FIREV2 ? h('div', { class: 'card settings-card' },
         h('h2', null, '✨ Interface'),
