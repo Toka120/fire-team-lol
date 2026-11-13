@@ -160,17 +160,46 @@
     if (V.raw) V.raw.getTracks().forEach((t) => t.stop());
     V.raw = V.rawSrc = null;
   }
-  function remoteGain(slug) { return V.deaf || V.lmute[slug] ? 0 : Math.min(1, (V.vols[slug] ?? 1) * (V.cfg.outVol ?? 1)); }
+  // Volume d'une personne : jusqu'à 500 % (comme Discord monte à 200 %).
+  const VOL_MAX = 5;
+  function remoteGain(slug) { return V.deaf || V.lmute[slug] ? 0 : Math.min(VOL_MAX, (V.vols[slug] ?? 1) * (V.cfg.outVol ?? 1)); }
   // Les voix des autres sont jouées par un élément audio (et non par Web Audio) : c'est ce son-là que
   // l'annulation d'écho de Windows/Chrome connaît et retire de ton micro. Sinon, avec des haut-parleurs
   // ou un casque fort, ton micro renvoie leurs voix et ils s'entendent en écho.
   function sinkOf(el) { if (V.cfg.out && el.setSinkId) el.setSinkId(V.cfg.out).catch(() => {}); }
   function playRemote(slug, stream) {
     audioCtx();
-    const el = new Audio(); el.autoplay = true; el.srcObject = stream; el.volume = remoteGain(slug); sinkOf(el); el.play().catch(() => {});
-    return { el, level: meter(stream) };
+    const el = new Audio(); el.autoplay = true; el.srcObject = stream; sinkOf(el); el.play().catch(() => {});
+    const out = { el, stream, level: meter(stream) };
+    setOut(out, remoteGain(slug));
+    return out;
   }
-  function applyGains() { for (const [s, k] of Object.entries(V.conns)) if (k.out) k.out.el.volume = remoteGain(s); }
+  // Jusqu'à 100 % : l'élément audio (l'annulation d'écho le connaît). Au-delà, l'élément se tait et la voix passe par
+  // un amplificateur Web Audio suivi d'un limiteur (pas de saturation). Avec des haut-parleurs, un écho reste possible au-delà de 100 %.
+  function setOut(o, gv) {
+    if (gv <= 1) {
+      o.el.muted = false; o.el.volume = Math.max(0, gv);
+      if (o.g) o.g.gain.value = 0;
+      return;
+    }
+    if (!o.g) {
+      try {
+        const c = audioCtx();
+        o.src = c.createMediaStreamSource(o.stream);
+        o.g = c.createGain();
+        o.lim = c.createDynamicsCompressor();
+        o.lim.threshold.value = -6; o.lim.knee.value = 0; o.lim.ratio.value = 20; o.lim.attack.value = 0.002; o.lim.release.value = 0.12;
+        o.src.connect(o.g); o.g.connect(o.lim); o.lim.connect(c.destination);
+      } catch (e) { o.g = null; o.el.muted = false; o.el.volume = 1; return; }
+    }
+    o.el.muted = true;
+    o.g.gain.value = gv;
+  }
+  function dropOut(o) {
+    try { o.el.pause(); o.el.srcObject = null; } catch (e) { /* */ }
+    try { if (o.src) o.src.disconnect(); if (o.g) o.g.disconnect(); if (o.lim) o.lim.disconnect(); } catch (e) { /* */ }
+  }
+  function applyGains() { for (const [s, k] of Object.entries(V.conns)) if (k.out) setOut(k.out, remoteGain(s)); }
 
   // Détection de la voix, toutes les 20 ms. Pour que le salon n'entende QUE toi :
   // - voisement : une voix a une hauteur (vibration des cordes vocales, 70-400 Hz) ; un clic de clavier, un coup sur
@@ -553,7 +582,7 @@
     delete V.conns[slug]; delete V.speaking[slug];
     try { k.call.close(); } catch (e) { /* déjà fermé */ }
     if (k.ctl) { try { k.ctl.close(); } catch (e) { /* */ } }
-    if (k.out) { try { k.out.el.pause(); k.out.el.srcObject = null; } catch (e) { /* */ } }
+    if (k.out) dropOut(k.out);
     closeVout(slug, null); closeVin(slug, 'cam'); closeVin(slug, 'screen');
     if (sound && k.out) blip(false);
     emit();

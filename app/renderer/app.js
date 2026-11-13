@@ -2813,7 +2813,7 @@
       const lm = !!v.lmute[t.slug];
       return [
         h('div', { class: 'cx-head' }, vocalName(t.slug)),
-        cxRange('Volume', Math.min(1, v.vols[t.slug] ?? 1), 0, 1, (n) => FV().setVol(t.slug, n)),
+        cxRange('Volume', Math.min(5, v.vols[t.slug] ?? 1), 0, 5, (n) => FV().setVol(t.slug, n)),
         cxCheck('Rendre muet pour moi', lm, () => { FV().setLocalMute(t.slug, !lm); setTimeout(paint, 50); })
       ];
     });
@@ -3206,7 +3206,7 @@
       if (VX.menu === t.slug && t.kind === 'person' && !t.mine) {
         box.append(h('div', { class: 'vt-menu' },
           h('b', null, 'Volume de ' + vocalName(t.slug)),
-          h('div', { class: 'vs-range' }, h('input', { type: 'range', min: 0, max: 1, step: 0.05, value: Math.min(1, vol), disabled: lm ? true : null, onchange: (e) => e.target.blur(),
+          h('div', { class: 'vs-range' }, h('input', { type: 'range', min: 0, max: 5, step: 0.05, value: Math.min(5, vol), disabled: lm ? true : null, onchange: (e) => e.target.blur(),
             oninput: (e) => { FV().setVol(t.slug, Number(e.target.value)); e.target.nextSibling.textContent = Math.round(e.target.value * 100) + ' %'; } }), h('span', { class: 'vs-rv' }, Math.round(vol * 100) + ' %')),
           h('button', { class: 'vs-btn', onclick: () => FV().setLocalMute(t.slug, !lm) }, lm ? '🔈 Réentendre' : '🔇 Rendre muet pour moi')));
       }

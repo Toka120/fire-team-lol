@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.100",
+   "date": "2026-11-13",
+   "titre": "Volume jusqu'à 500 %",
+   "items": [
+    [
+     "improve",
+     "Vocal : le volume de chaque personne monte jusqu'à 500 % (clic droit sur sa tuile, ou son menu). Un limiteur évite que le son sature."
+    ],
+    [
+     "improve",
+     "Jusqu'à 100 %, rien ne change. Au-delà, mieux vaut un casque : avec des haut-parleurs, un écho peut revenir."
+    ]
+   ]
+  },
+  {
    "v": "1.10.99",
    "date": "2026-11-13",
    "titre": "Aperçu du fond d'écran",
