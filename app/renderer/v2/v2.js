@@ -125,7 +125,7 @@
     '🔕': 'voice.Casque coupé', '📞': 'voice.Quitter', '🔴': 'voice.EN DIRECT', '👑': 'ribbons.Chef d’équipe' };
   const ROLES = { '🛡️': 'roles.Top', '🌲': 'roles.Jungle', '✨': 'roles.Mid', '🏹': 'roles.ADC', '💞': 'roles.Support' };
   // Petites icônes seules (cartes d'analyse, points forts d'équipe, objectifs d'une game).
-  const ICO_SEL = '.acard-ico, .tf-ico, .pz-lane, .cat-ico, .pj-ico, .pc-ico, .tier-ico, .pk-b, .ibtn, .apill-ico, .mini-tag, .pool-card table.t td';
+  const ICO_SEL = '.acard-ico, .tf-ico, .pz-lane, .cat-ico, .pj-ico, .princ-ico, .pc-ico, .tier-ico, .pk-b, .ibtn, .apill-ico, .mini-tag, .pool-card table.t td';
   // Libellés où 🎯 ⭐ ❔ apparaissent au milieu du texte (légendes POOL, changements de tierlist).
   const CAT_SEL = '.acard-chip, .chg, .catleg > span, .pool-hero p, .week-banner .wb-main .muted.small, .card-editor > p.muted.small';
   const OBJ = { '🩸': 'Droplet', '⚔️': 'Swords', '🐉': 'esport.Dragons', '🪱': 'esport.Larves', '👾': 'esport.Barons', '⏱️': 'controls.Heure', '🏰': 'esport.Tours' };
@@ -197,6 +197,13 @@
     once(root, PLAN_SEL, (el) => leadIcon(el, PLAN));
     once(root, '.sec-hero p.muted', (el) => inlineIcons(el, PLAN));
     // Mode de Micro : l'icône suit le nom du mode (dictionnaire « micro »).
+    once(root, '.jg-ico', (el) => {
+      const lab = el.parentNode && el.parentNode.querySelector('.jg-txt b');
+      const n = lab && NAMES[norm(lab.textContent)];
+      const ic = n && icon(n);
+      if (ic) el.replaceChildren(ic);
+    });
+    once(root, '.jg-cur', (el) => leadIcon(el, LABEL));
     once(root, '.tr-ico', (el) => {
       const lab = el.parentNode && el.parentNode.querySelector('b');
       const n = lab && NAMES[norm(lab.textContent)];

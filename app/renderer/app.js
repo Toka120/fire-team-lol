@@ -1527,7 +1527,7 @@
     if (sec === 'lolpatch') loadLolPatch();
     if (sec === 'vocal') VX.dev = null;
     if (sec === 'draft') { DR.msg = ''; setTimeout(pollDraft, 0); }
-    if (sec === 'jeux') loadJeux();
+    if (sec === 'jeux') { loadJeux(); J.home = true; }
     if (sec === 'worlds') { loadJeux(); loadWorlds(W.year); }
     render();
     window.scrollTo(0, 0);
@@ -3120,23 +3120,44 @@
     renderAllThemes();
   }
 
+  // Lanes et principes : 5 grandes tuiles de lane (splash art), puis les principes du jeu en cartes.
+  const LANE_ART = { top: ['Darius', 0], jungle: ['LeeSin', 0], mid: ['Ahri', 0], adc: ['Jinx', 0], support: ['Thresh', 0] };
+  function laneArt(c) {
+    const k = Object.keys(LANE_ART).find((x) => String(c.id).toLowerCase().includes(x) || (c.roles || []).includes(x)) || '';
+    const a = LANE_ART[k] || (c.roles || []).map((r) => LANE_ART[r]).find(Boolean);
+    return a ? `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${a[0]}_${a[1]}.jpg` : null;
+  }
   function renderCategories() {
     const view = $('view');
     const role = myRole();
+    const seenThemes = new Set();
+    const themes = [];
+    for (const c of S.guideCats) for (const x of c.themes) { const t = themeOf(x.id); if (t && !seenThemes.has(t.id)) { seenThemes.add(t.id); themes.push(t); } }
+    for (const t of S.guides || []) if (!seenThemes.has(t.id)) { seenThemes.add(t.id); themes.push(t); }
     view.replaceChildren(
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📚'), h('div', null, h('h1', { class: 'title' }, 'Lanes et principes'),
-        h('p', { class: 'muted' }, 'Choisis ta lane : tous les principes utiles pour ton rôle, avec des conseils adaptés et des schémas animés.'))),
-      h('div', { class: 'cat-grid' }, S.guideCats.map((c) => {
+        h('p', { class: 'muted' }, 'Choisis ta lane pour son diaporama et ses conseils, ou ouvre directement un principe du jeu.'))),
+      h('div', { class: 'lane-grid' }, S.guideCats.map((c) => {
         const mine = role && (c.roles || []).includes(role);
-        return h('button', { class: 'catcard' + (mine ? ' mine' : ''), onclick: () => { S.guideCat = c.id; S.theme = null; render(); window.scrollTo(0, 0); } },
-          mine ? h('span', { class: 'me-tag' }, 'Ta lane') : null,
-          c.diapo ? h('span', { class: 'diapo-tag' }, `🎞️ diaporama · ${c.diapo.slides.length} slides`) : null,
-          h('div', { class: 'cat-ico' }, c.ico),
-          h('div', { class: 'cat-t' }, c.titre),
-          h('p', { class: 'muted small' }, c.intro),
-          h('div', { class: 'cat-chips' }, c.themes.map((x) => { const t = themeOf(x.id); return t ? h('span', { class: 'cchip' + (themeIsNew(t) ? ' is-new' : '') }, `${t.ico} ${t.titre.replace(/ \(.*\)$/, '')}`, themeIsNew(t) ? h('span', { class: 'new-tag' }, 'Nouveau') : null) : null; })));
+        const art = laneArt(c);
+        const nNew = c.themes.filter((x) => { const t = themeOf(x.id); return t && themeIsNew(t); }).length;
+        return h('button', { class: 'lane-tile' + (mine ? ' mine' : ''), onclick: () => { S.guideCat = c.id; S.theme = null; render(); window.scrollTo(0, 0); } },
+          art ? h('img', { class: 'lane-art', src: art, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }) : null,
+          h('div', { class: 'lane-shade' }),
+          h('div', { class: 'lane-top' }, mine ? h('span', { class: 'me-tag' }, 'Ta lane') : null, nNew ? h('span', { class: 'new-tag' }, `${nNew} nouveau${nNew > 1 ? 'x' : ''}`) : null),
+          h('div', { class: 'lane-body' },
+            h('div', { class: 'cat-ico' }, c.ico),
+            h('div', { class: 'lane-t' }, c.titre),
+            h('p', { class: 'lane-intro' }, c.intro),
+            h('div', { class: 'lane-meta' },
+              c.diapo ? h('span', { class: 'lane-go' }, `▶ Diaporama · ${c.diapo.slides.length} slides`) : null,
+              h('span', { class: 'lane-n' }, `${c.themes.length} principes`))));
       })),
-      h('p', { class: 'muted small' }, h('button', { class: 'linkbtn', onclick: () => { S.guideCat = 'all'; render(); } }, 'Voir tous les thèmes sans catégorie')));
+      h('h2', { class: 'hub-sec' }, h('span', null, '🧭 Les principes du jeu'), h('small', { class: 'muted' }, `${themes.length} thèmes, utiles à toutes les lanes`)),
+      h('div', { class: 'princ-grid' }, themes.map((t) => h('button', { class: 'princ' + (themeIsNew(t) ? ' is-new' : ''), onclick: () => openTheme(t.id) },
+        h('span', { class: 'princ-ico' }, t.ico),
+        h('span', { class: 'princ-txt' }, h('b', null, t.titre.replace(/ \(.*\)$/, ''), themeIsNew(t) ? h('span', { class: 'new-tag' }, 'Nouveau') : null),
+          t.accroche ? h('small', { class: 'muted' }, t.accroche.length > 110 ? t.accroche.slice(0, 108) + '…' : t.accroche) : null)))));
   }
 
   function renderCategory(c) {
@@ -4213,12 +4234,37 @@
     render();
   }
 
+  // Accueil de Détente : tous les jeux en cartes ; un jeu ouvert prend toute la page (retour en un clic).
+  const JDESC = {
+    classique: 'Devine le champion : chaque essai te dit ce qui est pareil, proche ou différent.', sort: 'Retrouve le champion à partir de l’icône d’un de ses sorts.',
+    passif: 'Son passif, en icône : à qui est-il ?', phrase: 'Une réplique du champion : qui parle ?', splash: 'Un bout de splash art qui se dévoile petit à petit.',
+    emoji: 'Le champion en quelques emojis.', ombre: 'Sa silhouette seulement.', listen: 'Les sons de ses sorts : à l’oreille !', lore: 'Les histoires des champions et des régions de Runeterra.',
+    wave: 'La wave pousse vers qui ? Freeze, slow push, crash : lis la situation.', jgl: 'Où est le jungler adverse ? Lis les indices de la carte.', bot: 'Les situations de la bot lane : que faire ?',
+    trade: 'Ce trade est-il bon ou mauvais ?', vf: 'Vrai ou faux sur les mécaniques du jeu.', quoi: 'Une situation de partie : quelle est la bonne décision ?',
+  };
+  function jeuxHome() {
+    const card = ([k, l], learn) => {
+      const m = String(l).match(/^(\S+)\s+(.*)$/) || [null, '🎮', l];
+      return h('button', { class: 'jg-card' + (learn ? ' learn' : ''), onclick: () => { J.home = false; J.tab = k; render(); window.scrollTo(0, 0); } },
+        h('span', { class: 'jg-ico' }, m[1]), h('span', { class: 'jg-txt' }, h('b', null, m[2]), h('small', { class: 'muted' }, JDESC[k] || '')), h('span', { class: 'jg-go' }, 'Jouer'));
+    };
+    return [
+      h('h2', { class: 'hub-sec' }, h('span', null, '🎮 Deviner le champion'), h('small', { class: 'muted' }, 'autant de parties que tu veux')),
+      h('div', { class: 'jg-grid' }, JMODES.map((x) => card(x, false))),
+      h('h2', { class: 'hub-sec' }, h('span', null, '🎓 Apprendre en jouant'), h('small', { class: 'muted' }, 'des situations de vraies parties')),
+      h('div', { class: 'jg-grid' }, LMODES.map((x) => card(x, true))),
+    ];
+  }
   function renderJeux() {
     const view = $('view');
-    const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎮'),
-      h('div', null, h('h1', { class: 'title' }, 'Détente'), h('p', { class: 'muted' }, 'Devine le champion autant de fois que tu veux, ou plonge dans le lore de Runeterra.')))];
-    nodes.push(h('div', { class: 'chips jeu-tabs' }, h('span', { class: 'jt-label' }, '🎮 Deviner le champion'), JMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
-    nodes.push(h('div', { class: 'chips jeu-tabs learn' }, h('span', { class: 'jt-label' }, '🎓 Apprendre en jouant'), LMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
+    const cur = JMODES.concat(LMODES).find(([k]) => k === J.tab);
+    const nodes = [h('header', { class: 'sec-hero' + (J.home ? '' : ' compact') }, h('div', { class: 'sec-ico' }, '🎮'),
+      h('div', null, h('h1', { class: 'title' }, 'Détente'), J.home ? h('p', { class: 'muted' }, 'Des jeux rapides pour se détendre entre deux games, et d’autres pour progresser en jouant.') : null))];
+    if (J.home) { nodes.push(...jeuxHome()); view.replaceChildren(...nodes); return; }
+    nodes.push(h('div', { class: 'row jg-bar' }, h('button', { class: 'btn-ghost', onclick: () => { J.home = true; render(); window.scrollTo(0, 0); } }, '← Tous les jeux'),
+      cur ? h('b', { class: 'jg-cur' }, cur[1]) : null));
+    if (false) nodes.push(h('div', { class: 'chips jeu-tabs' }, h('span', { class: 'jt-label' }, '🎮 Deviner le champion'), JMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
+    if (false) nodes.push(h('div', { class: 'chips jeu-tabs learn' }, h('span', { class: 'jt-label' }, '🎓 Apprendre en jouant'), LMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
     if (LMODES.some(([k]) => k === J.tab)) { nodes.push(...renderLearn(J.tab)); view.replaceChildren(...nodes); return; }
     if (!J.data) {
       nodes.push(h('div', { class: 'card' }, J.loading || !J.err ? h('p', { class: 'muted' }, 'Chargement des champions…') : h('p', { class: 'bad' }, '⚠ ' + J.err, ' ', h('button', { class: 'btn-ghost', onclick: () => { J.err = ''; loadJeux(); render(); } }, 'Réessayer'))));

@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.82",
+   "date": "2026-11-13",
+   "titre": "Lanes et principes et Détente refaits",
+   "items": [
+    [
+     "improve",
+     "Lanes et principes : 5 grandes tuiles de lane avec le splash art d'un champion emblématique, le diaporama et le nombre de principes ; en dessous, les 12 principes du jeu en cartes avec leur résumé, à ouvrir directement."
+    ],
+    [
+     "improve",
+     "Détente : un accueil avec tous les jeux en cartes (Deviner le champion, Apprendre en jouant) et ce qu'on y fait ; un jeu ouvert prend toute la page, avec « ← Tous les jeux » pour revenir."
+    ]
+   ]
+  },
+  {
    "v": "1.10.81",
    "date": "2026-11-13",
    "titre": "Pastilles « nouveau »",
