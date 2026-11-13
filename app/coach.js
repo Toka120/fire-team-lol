@@ -733,7 +733,12 @@ async function savePlanning(action) {
 
 // ---------- Discussion écrite de l'équipe : historique chiffré (300 derniers messages) dans le dépôt de données ----------
 const CHAT = 'chat.json';
-const cleanMsg = (m) => ({ id: String((m && m.id) || '').replace(/[^\w-]/g, '').slice(0, 40), from: String((m && m.from) || '').slice(0, 80), text: str(m && m.text, 500), at: Math.min(Number(m && m.at) || Date.now(), Date.now() + 60000) });
+// to : message privé pour un seul membre (absent = toute l'équipe). Le fichier reste chiffré avec le code d'équipe.
+const cleanMsg = (m) => {
+  const o = { id: String((m && m.id) || '').replace(/[^\w-]/g, '').slice(0, 40), from: String((m && m.from) || '').slice(0, 80), text: str(m && m.text, 500), at: Math.min(Number(m && m.at) || Date.now(), Date.now() + 60000) };
+  if (m && m.to) o.to = String(m.to).slice(0, 80);
+  return o;
+};
 async function chat() {
   if (!teamKey()) return { ok: false, error: "entre à nouveau le code d'équipe" };
   const dr = getConfig().data_repo || null;
@@ -757,7 +762,9 @@ async function chatSend(m) {
       d.msgs = Array.isArray(d.msgs) ? d.msgs : [];
       if (!d.msgs.some((x) => x.id === msg.id)) d.msgs.push(msg);
       d.msgs.sort((a, b) => a.at - b.at);
-      d.msgs = d.msgs.slice(-300);
+      // 300 messages d'équipe et 600 messages privés au plus : les privés ne chassent pas ceux de l'équipe.
+      const team = d.msgs.filter((x) => !x.to).slice(-300), dm = d.msgs.filter((x) => x.to).slice(-600);
+      d.msgs = team.concat(dm).sort((a, b) => a.at - b.at);
       const box = seal(d, 'chat');
       const r = await ghPut(tok, CHAT, box, cur && cur.sha, 'Discussion', dr);
       if (r.ok) { saveCache('chat', box); return { ok: true, msgs: d.msgs }; }

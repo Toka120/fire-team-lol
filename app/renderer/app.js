@@ -5174,7 +5174,11 @@
   // Au premier lancement : on demande une seule fois qui utilise l'app, pour ouvrir directement sa tierlist.
   // ----- Discussion de l'équipe : panneau en bas à gauche, sur toutes les pages, ouvert ou replié -----
   // Les messages arrivent tout de suite par les FIRE ouverts (voice.js) et l'historique est relu toutes les 2 minutes.
-  const CH = { open: load('fire.chat.open', false), msgs: [], seen: load('fire.chat.seen', 0), err: '', sending: false, el: null, list: null, inp: null, told: new Set(), ready: false };
+  // conv : 'team' (toute l'équipe) ou le slug d'un membre (messages privés entre vous deux). seenBy : dernier message lu par conversation.
+  const CH = { open: load('fire.chat.open', false), msgs: [], seen: load('fire.chat.seen', 0), seenBy: load('fire.chat.seenBy', {}), conv: 'team', err: '', sending: false, el: null, list: null, inp: null, told: new Set(), ready: false, headKey: '' };
+  const chatConvOf = (m, me) => (!m.to ? 'team' : m.from === me ? m.to : m.to === me ? m.from : null);
+  const chatVisible = (m, me) => chatConvOf(m, me) != null;
+  const chatSeenAt = (conv) => (conv === 'team' ? CH.seen : (CH.seenBy[conv] || 0));
   function chatMerge(list, live) {
     const by = new Map(CH.msgs.map((m) => [m.id, m]));
     const fresh = [];
@@ -5183,12 +5187,12 @@
     CH.msgs = [...by.values()].sort((a, b) => a.at - b.at).slice(-300);
     // Notification Windows pour les messages des autres, si FIRE n'est pas au premier plan (une seule fois par message).
     if (CH.ready) {
-      const others = fresh.filter((m) => m.from !== vocalMe() && m.at > Date.now() - 15 * 60000 && !CH.told.has(m.id));
+      const others = fresh.filter((m) => m.from !== vocalMe() && chatVisible(m, vocalMe()) && m.at > Date.now() - 15 * 60000 && !CH.told.has(m.id));
       others.forEach((m) => CH.told.add(m.id));
       const p = notifPrefs();
       if (others.length && p.on && p.chat && !document.hasFocus() && window.fire.notify) {
         const m = others[others.length - 1];
-        window.fire.notify({ title: `💬 ${vocalName(m.from)}`, body: (others.length > 1 ? `(${others.length} messages) ` : '') + m.text.slice(0, 160), section: 'chat' }).catch(() => {});
+        window.fire.notify({ title: `💬 ${vocalName(m.from)}${m.to ? ' (privé)' : ''}`, body: (others.length > 1 ? `(${others.length} messages) ` : '') + m.text.slice(0, 160), section: 'chat' }).catch(() => {});
       }
     }
     chatPaint(live);
@@ -5202,14 +5206,25 @@
     CH.ready = true;
     chatPaint();
   }
-  function chatUnread() { const me = vocalMe(); return CH.msgs.filter((m) => m.at > CH.seen && m.from !== me).length; }
-  function chatSeen() { if (!CH.open || !CH.msgs.length) return; const t = CH.msgs[CH.msgs.length - 1].at; if (t > CH.seen) { CH.seen = t; save('fire.chat.seen', t); } }
+  function chatUnreadIn(conv) { const me = vocalMe(); const t = chatSeenAt(conv); return CH.msgs.filter((m) => m.from !== me && m.at > t && chatConvOf(m, me) === conv).length; }
+  function chatUnread() { const me = vocalMe(); return CH.msgs.filter((m) => { const c = chatConvOf(m, me); return c && m.from !== me && m.at > chatSeenAt(c); }).length; }
+  function chatSeen() {
+    if (!CH.open) return;
+    const me = vocalMe();
+    const mine = CH.msgs.filter((m) => chatConvOf(m, me) === CH.conv);
+    if (!mine.length) return;
+    const t = mine[mine.length - 1].at;
+    if (CH.conv === 'team') { if (t > CH.seen) { CH.seen = t; save('fire.chat.seen', t); } }
+    else if (t > (CH.seenBy[CH.conv] || 0)) { CH.seenBy[CH.conv] = t; save('fire.chat.seenBy', CH.seenBy); }
+  }
+  function chatConv(c) { CH.conv = c; chatPaint(true); setTimeout(() => { if (CH.inp) CH.inp.focus(); }, 30); }
   function chatOpen(v) { CH.open = v; save('fire.chat.open', v); chatPaint(); if (v) setTimeout(() => { if (CH.inp) CH.inp.focus(); }, 50); }
   async function chatSend() {
     const me = vocalMe();
     const text = CH.inp.value.trim().slice(0, 500);
     if (!text || !me || CH.sending) return;
     const msg = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), from: me, text, at: Date.now() };
+    if (CH.conv !== 'team') msg.to = CH.conv;
     CH.inp.value = ''; chatGrow();
     chatMerge([msg], true);
     try { if (FV() && FV().chatSend) FV().chatSend(msg); } catch (e) { /* hall pas prêt */ }
@@ -5236,7 +5251,8 @@
       CH.inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(); } if (e.key === 'Escape') chatOpen(false); });
       CH.head = h('button', { class: 'chat-bar', onclick: () => chatOpen(!CH.open) });
       CH.foot = h('div', { class: 'chat-foot' });
-      CH.el = h('div', { id: 'chat' }, CH.head, h('div', { class: 'chat-body' }, CH.list, CH.foot));
+      CH.convs = h('div', { class: 'chat-convs' });
+      CH.el = h('div', { id: 'chat' }, CH.head, h('div', { class: 'chat-body' }, CH.convs, CH.list, CH.foot));
       document.body.append(CH.el);
       CH.el.addEventListener('mousedown', () => { chatSeen(); setTimeout(() => chatPaint(), 0); });
     }
@@ -5245,13 +5261,33 @@
     const un = chatUnread();
     CH.el.classList.toggle('open', !!CH.open);
     CH.el.classList.toggle('unread', !CH.open && un > 0);
-    CH.head.replaceChildren(...[h('span', { class: 'chat-t' }, '💬 Discussion de l’équipe'), un && !CH.open ? h('span', { class: 'chat-n' }, String(un)) : null, h('span', { class: 'chat-chev' }, CH.open ? '▾' : '▴')].filter(Boolean));
+    // On ne reconstruit la barre que si elle change : la remplacer entre l'appui et le relâchement du clic annulait le clic
+    // (il fallait cliquer plusieurs fois pour ouvrir).
+    const headKey = (CH.open ? 'o' : 'c') + (CH.open ? 0 : un);
+    if (headKey !== CH.headKey) {
+      CH.headKey = headKey;
+      CH.head.replaceChildren(...[h('span', { class: 'chat-t' }, '💬 Discussion de l’équipe'), un && !CH.open ? h('span', { class: 'chat-n' }, String(un)) : null, h('span', { class: 'chat-chev' }, CH.open ? '▾' : '▴')].filter(Boolean));
+    }
     if (!CH.open) return;
+    // Conversations : l'équipe, puis un message privé avec chaque membre (joueurs et coachs).
+    const people = S.players.filter((x) => x.slug).map((p) => [p.slug, roleOf(p).ico, String(p.pseudo).split('#')[0]])
+      .concat((S.coachs || []).map((c) => [c.slug, '🎓', c.pseudo])).filter(([slug]) => slug !== me);
+    if (CH.conv !== 'team' && !people.some(([slug]) => slug === CH.conv)) CH.conv = 'team';
+    const convBtn = (id, ico, label, title) => { const n = chatUnreadIn(id); return h('button', { class: 'chat-cv' + (CH.conv === id ? ' on' : ''), title, onclick: () => chatConv(id) },
+      h('span', { class: 'chat-cv-i' }, ico), h('span', { class: 'chat-cv-l' }, label), n && CH.conv !== id ? h('span', { class: 'chat-cv-n' }, String(n)) : null); };
+    const convKey = CH.conv + '|' + people.map(([sl]) => sl + chatUnreadIn(sl)).join(',') + '|' + chatUnreadIn('team') + '|' + me;
+    if (convKey !== CH.convKey) {
+      CH.convKey = convKey;
+      CH.convs.replaceChildren(convBtn('team', '👥', 'Équipe', 'Discussion de toute l’équipe'),
+        ...(me ? people.map(([slug, ico, label]) => convBtn(slug, ico, label, 'Message privé avec ' + label)) : []));
+    }
+    CH.inp.placeholder = CH.conv === 'team' ? 'Écris à l’équipe… (Entrée pour envoyer)' : `Message privé à ${vocalName(CH.conv)}…`;
     // Liste : on reste en bas si on y était (ou si c'est mon message), sinon on garde la position de lecture.
     const atBottom = CH.list.scrollHeight - CH.list.scrollTop - CH.list.clientHeight < 40;
     const rows = [];
     let lastDay = '', last = null;
     for (const m of CH.msgs) {
+      if (chatConvOf(m, me) !== CH.conv) continue;
       const day = chatDay(m.at);
       if (day !== lastDay) { rows.push(h('div', { class: 'chat-day' }, day)); lastDay = day; last = null; }
       const grouped = last && last.from === m.from && m.at - last.at < 5 * 60000;
@@ -5260,7 +5296,9 @@
         h('div', { class: 'chat-tx' }, m.text)));
       last = m;
     }
-    if (!rows.length) rows.push(h('p', { class: 'muted small chat-empty' }, CH.ready ? 'Aucun message pour l’instant. Lance la discussion 👋' : 'Chargement…'));
+    if (!rows.length) rows.push(h('p', { class: 'muted small chat-empty' }, !CH.ready ? 'Chargement…' : CH.conv === 'team' ? 'Aucun message pour l’instant. Lance la discussion 👋'
+      : `Aucun message privé avec ${vocalName(CH.conv)}. Seuls vous deux les voyez dans FIRE.`));
+    if (CH.conv !== 'team') rows.unshift(h('div', { class: 'chat-day chat-priv' }, `🔒 Conversation privée avec ${vocalName(CH.conv)}`));
     CH.list.replaceChildren(...rows);
     if (atBottom || live) CH.list.scrollTop = CH.list.scrollHeight;
     CH.foot.replaceChildren(...[

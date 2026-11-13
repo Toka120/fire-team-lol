@@ -37,7 +37,9 @@
   // Une partie vue depuis notre équipe.
   function view(g, roster) {
     const byPuuid = new Map(roster.map((p) => [p.puuid, p]));
-    const mine = g.p.filter((x) => byPuuid.has(x.id));
+    // Un joueur avec deux comptes dans la même partie (ancien compte prêté à quelqu'un) ne compte qu'une fois.
+    const seen = new Set();
+    const mine = g.p.filter((x) => byPuuid.has(x.id) && !seen.has(byPuuid.get(x.id).slug) && seen.add(byPuuid.get(x.id).slug));
     if (mine.length < 2) return null;
     const side = mine[0].side;
     if (mine.some((x) => x.side !== side)) return null; // joueurs FIRE dans les deux équipes : ce n'est pas une game d'équipe
@@ -105,7 +107,7 @@
     const pairs = {};
     for (const g of games) {
       const ms = g.members.map((m) => m.slug).sort();
-      for (let i = 0; i < ms.length; i++) for (let j = i + 1; j < ms.length; j++) (pairs[ms[i] + '|' + ms[j]] = pairs[ms[i] + '|' + ms[j]] || []).push(g);
+      for (let i = 0; i < ms.length; i++) for (let j = i + 1; j < ms.length; j++) if (ms[i] !== ms[j]) (pairs[ms[i] + '|' + ms[j]] = pairs[ms[i] + '|' + ms[j]] || []).push(g);
     }
     const subs = {};
     for (const g of games) for (const x of g.allies) {

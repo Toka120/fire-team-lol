@@ -1899,3 +1899,11 @@ img.qz-hole.ok{border:2px solid var(--ok)}
 .ot-go{color:var(--muted)}
 .mu-grid.ot-mini{max-height:180px;overflow:auto}
 .ot-hint{text-align:center;margin:10px 0}
+
+/* Discussion : conversations (équipe et messages privés) */
+#chat .chat-convs{display:flex;flex-wrap:wrap;gap:5px;padding:8px 10px;border-bottom:1px solid var(--line)}
+#chat .chat-cv{position:relative;display:flex;align-items:center;gap:4px;flex:none;padding:3px 8px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+#chat .chat-cv:hover{border-color:var(--fire1)}
+#chat .chat-cv.on{background:var(--fire1);border-color:var(--fire1);color:#0B0D10}
+#chat .chat-cv-n{background:#ff5a3c;color:#fff;border-radius:999px;font-size:10px;min-width:16px;height:16px;display:inline-grid;place-items:center;padding:0 4px}
+#chat .chat-priv{background:color-mix(in srgb,var(--fire1) 14%,transparent);color:var(--fg)}

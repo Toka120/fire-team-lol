@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.88",
+   "date": "2026-11-13",
+   "titre": "Messages privés",
+   "items": [
+    [
+     "new",
+     "Discussion : messages privés entre membres de l'équipe et avec les coachs. Choisis la personne en haut de la discussion ; une pastille montre les messages non lus de chaque conversation."
+    ],
+    [
+     "fix",
+     "La discussion s'ouvre du premier clic (avant, il fallait parfois cliquer plusieurs fois)."
+    ],
+    [
+     "fix",
+     "Stats de l'équipe : un joueur qui a deux comptes dans la même partie ne compte plus deux fois (fini « Meilleur duo : Frost tham + Frost tham »)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.87",
    "date": "2026-11-13",
    "titre": "Ambiances : des thèmes qui ont du style",
