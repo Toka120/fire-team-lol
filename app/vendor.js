@@ -19,8 +19,10 @@ fs.copyFileSync(path.join(W, 'rnnoise.wasm'), path.join(OUT, 'rnnoise.wasm'));
 fs.copyFileSync(path.join(W, 'rnnoise_simd.wasm'), path.join(OUT, 'rnnoise_simd.wasm'));
 
 // ---------- Polices de la V2 : sous-ensembles latin + latin-ext seulement ----------
-const FONTS = [['inter', [400, 600, 700]], ['cinzel', [600]]];
-let css = '/* Généré par vendor.js : Inter et Cinzel (Fontsource, licence SIL OFL 1.1). */\n';
+// Les thèmes ont aussi leur police : Orbitron (Futuriste), Audiowide (Néon), Bangers (Bagarre), Fredoka (Café, Sakura), JetBrains Mono (Matrix).
+const FONTS = [['inter', [400, 600, 700]], ['cinzel', [600]], ['orbitron', [600, 800]], ['audiowide', [400]], ['bangers', [400]], ['fredoka', [500, 600]], ['jetbrains-mono', [400, 700]]];
+const FAMILY = { inter: 'Inter', cinzel: 'Cinzel', orbitron: 'Orbitron', audiowide: 'Audiowide', bangers: 'Bangers', fredoka: 'Fredoka', 'jetbrains-mono': 'JetBrains Mono' };
+let css = '/* Généré par vendor.js : polices Fontsource (licence SIL OFL 1.1). */\n';
 for (const [fam, weights] of FONTS) {
   const dir = R('node_modules/@fontsource', fam);
   for (const w of weights) {
@@ -31,7 +33,7 @@ for (const [fam, weights] of FONTS) {
       const file = `${name}.woff2`;
       fs.copyFileSync(path.join(dir, 'files', file), path.join(OUT, 'fonts', file));
       const range = (block.match(/unicode-range:\s*([^;]+);/) || [])[1];
-      const family = fam === 'inter' ? 'Inter' : 'Cinzel';
+      const family = FAMILY[fam];
       css += `@font-face{font-family:'${family}';font-style:normal;font-display:swap;font-weight:${w};src:url(./fonts/${file}) format('woff2');${range ? `unicode-range:${range};` : ''}}\n`;
     }
   }

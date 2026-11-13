@@ -1686,6 +1686,11 @@ html[data-theme=cafe]    { --bg:#1a130e; --panel:#241a13; --panel2:#2f2219; --li
 html[data-theme=bagarre] { --bg:#0d0505; --panel:#1a0909; --panel2:#250d0d; --line:#4a1515; --muted:#d9a99f; --fire1:#ff3b1f; --fire2:#ff3b1f; --fire3:#ffc21f; --glow:rgba(255,59,31,.35); --bar:rgba(13,5,5,.9); }
 html[data-theme=sakura]  { --bg:#140b10; --panel:#21121a; --panel2:#2c1823; --line:#4a2a3b; --muted:#d9afc3; --fire1:#ff8fb8; --fire2:#ff8fb8; --fire3:#ffd1e3; --glow:rgba(255,143,184,.3); --bar:rgba(20,11,16,.9); }
 html[data-theme=ocean]   { --bg:#031417; --panel:#08222a; --panel2:#0c2e38; --line:#164a57; --muted:#95c4ce; --fire1:#2ee6c5; --fire2:#2ee6c5; --fire3:#1fa0ff; --glow:rgba(46,230,197,.28); --bar:rgba(3,20,23,.9); }
+html[data-theme=synthwave] { --bg:#12051f; --panel:#1d0a30; --panel2:#2a0f44; --line:#4a1d6e; --muted:#d0a8e0; --fire1:#ff6ec7; --fire2:#ffb347; --fire3:#ff6ec7; --glow:rgba(255,110,199,.32); --bar:rgba(18,5,31,.9); }
+html[data-theme=arcane]  { --bg:#061214; --panel:#0c1f22; --panel2:#132b2f; --line:#21474c; --muted:#9cc7c4; --fire1:#ff4fa3; --fire2:#3ef0c8; --fire3:#ff4fa3; --glow:rgba(255,79,163,.3); --bar:rgba(6,18,20,.9); }
+html[data-theme=givre]   { --bg:#061220; --panel:#0d1f33; --panel2:#142a43; --line:#24425f; --muted:#a8c6dd; --fire1:#8fd8ff; --fire2:#8fd8ff; --fire3:#ffffff; --glow:rgba(143,216,255,.3); --bar:rgba(6,18,32,.9); }
+html[data-theme=matrix]  { --bg:#020803; --panel:#061308; --panel2:#0a1d0d; --line:#16401c; --muted:#86c98f; --fire1:#39ff6a; --fire2:#39ff6a; --fire3:#b6ffb0; --glow:rgba(57,255,106,.25); --bar:rgba(2,8,3,.9); }
+html[data-theme=rgb]     { --bg:#08080d; --panel:#111119; --panel2:#191924; --line:#2c2c3d; --muted:#b0b0c8; --fire1:#ff3d6e; --fire2:#3dd8ff; --fire3:#ffd23d; --glow:rgba(255,61,110,.3); --bar:rgba(8,8,13,.9); }
 html[data-theme=violet]  { --bg:#0b0614; --panel:#150d24; --panel2:#1e1333; --line:#36245a; --muted:#b3a3d4; --fire1:#9d5cff; --fire2:#9d5cff; --fire3:#ff5cc8; --glow:rgba(157,92,255,.32); --bar:rgba(11,6,20,.9); }
 
 /* ---------- Matchups ---------- */

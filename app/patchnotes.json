@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.87",
+   "date": "2026-11-13",
+   "titre": "Ambiances : des thèmes qui ont du style",
+   "items": [
+    [
+     "new",
+     "13 ambiances dans Paramètres › Thème : Néon, Synthwave, Futuriste, Bagarre, Café cosy, Arcane, Hextech, Sakura, Freljord, Abysses, Void, Matrix et Gamer RGB."
+    ],
+    [
+     "new",
+     "Chaque ambiance a son fond (grille, rayures, néons, givre, lignes de code…), sa police de titres, ses dégradés, ses boutons et ses effets lumineux."
+    ],
+    [
+     "improve",
+     "Le choix du thème montre un aperçu de chaque ambiance. Les 7 couleurs simples sont toujours là."
+    ]
+   ]
+  },
+  {
    "v": "1.10.86",
    "date": "2026-11-13",
    "titre": "One-tricks",

@@ -578,36 +578,7 @@ html.v2 .pm-n { background: var(--v2-bad-bg); }
 html.v2 .tl-elo { width: auto; min-width: 200px; }
 html.v2 .tl-filters { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 16px; padding: 16px 20px; }
 
-/* ---------- Thèmes colorés : fond, surfaces, accent et ambiance ---------- */
-html.v2[data-theme=neon]    { --bg:#07040f; --panel:#110a1f; --panel2:#1a1030; --line:#3a2160; --fg:#f4eeff; --muted:#b5a6d6; --fire1:#ff2bd6; --fire2:#ff2bd6; --fire3:#ff2bd6; --v2-blue:#22e6ff; }
-html.v2[data-theme=futur]   { --bg:#050b12; --panel:#0a1622; --panel2:#0f2131; --line:#1d3b52; --fg:#e6f7ff; --muted:#8fb3c9; --fire1:#00e5ff; --fire2:#00e5ff; --fire3:#00e5ff; --v2-blue:#7c5cff; }
-html.v2[data-theme=hextech] { --bg:#010a13; --panel:#0a1428; --panel2:#0f1d36; --line:#1e2d4a; --fg:#f0e6d2; --muted:#a09b8c; --fire1:#c8aa6e; --fire2:#c8aa6e; --fire3:#c8aa6e; --v2-blue:#0ac8b9; }
-html.v2[data-theme=cafe]    { --bg:#1a130e; --panel:#241a13; --panel2:#2f2219; --line:#4a3626; --fg:#f6ebdd; --muted:#c9b29a; --fire1:#e0a96d; --fire2:#e0a96d; --fire3:#e0a96d; --v2-blue:#8fb8c9; }
-html.v2[data-theme=bagarre] { --bg:#0d0505; --panel:#1a0909; --panel2:#250d0d; --line:#4a1515; --fg:#fff1ec; --muted:#d9a99f; --fire1:#ff3b1f; --fire2:#ff3b1f; --fire3:#ff3b1f; --v2-blue:#ffc21f; }
-html.v2[data-theme=sakura]  { --bg:#140b10; --panel:#21121a; --panel2:#2c1823; --line:#4a2a3b; --fg:#fff0f6; --muted:#d9afc3; --fire1:#ff8fb8; --fire2:#ff8fb8; --fire3:#ff8fb8; --v2-blue:#a7c7ff; }
-html.v2[data-theme=ocean]   { --bg:#031417; --panel:#08222a; --panel2:#0c2e38; --line:#164a57; --fg:#e8fbff; --muted:#95c4ce; --fire1:#2ee6c5; --fire2:#2ee6c5; --fire3:#2ee6c5; --v2-blue:#4aa8ff; }
-html.v2[data-theme=violet]  { --bg:#0b0614; --panel:#150d24; --panel2:#1e1333; --line:#36245a; --fg:#f3edff; --muted:#b3a3d4; --fire1:#9d5cff; --fire2:#9d5cff; --fire3:#9d5cff; --v2-blue:#ff5cc8; }
-/* Ambiances : un fond qui vit un peu (fixe, sous le contenu) */
-html.v2[data-theme=neon] body { background: radial-gradient(900px 500px at 85% -10%, rgb(255 43 214 / 16%), transparent 60%), radial-gradient(800px 500px at 10% 110%, rgb(34 230 255 / 14%), transparent 60%), var(--bg) fixed; }
-html.v2[data-theme=neon] .card, html.v2[data-theme=neon] .sec-hero { box-shadow: 0 0 0 1px rgb(255 43 214 / 10%), 0 0 24px rgb(255 43 214 / 8%); }
-html.v2[data-theme=neon] .title { color: #fff; text-shadow: 0 0 12px rgb(255 43 214 / 70%), 0 0 28px rgb(34 230 255 / 35%); }
-html.v2[data-theme=futur] body { background: linear-gradient(rgb(0 229 255 / 5%) 1px, transparent 1px) 0 0 / 32px 32px, linear-gradient(90deg, rgb(0 229 255 / 5%) 1px, transparent 1px) 0 0 / 32px 32px, radial-gradient(1000px 600px at 50% -20%, rgb(124 92 255 / 16%), transparent 60%), var(--bg) fixed; }
-html.v2[data-theme=futur] .title { letter-spacing: .04em; color: #e6f7ff; text-shadow: 0 0 14px rgb(0 229 255 / 45%); }
-html.v2[data-theme=futur] .card, html.v2[data-theme=futur] .sec-hero { border-color: rgb(0 229 255 / 22%); }
-html.v2[data-theme=hextech] body { background: radial-gradient(1000px 600px at 50% -20%, rgb(10 200 185 / 12%), transparent 60%), var(--bg) fixed; }
-html.v2[data-theme=hextech] .card, html.v2[data-theme=hextech] .sec-hero { border-color: rgb(200 170 110 / 35%); }
-html.v2[data-theme=hextech] .title { color: #f0e6d2; }
-html.v2[data-theme=cafe] body { background: radial-gradient(900px 600px at 15% -10%, rgb(224 169 109 / 12%), transparent 60%), radial-gradient(700px 500px at 100% 100%, rgb(168 101 58 / 12%), transparent 60%), var(--bg) fixed; }
-html.v2[data-theme=cafe] .card, html.v2[data-theme=cafe] .sec-hero { border-radius: 20px; }
-html.v2[data-theme=cafe] .title { color: #f6ebdd; }
-html.v2[data-theme=bagarre] body { background: repeating-linear-gradient(135deg, rgb(255 59 31 / 4%) 0 2px, transparent 2px 28px), radial-gradient(900px 500px at 100% 0%, rgb(255 59 31 / 18%), transparent 60%), var(--bg) fixed; }
-html.v2[data-theme=bagarre] .title { color: #fff; text-transform: uppercase; letter-spacing: .06em; text-shadow: 3px 3px 0 rgb(255 59 31 / 55%); }
-html.v2[data-theme=bagarre] .card, html.v2[data-theme=bagarre] .sec-hero { border-color: rgb(255 59 31 / 30%); }
-html.v2[data-theme=sakura] body { background: radial-gradient(900px 600px at 90% -10%, rgb(255 143 184 / 16%), transparent 60%), radial-gradient(700px 500px at 0% 100%, rgb(167 199 255 / 10%), transparent 60%), var(--bg) fixed; }
-html.v2[data-theme=ocean] body { background: radial-gradient(1000px 700px at 50% 120%, rgb(46 230 197 / 14%), transparent 60%), radial-gradient(800px 500px at 0% 0%, rgb(74 168 255 / 12%), transparent 60%), var(--bg) fixed; }
-html.v2[data-theme=violet] body { background: radial-gradient(900px 600px at 80% -10%, rgb(157 92 255 / 20%), transparent 60%), radial-gradient(700px 500px at 0% 100%, rgb(255 92 200 / 12%), transparent 60%), var(--bg) fixed; }
-html.v2[data-theme=neon] .v2-side, html.v2[data-theme=futur] .v2-side, html.v2[data-theme=bagarre] .v2-side, html.v2[data-theme=sakura] .v2-side,
-html.v2[data-theme=ocean] .v2-side, html.v2[data-theme=violet] .v2-side, html.v2[data-theme=cafe] .v2-side, html.v2[data-theme=hextech] .v2-side { background: color-mix(in srgb, var(--panel) 88%, transparent); backdrop-filter: blur(8px); }
+/* Thèmes colorés (ambiances) : v2/themes.css */
 html.v2[data-theme] .topbar { background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(8px); }
 html.v2 .v2-brand { color: var(--fire1); }
 html.v2 .mu-slot, html.v2 .mu-link, html.v2 .mu-grid { border-radius: 8px; }

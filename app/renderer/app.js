@@ -8,10 +8,29 @@
 
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   // Thème de fond choisi dans Paramètres (appliqué dès le démarrage, écran du code compris).
-  const THEMES = [['fire', '🔥 FIRE', '#0f0d0c', '#ff5e3a'], ['bleu', 'Bleu', '#0a1430', '#508cff'], ['rouge', 'Rouge', '#1f0709', '#f0283c'], ['vert', 'Vert', '#061a0f', '#3cdc78'], ['jaune', 'Jaune', '#1c1606', '#ffcd28'], ['noir', 'Noir', '#000000', '#444444'], ['gris', 'Gris', '#1b1c1f', '#6b6f78'],
-    ['neon', 'Néon', '#07040f', '#ff2bd6'], ['futur', 'Futuriste', '#050b12', '#00e5ff'], ['hextech', 'Hextech', '#010a13', '#c8aa6e'], ['cafe', 'Café cosy', '#1a130e', '#e0a96d'],
-    ['bagarre', 'Bagarre', '#0d0505', '#ff3b1f'], ['sakura', 'Sakura', '#140b10', '#ff8fb8'], ['ocean', 'Abysses', '#031417', '#2ee6c5'], ['violet', 'Void', '#0b0614', '#9d5cff']];
-  const applyTheme = (t) => { if (!t || t === 'fire') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); };
+  // [id, nom, fond, accent 1, accent 2, description, ambiance] : les « ambiances » ont leur fond, leur police et leurs effets (v2/themes.css).
+  const THEMES = [
+    ['neon', 'Néon', '#07040f', '#ff2bd6', '#22e6ff', 'Rose et cyan qui brillent, comme une salle d’arcade la nuit', 1],
+    ['synthwave', 'Synthwave', '#12051f', '#ff6ec7', '#ffb347', 'Coucher de soleil rétro, grille à l’horizon', 1],
+    ['futur', 'Futuriste', '#040a12', '#00e5ff', '#7c5cff', 'Interface de vaisseau : grille, cyan et police techno', 1],
+    ['bagarre', 'Bagarre', '#120404', '#ff3b1f', '#ffc21f', 'Rouge sang et jaune : pour les games où ça tape', 1],
+    ['cafe', 'Café cosy', '#1c140f', '#e8b07a', '#f3d9b1', 'Latte, caramel et coins arrondis : tranquille', 1],
+    ['arcane', 'Arcane', '#061214', '#ff4fa3', '#3ef0c8', 'Zaun et Piltover : rose néon, vert chimique, or', 1],
+    ['hextech', 'Hextech', '#010a13', '#c8aa6e', '#0ac8b9', 'L’or et le bleu du client de LoL', 1],
+    ['sakura', 'Sakura', '#170c13', '#ff8fb8', '#b8a6ff', 'Rose pâle et lavande, doux et lumineux', 1],
+    ['givre', 'Freljord', '#061220', '#8fd8ff', '#ffffff', 'Glace, givre et verre dépoli', 1],
+    ['ocean', 'Abysses', '#02141a', '#2ee6c5', '#4aa8ff', 'Turquoise des profondeurs, bulles et lumière', 1],
+    ['violet', 'Void', '#0b0614', '#9d5cff', '#ff5cc8', 'Le Néant : violet profond et magenta', 1],
+    ['matrix', 'Matrix', '#020803', '#39ff6a', '#b6ffb0', 'Vert terminal, police machine, lignes de code', 1],
+    ['rgb', 'Gamer RGB', '#08080d', '#ff3d6e', '#3dd8ff', 'Arc-en-ciel animé, comme un clavier gamer', 1],
+    ['fire', 'FIRE', '#0f0d0c', '#ff5e3a', '#ffb02e', 'Le thème d’origine', 0], ['bleu', 'Bleu', '#0a1430', '#508cff', '#8fb6ff', '', 0], ['rouge', 'Rouge', '#1f0709', '#f0283c', '#ff8a8a', '', 0],
+    ['vert', 'Vert', '#061a0f', '#3cdc78', '#a6f0c2', '', 0], ['jaune', 'Jaune', '#1c1606', '#ffcd28', '#ffe58a', '', 0], ['noir', 'Noir', '#000000', '#8a8a8a', '#d0d0d0', '', 0], ['gris', 'Gris', '#1b1c1f', '#6b6f78', '#b5b9c2', '', 0]];
+  const applyTheme = (t) => {
+    const el = document.documentElement;
+    const th = THEMES.find((x) => x[0] === t);
+    if (!t || t === 'fire' || !th) el.removeAttribute('data-theme'); else el.setAttribute('data-theme', t);
+    if (th && th[6]) el.setAttribute('data-skin', '1'); else el.removeAttribute('data-skin');
+  };
   applyTheme(load('fire.theme', 'fire'));
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
 
@@ -574,9 +593,12 @@
           : "L'application cherche aussi les nouvelles versions toute seule, à chaque ouverture et toutes les 30 minutes.")),
       h('div', { class: 'card settings-card' },
         h('h2', null, '🎨 Thème de l’application'),
-        h('p', { class: 'muted small' }, 'Change la couleur du fond de FIRE. Le choix est gardé sur cet ordinateur.'),
-        h('div', { class: 'themes' }, THEMES.map(([id, label, bg, glow]) => h('button', { class: 'theme-sw', 'aria-pressed': String(load('fire.theme', 'fire') === id), onclick: () => { save('fire.theme', id); applyTheme(id); renderSettings(); } },
-          h('span', { class: 'theme-dot', style: `background: radial-gradient(60px 30px at 50% 0%, ${glow}66, transparent 80%), ${bg}` }), label)))),
+        h('p', { class: 'muted small' }, 'Les ambiances changent les couleurs, le fond, la police des titres et les effets. Le choix est gardé sur cet ordinateur.'),
+        ...[[1, '✨ Ambiances'], [0, '🎨 Couleurs simples']].map(([grp, title]) => h('div', { class: 'th-grp' }, h('h3', { class: 'th-gt' }, title),
+          h('div', { class: 'th-grid' + (grp ? '' : ' simple') }, THEMES.filter((x) => x[6] === grp).map(([id, label, bg, a, b2, desc]) =>
+            h('button', { class: 'th-card th-' + id, 'aria-pressed': String(load('fire.theme', 'fire') === id), style: `--pa:${a};--pb:${b2};--pbg:${bg}`, onclick: () => { save('fire.theme', id); applyTheme(id); renderSettings(); } },
+              h('span', { class: 'th-prev' }, h('i', { class: 'th-side' }), h('span', { class: 'th-body' }, h('b', { class: 'th-tt' }, label), h('i', { class: 'th-line' }), h('i', { class: 'th-line s' }), h('i', { class: 'th-btn' }))),
+              grp ? h('small', { class: 'muted th-desc' }, desc) : null)))))),
       // Interface : la V2 est active pour tout le monde ; l'ancienne reste disponible en cas de souci.
       window.FIREV2 ? h('div', { class: 'card settings-card' },
         h('h2', null, '✨ Interface'),
