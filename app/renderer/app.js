@@ -1788,20 +1788,24 @@
     x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
     more: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
     invite: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>',
-    check: '<path d="M20 6 9 17l-5-5"/>'
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    board: '<path d="M14.1 6.1 9 3 3 6v15l6-3 6 3 6-3V3l-6.9 3.1"/><path d="M9 3v15"/><path d="M15 6v15"/>',
+    clip: '<path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.8a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/>'
   };
   const vi = (name) => { const sp = document.createElement('span'); sp.className = 'vi'; sp.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${VICO[name]}</svg>`; return sp; };
 
   // ----- Raccourcis clavier (globaux : ils marchent aussi en pleine partie) -----
-  const VKEY_DEF = { join: 'Ctrl+Alt+V', mute: 'Ctrl+Alt+M', deaf: 'Ctrl+Alt+D', cam: 'Ctrl+Alt+C', screen: 'Ctrl+Alt+S' };
-  const VKEY_LAB = { join: 'Rejoindre / quitter le salon', mute: 'Couper / rallumer le micro', deaf: 'Couper / rallumer le son (casque)', cam: 'Allumer / couper la caméra', screen: 'Partager / arrêter ton écran' };
+  const VKEY_DEF = { join: 'Ctrl+Alt+V', mute: 'Ctrl+Alt+M', deaf: 'Ctrl+Alt+D', cam: 'Ctrl+Alt+C', screen: 'Ctrl+Alt+S', clip: 'Ctrl+Alt+X' };
+  const VKEY_LAB = { join: 'Rejoindre / quitter le salon', mute: 'Couper / rallumer le micro', deaf: 'Couper / rallumer le son (casque)', cam: 'Allumer / couper la caméra', screen: 'Partager / arrêter ton écran', clip: 'Enregistrer un clip' };
   const vkeys = () => ({ ...VKEY_DEF, ...load('fire.vocal.keys', {}) });
   const keyTxt = (a) => (a ? a.replace(/\+/g, ' + ').replace('Ctrl', 'Ctrl').replace('Shift', 'Maj') : '—');
   function syncKeys(force) {
     if (!window.fire.keys) return;
     const k = vkeys();
     // Hors appel, seul « rejoindre » est réservé ; pendant un enregistrement de touche, rien.
-    const map = VX.rec ? {} : FV().state().on ? k : { join: k.join };
+    const map = VX.rec ? {} : FV().state().on ? { ...k } : { join: k.join };
+    // Le raccourci des clips est réservé dès que les clips sont activés, même hors appel.
+    if (!VX.rec) { if (clipCfg().on) map.clip = k.clip; else delete map.clip; }
     const sig = JSON.stringify(map);
     if (!force && sig === VX.keySig) return;
     VX.keySig = sig;
@@ -1818,6 +1822,7 @@
   }
   function keyAction(a) {
     const v = FV().state();
+    if (a === 'clip') { saveClip(); return; }
     if (a === 'join') { if (v.on) FV().leave(); else vocalJoin(); return; }
     if (!v.on) return;
     if (a === 'mute') { FV().setMute(!v.mute); FV().cue(v.mute); }
@@ -1857,6 +1862,9 @@
         now.filter((x) => !VX.prevIn.includes(x)).forEach((x) => vocalToast(`${vocalName(x)} a rejoint le salon`, true));
         VX.prevIn.filter((x) => !now.includes(x)).forEach((x) => vocalToast(`${vocalName(x)} a quitté le salon`, false));
       }
+      // Fin de l'appel : le tableau tactique repart de zéro.
+      if (!v.on && VX.prevIn && window.FireBoard) FireBoard.reset();
+      if (window.FireClips && !!v.on !== !!VX.prevIn) FireClips.setMic(v.on ? FV().micStream() : null);
       VX.prevIn = v.on ? now : null;
       const sig = vocalSig(v);
       if (sig !== VX.sig) {
@@ -1889,6 +1897,19 @@
     });
     if (window.fire.keys) { window.fire.keys.on(keyAction); setTimeout(() => syncKeys(true), 1500); }
     FV().onSoundRequest(soundAsk);
+    // Clips : enregistrement continu si activé sur ce PC ; ta voix y entre quand tu es en appel.
+    if (window.FireClips) { FireClips.onChange(() => { if (S.section === 'vocal' && VX.drawer) renderVocal(); }); setTimeout(() => clipsApply().catch(() => {}), 4000); }
+    // Tableau tactique : messages du salon et état envoyé à chaque personne qui arrive.
+    if (window.FireBoard) {
+      FireBoard.init({
+        me: () => vocalMe(), name: (s) => vocalName(s), send: (m, to) => FV().appSend(m, to),
+        ddVersion: () => S.champList && S.champList.version,
+        onChange: () => { if (S.section === 'vocal' && !document.fullscreenElement) renderVocal(); },
+        onOpen: (from) => { vocalToast(`${vocalName(from)} a ouvert le tableau tactique`, true); if (S.section === 'vocal') { save('fire.vocal.layout', 'focus'); VX.focus = 'board'; } },
+      });
+      FV().onApp((from, m) => { if (m && m.t === 'tb') FireBoard.onMsg(from, m); else if (m && m.t === 'clip') clipRecv(from, m); });
+      FV().onPeer((slug) => FireBoard.peerReady(slug));
+    }
     // Définition reçue de chaque écran partagé (petit badge en haut à gauche de la vidéo).
     setInterval(async () => {
       if (S.section !== 'vocal' || !FV().state().on || !document.querySelector('.vt-q')) return;
@@ -1993,6 +2014,106 @@
     zone.append(t);
     setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, 3800);
   }
+
+  // ----- Clips instantanés -----
+  // Réglages (sur ce PC) : activés ou non, durée, qualité, écran filmé.
+  const clipCfg = () => ({ on: false, seconds: 30, quality: '1080p30', src: '', ...load('fire.clips', {}) });
+  const CL = { list: [], sel: null, recv: {}, sending: {}, open: false };
+  async function clipsApply() {
+    const c = clipCfg();
+    if (!window.FireClips || !window.fire.clips) return;
+    FireClips.stop();
+    if (!c.on) { syncKeys(true); return; }
+    let src = c.src;
+    if (!src && window.fire.screen) {
+      const list = await window.fire.screen.sources().catch(() => []);
+      const scr = (list || []).find((x) => x.screen);
+      src = scr && scr.id;
+    }
+    if (!src) return;
+    await FireClips.start({ sourceId: src, seconds: c.seconds, quality: c.quality, mic: () => FV().micStream() });
+    syncKeys(true);
+  }
+  async function saveClip() {
+    if (!window.FireClips) return;
+    const st = FireClips.state();
+    if (!st.on) { vocalToast('Les clips ne sont pas activés : Vocal › Paramètres › Clips instantanés', false); return; }
+    const r = await FireClips.save().catch(() => null);
+    if (!r) { vocalToast('Rien à enregistrer pour l’instant', false); return; }
+    const res = await window.fire.clips.save(r.buf, {}).catch(() => null);
+    try { FV().cue(true); } catch (e) { /* */ }
+    if (res && res.ok) { vocalToast(`Clip enregistré · ${r.seconds} s`, true); clipsRefresh(); }
+    else vocalToast('Clip impossible à enregistrer', false);
+  }
+  async function clipsRefresh() {
+    CL.list = window.fire.clips ? await window.fire.clips.list().catch(() => []) : [];
+    if (CL.open) clipsModal();
+  }
+  // Envoi d'un clip à tout le salon (pair à pair, par morceaux de 64 Ko).
+  async function clipSend(c) {
+    const v = FV().state();
+    if (!v.on || !v.members.some((m) => m.ok)) return;
+    const data = await window.fire.clips.read(c.path).catch(() => null);
+    if (!data) { vocalToast('Clip introuvable', false); return; }
+    const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+    const id = Math.random().toString(36).slice(2, 10), PART = 65536, n = Math.ceil(bytes.length / PART);
+    CL.sending[c.path] = 0; clipsModal();
+    FV().appSend({ t: 'clip', op: 'start', id, size: bytes.length, n });
+    for (let i = 0; i < n; i++) {
+      FV().appSend({ t: 'clip', op: 'part', id, i, d: bytes.slice(i * PART, (i + 1) * PART).buffer });
+      if (i % 8 === 7) { CL.sending[c.path] = Math.round((i + 1) / n * 100); clipsModal(); await new Promise((r) => setTimeout(r, 40)); }
+    }
+    FV().appSend({ t: 'clip', op: 'end', id });
+    delete CL.sending[c.path];
+    vocalToast('Clip envoyé au salon', true); clipsModal();
+  }
+  function clipRecv(from, m) {
+    if (!m || !m.id || typeof m.id !== 'string') return;
+    const k = from + ':' + m.id;
+    if (m.op === 'start') { if (m.size > 0 && m.size <= 150 * 1024 * 1024 && m.n > 0 && m.n <= 3000) CL.recv[k] = { size: m.size, n: m.n, parts: [], got: 0 }; return; }
+    const r = CL.recv[k]; if (!r) return;
+    if (m.op === 'part' && Number.isInteger(m.i) && m.i >= 0 && m.i < r.n && m.d && !r.parts[m.i]) { r.parts[m.i] = new Uint8Array(m.d); r.got++; return; }
+    if (m.op === 'end') {
+      delete CL.recv[k];
+      if (r.got !== r.n) return;
+      const all = new Uint8Array(r.size); let o = 0;
+      for (const p of r.parts) { if (o + p.length > r.size) return; all.set(p, o); o += p.length; }
+      window.fire.clips.save(all.buffer, { from: vocalName(from) }).then((res) => {
+        if (res && res.ok) { vocalToast(`${vocalName(from)} t’a envoyé un clip (Vocal › Mes clips)`, true); clipsRefresh(); }
+      }).catch(() => {});
+    }
+  }
+  function clipsModal() {
+    let el = document.getElementById('clips');
+    if (!CL.open) { if (el) el.remove(); return; }
+    if (!el) { el = h('div', { id: 'clips', onclick: (e) => { if (e.target === el) { CL.open = false; clipsModal(); } } }); document.body.append(el); }
+    const v = FV().state();
+    const st = window.FireClips ? FireClips.state() : { on: false };
+    const others = v.on && v.members.some((m) => m.ok);
+    const sel = CL.list.find((c) => c.path === CL.sel) || CL.list[0];
+    const mb = (b) => (b / 1048576).toFixed(1).replace('.', ',') + ' Mo';
+    const when = (t) => new Date(t).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    el.replaceChildren(h('div', { class: 'clips-box' },
+      h('div', { class: 'clips-head' }, h('h2', null, vi('clip'), 'Mes clips'),
+        h('span', { class: 'muted small' }, st.on ? `Enregistrement continu · ${keyTxt(vkeys().clip)} pour garder les ${clipCfg().seconds} dernières secondes` : 'Clips désactivés : Vocal › Paramètres › Clips instantanés'),
+        h('button', { class: 'btn-ghost', onclick: () => window.fire.clips.show() }, 'Ouvrir le dossier'),
+        h('button', { class: 'btn-ghost', title: 'Fermer', onclick: () => { CL.open = false; clipsModal(); } }, vi('x'))),
+      !CL.list.length ? h('p', { class: 'muted clips-empty' }, st.on ? `Aucun clip pour l’instant. Pendant une game, appuie sur ${keyTxt(vkeys().clip)} : les ${clipCfg().seconds} dernières secondes (écran, son du jeu et vocal) sont enregistrées.` : 'Aucun clip pour l’instant.')
+        : h('div', { class: 'clips-body' },
+          h('div', { class: 'clips-list' }, CL.list.map((c) => h('button', { class: 'clips-item' + (sel && c.path === sel.path ? ' on' : ''), onclick: () => { CL.sel = c.path; clipsModal(); } },
+            h('b', null, c.name.replace(/\.mp4$/i, '')), h('span', { class: 'muted small' }, `${when(c.t)} · ${mb(c.size)}`)))),
+          sel ? h('div', { class: 'clips-view' },
+            h('video', { src: sel.url, controls: '', preload: 'metadata' }),
+            h('div', { class: 'row' },
+              others ? h('button', { class: 'btn-fire small-btn', disabled: CL.sending[sel.path] != null ? true : null, onclick: () => clipSend(sel) }, CL.sending[sel.path] != null ? `Envoi… ${CL.sending[sel.path]} %` : 'Envoyer au salon') : null,
+              h('button', { class: 'btn-ghost', onclick: () => window.fire.clips.show(sel.path) }, 'Afficher dans le dossier'),
+              h('button', { class: 'btn-ghost', onclick: async () => {
+                if (CL.confirm !== sel.path) { CL.confirm = sel.path; clipsModal(); return; }
+                CL.confirm = null; await window.fire.clips.del(sel.path); CL.sel = null; clipsRefresh();
+              } }, CL.confirm === sel.path ? 'Confirmer la suppression' : 'Supprimer')),
+            !others ? h('p', { class: 'muted small' }, 'Pour l’envoyer à l’équipe, rejoins le salon vocal : ceux qui y sont le reçoivent directement.') : null) : null)));
+  }
+  function openClips() { CL.open = true; clipsRefresh(); clipsModal(); }
   // Menu « ⋯ » du salon : inviter, affichage, réglages.
   function vocalMenu(v, tilesAll) {
     const me = vocalMe();
@@ -2021,10 +2142,29 @@
           chk('Afficher les participants sans vidéo', load('fire.vocal.novideo', true), (on) => save('fire.vocal.novideo', on)),
           chk('Afficher les arrivées et départs', load('fire.vocal.toasts', true), (on) => save('fire.vocal.toasts', on)),
           h('div', { class: 'vm-sep' }),
+          h('button', { class: 'vm-item', onclick: () => { VX.more = false; openClips(); renderVocal(); } }, h('span', { class: 'vm-ico' }, vi('clip'), 'Mes clips')),
           h('button', { class: 'vm-item', onclick: () => { VX.more = false; VX.drawer = true; renderVocal(); } }, h('span', { class: 'vm-ico' }, vi('gear'), 'Paramètres vocaux et vidéo'))));
   }
 
   // ----- Réglages (panneau latéral) -----
+  function clipSettings() {
+    const c = clipCfg();
+    const st = window.FireClips ? FireClips.state() : { on: false };
+    const upd = (patch) => { save('fire.clips', { ...c, ...patch }); clipsApply().then(() => renderVocal()); renderVocal(); };
+    if (!VX.clipSrcs && window.fire.screen) { VX.clipSrcs = []; window.fire.screen.sources().then((l) => { VX.clipSrcs = (l || []).filter((x) => x.screen); if (S.section === 'vocal' && VX.drawer) renderVocal(); }).catch(() => {}); }
+    const field = (lab, ...kids) => h('div', { class: 'vs-field' }, h('label', null, lab), ...kids);
+    return h('section', { class: 'vs-sec' }, h('h3', null, vi('clip'), 'Clips instantanés'),
+      h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Enregistrer en continu'), h('small', null, `Au raccourci (${keyTxt(vkeys().clip)}), les dernières secondes deviennent une vidéo : ton écran, le son du jeu, les voix du salon et la tienne. Rien n’est gardé tant que tu n’appuies pas.`)),
+        h('input', { type: 'checkbox', class: 'vs-tog', checked: c.on ? true : null, onchange: (e) => upd({ on: e.target.checked }) })),
+      field('Durée du clip', h('select', { class: 'inp', onchange: (e) => upd({ seconds: Number(e.target.value) }) },
+        [[15, '15 secondes'], [30, '30 secondes'], [60, '1 minute'], [90, '1 min 30']].map(([n, t]) => h('option', { value: n, selected: c.seconds === n ? true : null }, t)))),
+      field('Qualité', h('select', { class: 'inp', onchange: (e) => upd({ quality: e.target.value }) },
+        [['1080p30', '1080p · 30 images/s (recommandé)'], ['1080p60', '1080p · 60 images/s'], ['720p30', '720p · 30 images/s (PC modeste)']].map(([k, t]) => h('option', { value: k, selected: c.quality === k ? true : null }, t)))),
+      (VX.clipSrcs || []).length > 1 ? field('Écran filmé', h('select', { class: 'inp', onchange: (e) => upd({ src: e.target.value }) },
+        h('option', { value: '' }, 'Écran principal'), VX.clipSrcs.map((x) => h('option', { value: x.id, selected: c.src === x.id ? true : null }, x.name)))) : null,
+      h('p', { class: 'vs-hint' }, st.err ? 'Problème : ' + st.err + '.' : st.on ? `En cours : ${st.w}×${st.h}, encodé par la carte graphique. Les clips vont dans Vidéos › FIRE Clips.` : 'Les clips vont dans Vidéos › FIRE Clips.'),
+      h('button', { class: 'vs-btn', onclick: openClips }, 'Voir mes clips'));
+  }
   function vocalSettings(v) {
     const c = v.cfg, D = VX.dev || { mics: [], outs: [], cams: [] };
     const set = (k) => (e) => FV().setCfg({ [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? Number(e.target.value) : e.target.value });
@@ -2054,6 +2194,8 @@
         sw('ai', 'Suppression du bruit par IA', v.ai ? 'Active : efface clavier, souris, ventilateur pendant que tu parles.' : 'Efface clavier, souris, ventilateur pendant que tu parles (RNNoise).'),
         h('button', { class: 'vs-btn' + (v.monitor ? ' on' : ''), onclick: () => FV().setMonitor(!v.monitor) }, v.monitor ? '⏹ Arrêter le test' : '🎧 Tester mon micro (tu t’entends)')),
       h('section', { class: 'vs-sec' }, h('h3', null, vi('vol'), 'Traitement de la voix'),
+        sw('clarity', 'Voix claire', 'Moins de résonance et d’écho de la pièce, plus d’articulation, volume régulier.'),
+        sw('keys', 'Anti-clavier', 'Les clics de touches perdent leur bruit sec, même pendant que tu parles. Ta voix n’est jamais coupée.'),
         sw('ns', 'Réduction de bruit', 'Ventilateur, clavier, bruits de fond.'),
         sw('ec', 'Annulation d’écho', 'Indispensable sur haut-parleurs.'),
         sw('agc', 'Gain automatique', 'Ta voix garde le même volume.'),
@@ -2074,6 +2216,7 @@
             h('option', { value: n, selected: (c.screenFps || 15) === n ? true : null }, t)))),
         h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Rejoindre au lancement de FIRE'), h('small', null, 'Tu arrives directement dans le salon.')),
           h('input', { type: 'checkbox', class: 'vs-tog', checked: load('fire.vocal.auto', false) ? true : null, onchange: (e) => { save('fire.vocal.auto', e.target.checked); done(e); } }))),
+      clipSettings(),
       h('section', { class: 'vs-sec' }, h('h3', null, vi('keys'), 'Raccourcis clavier'),
         h('p', { class: 'vs-hint' }, 'Ils marchent partout, même en pleine partie. Un petit bip confirme chaque changement. Clique sur un raccourci pour le changer.'),
         Object.keys(VKEY_DEF).map((a) => h('div', { class: 'vs-key' + (bad.includes(a) ? ' bad' : '') },
@@ -2126,6 +2269,7 @@
           h('div', { class: 'vc-lobby-act' },
             h('button', { class: 'vc-join', disabled: v.joining ? true : null, onclick: () => vocalJoin() }, v.joining ? 'Connexion…' : `Rejoindre « ${roomOf(VX.room || load('fire.vocal.room', 'equipe')).name} »`),
             h('button', { class: 'vc-ghost', onclick: () => FV().setMonitor(!v.monitor) }, v.monitor ? '⏹ Arrêter le test' : '🎧 Tester mon micro'),
+            h('button', { class: 'vc-ghost', title: 'Mes clips', onclick: openClips }, vi('clip'), 'Clips'),
             gearBtn('vc-ghost icon')),
           v.err ? h('p', { class: 'bad' }, '⚠ ' + v.err, ' ', h('button', { class: 'linkbtn small', onclick: () => FV().clearErr() }, 'OK')) : null,
           h('p', { class: 'vc-kbd-hint' }, h('kbd', null, keyTxt(K.join)), ' pour rejoindre ou quitter, même en jeu'))),
@@ -2147,11 +2291,13 @@
     const pipOf = (slug) => (pip && screens.some((x) => x.slug === slug) ? camOf(slug) : null);
     // Streams que j'ai arrêté de regarder : une case « Regarder » à la place.
     const off = v.members.filter((m) => m.ok && m.remote && m.remote.screen && (v.unwatch || []).includes(m.slug)).map((m) => ({ key: m.slug + ':off', slug: m.slug, kind: 'screenoff' }));
-    const allTiles = screens.map((x) => ({ ...x, kind: 'screen', pipCam: pipOf(x.slug) })).concat(off)
+    if (window.FireBoard) FireBoard.setStreams(Object.fromEntries(screens.map((x) => [x.key, x.stream])));
+    const boardTile = window.FireBoard && FireBoard.isOpen() ? [{ key: 'board', slug: me, kind: 'board' }] : [];
+    const allTiles = boardTile.concat(screens.map((x) => ({ ...x, kind: 'screen', pipCam: pipOf(x.slug) }))).concat(off)
       .concat(people.filter((p) => !pipOf(p.slug)).map((p) => ({ key: p.slug + ':p', slug: p.slug, kind: 'person', p, stream: camOf(p.slug), mine: p.slug === me })));
     // « Afficher les participants sans vidéo » décoché : seules les vidéos restent (s'il y en a).
     const hideNoVid = !load('fire.vocal.novideo', true) && allTiles.some((t) => t.stream);
-    const tiles = hideNoVid ? allTiles.filter((t) => t.stream) : allTiles;
+    const tiles = hideNoVid ? allTiles.filter((t) => t.stream || t.kind === 'board') : allTiles;
     const hidden = allTiles.length - tiles.length;
     const keep = new Set(tiles.filter((t) => t.stream).map((t) => (t.kind === 'screen' ? t.key : t.slug + ':cam')).concat(tiles.filter((t) => t.pipCam).map((t) => t.slug + ':cam')));
     for (const k of Object.keys(VX.vids)) if (!keep.has(k)) { VX.vids[k].srcObject = null; delete VX.vids[k]; }
@@ -2161,6 +2307,11 @@
     if (layout === 'focus' && !VX.focus) VX.focus = (screens[0] || tiles[0]).key;
     const setLayout = (l, key) => { save('fire.vocal.layout', l); VX.focus = key || null; renderVocal(); };
     const tileEl = (t, small) => {
+      if (t.kind === 'board') {
+        const box = h('div', { class: 'vt board' + (small ? ' small' : ''), onclick: () => { if (layout === 'focus' && VX.focus === t.key) setLayout('grid'); else setLayout('focus', t.key); } },
+          FireBoard.element(), h('div', { class: 'vt-name' }, vi('board'), 'Tableau tactique'));
+        return box;
+      }
       if (t.kind === 'screenoff') {
         return h('div', { class: 'vt screenoff' + (small ? ' small' : '') },
           h('div', { class: 'vt-off' }, vi('screen'), h('b', null, `${vocalName(t.slug)} partage son écran`),
@@ -2231,6 +2382,10 @@
         cbtn(v.deaf, 'headOff', 'head', `${v.deaf ? 'Réactiver' : 'Couper'} le son (${keyTxt(K.deaf)})`, () => FV().setDeaf(!v.deaf), 'warn'),
         cbtn(!!v.cam, 'cam', 'camOff', `${v.cam ? 'Couper' : 'Allumer'} la caméra (${keyTxt(K.cam)})`, () => (v.cam ? FV().stopCam() : FV().startCam()), 'live'),
         cbtn(!!v.screen, 'screen', 'screen', `${v.screen ? 'Arrêter le partage' : 'Partager ton écran'} (${keyTxt(K.screen)})`, () => (v.screen ? FV().stopScreen() : openScreenPicker()), 'live'),
+        window.FireBoard ? cbtn(FireBoard.isOpen(), 'board', 'board', FireBoard.isOpen() ? 'Fermer le tableau tactique (pour tout le salon)' : 'Ouvrir le tableau tactique : une carte où tout le salon dessine', () => {
+          if (FireBoard.isOpen()) FireBoard.close(); else { save('fire.vocal.layout', 'focus'); VX.focus = 'board'; FireBoard.open(); }
+        }, 'live') : null,
+        window.FireClips && FireClips.state().on ? h('button', { class: 'cb', title: `Enregistrer un clip : les ${clipCfg().seconds} dernières secondes (${keyTxt(K.clip)})`, onclick: saveClip }, vi('clip')) : null,
         gearBtn('cb'),
         h('button', { class: 'cb leave', title: `Quitter le salon (${keyTxt(K.join)})`, onclick: () => FV().leave() }, vi('phone'))),
       h('div', { class: 'vc-bar-r' },

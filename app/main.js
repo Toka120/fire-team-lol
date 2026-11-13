@@ -260,6 +260,34 @@ ipcMain.handle('config', async () => {
   return j;
 });
 const PUZ_URL = 'https://toka120.github.io/fire-team-lol/puzzles-draft.json';
+// ---------- Clips instantanés : rangés dans Vidéos\FIRE Clips ----------
+const CLIP_MAX = 150 * 1024 * 1024;
+const clipDir = () => path.join(app.getPath('videos'), 'FIRE Clips');
+const inClips = (p) => { const r = path.relative(clipDir(), path.resolve(String(p || ''))); return !!r && !r.startsWith('..') && !path.isAbsolute(r); };
+ipcMain.handle('clips:save', (e, data, meta) => {
+  try {
+    const buf = Buffer.from(data instanceof ArrayBuffer ? new Uint8Array(data) : data);
+    if (!buf.length || buf.length > CLIP_MAX || buf.slice(4, 8).toString('latin1') !== 'ftyp') return { ok: false, error: 'clip invalide' };
+    fs.mkdirSync(clipDir(), { recursive: true });
+    const d = new Date(); const z = (n) => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}h${z(d.getMinutes())}m${z(d.getSeconds())}s`;
+    const from = String((meta && meta.from) || '').replace(/[^\p{L}\p{N} _-]/gu, '').slice(0, 30).trim();
+    let name = `FIRE ${from ? 'de ' + from + ' ' : ''}${stamp}.mp4`;
+    let k = 2; while (fs.existsSync(path.join(clipDir(), name))) name = name.replace(/( \(\d+\))?\.mp4$/, ` (${k++}).mp4`);
+    fs.writeFileSync(path.join(clipDir(), name), buf);
+    return { ok: true, name, path: path.join(clipDir(), name) };
+  } catch (err) { return { ok: false, error: String(err && err.message || err) }; }
+});
+ipcMain.handle('clips:list', () => {
+  try {
+    const dir = clipDir(); if (!fs.existsSync(dir)) return [];
+    return fs.readdirSync(dir).filter((f) => /\.mp4$/i.test(f)).map((f) => { const st = fs.statSync(path.join(dir, f)); return { name: f, path: path.join(dir, f), size: st.size, t: st.mtimeMs, url: require('url').pathToFileURL(path.join(dir, f)).href }; })
+      .sort((a, b) => b.t - a.t).slice(0, 40);
+  } catch (err) { return []; }
+});
+ipcMain.handle('clips:read', (e, p) => { try { if (!inClips(p)) return null; const st = fs.statSync(p); if (st.size > CLIP_MAX) return null; return fs.readFileSync(p); } catch (err) { return null; } });
+ipcMain.handle('clips:show', (e, p) => { if (p && inClips(p)) shell.showItemInFolder(path.resolve(p)); else { fs.mkdirSync(clipDir(), { recursive: true }); shell.openPath(clipDir()); } return true; });
+ipcMain.handle('clips:delete', (e, p) => { try { if (!inClips(p)) return false; fs.unlinkSync(p); return true; } catch (err) { return false; } });
 ipcMain.handle('puzzles:draft', async () => (await remoteJson(PUZ_URL, 'puzzles-draft.json')) || { puzzles: [] });
 ipcMain.handle('guides', async () => (await remoteJson(GUIDES_URL, 'guides.json')) || { themes: [] });
 // Patch notes : version en ligne (à jour même avant d'installer), sinon la copie livrée avec l'application.

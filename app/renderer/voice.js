@@ -9,7 +9,7 @@
   'use strict';
   const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }];
   const CFG_KEY = 'fire.vocal.cfg', VOL_KEY = 'fire.vocal.vols', LMUTE_KEY = 'fire.vocal.lmute';
-  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, vad: 'auto', recvQ: 'auto', streamSound: true, duck: true, duckAmt: 0.5, ec: true, agc: true, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15 };
+  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, clarity: true, keys: true, vad: 'auto', recvQ: 'auto', streamSound: true, duck: true, duckAmt: 0.5, ec: true, agc: true, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15 };
   const rd = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   const wr = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
 
@@ -30,8 +30,9 @@
   const slugOf = (id) => V.ids.find((s) => pid(s) === id) || null;
 
   // ---------- Audio ----------
-  // Chaîne du micro : [suppression du bruit par IA (RNNoise)] → filtre anti-souffle → volume → (analyse)
-  //                    → petit retard de 80 ms → porte de bruit → envoi.
+  // Chaîne du micro : [suppression du bruit par IA (RNNoise)] → filtre anti-souffle (24 dB/octave)
+  //                    → [anti-clavier + anti-réverbération (voice-fx.js)] → voix claire (moins de résonance grave,
+  //                    plus de présence, niveau régulier) → volume → (analyse) → petit retard de 80 ms → porte de bruit → envoi.
   // Le retard laisse le temps de reconnaître une voix avant d'ouvrir la porte : le début des phrases n'est pas coupé,
   // et un clic de clavier (trop court pour être une voix) ne l'ouvre pas.
   function audioCtx() {
@@ -41,19 +42,47 @@
       V.ctx = c;
       const g = V.g = {};
       g.master = c.createGain(); g.master.gain.value = V.cfg.outVol; g.master.connect(c.destination);
-      g.hp = c.createBiquadFilter(); g.hp.type = 'highpass'; g.hp.frequency.value = V.cfg.hp ? 90 : 1;
+      g.hp = c.createBiquadFilter(); g.hp.type = 'highpass'; g.hp.frequency.value = V.cfg.hp ? 90 : 1; g.hp.Q.value = 0.54;
+      g.hp2 = c.createBiquadFilter(); g.hp2.type = 'highpass'; g.hp2.frequency.value = V.cfg.hp ? 90 : 1; g.hp2.Q.value = 1.31;
+      g.fxIn = c.createGain(); g.fxOut = c.createGain();
+      // Voix claire : -4 dB vers 250 Hz (résonance de la pièce, voix « dans un carton »), +3 dB vers 3 kHz (articulation),
+      // coupe au-dessus de 15 kHz (souffle), puis compression douce pour un niveau régulier et un limiteur anti-saturation.
+      g.mud = c.createBiquadFilter(); g.mud.type = 'peaking'; g.mud.frequency.value = 250; g.mud.Q.value = 1.1;
+      g.pres = c.createBiquadFilter(); g.pres.type = 'peaking'; g.pres.frequency.value = 3000; g.pres.Q.value = 0.9;
+      g.air = c.createBiquadFilter(); g.air.type = 'lowpass'; g.air.frequency.value = 15000; g.air.Q.value = 0.7;
+      g.comp = c.createDynamicsCompressor(); g.comp.knee.value = 8; g.comp.attack.value = 0.005; g.comp.release.value = 0.18;
+      g.makeup = c.createGain();
+      g.lim = c.createDynamicsCompressor(); g.lim.threshold.value = -2; g.lim.knee.value = 0; g.lim.ratio.value = 20; g.lim.attack.value = 0.001; g.lim.release.value = 0.08;
+      clarity(g, V.cfg.clarity);
       g.inGain = c.createGain(); g.inGain.gain.value = V.cfg.gain;
       g.delay = c.createDelay(0.5); g.delay.delayTime.value = V.cfg.vad === 'off' ? 0 : 0.08;
       g.gate = c.createGain(); g.gate.gain.value = 0;
       g.an = c.createAnalyser(); g.an.fftSize = 1024; g.an.smoothingTimeConstant = 0;
       g.td = new Float32Array(1024); g.fd = new Float32Array(512);
       g.send = c.createMediaStreamDestination();
-      g.hp.connect(g.inGain); g.inGain.connect(g.an); g.inGain.connect(g.delay); g.delay.connect(g.gate); g.gate.connect(g.send);
+      g.hp.connect(g.hp2); g.hp2.connect(g.fxIn); g.fxIn.connect(g.fxOut);
+      g.fxOut.connect(g.mud); g.mud.connect(g.pres); g.pres.connect(g.air); g.air.connect(g.comp); g.comp.connect(g.makeup); g.makeup.connect(g.lim);
+      g.lim.connect(g.inGain); g.inGain.connect(g.an); g.inGain.connect(g.delay); g.delay.connect(g.gate); g.gate.connect(g.send);
       if (V.cfg.out && c.setSinkId) c.setSinkId(V.cfg.out).catch(() => {});
-      loadAi();
+      loadAi(); loadFx();
     }
     if (V.ctx.state === 'suspended') V.ctx.resume().catch(() => {});
     return V.ctx;
+  }
+  function clarity(g, on) {
+    g.mud.gain.value = on ? -4 : 0; g.pres.gain.value = on ? 3 : 0; g.air.frequency.value = on ? 15000 : 22000;
+    g.comp.threshold.value = on ? -26 : 0; g.comp.ratio.value = on ? 3.5 : 1; g.makeup.gain.value = on ? 1.6 : 1;
+  }
+  // Anti-clavier et anti-réverbération (voice-fx.js), branchés entre le filtre anti-souffle et la voix claire.
+  const FX = { node: null, loading: null };
+  function loadFx() {
+    if (FX.loading || !V.ctx || !V.ctx.audioWorklet) return FX.loading;
+    FX.loading = V.ctx.audioWorklet.addModule('voice-fx.js').then(() => {
+      FX.node = new AudioWorkletNode(V.ctx, 'fire-voice-fx', { processorOptions: { keys: V.cfg.keys, dry: V.cfg.clarity } });
+      try { V.g.fxIn.disconnect(V.g.fxOut); } catch (e) { /* */ }
+      V.g.fxIn.connect(FX.node); FX.node.connect(V.g.fxOut);
+    }).catch(() => { FX.node = null; });
+    return FX.loading;
   }
   function blip(up) {
     if (!V.cfg.sounds) return;
@@ -160,12 +189,12 @@
     const now = performance.now();
     let speech;
     if (c.vad === 'manual') speech = db > -60 + (c.gate || 0) && ratio > 0.45;
-    else speech = db > Math.max(VAD.nf + 11, -58) && ratio > 0.55;
+    else speech = db > Math.max(VAD.nf + 9, -60) && ratio > 0.5;
     VAD.run = speech ? VAD.run + 1 : 0;
     if (c.vad === 'off') V.gateOpen = true;
-    else { if (VAD.run >= 3) V.gateUntil = now + 450; V.gateOpen = now < V.gateUntil; }
+    else { if (VAD.run >= 3) V.gateUntil = now + 650; V.gateOpen = now < V.gateUntil; }
     const target = V.mute ? 0 : V.gateOpen ? 1 : 0;
-    g.gate.gain.setTargetAtTime(target, V.ctx.currentTime, target ? 0.004 : 0.05);
+    g.gate.gain.setTargetAtTime(target, V.ctx.currentTime, target ? 0.004 : 0.08);
     let ch = false;
     const set = (k, v) => { if (!!V.speaking[k] !== v) { V.speaking[k] = v; ch = true; } };
     if (V.on) {
@@ -179,14 +208,26 @@
 
   // ---------- Contrôle (micro coupé, caméra, écran…) : un petit canal de données par membre ----------
   function myState() { return { t: 'st', mute: V.mute, deaf: V.deaf, cam: !!V.cam, screen: !!V.screen, q: V.cfg.recvQ || 'auto' }; }
+  // Envoi d'un message d'un module de l'app à tout le salon (ou à une seule personne).
+  function appSend(m, to) {
+    let n = 0;
+    for (const [s, k] of Object.entries(V.conns)) {
+      if (to && s !== to) continue;
+      if (k.ctl && k.ctl.open) { try { k.ctl.send({ t: 'app', m }); n++; } catch (e) { /* */ } }
+    }
+    return n;
+  }
   function broadcast() { for (const k of Object.values(V.conns)) if (k.ctl && k.ctl.open) { try { k.ctl.send(myState()); } catch (e) { /* */ } } }
   function bindCtl(slug, dc) {
     const k = V.conns[slug];
     if (!k) { try { dc.close(); } catch (e) { /* */ } return; }
     if (k.ctl && k.ctl !== dc) { try { k.ctl.close(); } catch (e) { /* */ } }
     k.ctl = dc;
-    dc.on('open', () => { try { dc.send(myState()); } catch (e) { /* */ } });
+    dc.on('open', () => { try { dc.send(myState()); } catch (e) { /* */ } if (V.onPeer) V.onPeer(slug); });
+    if (dc.open && V.onPeer) setTimeout(() => V.onPeer && V.onPeer(slug), 0);
     dc.on('data', (msg) => {
+      // Messages des modules de l'app (tableau tactique…) : transmis tels quels.
+      if (msg && msg.t === 'app') { if (V.onApp) V.onApp(slug, msg.m); return; }
       // Un spectateur demande le son de mon partage d'écran : c'est moi qui décide (fenêtre de confirmation).
       if (msg && msg.t === 'snd?' && V.screen && V.onSndReq) { V.onSndReq(slug); return; }
       // Un spectateur qui avait arrêté de regarder veut revoir mon écran : on lui renvoie le flux.
@@ -340,6 +381,25 @@
   }
   // Encodage matériel : on propose d'abord le H.264 (la carte graphique s'en charge sur presque tous les PC),
   // ce qui évite que le processeur sature et que l'image saccade.
+  // Opus en haute qualité : débit plus élevé (64 kb/s pour la voix, 128 kb/s stéréo pour le son d'un stream),
+  // correction des paquets perdus (useinbandfec) et pas de coupure entre les mots (usedtx=0).
+  function opusHQ(sdp, music) {
+    try {
+      const pt = (sdp.match(/a=rtpmap:(\d+) opus\/48000/i) || [])[1];
+      if (!pt) return sdp;
+      const want = { maxaveragebitrate: music ? 128000 : 64000, useinbandfec: 1, usedtx: 0, maxplaybackrate: 48000 };
+      if (music) { want.stereo = 1; want['sprop-stereo'] = 1; }
+      const re = new RegExp('a=fmtp:' + pt + ' ([^\r\n]*)');
+      if (!re.test(sdp)) return sdp.replace(new RegExp('(a=rtpmap:' + pt + ' opus/48000[^\r\n]*)'), '$1\r\na=fmtp:' + pt + ' ' + Object.entries(want).map(([k, v]) => k + '=' + v).join(';'));
+      return sdp.replace(re, (all, params) => {
+        const kv = Object.fromEntries(params.split(';').filter(Boolean).map((x) => x.trim().split('=')));
+        Object.assign(kv, want);
+        return 'a=fmtp:' + pt + ' ' + Object.entries(kv).map(([k, v]) => k + '=' + v).join(';');
+      });
+    } catch (e) { return sdp; }
+  }
+  const voiceSdp = (sdp) => opusHQ(sdp, false);
+  const videoSdp = (sdp) => opusHQ(preferH264(sdp), true);
   function preferH264(sdp) {
     try {
       const lines = sdp.split('\r\n');
@@ -363,7 +423,7 @@
     const stream = kind === 'cam' ? V.cam : V.screen;
     const key = slug + ':' + kind;
     if (!stream || V.vout[key] || !V.conns[slug] || !V.conns[slug].out) return;
-    const call = V.peer.call(pid(slug), stream, { metadata: { s: V.me, k: kind }, sdpTransform: preferH264 });
+    const call = V.peer.call(pid(slug), stream, { metadata: { s: V.me, k: kind }, sdpTransform: videoSdp });
     if (!call) return;
     V.vout[key] = call;
     capBitrate(call, kind);
@@ -377,7 +437,7 @@
     const key = from + ':' + kind;
     if (V.vin[key]) { try { V.vin[key].call.close(); } catch (e) { /* */ } }
     V.vin[key] = { call, stream: null };
-    call.answer(undefined, { sdpTransform: preferH264 });
+    call.answer(undefined, { sdpTransform: videoSdp });
     call.on('stream', (st) => {
       lowLatency(call);
       const vin = V.vin[key];
@@ -500,7 +560,7 @@
   }
   function ring(slug) {
     if (!V.on || slug === V.me || V.conns[slug]) return;
-    const call = V.peer.call(pid(slug), V.g.send.stream, { metadata: { s: V.me, k: 'voice' } });
+    const call = V.peer.call(pid(slug), V.g.send.stream, { metadata: { s: V.me, k: 'voice' }, sdpTransform: voiceSdp });
     if (call) keep(slug, call, true);
   }
 
@@ -537,7 +597,7 @@
         if (!from || from === V.me) { try { call.close(); } catch (e) { /* */ } return; }
         const kind = call.metadata && call.metadata.k;
         if (kind === 'cam' || kind === 'screen') return takeVideo(from, kind, call);
-        if (keep(from, call, false)) call.answer(V.g.send.stream);
+        if (keep(from, call, false)) call.answer(V.g.send.stream, { sdpTransform: voiceSdp });
       });
       V.peer.on('connection', (dc) => {
         const from = slugOf(dc.peer);
@@ -575,7 +635,9 @@
     const old = V.cfg; V.cfg = Object.assign({}, old, patch); wr(CFG_KEY, V.cfg);
     const c = V.cfg;
     if (V.g) {
-      V.g.inGain.gain.value = c.gain; V.g.master.gain.value = c.outVol; V.g.hp.frequency.value = c.hp ? 90 : 1;
+      V.g.inGain.gain.value = c.gain; V.g.master.gain.value = c.outVol; V.g.hp.frequency.value = c.hp ? 90 : 1; V.g.hp2.frequency.value = c.hp ? 90 : 1;
+      if (c.clarity !== old.clarity) clarity(V.g, c.clarity);
+      if (FX.node && (c.keys !== old.keys || c.clarity !== old.clarity)) FX.node.port.postMessage({ keys: c.keys, dry: c.clarity });
       if (c.out !== old.out && V.ctx.setSinkId) V.ctx.setSinkId(c.out || '').catch(() => {});
       if (c.out !== old.out) { for (const k of Object.values(V.conns)) if (k.out && k.out.el.setSinkId) k.out.el.setSinkId(c.out || '').catch(() => {}); for (const x of Object.values(V.vin)) if (x.snd && x.snd.el.setSinkId) x.snd.el.setSinkId(c.out || '').catch(() => {}); }
       if (c.outVol !== old.outVol) { applyGains(); applyStreamGains(); }
@@ -693,7 +755,7 @@
 
   window.FireVoice = {
     join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, setStreamSound, requestSound, addScreenSound, watchStream,
-    onSoundRequest: (f) => { V.onSndReq = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
+    onSoundRequest: (f) => { V.onSndReq = f; }, appSend, onApp: (f) => { V.onApp = f; }, onPeer: (f) => { V.onPeer = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
     clearErr: () => { V.err = ''; emit(); },
     // Définition et images/s de chaque écran partagé que je reçois (affichées sur la vidéo).
     recvInfo: async () => {
@@ -721,7 +783,9 @@
       for (const [k, v] of Object.entries(V.vin)) res['←' + k] = await one(v.call, 'in');
       return res;
     },
-    level: () => V.level, gateOpen: () => V.gateOpen,
+    level: () => V.level, gateOpen: () => V.gateOpen, fxReady: () => !!FX.node,
+    // Ta voix telle que le salon l'entend (pour les clips), seulement pendant un appel.
+    micStream: () => (V.on && V.g ? V.g.send.stream : null),
     onChange: (f) => V.listeners.push(f),
     state: () => ({
       on: V.on, joining: V.joining, err: V.err, me: V.me, mute: V.mute, deaf: V.deaf, monitor: V.monitor,

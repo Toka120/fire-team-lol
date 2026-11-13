@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('fire', {
   pools: call('pools'),
   planning: call('planning'),
   puzzles: call('puzzles:draft'),
+  clips: { save: call('clips:save'), list: call('clips:list'), read: call('clips:read'), show: call('clips:show'), del: call('clips:delete') },
   chat: { list: call('chat'), send: call('chat:send') },
   savePlanning: call('planning:save'),
   champions: call('champions'),

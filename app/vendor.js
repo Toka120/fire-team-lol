@@ -12,6 +12,7 @@ fs.mkdirSync(path.join(OUT, 'fonts'), { recursive: true });
 // ---------- Bibliothèques ----------
 fs.copyFileSync(R('node_modules/d3/dist/d3.min.js'), path.join(OUT, 'd3.min.js'));
 fs.copyFileSync(R('node_modules/peerjs/dist/peerjs.min.js'), path.join(OUT, 'peerjs.min.js'));
+fs.copyFileSync(R('node_modules/mp4-muxer/build/mp4-muxer.js'), path.join(OUT, 'mp4-muxer.js')); // clips instantanés
 const W = R('node_modules/@sapphi-red/web-noise-suppressor/dist');
 fs.copyFileSync(path.join(W, 'rnnoise/workletProcessor.js'), path.join(OUT, 'rnnoise-worklet.js'));
 fs.copyFileSync(path.join(W, 'rnnoise.wasm'), path.join(OUT, 'rnnoise.wasm'));

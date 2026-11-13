@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "1.10.75",
+   "date": "2026-11-13",
+   "titre": "Tableau tactique, clips et voix plus claire",
+   "items": [
+    [
+     "new",
+     "Vocal › Tableau tactique (bouton carte dans la barre d'appel) : une carte de la Faille où tout le salon dessine en direct. Crayon, flèches, pions des deux équipes par rôle, wards et pinks, gomme, annuler, tout effacer. Le fond peut aussi être un écran partagé, pour annoter une game ou une VOD. Ceux qui arrivent en cours voient le tableau tel qu'il est."
+    ],
+    [
+     "new",
+     "Clips instantanés (Vocal › Paramètres › Clips instantanés) : une fois activés, Ctrl + Alt + X garde les 15 s à 1 min 30 précédentes en vidéo MP4 : ton écran, le son du jeu, les voix du salon et la tienne. Encodé par la carte graphique, enregistré dans Vidéos › FIRE Clips, sans attente."
+    ],
+    [
+     "new",
+     "Mes clips (menu ⋯ du salon, bouton Clips de la salle d'attente) : lecture dans l'app, « Envoyer au salon » pour que ceux qui sont dans l'appel le reçoivent directement, dossier, suppression."
+    ],
+    [
+     "improve",
+     "Voix plus claire : nouvel anti-clavier (le claquement des touches est retiré même pendant que tu parles, sans couper la voix), anti-réverbération (l'écho de la pièce s'efface après chaque mot), moins de résonance grave, plus d'articulation, volume régulier et anti-saturation. Réglages « Voix claire » et « Anti-clavier » dans Traitement de la voix."
+    ],
+    [
+     "improve",
+     "Son du vocal en meilleure qualité : 64 kb/s pour la voix (au lieu d'environ 32), correction des paquets perdus, plus aucune coupure entre les mots ; 128 kb/s stéréo pour le son d'un stream. La détection de la voix coupe moins les fins de phrases."
+    ]
+   ]
+  },
+  {
    "v": "1.10.74",
    "date": "2026-11-13",
    "titre": "Interface V2 : toutes les pages",
