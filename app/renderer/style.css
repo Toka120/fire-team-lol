@@ -1655,3 +1655,35 @@ body{padding-bottom:46px}
 .pool-card{scroll-margin-top:72px}
 .pool-more{align-self:flex-start;width:auto;display:inline-flex;align-items:center;gap:8px}
 .pm-n{font-size:12px;font-weight:700;color:var(--bad);background:rgba(239,90,90,.12);border-radius:8px;padding:2px 8px}
+
+/* ---------- Tier list méta ---------- */
+.tl-filters{display:flex;flex-direction:column;gap:10px}
+.tl-seg,.tl-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tl-elo{width:auto;min-width:200px}
+.tl-off{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer}
+.tl-card{padding:8px 0}
+.tl-head,.tl-r{display:grid;grid-template-columns:48px minmax(200px,1fr) 70px 110px 80px 80px 100px;align-items:center;gap:8px;padding:6px 20px}
+.tl-head{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line)}
+.tl-r{border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.tl-r:last-child{border-bottom:0}
+.tl-r:hover{background:var(--panel2)}
+.tl-n{color:var(--muted);text-align:center}
+.tl-c{display:flex;align-items:center;gap:10px;min-width:0}
+.tl-c .cico{border-radius:8px}
+.tl-offm{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.tl-t{display:inline-grid;place-items:center;min-width:34px;height:26px;padding:0 6px;border-radius:8px;font-weight:800;font-size:13px;background:var(--panel2);color:var(--fg)}
+.tl-t.t-Sp{background:#F5A524;color:#0B0D10}.tl-t.t-S,.tl-t.t-Sm{background:#F5C76A;color:#0B0D10}.tl-t.t-Ap{background:#39C58A;color:#0B0D10}.tl-t.t-A,.tl-t.t-Am{background:#2E9E6F;color:#0B0D10}
+.tl-t.t-Bp,.tl-t.t-B,.tl-t.t-Bm{background:#579DFF;color:#0B0D10}.tl-t.t-C,.tl-t.t-Cp,.tl-t.t-D{background:var(--panel2);color:var(--muted)}
+.tl-wr{display:flex;flex-direction:column;line-height:1.1}
+.tl-wr small{font-size:11px;color:var(--muted)}
+.tl-wr.good{color:var(--ok)}.tl-wr.bad{color:var(--bad)}
+
+/* ---------- Thèmes colorés (fond + couleur d'accent) ---------- */
+html[data-theme=neon]    { --bg:#07040f; --panel:#110a1f; --panel2:#1a1030; --line:#3a2160; --muted:#b5a6d6; --fire1:#ff2bd6; --fire2:#ff2bd6; --fire3:#22e6ff; --glow:rgba(255,43,214,.35); --bar:rgba(7,4,15,.9); }
+html[data-theme=futur]   { --bg:#050b12; --panel:#0a1622; --panel2:#0f2131; --line:#1d3b52; --muted:#8fb3c9; --fire1:#00e5ff; --fire2:#00e5ff; --fire3:#7c5cff; --glow:rgba(0,229,255,.3); --bar:rgba(5,11,18,.9); }
+html[data-theme=hextech] { --bg:#010a13; --panel:#0a1428; --panel2:#0f1d36; --line:#1e2d4a; --muted:#a09b8c; --fire1:#c8aa6e; --fire2:#c8aa6e; --fire3:#0ac8b9; --glow:rgba(200,170,110,.3); --bar:rgba(1,10,19,.9); }
+html[data-theme=cafe]    { --bg:#1a130e; --panel:#241a13; --panel2:#2f2219; --line:#4a3626; --muted:#c9b29a; --fire1:#e0a96d; --fire2:#d4884a; --fire3:#a8653a; --glow:rgba(224,169,109,.28); --bar:rgba(26,19,14,.9); }
+html[data-theme=bagarre] { --bg:#0d0505; --panel:#1a0909; --panel2:#250d0d; --line:#4a1515; --muted:#d9a99f; --fire1:#ff3b1f; --fire2:#ff3b1f; --fire3:#ffc21f; --glow:rgba(255,59,31,.35); --bar:rgba(13,5,5,.9); }
+html[data-theme=sakura]  { --bg:#140b10; --panel:#21121a; --panel2:#2c1823; --line:#4a2a3b; --muted:#d9afc3; --fire1:#ff8fb8; --fire2:#ff8fb8; --fire3:#ffd1e3; --glow:rgba(255,143,184,.3); --bar:rgba(20,11,16,.9); }
+html[data-theme=ocean]   { --bg:#031417; --panel:#08222a; --panel2:#0c2e38; --line:#164a57; --muted:#95c4ce; --fire1:#2ee6c5; --fire2:#2ee6c5; --fire3:#1fa0ff; --glow:rgba(46,230,197,.28); --bar:rgba(3,20,23,.9); }
+html[data-theme=violet]  { --bg:#0b0614; --panel:#150d24; --panel2:#1e1333; --line:#36245a; --muted:#b3a3d4; --fire1:#9d5cff; --fire2:#9d5cff; --fire3:#ff5cc8; --glow:rgba(157,92,255,.32); --bar:rgba(11,6,20,.9); }

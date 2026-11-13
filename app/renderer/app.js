@@ -8,7 +8,9 @@
 
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   // Thème de fond choisi dans Paramètres (appliqué dès le démarrage, écran du code compris).
-  const THEMES = [['fire', '🔥 FIRE', '#0f0d0c', '#ff5e3a'], ['bleu', 'Bleu', '#0a1430', '#508cff'], ['rouge', 'Rouge', '#1f0709', '#f0283c'], ['vert', 'Vert', '#061a0f', '#3cdc78'], ['jaune', 'Jaune', '#1c1606', '#ffcd28'], ['noir', 'Noir', '#000000', '#444444'], ['gris', 'Gris', '#1b1c1f', '#6b6f78']];
+  const THEMES = [['fire', '🔥 FIRE', '#0f0d0c', '#ff5e3a'], ['bleu', 'Bleu', '#0a1430', '#508cff'], ['rouge', 'Rouge', '#1f0709', '#f0283c'], ['vert', 'Vert', '#061a0f', '#3cdc78'], ['jaune', 'Jaune', '#1c1606', '#ffcd28'], ['noir', 'Noir', '#000000', '#444444'], ['gris', 'Gris', '#1b1c1f', '#6b6f78'],
+    ['neon', 'Néon', '#07040f', '#ff2bd6'], ['futur', 'Futuriste', '#050b12', '#00e5ff'], ['hextech', 'Hextech', '#010a13', '#c8aa6e'], ['cafe', 'Café cosy', '#1a130e', '#e0a96d'],
+    ['bagarre', 'Bagarre', '#0d0505', '#ff3b1f'], ['sakura', 'Sakura', '#140b10', '#ff8fb8'], ['ocean', 'Abysses', '#031417', '#2ee6c5'], ['violet', 'Void', '#0b0614', '#9d5cff']];
   const applyTheme = (t) => { if (!t || t === 'fire') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); };
   applyTheme(load('fire.theme', 'fire'));
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
@@ -2474,15 +2476,65 @@
   // Onglets de la rubrique Draft : la draft en direct et les puzzles « Contrez la composition adverse ».
   function renderDraft() {
     if (S.drTab === 'puzzle') return renderPuzzles();
+    if (S.drTab === 'tier') return renderTierList();
     renderDraftLive();
     const hero = $('view').querySelector('.sec-hero');
     if (hero) hero.after(draftTabs());
   }
   function draftTabs() {
-    const pz = S.drTab === 'puzzle';
+    const t = S.drTab || 'live';
+    const tab = (k, label, extra) => h('button', { class: 'plan-tab', 'aria-pressed': String(t === k), onclick: () => { S.drTab = k; if (k === 'live') DR.sig = null; renderDraft(); } }, label, extra || null);
     return h('div', { class: 'row plan-tabs' },
-      h('button', { class: 'plan-tab', 'aria-pressed': String(!pz), onclick: () => { S.drTab = 'live'; DR.sig = null; renderDraft(); } }, '⚡ Draft en direct'),
-      h('button', { class: 'plan-tab', 'aria-pressed': String(pz), onclick: () => { S.drTab = 'puzzle'; renderDraft(); } }, '🧩 Puzzles de draft', pzDue() ? h('span', { class: 'plan-tab-n' }, '!') : null));
+      tab('live', '⚡ Draft en direct'),
+      tab('tier', '📊 Tier list'),
+      tab('puzzle', '🧩 Puzzles de draft', pzDue() ? h('span', { class: 'plan-tab-n' }, '!') : null));
+  }
+
+  // ----- Tier list méta : Corée et Europe, par lane et par elo (LoLalytics, relevé chaque jour : tools/tierlist.py) -----
+  const TL = { data: null, loading: false };
+  const TL_LANES = [['top', 'Top'], ['jungle', 'Jungle'], ['middle', 'Mid'], ['bottom', 'ADC'], ['support', 'Support']];
+  const TL_ELOS = [['all', 'Tous les elos'], ['gold_plus', 'Or+'], ['platinum_plus', 'Platine+'], ['emerald_plus', 'Émeraude+'], ['diamond_plus', 'Diamant+'], ['master_plus', 'Maître+']];
+  const TL_REG = [['kr', 'Corée'], ['euw', 'Europe']];
+  const tlPrefs = () => ({ region: 'kr', elo: 'emerald_plus', lane: 'top', off: false, ...load('fire.tl', {}) });
+  async function renderTierList() {
+    const view = $('view');
+    if (!TL.data && !TL.loading) {
+      TL.loading = true;
+      window.fire.tierlist().then((d) => { TL.data = d || { data: {} }; }).catch(() => { TL.data = { data: {} }; }).finally(() => { TL.loading = false; if (S.section === 'draft' && S.drTab === 'tier') renderTierList(); });
+    }
+    const P = tlPrefs();
+    const set = (k, v) => { save('fire.tl', { ...P, [k]: v }); renderTierList(); };
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📊'),
+      h('div', null, h('h1', { class: 'title' }, 'Tier list méta'),
+        h('p', { class: 'muted' }, 'Les champions les plus forts du moment, lane par lane, en Corée et en Europe. Choisis l’elo pour voir ce qui marche à ton niveau.')));
+    const seg = (list, cur, k) => h('div', { class: 'row tl-seg' }, list.map(([id, label]) => h('button', { class: 'chip', 'aria-pressed': String(cur === id), onclick: () => set(k, id) }, label)));
+    const filters = h('div', { class: 'card tl-filters' },
+      seg(TL_REG, P.region, 'region'),
+      seg(TL_LANES, P.lane, 'lane'),
+      h('div', { class: 'row tl-row' }, h('select', { class: 'inp tl-elo', onchange: (e) => set('elo', e.target.value) }, TL_ELOS.map(([id, label]) => h('option', { value: id, selected: P.elo === id ? true : null }, label))),
+        h('label', { class: 'tl-off' }, h('input', { type: 'checkbox', checked: P.off ? true : null, onchange: (e) => set('off', e.target.checked) }), 'Afficher les choix hors méta')));
+    const D = TL.data;
+    let body;
+    if (!D) body = h('p', { class: 'muted' }, 'Chargement de la tier list…');
+    else {
+      const rows = (((D.data || {})[P.region] || {})[P.elo] || {})[P.lane] || [];
+      const shown = rows.filter((r) => P.off || r.lane == null || r.lane >= 10);
+      if (!shown.length) body = h('p', { class: 'muted' }, 'Pas encore de données pour ce choix.');
+      else {
+        body = h('div', { class: 'card tl-card' },
+          h('div', { class: 'tl-head' }, h('span', null, '#'), h('span', null, 'Champion'), h('span', null, 'Tier'), h('span', null, 'Victoires'), h('span', null, 'Pick'), h('span', null, 'Ban'), h('span', null, 'Parties')),
+          shown.map((r, i) => h('div', { class: 'tl-r' },
+            h('span', { class: 'tl-n' }, String(i + 1)),
+            h('span', { class: 'tl-c' }, champIcon(r.id, 36), h('b', null, r.fr || r.name), r.lane != null && r.lane < 10 ? h('span', { class: 'tl-offm' }, 'hors méta') : null),
+            h('span', null, h('span', { class: 'tl-t t-' + r.tier.replace('+', 'p').replace('-', 'm') }, r.tier)),
+            h('span', { class: 'tl-wr ' + (r.wr >= 51 ? 'good' : r.wr < 49 ? 'bad' : '') }, `${fr(r.wr, 1)} %`, r.d != null ? h('small', null, `${r.d > 0 ? '+' : ''}${fr(r.d, 1)}`) : null),
+            h('span', null, `${fr(r.pick, 1)} %`),
+            h('span', null, `${fr(r.ban, 1)} %`),
+            h('span', { class: 'muted' }, r.games.toLocaleString('fr-FR')))));
+      }
+    }
+    const foot = D && D.maj ? h('p', { class: 'muted small' }, `Données : ${D.source || 'LoLalytics'} · patch ${D.patch || '?'} · relevées le ${dateFr(D.maj)}, mises à jour chaque jour.`) : null;
+    view.replaceChildren(hero, draftTabs(), filters, body, foot);
   }
 
   // ----- Puzzles de draft : la compo adverse est connue, 3 alliés aussi ; choisis le meilleur duo pour les 2 rôles restants. -----

@@ -260,6 +260,7 @@ ipcMain.handle('config', async () => {
   return j;
 });
 const PUZ_URL = 'https://toka120.github.io/fire-team-lol/puzzles-draft.json';
+const TIER_URL = 'https://toka120.github.io/fire-team-lol/tierlist.json';
 // ---------- Clips instantanés : rangés dans Vidéos\FIRE Clips ----------
 const CLIP_MAX = 150 * 1024 * 1024;
 const clipDir = () => path.join(app.getPath('videos'), 'FIRE Clips');
@@ -289,6 +290,7 @@ ipcMain.handle('clips:read', (e, p) => { try { if (!inClips(p)) return null; con
 ipcMain.handle('clips:show', (e, p) => { if (p && inClips(p)) shell.showItemInFolder(path.resolve(p)); else { fs.mkdirSync(clipDir(), { recursive: true }); shell.openPath(clipDir()); } return true; });
 ipcMain.handle('clips:delete', (e, p) => { try { if (!inClips(p)) return false; fs.unlinkSync(p); return true; } catch (err) { return false; } });
 ipcMain.handle('puzzles:draft', async () => (await remoteJson(PUZ_URL, 'puzzles-draft.json')) || { puzzles: [] });
+ipcMain.handle('tierlist', async () => (await remoteJson(TIER_URL, 'tierlist.json')) || { data: {} });
 ipcMain.handle('guides', async () => (await remoteJson(GUIDES_URL, 'guides.json')) || { themes: [] });
 // Patch notes : version en ligne (à jour même avant d'installer), sinon la copie livrée avec l'application.
 ipcMain.handle('patchnotes', async () => {

@@ -97,7 +97,7 @@
   };
   // Le même emoji sert à plusieurs choses : le texte qui suit décide quand il est clair (« 🏆 Win rate » ≠ « 🏆 5c5 »).
   const BYTEXT = [
-    [/^Stats et contenu/, 'settings.Stats et contenu'], [/^Actualiser/, 'controls.Actualiser'],
+    [/^Stats et contenu/, 'settings.Stats et contenu'], [/^Tier list/, 'ChartNoAxesColumnIncreasing'], [/^Actualiser/, 'controls.Actualiser'],
     [/^Win rate/i, 'controls.Win rate'], [/^KDA/, 'controls.KDA'], [/^Morts/, 'controls.Morts'], [/^Vision/, 'controls.La vision'],
     [/^Remplaçants/, 'ArrowLeftRight'], [/^Golds à 15/, 'controls.Recall, golds et objets'], [/^Premier sang/, 'Droplet'],
     [/^Obligatoire/, 'controls.Obligatoire'], [/^Maîtrisé/, 'controls.Maîtrisé'], [/^(Hors pool|Autres champions)/, 'controls.Incertain'],

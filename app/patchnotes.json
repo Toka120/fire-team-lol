@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.79",
+   "date": "2026-11-13",
+   "titre": "Tier list méta et nouveaux thèmes",
+   "items": [
+    [
+     "new",
+     "Draft › Tier list : les champions les plus forts lane par lane, en Corée ou en Europe, avec le choix de l'elo (Tous, Or+, Platine+, Émeraude+, Diamant+, Maître+). Tier, victoires (et écart avec la moyenne), pick, ban et nombre de parties. Les choix hors méta sont masqués par défaut. Mise à jour chaque jour (LoLalytics)."
+    ],
+    [
+     "new",
+     "Paramètres › Thème : 8 nouveaux thèmes colorés avec leur propre ambiance : Néon, Futuriste, Hextech, Café cosy, Bagarre, Sakura, Abysses et Void. La couleur des boutons, des onglets et des sélections suit le thème."
+    ]
+   ]
+  },
+  {
    "v": "1.10.78",
    "date": "2026-11-13",
    "titre": "Accueil compact et POOL plus rapide",

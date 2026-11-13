@@ -1,0 +1,32 @@
+name: Tier list méta (chaque jour)
+
+# Relève la tier list de LoLalytics (Corée et Europe, 6 niveaux d'elo, 5 lanes) et régénère tierlist.json,
+# lu par l'onglet Draft › Tier list de FIRE (servi par GitHub Pages).
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tierlist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 tools/tierlist.py
+      - name: Publier la tier list
+        shell: bash
+        run: |
+          git config user.name "FIRE tierlist"
+          git config user.email "actions@users.noreply.github.com"
+          git add tierlist.json
+          if git diff --cached --quiet; then echo "rien de neuf"; exit 0; fi
+          git commit -m "Tier list : relevé du jour"
+          git pull --rebase origin main
+          git push origin HEAD:main
