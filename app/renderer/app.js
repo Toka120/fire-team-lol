@@ -724,6 +724,27 @@
         me ? h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => openProfile(me) }, '👀 Voir ma carte')) : h('p', { class: 'muted small' }, 'Choisis d’abord qui tu es.')),
     ];
   }
+  // Aperçu du fond d'écran : une mini-FIRE (menu, cartes) par-dessus l'image, avec le flou et l'assombrissement choisis.
+  function bgUrl(b) {
+    if (b.type === 'skin' && /^[A-Za-z]+$/.test(b.c || '')) return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${b.c}_${Number(b.n) || 0}.jpg`;
+    if (b.type === 'image') return load('fire.uxbgimg', '') || '';
+    return '';
+  }
+  function bgPreview(b) {
+    const url = bgUrl(b);
+    const card = (w) => h('i', { class: 'bgp-card', style: `width:${w}%` }, h('i', { class: 'bgp-l' }), h('i', { class: 'bgp-l s' }), h('i', { class: 'bgp-btn' }));
+    return h('div', { class: 'bgp', style: `--bgp-blur:${(Number(b.blur) || 0) * 0.5}px;--bgp-dim:${(Number(b.dim) || 0) / 100}` },
+      h('div', { class: 'bgp-img', style: url ? `background-image:url("${url}")` : '' }), h('div', { class: 'bgp-dimmer' }),
+      h('div', { class: 'bgp-ui' }, h('div', { class: 'bgp-side' }, h('b', null, '🔥 FIRE'), ...[0, 1, 2, 3, 4].map((i) => h('i', { class: 'bgp-nav' + (i === 1 ? ' on' : '') }))),
+        h('div', { class: 'bgp-main' }, h('i', { class: 'bgp-hero' }), h('div', { class: 'bgp-row' }, card(48), card(48)), h('div', { class: 'bgp-row' }, card(31), card(31), card(31)))),
+      h('span', { class: 'bgp-tag' }, 'Aperçu'));
+  }
+  function bgPreviewLive(k, v) {
+    const p = document.querySelector('.bgp');
+    if (!p) return;
+    if (k === 'blur') { p.style.setProperty('--bgp-blur', `${v * 0.5}px`); const l = document.querySelector('.bgp-blur-l'); if (l) l.textContent = `Flou : ${v} px`; }
+    if (k === 'dim') { p.style.setProperty('--bgp-dim', String(v / 100)); const l = document.querySelector('.bgp-dim-l'); if (l) l.textContent = `Assombrir : ${v} %`; }
+  }
   function appearanceCards(themeCard) {
     const b = UX.bg;
     const setBg = (patch) => { setUx({ bg: { ...UX.bg, ...patch } }); renderSettings(); };
@@ -753,9 +774,12 @@
         b.type === 'skin' ? skinPicker({ c: b.c, n: b.n }, (x) => setBg({ type: 'skin', c: x ? x.c : '', n: x ? x.n : 0 })) : null,
         b.type === 'image' ? h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => upload.click() }, '📁 Changer d’image')) : null,
         upload,
+        b.type !== 'none' ? bgPreview(b) : null,
         b.type !== 'none' ? h('div', { class: 'ux-sliders' },
-          h('label', { class: 'fld' }, h('span', null, `Flou : ${b.blur} px`), h('input', { type: 'range', min: 0, max: 30, value: b.blur, onchange: (e) => setBg({ blur: Number(e.target.value) }) })),
-          h('label', { class: 'fld' }, h('span', null, `Assombrir : ${b.dim} %`), h('input', { type: 'range', min: 0, max: 95, value: b.dim, onchange: (e) => setBg({ dim: Number(e.target.value) }) }))) : null),
+          h('label', { class: 'fld' }, h('span', { class: 'bgp-blur-l' }, `Flou : ${b.blur} px`), h('input', { type: 'range', min: 0, max: 30, value: b.blur,
+            oninput: (e) => bgPreviewLive('blur', Number(e.target.value)), onchange: (e) => setBg({ blur: Number(e.target.value) }) })),
+          h('label', { class: 'fld' }, h('span', { class: 'bgp-dim-l' }, `Assombrir : ${b.dim} %`), h('input', { type: 'range', min: 0, max: 95, value: b.dim,
+            oninput: (e) => bgPreviewLive('dim', Number(e.target.value)), onchange: (e) => setBg({ dim: Number(e.target.value) }) }))) : null),
       fontCard(),
       uxCard('📐 Affichage', null,
         uxBox(UX.compact, 'Mode compact', 'Moins d’espace entre les éléments : plus de choses à l’écran sans défiler.', (v) => { setUx({ compact: v }); renderSettings(); }),

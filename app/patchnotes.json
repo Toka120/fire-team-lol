@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.99",
+   "date": "2026-11-13",
+   "titre": "Aperçu du fond d'écran",
+   "items": [
+    [
+     "new",
+     "Paramètres › Apparence › Couleur et fond : un aperçu montre une mini-FIRE (menu, cartes, boutons) par-dessus ton fond d'écran."
+    ],
+    [
+     "improve",
+     "Le flou et l'assombrissement changent en direct dans l'aperçu pendant que tu bouges les curseurs."
+    ]
+   ]
+  },
+  {
    "v": "1.10.98",
    "date": "2026-11-13",
    "titre": "Carnet de bord et rôle de créateur",

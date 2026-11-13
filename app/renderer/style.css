@@ -2170,3 +2170,21 @@ html.chat-page #chat{display:none}
 .stf-msg{display:grid;grid-template-columns:120px 140px 110px 1fr 40px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
 .stf-mt{overflow-wrap:anywhere}
 .adm-key{width:100%;font-family:'JetBrains Mono',monospace;font-size:11px}
+
+/* Aperçu du fond d'écran (Paramètres › Apparence › Couleur et fond) */
+.bgp{position:relative;height:250px;margin:12px 0 4px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--bg)}
+.bgp-img{position:absolute;inset:-20px;background:center/cover no-repeat;filter:blur(var(--bgp-blur,3px));transition:filter .15s}
+.bgp-dimmer{position:absolute;inset:0;background:rgb(0 0 0 / var(--bgp-dim,.7));transition:background .15s}
+.bgp-ui{position:absolute;inset:0;display:flex}
+.bgp-side{width:22%;padding:12px 10px;display:flex;flex-direction:column;gap:7px;background:color-mix(in srgb,var(--panel) 78%,transparent);backdrop-filter:blur(6px);border-right:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.bgp-side b{font-size:12px;color:var(--fire1);margin-bottom:4px}
+.bgp-nav{display:block;height:9px;border-radius:5px;background:rgb(255 255 255 / 14%)}
+.bgp-nav.on{background:var(--fire1);opacity:.85}
+.bgp-main{flex:1;padding:12px;display:flex;flex-direction:column;gap:8px}
+.bgp-hero{display:block;height:36px;border-radius:9px;background:color-mix(in srgb,var(--panel) 82%,transparent);backdrop-filter:blur(6px);border:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.bgp-row{display:flex;gap:8px;flex:1}
+.bgp-card{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:9px;background:color-mix(in srgb,var(--panel) 82%,transparent);backdrop-filter:blur(6px);border:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.bgp-l{display:block;height:7px;width:80%;border-radius:4px;background:rgb(255 255 255 / 16%)}
+.bgp-l.s{width:55%}
+.bgp-btn{display:block;margin-top:auto;height:10px;width:40%;border-radius:5px;background:var(--fire1)}
+.bgp-tag{position:absolute;top:8px;right:10px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:rgb(0 0 0 / 55%);color:#fff}
