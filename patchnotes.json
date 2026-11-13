@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.114",
+   "date": "2026-11-13",
+   "titre": "Objectif identique dans POOL et Stats",
+   "items": [
+    [
+     "fix",
+     "POOL : le nombre de games obligatoires est maintenant le même que dans « Stats des joueurs ». POOL comptait depuis le début de la tierlist (parfois deux semaines) au lieu de la semaine en cours du lundi au dimanche, et oubliait les games ajoutées ou retirées par le coach. Merci Drakonar !"
+    ]
+   ]
+  },
+  {
    "v": "1.10.113",
    "date": "2026-11-13",
    "titre": "Le Parcours",

@@ -167,7 +167,7 @@
     : p.bandeau && p.bandeau.texte ? { texte: String(p.bandeau.texte).slice(0, 40), theme: ['gold', 'star', 'fire', 'emerald', 'ruby', 'blade'].includes(p.bandeau.theme) ? p.bandeau.theme : 'fire' } : null;
   const dateFr = (ymd) => { const d = new Date(ymd + 'T00:00:00'); return `${d.getDate() === 1 ? '1er' : d.getDate()} ${d.toLocaleDateString('fr-FR', { month: 'long' })}`; };
   // Games obligatoires ajoutées par le coach à un joueur pour la semaine en cours (lundi → dimanche).
-  const bonusFor = (slug) => (((S.bonus || {})[mondayOf(todayYmd())] || {})[slug]) || 0;
+  const bonusFor = (slug, mon) => (((S.bonus || {})[mon || mondayOf(todayYmd())] || {})[slug]) || 0;
   function objFor(p, d) {
     if (!S.obj || !d || (p && p.temp)) return null;
     const b = bonusFor(p.slug);
@@ -7413,7 +7413,17 @@
     };
     const tierRows = h('div', { class: 'tiers' }, TIERS.map((k) => h('div', { class: 'tier-row r' + k }, tierLabel(k),
       h('div', { class: 'tier-chips' }, (tiers[k] || []).length ? tiers[k].map((id) => chipOf(id, k)) : h('span', { class: 'muted small' }, k === 'O' ? 'aucun champion obligatoire' : k === 'M' ? 'aucun champion maîtrisé' : 'aucun champion à travailler')))));
-    const o = d && obj ? FC.objectif({ ...p, pool_ids: tiers.O }, d.matches, obj) : null;
+    // Même calcul que « Stats des joueurs » : l'objectif se compte du lundi au dimanche (pas depuis le début de la tierlist),
+    // avec les games ajoutées ou retirées par le coach. Semaine passée : sa dernière semaine du lundi au dimanche.
+    const objW = (() => {
+      if (!obj || !obj.games) return null;
+      const ref = rng.fin && rng.fin < todayYmd() ? rng.fin : todayYmd();
+      const mon = mondayOf(ref);
+      const b = bonusFor(p.slug, mon);
+      return { debut: obj.debut && obj.debut > mon ? obj.debut : mon, fin: addDays(mon, 6), games: Math.max(0, (Number(obj.games) || 0) + b), bonus: b };
+    })();
+    const o = d && objW ? FC.objectif({ ...p, pool_ids: tiers.O }, d.matches, objW) : null;
+    if (o) o.bonus = objW.bonus;
     const sup = p.role_id === 'support';
     const group = (title, list, small, empty) => h('div', { class: 'cgroup' }, h('h3', null, title), list.length ? h('div', { class: 'cgrid' + (small ? ' small' : '') }, list.map((c) => champCard(c, small))) : h('p', { class: 'muted small' }, empty));
     // Le détail (répartition, alertes, cartes champion, tableau) est replié : bouton « Détails ».
