@@ -251,5 +251,12 @@
       "pseudo": "Dream"
     }
   ],
-  "debut_equipe": "2026-10-27"
+  "debut_equipe": "2026-10-27",
+  "admins": [
+    {
+      "nom": "Toks (créateur)",
+      "slug": "Toks42o%20-TTV",
+      "pub": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5Z236SzaO0W7oSRQlg2TSoR9CQMLmHNg+tIdgtxLR8n02SI73y2nj7cFi7EAOvIXumzgj3z2t6RY5C1Uz5Bf3A=="
+    }
+  ]
 }
