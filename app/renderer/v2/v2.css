@@ -320,6 +320,55 @@ html.v2 .ibtn { width: 28px; height: 28px; border-radius: 8px; background: var(-
 html.v2 .ibtn.on { background: var(--v2-sel); border-color: var(--fire1); color: var(--fire1); }
 html.v2 .ibtn .v2i { width: 14px; height: 14px; }
 
+/* ---------- Planning ---------- */
+html.v2 :where(.plan-type, .plan-note, .pc-name, .pc-hr, .plan-hours, .plan-count > span, .plan-btn, .pc-state > span, .pc-me > span, .pc-req > span, .plan-p) .v2i {
+  width: 16px; height: 16px; vertical-align: -3px;
+}
+html.v2 :where(.plan-type, .plan-note, .pc-name, .pc-hr, .plan-count > span, .plan-btn, .pc-state > span, .pc-me > span, .pc-req > span) > .v2i:first-child { margin-right: 4px; }
+html.v2 .pc-name > .v2i { width: 20px; height: 20px; margin-right: 8px; color: var(--muted); }
+html.v2 .sec-hero p.muted .v2i { width: 16px; height: 16px; vertical-align: -3px; margin: 0 2px; }
+html.v2 .sec-hero p.muted .v2i[data-i=Check] { color: var(--ok); } html.v2 .sec-hero p.muted .v2i[data-i=CircleHelp] { color: var(--warn); } html.v2 .sec-hero p.muted .v2i[data-i=X] { color: var(--bad); }
+html.v2 .plan-day { gap: 16px; }
+html.v2 .plan-day.today { border-color: var(--fire1); box-shadow: none; }
+html.v2 .plan-date { font: 600 20px/28px var(--v2-font); }
+html.v2 .plan-tag { border-radius: 8px; background: var(--fire1); color: #0B0D10; padding: 4px 8px; font: 600 11px/16px var(--v2-font); }
+html.v2 .plan-hours { font: 600 14px/24px var(--v2-font); gap: 8px; }
+html.v2 .plan-type { border-radius: 8px; padding: 4px 8px; font: 600 12px/16px var(--v2-font); display: inline-flex; align-items: center; }
+html.v2 .plan-count { gap: 16px; font: 600 14px/24px var(--v2-font); }
+html.v2 .plan-five { border-radius: 8px; padding: 4px 8px; font: 600 12px/16px var(--v2-font); }
+html.v2 .plan-five.ok { background: var(--v2-ok-bg); }
+html.v2 .plan-btn { min-height: 40px; display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 8px 16px; font: 600 14px/24px var(--v2-font); }
+html.v2 .plan-btn:hover:not(:disabled) { background: var(--panel2); }
+html.v2 .plan-btn.st-ok > .v2i { color: var(--ok); } html.v2 .plan-btn.st-warn > .v2i { color: var(--warn); } html.v2 .plan-btn.st-bad > .v2i { color: var(--bad); }
+html.v2 .plan-btn.st-ok[aria-pressed="true"] { border-color: var(--ok); background: var(--v2-ok-bg); }
+html.v2 .plan-btn.st-warn[aria-pressed="true"] { border-color: var(--warn); background: var(--v2-warn-bg); }
+html.v2 .plan-btn.st-bad[aria-pressed="true"] { border-color: var(--bad); background: var(--v2-bad-bg); }
+html.v2 .plan-people { gap: 8px; }
+html.v2 .plan-p { display: inline-flex; align-items: center; gap: 4px; border-radius: 8px; padding: 4px 8px; background: var(--panel2); font: 400 13px/20px var(--v2-font); }
+html.v2 .plan-p > span:first-child { display: inline-grid; place-items: center; }
+html.v2 .plan-p.st-ok { border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+html.v2 .plan-p.st-warn { border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
+html.v2 .plan-p.st-bad { border-color: color-mix(in srgb, var(--bad) 50%, transparent); }
+/* Note du coach du jour : badge ambre */
+html.v2 .plan-note { margin-left: 8px; padding: 4px 12px; display: inline-flex; align-items: center; }
+/* Grille du chef : cases cochées en or plein */
+html.v2 .plan-grid { border-spacing: 4px; }
+html.v2 .plan-grid thead th { background: var(--panel); box-shadow: 0 -6px 0 var(--panel); font: 600 12px/16px var(--v2-font); }
+html.v2 .plan-cell { border-radius: 8px; background: var(--panel2); height: 32px; }
+html.v2 .plan-cell:hover { border-color: var(--fire1); }
+html.v2 .plan-cell.on { background: var(--fire1); border-color: var(--fire1); }
+html.v2 .plan-grid tr.night .plan-hr { color: var(--v2-blue); }
+html.v2 .plan-grid tr.night .plan-cell:not(.on) { background: color-mix(in srgb, var(--v2-blue) 8%, var(--panel2)); }
+html.v2 .plan-esum { color: var(--fire1); }
+/* Dispos des coachs */
+html.v2 .pc-day { border-top-color: var(--line); }
+html.v2 .pc-slot { border-color: var(--line); border-radius: 8px; background: var(--panel2); padding: 8px 12px; }
+html.v2 .pc-slot.asked { border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
+html.v2 .pc-slot.taken { border-color: color-mix(in srgb, var(--ok) 50%, transparent); background: var(--v2-ok-bg); }
+html.v2 .pc-slot.mine-ok { box-shadow: inset 0 0 0 1px var(--ok); }
+html.v2 .pc-slot.mine-attente { box-shadow: inset 0 0 0 1px var(--warn); }
+html.v2 .pc-reqs { border-top-color: var(--line); }
+
 /* ---------- Divers ---------- */
 html.v2 .flash { border-radius: 8px; background: var(--v2-ok-bg); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
 html.v2 .tip { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--v2-shadow); font: 400 12px/16px var(--v2-font); }

@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.71",
+   "date": "2026-11-13",
+   "titre": "Interface V2 : Planning",
+   "items": [
+    [
+     "improve",
+     "V2 : Planning d'équipe et Dispos des coachs passés à la nouvelle charte. Réponses en icônes : Présent ✓ vert, Incertain ? ambre, Absent ✕ rouge, Sans réponse sablier."
+    ],
+    [
+     "improve",
+     "V2 : la note du coach du jour reste un badge ambre à côté de la date ; dans la grille du chef, les cases cochées sont en or plein et la nuit en bleu."
+    ],
+    [
+     "improve",
+     "V2 : créneaux des coachs (libre, demandé, validé) et type de session (Flex, 5c5, Scrim, Review) avec leurs icônes."
+    ]
+   ]
+  },
+  {
    "v": "1.10.70",
    "date": "2026-11-13",
    "titre": "Interface V2 : POOL",
