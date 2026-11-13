@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "1.10.107",
+   "date": "2026-11-13",
+   "titre": "Regarder les games en direct",
+   "items": [
+    [
+     "new",
+     "Parties en direct : « Détails ▾ » ouvre maintenant une vraie vue spectateur. Score des kills, temps, tours, dragons (avec leur élément), larves, Héraut, Nashor et Atakhan de chaque équipe. Pour chaque joueur : champion, niveau, sorts d'invocateur, les 7 objets, KDA, sbires, score de vision, et le temps avant sa réapparition quand il est mort."
+    ],
+    [
+     "new",
+     "Fil de la partie : les kills (qui a tué qui, avec combien d'assists) et chaque objectif, avec l'heure de jeu."
+    ],
+    [
+     "new",
+     "« 👁 Regarder en spectateur » : lance le mode spectateur officiel de League of Legends sur la partie d'un coéquipier, comme si tu cliquais sur « Regarder » dans ta liste d'amis. Le client LoL doit être ouvert. Riot impose 3 minutes de délai (anti-triche)."
+    ],
+    [
+     "improve",
+     "Si le joueur partage son écran dans le salon vocal, « 📺 Voir son écran » l'ouvre directement."
+    ],
+    [
+     "improve",
+     "La partie d'un coéquipier est mise à jour toutes les 5 secondes (au lieu de 15)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.106",
    "date": "2026-11-13",
    "titre": "Vocal réparé, chuchotement, corrections",

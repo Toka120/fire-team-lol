@@ -1525,17 +1525,17 @@
       const now = Date.now();
       if (g) autoClipCheck(g);
       if (g && g.events) { g = { ...g }; delete g.events; LIVE.mine = g; }
-      if (!g || now - LIVE.lastSend > 15000) { LIVE.lastSend = now; try { FV().liveSend(UX.hideLive ? null : g); } catch (e) { /* hors ligne */ } }
+      if (!g || now - LIVE.lastSend > 5000) { LIVE.lastSend = now; try { FV().liveSend(UX.hideLive ? null : g); } catch (e) { /* hors ligne */ } }
       if (!!g !== !!LIVE.wasIn) { LIVE.wasIn = !!g; statusPush(); }
       liveRefresh();
     });
     try { FV().onChange(() => liveRefresh()); } catch (e) { /* */ }
   }
-  function liveRefresh() {
+  function liveRefresh(force) {
     const all = liveAll();
     const bare = S.players.filter((p) => p.slug && !all[p.slug] && p.slug !== vocalMe() && statusOf(p.slug).game).map((p) => p.slug + ':g');
     const sig = Object.entries(all).map(([k, g]) => k + ':' + g.time).concat(bare).sort().join('|');
-    if (sig === LIVE.sig) return;
+    if (sig === LIVE.sig && !force) return;
     const keysChanged = Object.keys(all).sort().join() !== LIVE.sig.split('|').map((x) => x.split(':')[0]).filter(Boolean).sort().join();
     LIVE.sig = sig;
     if (keysChanged) renderNav();
@@ -1553,6 +1553,59 @@
   const GMODES = { CLASSIC: 'Faille (normale ou classée)', ARAM: 'ARAM', KIWI: 'ARAM : Mayhem', CHERRY: 'Arena', URF: 'URF', ARURF: 'ARURF', PRACTICETOOL: 'Outil d’entraînement', ONEFORALL: 'Un pour tous', NEXUSBLITZ: 'Nexus Blitz', ULTBOOK: 'Grimoire ultime', TUTORIAL: 'Tutoriel', STRAWBERRY: 'Swarm', SWIFTPLAY: 'Partie rapide' };
   const gameModeLabel = (g) => (g.queue && g.queue.id != null && QUEUES[g.queue.id]) || (g.queue && g.queue.name) || GMODES[g.mode] || g.mode || 'Partie';
   const gameModeKind = (g) => { const id = g.queue && g.queue.id; return id === 420 || id === 440 ? 'ranked' : (g.mode === 'ARAM' || g.mode === 'KIWI' || id === 450 || id === 2400) ? 'aram' : g.mode === 'CLASSIC' ? 'normal' : 'fun'; };
+  // ----- Vue spectateur FIRE : comme le tableau (Tab) en jeu, avec objets, sorts, objectifs et le fil de la partie -----
+  const SP_DRAG = { Fire: ['#ff6a3d', 'Infernal'], Earth: ['#b98a4a', 'Montagne'], Water: ['#3dc8d8', 'Océan'], Air: ['#cfe3ff', 'Nuages'], Hextech: ['#3d8bff', 'Hextech'], Chemtech: ['#9be03d', 'Chemtech'], Elder: ['#e8d9ff', 'Ancestral'] };
+  function specView(g, slugs) {
+    const v = (S.champList && S.champList.version) || '';
+    const ours = new Set(S.players.map((p) => String(p.pseudo || '').toLowerCase()));
+    const img = (src, cls, title, sz) => h('img', { class: cls, src, alt: '', title: title || '', width: sz, height: sz, loading: 'lazy', onerror: (e) => { e.target.style.visibility = 'hidden'; } });
+    const item = (id) => id ? img(`https://ddragon.leagueoflegends.com/cdn/${v}/img/item/${id}.png`, 'sp-it', '', 22) : h('span', { class: 'sp-it empty' });
+    const spell = (k) => k ? img(`https://ddragon.leagueoflegends.com/cdn/${v}/img/spell/${k}.png`, 'sp-sp', k.replace(/^Summoner/, ''), 16) : h('span', { class: 'sp-sp empty' });
+    const O = g.obj || { ORDER: {}, CHAOS: {} };
+    const kills = (t) => (O[t] && O[t].kills != null ? O[t].kills : g.players.filter((p) => p.team === t).reduce((a, p) => a + p.k, 0));
+    const objs = (t) => { const o = O[t] || {};
+      return h('div', { class: 'sp-obj ' + (t === 'ORDER' ? 'blue' : 'red') },
+        h('span', { title: 'Tours détruites' }, '🏰 ', o.tower || 0), o.inhib ? h('span', { title: 'Inhibiteurs' }, '⬢ ', o.inhib) : null,
+        h('span', { class: 'sp-drags', title: 'Dragons' }, (o.drag || []).map((d) => h('i', { class: 'sp-drag', style: `background:${(SP_DRAG[d] || ['#999'])[0]}`, title: (SP_DRAG[d] || ['', d])[1] })), !(o.drag || []).length ? h('small', { class: 'muted' }, '0 dragon') : null),
+        o.grubs ? h('span', { title: 'Larves du Néant' }, '🪲 ', o.grubs) : null, o.herald ? h('span', { title: 'Héraut' }, '👁 ', o.herald) : null,
+        o.baron ? h('span', { title: 'Nashor' }, '🟣 ', o.baron) : null, o.atakhan ? h('span', { title: 'Atakhan' }, '🔥 ', o.atakhan) : null);
+    };
+    const row = (p) => h('div', { class: 'sp-p' + (ours.has(p.n.toLowerCase()) ? ' ours' : '') + (p.dead ? ' dead' : '') },
+      h('span', { class: 'sp-ch' }, champIcon(p.c, 34), h('b', { class: 'sp-lvl' }, p.lvl), p.dead ? h('span', { class: 'sp-dead' }, p.dead) : null),
+      h('span', { class: 'sp-sps' }, (p.sp || []).map(spell)),
+      h('span', { class: 'sp-n' }, h('b', null, p.n.split('#')[0]), h('small', { class: 'muted' }, `${p.cs} CS${p.ward ? ' · vision ' + p.ward : ''}`)),
+      h('span', { class: 'sp-its' }, ...((p.it && p.it.length ? p.it : [0, 0, 0, 0, 0, 0, 0]).slice(0, 7).map(item))),
+      h('span', { class: 'sp-k' }, `${p.k} / ${p.d} / ${p.a}`));
+    const FEED = { drag: '🐉', baron: '🟣', herald: '👁', grubs: '🪲', atakhan: '🔥', tower: '🏰', inhib: '⬢' };
+    const feedTxt = (f) => f.x === 'drag' ? `Dragon ${((SP_DRAG[f.what] || ['', f.what])[1] || '').toLowerCase()}${f.st ? ' (volé)' : ''}` : f.x === 'baron' ? 'Nashor' + (f.st ? ' (volé)' : '') : f.x === 'herald' ? 'Héraut' : f.x === 'grubs' ? 'Larve du Néant' : f.x === 'atakhan' ? 'Atakhan' : f.x === 'tower' ? 'Tour détruite' : f.x === 'inhib' ? 'Inhibiteur détruit' : '';
+    const feed = (g.feed || []).slice().reverse().map((f) => h('div', { class: 'sp-f ' + (f.team === 'ORDER' ? 'blue' : f.team === 'CHAOS' ? 'red' : '') },
+      h('small', { class: 'muted sp-ft' }, mmss(f.t)),
+      f.x === 'kill' ? [f.kc ? champIcon(f.kc, 22) : h('span', null, '?'), h('span', { class: 'sp-sw' }, '⚔'), f.vc ? champIcon(f.vc, 22) : h('span', null, '?'), f.n ? h('small', { class: 'muted' }, ` +${f.n}`) : null]
+        : [h('span', null, FEED[f.x] || '•'), h('span', null, feedTxt(f)), f.kc ? champIcon(f.kc, 18) : null]));
+    // Regarder : le vrai mode spectateur de LoL (3 min de délai, imposé par Riot) ou l'écran du joueur s'il le partage en vocal.
+    const vs = FV().state();
+    const sharing = slugs.filter((x) => (vs.members || []).some((m) => m.slug === x && m.remote && m.remote.screen));
+    const me = vocalMe();
+    const watchers = slugs.filter((x) => x !== me);
+    const SPX = (LIVE.spx = LIVE.spx || {});
+    const actions = h('div', { class: 'row sp-act' },
+      watchers.map((x) => { const nm = String(((S.players.find((p) => p.slug === x) || {}).pseudo) || vocalName(x)).split('#')[0];
+        return h('button', { class: 'btn-fire small-btn', disabled: SPX[x] === '…' ? true : null, title: 'Ouvre le mode spectateur de League of Legends (le client LoL doit être ouvert). Riot impose 3 minutes de délai.', onclick: async () => {
+          SPX[x] = '…'; liveRefresh(true);
+          const r = await window.fire.live.spectate({ puuid: g.puuid || '', name: (g.players.find((p) => p.n.split('#')[0].toLowerCase() === nm.toLowerCase()) || {}).n || nm }).catch((e) => ({ ok: false, error: String(e) }));
+          SPX[x] = r && r.ok ? '✓ Le mode spectateur de LoL se lance…' : '⚠ ' + ((r && r.error) || 'impossible');
+          liveRefresh(true);
+        } }, `👁 Regarder ${nm} en spectateur`); }),
+      sharing.map((x) => h('button', { class: 'btn-ghost', onclick: () => { go('vocal'); VX.focus = x + ':screen'; renderVocal(); } }, `📺 Voir l’écran de ${vocalName(x)}`)),
+      Object.values(SPX).filter((t) => t && t !== '…').slice(-1).map((t) => h('small', { class: t.startsWith('⚠') ? 'bad' : 'good' }, t)),
+      h('small', { class: 'muted sp-note' }, 'Ici : mis à jour toutes les 5 s, sans délai. Spectateur LoL : image du jeu, 3 min de délai.'));
+    return h('div', { class: 'sp' },
+      h('div', { class: 'sp-score' }, objs('ORDER'), h('div', { class: 'sp-k2' }, h('b', { class: 'blue' }, kills('ORDER')), h('span', { class: 'muted' }, mmss(g.time)), h('b', { class: 'red' }, kills('CHAOS'))), objs('CHAOS')),
+      h('div', { class: 'sp-body' },
+        h('div', { class: 'sp-teams' }, h('div', { class: 'sp-team blue' }, g.players.filter((p) => p.team === 'ORDER').map(row)), h('div', { class: 'sp-team red' }, g.players.filter((p) => p.team === 'CHAOS').map(row))),
+        feed.length ? h('div', { class: 'sp-feed' }, h('h4', null, 'Fil de la partie'), feed) : null),
+      actions);
+  }
   function liveSection() {
     const all = liveAll();
     // Plusieurs joueurs de FIRE dans la même partie : une seule carte.
@@ -1589,7 +1642,7 @@
               !mine.length ? h('b', null, names.join(', ')) : null),
             h('span', { class: 'muted lv-time' }, mmss(g.time)),
             h('span', { class: 'lv-chev' }, open ? 'Masquer ▴' : 'Détails ▾')),
-          open ? h('div', { class: 'lv-teams' }, team(g, 'ORDER'), team(g, 'CHAOS')) : null);
+          open ? specView(g, slugs) : null);
       }),
       bare.length ? h('div', { class: 'card lv-card lv-bare' }, h('div', { class: 'lv-head' }, h('span', { class: 'lv-live' }, 'EN GAME'),
         h('b', null, bare.map((p) => String(p.pseudo || '').split('#')[0]).join(', ')),
