@@ -1359,9 +1359,11 @@ kbd{font:600 11px/1 ui-monospace,Consolas,monospace;padding:4px 7px;border-radiu
 .vs-sw{display:flex;justify-content:space-between;align-items:center;gap:14px;cursor:pointer}
 .vs-sw > span{display:flex;flex-direction:column;gap:2px}
 .vs-sw small{color:var(--muted);font-size:12px}
-.vs-tog{appearance:none;-webkit-appearance:none;flex:none;width:40px;height:22px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;cursor:pointer;transition:background .15s;margin:0}
+.vs-tog,html.v2 input[type=checkbox].vs-tog{appearance:none;-webkit-appearance:none;flex:none;width:40px;height:22px;min-width:40px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;cursor:pointer;transition:background .15s;margin:0}
 .vs-tog::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
-.vs-tog:checked{background:#3ddc84}
+.vs-tog:checked,html.v2 input[type=checkbox].vs-tog:checked{background:#3ddc84;border-color:#3ddc84;box-shadow:0 0 0 3px rgb(61 220 132 / 18%)}
+html.v2 input[type=checkbox].vs-tog:not(:checked){background:rgba(255,255,255,.14)}
+.vs-tog:focus-visible{outline:2px solid var(--fire1);outline-offset:2px}
 .vs-tog:checked::after{transform:translateX(18px)}
 .vs-key{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px}
 .vs-key > span{display:flex;flex-direction:column;gap:2px}

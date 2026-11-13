@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.101",
+   "date": "2026-11-13",
+   "titre": "Interrupteurs lisibles",
+   "items": [
+    [
+     "fix",
+     "Réglages du vocal : les interrupteurs s'affichent de nouveau en entier (vert avec le rond à droite = activé, gris avec le rond à gauche = désactivé). Avant, on ne voyait que deux ronds."
+    ]
+   ]
+  },
+  {
    "v": "1.10.100",
    "date": "2026-11-13",
    "titre": "Volume jusqu'à 500 %",

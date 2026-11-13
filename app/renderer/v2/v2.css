@@ -115,7 +115,7 @@ html.v2 .inp, html.v2 select, html.v2 input[type=date] {
 html.v2 .inp:hover, html.v2 select:hover { border-color: var(--muted); }
 html.v2 .inp:focus { border-color: var(--fire1); }
 html.v2 .inp::placeholder { color: var(--muted); opacity: 1; }
-html.v2 input[type=checkbox] { accent-color: var(--fire1); width: 18px; height: 18px; }
+html.v2 input[type=checkbox]:not(.vs-tog) { accent-color: var(--fire1); width: 18px; height: 18px; }
 html.v2 input[type=range] { accent-color: var(--fire1); }
 
 /* ---------- Bandeaux des joueurs : teinte V2 selon le thème des données ---------- */
