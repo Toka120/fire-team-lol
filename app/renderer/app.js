@@ -1708,7 +1708,7 @@
     const feedTxt = (f) => f.x === 'drag' ? `Dragon ${((SP_DRAG[f.what] || ['', f.what])[1] || '').toLowerCase()}${f.st ? ' (volé)' : ''}` : f.x === 'baron' ? 'Nashor' + (f.st ? ' (volé)' : '') : f.x === 'herald' ? 'Héraut' : f.x === 'grubs' ? 'Larve du Néant' : f.x === 'atakhan' ? 'Atakhan' : f.x === 'tower' ? 'Tour détruite' : f.x === 'inhib' ? 'Inhibiteur détruit' : '';
     const feed = (g.feed || []).slice().reverse().map((f) => h('div', { class: 'sp-f ' + (f.team === 'ORDER' ? 'blue' : f.team === 'CHAOS' ? 'red' : '') },
       h('small', { class: 'muted sp-ft' }, mmss(f.t)),
-      f.x === 'kill' ? [f.kc ? champIcon(f.kc, 22) : h('span', null, '?'), h('span', { class: 'sp-sw' }, '⚔'), f.vc ? champIcon(f.vc, 22) : h('span', null, '?'), f.n ? h('small', { class: 'muted' }, ` +${f.n}`) : null]
+      f.x === 'kill' ? [f.kc ? champIcon(f.kc, 22) : h('span', { title: { tour: 'Tour', sbire: 'Sbires', monstre: 'Monstre', exec: 'Exécuté' }[f.kk] || '' }, { tour: '🏰', sbire: '👾', monstre: '🐉', exec: '💀' }[f.kk] || '💀'), h('span', { class: 'sp-sw' }, '⚔'), f.vc ? champIcon(f.vc, 22) : h('span', null, '?'), f.n ? h('small', { class: 'muted' }, ` +${f.n}`) : null]
         : [h('span', null, FEED[f.x] || '•'), h('span', null, feedTxt(f)), f.kc ? champIcon(f.kc, 18) : null]));
     // Regarder : le vrai mode spectateur de LoL (3 min de délai, imposé par Riot) ou l'écran du joueur s'il le partage en vocal.
     const vs = FV().state();
@@ -5647,6 +5647,7 @@
 
   // Accueil de Détente : tous les jeux en cartes ; un jeu ouvert prend toute la page (retour en un clic).
   const JDESC = {
+    wr: 'Deux champions face à face dans la même lane : estime le taux de victoire du matchup (stats Émeraude+ du patch).',
     classique: 'Devine le champion : chaque essai te dit ce qui est pareil, proche ou différent.', sort: 'Retrouve le champion à partir de l’icône d’un de ses sorts.',
     passif: 'Son passif, en icône : à qui est-il ?', phrase: 'Une réplique du champion : qui parle ?', splash: 'Un bout de splash art qui se dévoile petit à petit.',
     emoji: 'Le champion en quelques emojis.', ombre: 'Sa silhouette seulement.', listen: 'Les sons de ses sorts : à l’oreille !', lore: 'Les histoires des champions et des régions de Runeterra.',
@@ -5784,6 +5785,103 @@
         h('button', { class: 'btn-fire small-btn', onclick: next }, R.i + 1 >= QN ? 'Voir mon rang ▶' : 'Question suivante ▶')) : null));
     return out;
   }
+
+  // ===== « Qui a le meilleur winrate ? » : estimer le taux de victoire d'un vrai matchup (LoLalytics, Émeraude+) =====
+  const WRN = 10, WRT = 20;
+  const WRG = { st: null };
+  const WR_LANES = [['top', 'Top'], ['jungle', 'Jungle'], ['middle', 'Mid'], ['bottom', 'ADC'], ['support', 'Support']];
+  function wrPick() {
+    const D = TL.data && TL.data.data;
+    const reg = (D && (D.euw || D.kr)) || {};
+    const byElo = reg.emerald_plus || reg.all || {};
+    const [lane, laneFr] = WR_LANES[Math.floor(Math.random() * WR_LANES.length)];
+    const rows = (byElo[lane] || []).filter((r) => r.id && (r.lane == null || r.lane >= 10)).sort((a, b) => (b.pick || 0) - (a.pick || 0)).slice(0, 22);
+    if (rows.length < 4) return null;
+    const a = rows[Math.floor(Math.random() * rows.length)];
+    let b = a; while (b.id === a.id) b = rows[Math.floor(Math.random() * rows.length)];
+    return { a: a.id, b: b.id, lane, laneFr };
+  }
+  // On prépare les matchups à l'avance (2 d'avance) pour ne jamais attendre entre deux questions.
+  async function wrFill() {
+    const g = WRG.st; if (!g || g.filling) return;
+    g.filling = true;
+    try {
+      for (let tries = 0; g.queue.length < 3 && tries < 12 && WRG.st === g; tries++) {
+        const m = wrPick(); if (!m) break;
+        const r = await window.fire.matchup(m.a, m.b, m.lane).catch(() => null);
+        if (r && r.ok && r.wr != null && (r.games || 0) >= 300) g.queue.push({ ...m, wr: Number(r.wr), games: r.games, patch: r.patch, elo: r.elo });
+      }
+    } finally { g.filling = false; }
+    if (WRG.st === g && S.section === 'jeux' && J.tab === 'wr' && !g.cur) { wrNext(); }
+  }
+  function wrStart() {
+    WRG.st = { i: -1, pts: 0, good: 0, log: [], queue: [], cur: null, val: 50, ans: null, t0: 0 };
+    if (!TL.data && !TL.loading) { TL.loading = true; window.fire.tierlist().then((d) => { TL.data = d || { data: {} }; }).catch(() => { TL.data = { data: {} }; }).finally(() => { TL.loading = false; wrFill(); }); }
+    else wrFill();
+    render();
+  }
+  function wrNext() {
+    const g = WRG.st; if (!g) return;
+    if (g.i + 1 >= WRN) { g.done = true; g.cur = null; const best = load('fire.wr.best', 0); if (g.pts > best) save('fire.wr.best', g.pts); render(); return; }
+    const m = g.queue.shift();
+    if (!m) { g.cur = null; render(); wrFill(); return; }
+    g.i++; g.cur = m; g.val = 50; g.ans = null; g.t0 = Date.now();
+    clearInterval(g.timer);
+    g.timer = setInterval(() => { if (!g.cur || g.ans != null || WRG.st !== g) { clearInterval(g.timer); return; } const left = WRT - Math.floor((Date.now() - g.t0) / 1000); const el = document.querySelector('.wr-left'); if (el) el.textContent = Math.max(0, left) + ' s restantes'; if (left <= 0) wrConfirm(); }, 250);
+    render(); wrFill();
+  }
+  function wrConfirm() {
+    const g = WRG.st; if (!g || !g.cur || g.ans != null) return;
+    clearInterval(g.timer);
+    const diff = Math.abs(g.val - g.cur.wr);
+    const side = (g.val >= 50) === (g.cur.wr >= 50) || diff <= 0.5;
+    const pts = diff <= 0.5 ? 100 : Math.max(0, Math.round(100 - diff * 18));
+    g.ans = { diff, side, pts };
+    g.pts += pts; if (side) g.good++;
+    g.log.push(pts >= 70 ? 'ok' : side ? 'mid' : 'ko');
+    render();
+  }
+  function renderWrGame() {
+    const g = WRG.st;
+    const splash = (id) => h('div', { class: 'wr-splash', style: `background-image:url(https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${id}_0.jpg)` });
+    if (!g) return [h('div', { class: 'card wr-intro' }, h('h3', null, '📊 Qui a le meilleur winrate ?'),
+      h('p', { class: 'muted' }, `${WRN} matchups tirés au hasard parmi les champions les plus joués de chaque lane. Déplace le curseur pour estimer le taux de victoire du champion de gauche contre celui de droite, puis confirme (${WRT} s par matchup). Les stats sont les vraies, Émeraude+, du patch en cours.`),
+      load('fire.wr.best', 0) ? h('p', { class: 'small' }, `🏆 Ton record : ${load('fire.wr.best', 0)} points`) : null,
+      h('button', { class: 'btn-fire small-btn', onclick: wrStart }, '▶ Jouer'))];
+    if (g.done) {
+      const best = load('fire.wr.best', 0);
+      const rank = g.pts >= 800 ? ['Challenger', '#5ad0ff'] : g.pts >= 650 ? ['Maître', '#b05cff'] : g.pts >= 500 ? ['Diamant', '#6b8cff'] : g.pts >= 350 ? ['Platine', '#2fbf9f'] : g.pts >= 200 ? ['Or', '#e8b44a'] : ['Fer', '#888'];
+      return [h('div', { class: 'card wr-end' }, h('h3', null, 'Partie terminée'),
+        h('div', { class: 'wr-big', style: `color:${rank[1]}` }, rank[0]),
+        h('p', null, `${g.pts} points · ${g.good} / ${WRN} bons côtés (plus ou moins de 50 %)`), g.pts >= best ? h('p', { class: 'good small' }, '🏆 Nouveau record !') : h('p', { class: 'muted small' }, `Record : ${best} points`),
+        h('button', { class: 'btn-fire small-btn', onclick: wrStart }, '↻ Rejouer'))];
+    }
+    if (!g.cur) return [h('div', { class: 'card' }, h('p', { class: 'muted' }, g.filling || TL.loading ? '⏳ Préparation des matchups (vraies stats LoLalytics)…' : '⚠ Stats indisponibles pour l’instant (connexion ?).'),
+      !g.filling && !TL.loading ? h('button', { class: 'btn-ghost', onclick: wrFill }, 'Réessayer') : null)];
+    const m = g.cur, A = FC.champName(m.a), B = FC.champName(m.b);
+    const out = h('b', { class: 'wr-val' }, `${fr(g.val, 1)} %`), out2 = h('b', { class: 'wr-val' }, `${fr(100 - g.val, 1)} %`);
+    const slider = h('input', { type: 'range', min: 35, max: 65, step: 0.5, value: g.val, class: 'wr-range', disabled: g.ans ? true : null,
+      oninput: (e) => { g.val = Number(e.target.value); out.textContent = `${fr(g.val, 1)} %`; out2.textContent = `${fr(100 - g.val, 1)} %`; },
+      onkeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); wrConfirm(); } } });
+    setTimeout(() => { if (!g.ans) slider.focus(); }, 30);
+    return [h('div', { class: 'wr' },
+      h('div', { class: 'wr-top' }, h('span', { class: 'muted' }, `Matchup ${g.i + 1} sur ${WRN} · ${g.pts} points`), h('div', { class: 'qz-log' }, g.log.map((x) => h('span', { class: x === 'ok' ? 'ok' : x === 'ko' ? 'ko' : 'mid' }, x === 'ok' ? '✓' : x === 'ko' ? '✗' : '~')))),
+      h('h2', null, 'Qui a le meilleur winrate ?'),
+      h('div', { class: 'muted' }, `${m.laneFr} · patch ${m.patch || '?'} `, !g.ans ? h('small', { class: 'wr-left' }, WRT + ' s restantes') : null),
+      h('div', { class: 'wr-row' },
+        h('div', { class: 'wr-champ' }, splash(m.a), h('b', null, A)),
+        h('div', { class: 'wr-mid' },
+          h('div', { class: 'muted' }, `Estime le taux de victoire de ${A}`),
+          h('div', { class: 'wr-vals' }, out, out2), slider,
+          g.ans ? h('div', { class: 'wr-res ' + (g.ans.pts >= 70 ? 'ok' : g.ans.side ? 'mid' : 'ko') },
+            h('div', null, `Réponse : ${A} `, h('b', null, `${fr(m.wr, 1)} %`), ` contre ${B}`),
+            h('small', null, `Écart ${fr(g.ans.diff, 1)} pt · +${g.ans.pts} points${g.ans.side ? '' : ' · mauvais côté'}`),
+            h('button', { class: 'btn-fire small-btn', onclick: wrNext }, g.i + 1 >= WRN ? 'Voir mon rang ▶' : 'Matchup suivant ▶'))
+            : [h('small', { class: 'muted' }, 'Ajuste ton estimation, puis confirme. Clavier : flèches puis Entrée.'), h('button', { class: 'btn-fire small-btn wr-ok', onclick: wrConfirm }, 'Confirmer l’estimation')]),
+        h('div', { class: 'wr-champ' }, splash(m.b), h('b', null, B))),
+      h('p', { class: 'muted small' }, `${(m.games || 0).toLocaleString('fr-FR')} parties classées · ${m.elo ? m.elo.replace('EMERALD+', 'Émeraude+') : 'Émeraude+'} · stats LoLalytics du patch.`))];
+  }
+
   function jeuxHome() {
     const card = ([k, l], learn) => {
       const m = String(l).match(/^(\S+)\s+(.*)$/) || [null, '🎮', l];
@@ -5795,6 +5893,8 @@
     return [
       h('h2', { class: 'hub-sec' }, h('span', null, '🧠 Quiz de connaissances'), h('small', { class: 'muted' }, '10 questions, un rang de Fer à Challenger')),
       h('div', { class: 'jg-grid' }, QMODES.map((x) => card(x, false))),
+      h('h2', { class: 'hub-sec' }, h('span', null, '📊 Les stats'), h('small', { class: 'muted' }, 'le vrai taux de victoire des matchups')),
+      h('div', { class: 'jg-grid' }, [['wr', '📊 Qui a le meilleur winrate ?']].map((x) => card(x, false))),
       h('h2', { class: 'hub-sec' }, h('span', null, '🎮 Deviner le champion'), h('small', { class: 'muted' }, 'autant de parties que tu veux')),
       h('div', { class: 'jg-grid' }, JMODES.map((x) => card(x, false))),
       ...(SUB() ? [] : [h('h2', { class: 'hub-sec' }, h('span', null, '🎓 Apprendre en jouant'), h('small', { class: 'muted' }, 'des situations de vraies parties')),
@@ -5803,7 +5903,7 @@
   }
   function renderJeux() {
     const view = $('view');
-    const cur = JMODES.concat(LMODES, QMODES).find(([k]) => k === J.tab);
+    const cur = JMODES.concat(LMODES, QMODES, [['wr', '📊 Qui a le meilleur winrate ?']]).find(([k]) => k === J.tab);
     const nodes = [h('header', { class: 'sec-hero' + (J.home ? '' : ' compact') }, h('div', { class: 'sec-ico' }, '🎮'),
       h('div', null, h('h1', { class: 'title' }, 'Détente'), J.home ? h('p', { class: 'muted' }, 'Des jeux rapides pour se détendre entre deux games, et d’autres pour progresser en jouant.') : null))];
     if (J.home) { nodes.push(...jeuxHome()); view.replaceChildren(...nodes); return; }
@@ -5812,6 +5912,7 @@
     if (false) nodes.push(h('div', { class: 'chips jeu-tabs' }, h('span', { class: 'jt-label' }, '🎮 Deviner le champion'), JMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
     if (false) nodes.push(h('div', { class: 'chips jeu-tabs learn' }, h('span', { class: 'jt-label' }, '🎓 Apprendre en jouant'), LMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
     if (SUB() && LMODES.some(([k]) => k === J.tab)) { J.home = true; render(); return; }
+    if (J.tab === 'wr') { nodes.push(...renderWrGame()); view.replaceChildren(...nodes); return; }
     if (LMODES.some(([k]) => k === J.tab)) { nodes.push(...renderLearn(J.tab)); view.replaceChildren(...nodes); return; }
     if (!J.data) {
       nodes.push(h('div', { class: 'card' }, J.loading || !J.err ? h('p', { class: 'muted' }, 'Chargement des champions…') : h('p', { class: 'bad' }, '⚠ ' + J.err, ' ', h('button', { class: 'btn-ghost', onclick: () => { J.err = ''; loadJeux(); render(); } }, 'Réessayer'))));

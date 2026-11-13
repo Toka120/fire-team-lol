@@ -483,14 +483,17 @@ ipcMain.handle('live:spectate', async (e, who) => {
     if (!me) return { ok: false, error: 'ouvre le client League of Legends (connecté) puis réessaie' };
     const puuid = String((who && who.puuid) || '').slice(0, 100), name = String((who && who.name) || '').slice(0, 60);
     if (!puuid && !name) return { ok: false, error: 'partie introuvable' };
+    // Le client attend une LISTE de noms (« summonerOrTeamNames ») : le Riot ID complet, puis le pseudo seul.
     const tries = [
+      () => lcuReq('POST', '/lol-spectator/v1/buddy/spectate', [name]),
+      () => lcuReq('POST', '/lol-spectator/v1/buddy/spectate', [name.split('#')[0]]),
       () => lcuReq('POST', '/lol-spectator/v1/spectate/launch', { allowObserveMode: 'ALL', dropInSpectateGameId: name.split('#')[0], gameQueueType: '', puuid }),
-      () => lcuReq('POST', '/lol-spectator/v1/buddy/spectate', name),
-      () => lcuReq('POST', '/lol-spectator/v1/buddy/spectate', name.split('#')[0]),
     ];
-    let last = null;
-    for (const t of tries) { last = await t(); if (last.status >= 200 && last.status < 300) return { ok: true }; }
+    let last = null, first = null;
+    for (const t of tries) { last = await t(); if (last.status >= 200 && last.status < 300) return { ok: true }; if (!first && last.status && last.status !== 404) first = last; }
+    last = first || last;
     const msg = last && last.data && (last.data.message || last.data.errorCode);
+    if (/not.*spectat|observ|GAME_NOT_FOUND|not found/i.test(String(msg || ''))) return { ok: false, error: 'cette partie ne peut pas être regardée (partie personnalisée, entraînement, ou moins de 3 minutes de jeu)' };
     return { ok: false, error: msg ? String(msg).slice(0, 160) : 'le client LoL a refusé (la partie a peut-être moins de 3 minutes)' };
   } catch (err) { return { ok: false, error: String(err && err.message || err) }; }
 });
@@ -546,7 +549,12 @@ function liveObjectives(d) {
   const feed = [];
   for (const e of (d.events && d.events.Events) || []) {
     const k = String(e.KillerName || ''), kt = tOf(k), t = Math.round(Number(e.EventTime) || 0), n = Array.isArray(e.Assisters) ? e.Assisters.length : 0;
-    if (e.EventName === 'ChampionKill') { if (kt) obj[kt].kills++; feed.push({ t, x: 'kill', team: kt, kc: cOf(k), vc: cOf(e.VictimName), n }); }
+    if (e.EventName === 'ChampionKill') {
+      const kk = cOf(k) ? '' : /Turret/i.test(k) ? 'tour' : /Minion/i.test(k) ? 'sbire' : /SRU_|Sru_|Baron|Dragon|Herald/i.test(k) ? 'monstre' : 'exec';
+      const vt = tOf(e.VictimName); const kteam = kt || (vt === 'ORDER' ? 'CHAOS' : vt === 'CHAOS' ? 'ORDER' : '');
+      if (kteam) obj[kteam].kills++;
+      feed.push({ t, x: 'kill', team: kteam, kc: cOf(k), vc: cOf(e.VictimName), n, kk });
+    }
     else if (e.EventName === 'DragonKill' && kt) { obj[kt].drag.push(String(e.DragonType || '').slice(0, 10)); feed.push({ t, x: 'drag', team: kt, kc: cOf(k), what: String(e.DragonType || ''), st: e.Stolen === 'True' }); }
     else if (e.EventName === 'BaronKill' && kt) { obj[kt].baron++; feed.push({ t, x: 'baron', team: kt, kc: cOf(k), st: e.Stolen === 'True' }); }
     else if (e.EventName === 'HeraldKill' && kt) { obj[kt].herald++; feed.push({ t, x: 'herald', team: kt, kc: cOf(k) }); }

@@ -901,7 +901,7 @@
       obj: g.obj && typeof g.obj === 'object' ? Object.fromEntries(['ORDER', 'CHAOS'].map((t) => { const o = g.obj[t] || {};
         return [t, { drag: Array.isArray(o.drag) ? o.drag.slice(0, 10).map((x) => str(x, 10).replace(/[^A-Za-z]/g, '')) : [], baron: num(o.baron), herald: num(o.herald), grubs: num(o.grubs), atakhan: num(o.atakhan), tower: num(o.tower), inhib: num(o.inhib), kills: num(o.kills) }]; })) : null,
       feed: Array.isArray(g.feed) ? g.feed.slice(-14).map((f) => ({ t: num(f.t), x: str(f.x, 8).replace(/[^a-z]/g, ''), team: f.team === 'CHAOS' ? 'CHAOS' : f.team === 'ORDER' ? 'ORDER' : '',
-        kc: str(f.kc, 30).replace(/[^A-Za-z0-9]/g, ''), vc: str(f.vc, 30).replace(/[^A-Za-z0-9]/g, ''), what: str(f.what, 10).replace(/[^A-Za-z]/g, ''), n: num(f.n), st: !!f.st })) : [],
+        kc: str(f.kc, 30).replace(/[^A-Za-z0-9]/g, ''), vc: str(f.vc, 30).replace(/[^A-Za-z0-9]/g, ''), what: str(f.what, 10).replace(/[^A-Za-z]/g, ''), n: num(f.n), st: !!f.st, kk: ['tour', 'sbire', 'monstre', 'exec'].includes(f.kk) ? f.kk : '' })) : [],
     };
   }
   // Statut et petite carte de profil d'un coéquipier (Paramètres › Mon profil) : seulement des champs connus et courts.

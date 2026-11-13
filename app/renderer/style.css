@@ -2354,3 +2354,25 @@ html.sub-mode #chat { display: none !important; }
 .pt-f .inp { min-width: 140px; }
 .pt-hash { font-size: 22px; color: var(--accent, #ff6b3d); padding-bottom: 8px; }
 .pt-head + .hero { margin-top: 10px; }
+
+/* ===== Qui a le meilleur winrate ? ===== */
+.wr { display: flex; flex-direction: column; gap: 10px; }
+.wr h2 { margin: 6px 0 0; font-size: 30px; }
+.wr-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ffffff22; padding-bottom: 8px; }
+.wr-left { margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: #ffffff12; color: #fff; }
+.wr-row { display: grid; grid-template-columns: 240px 1fr 240px; gap: 22px; align-items: start; margin-top: 10px; }
+@media (max-width: 1000px) { .wr-row { grid-template-columns: 160px 1fr 160px; } }
+.wr-champ { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.wr-champ b { font-size: 22px; }
+.wr-splash { width: 100%; aspect-ratio: 6/5; border-radius: 10px; background-size: cover; background-position: 50% 15%; box-shadow: 0 6px 24px #0008; }
+.wr-mid { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding-top: 20px; }
+.wr-vals { display: flex; justify-content: space-between; width: 100%; }
+.wr-val { font-size: 24px; font-variant-numeric: tabular-nums; }
+.wr-range { width: 100%; accent-color: var(--accent, #ff6b3d); }
+.wr-ok { width: 100%; }
+.wr-res { width: 100%; padding: 12px; border-radius: 10px; display: flex; flex-direction: column; gap: 6px; align-items: center; background: #ffffff0d; }
+.wr-res.ok { background: #3ddc8422; } .wr-res.ko { background: #ff4d5e22; } .wr-res.mid { background: #ffc24b1f; }
+.wr-res b { font-size: 20px; }
+.qz-log .mid { color: #ffc24b; }
+.wr-end { text-align: center; }
+.wr-big { font-size: 46px; font-weight: 900; margin: 6px 0; }

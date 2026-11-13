@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.112",
+   "date": "2026-11-13",
+   "titre": "Qui a le meilleur winrate ? et spectateur corrigé",
+   "items": [
+    [
+     "new",
+     "Détente › « Qui a le meilleur winrate ? » : 10 matchups tirés parmi les champions les plus joués de chaque lane. Estime au curseur le taux de victoire du champion de gauche, confirme (20 s par matchup), puis découvre la vraie réponse (LoLalytics, Émeraude+, patch en cours). Points, rang final et record."
+    ],
+    [
+     "fix",
+     "« Regarder en spectateur » : FIRE envoie maintenant la demande au client LoL dans le bon format (l'erreur « summonerOrTeamNames » est corrigée). Une partie personnalisée, un entraînement ou une partie de moins de 3 minutes ne peut pas être regardée : FIRE le dit clairement."
+    ],
+    [
+     "improve",
+     "Fil de la partie : un joueur tué par une tour, des sbires ou un monstre affiche 🏰, 👾 ou 🐉 au lieu d'un « ? »."
+    ]
+   ]
+  },
+  {
    "v": "1.10.111",
    "date": "2026-11-13",
    "titre": "Outils, analyse de parties, zéro pub",
