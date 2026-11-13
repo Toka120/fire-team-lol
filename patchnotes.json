@@ -1,6 +1,37 @@
 {
  "versions": [
   {
+   "v": "1.10.109",
+   "date": "2026-11-13",
+   "titre": "Code remplaçants",
+   "items": [
+    [
+     "new",
+     "Code remplaçants : un code à part pour les remplaçants. Avec ce code, FIRE n'a pas la clé de l'équipe : les fiches du coach, les pools, la discussion et le planning complet restent chiffrés et illisibles sur leur PC."
+    ],
+    [
+     "new",
+     "Les remplaçants ont : leurs propres stats, le planning des séances en lecture seule (sans les dispos des coachs ni les réponses de chacun, rien à remplir), le quiz de connaissances, « Deviner le champion », Micro, Clips, E-sport, Patchs LoL et le vocal."
+    ],
+    [
+     "new",
+     "Vocal des remplaçants : salon de l'équipe et duos, sans « Coaching perso », sans le tableau tactique et sans modération. La discussion écrite de l'équipe ne leur est pas envoyée."
+    ],
+    [
+     "new",
+     "Fermé aux remplaçants : stats et analyses de l'équipe, POOL, Draft, Lanes et principes, Parole du coach, Apprendre en jouant, Discussion et Carnet de bord. Les titulaires voient toujours les remplaçants."
+    ],
+    [
+     "improve",
+     "Le planning des séances est envoyé aux remplaçants, chiffré pour eux, par les FIRE des titulaires ouverts en même temps."
+    ],
+    [
+     "improve",
+     "Clips passe dans la catégorie Social."
+    ]
+   ]
+  },
+  {
    "v": "1.10.108",
    "date": "2026-11-13",
    "titre": "POOL : catégorie « À travailler »",

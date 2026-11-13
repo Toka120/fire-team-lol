@@ -2329,3 +2329,8 @@ html.v2 .tier-row.rT { background: var(--panel2); border-color: color-mix(in srg
 html.v2 .tier.tlT { min-width: 128px; padding: 8px; border-radius: 8px; gap: 4px; font: 600 12px/16px var(--v2-font); letter-spacing: .08em; background: color-mix(in srgb, #3ddc84 14%, var(--panel)); color: #3ddc84; }
 html.v2 .c-t, html.v2 .catbar .c-t { background: #3ddc84; }
 html.v2 .pk-mode.mT > .v2i { color: #3ddc84; }
+
+/* ===== Remplaçants ===== */
+html.sub-mode #chat { display: none !important; }
+.sub-banner { border-color: #3ddc8466; }
+.sub-banner p { margin: 4px 0 0; }

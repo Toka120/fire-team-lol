@@ -38,8 +38,8 @@
     guides: 'Lanes et principes', coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', chat: 'Discussion', vocal: 'Vocal', carnet: 'Carnet de bord', clips: 'Clips',
     patch: 'Patch notes', settings: 'Paramètres',
   };
-  const GROUPS = [['Équipe', ['stats', 'pool', 'planning']], ['Jeu', ['draft', 'train', 'jeux', 'clips']],
-    ['Apprendre', ['guides', 'coach', 'worlds', 'lolpatch']], ['Social', ['chat', 'vocal']], [null, ['carnet', 'patch', 'settings']]];
+  const GROUPS = [['Équipe', ['stats', 'pool', 'planning']], ['Jeu', ['draft', 'train', 'jeux']],
+    ['Apprendre', ['guides', 'coach', 'worlds', 'lolpatch']], ['Social', ['chat', 'vocal', 'clips']], [null, ['carnet', 'patch', 'settings']]];
 
   // items : [{ id, label, badge, cls }] ; go(id) ouvre la rubrique.
   function nav(box, items, current, go) {

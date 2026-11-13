@@ -89,7 +89,21 @@ async function unlock(code) {
   try { team = await matches(n, cfg.code_scrypt); } catch (e) { err = e; }
   if (!team && err && cfg.code_sha256) team = sha256(n) === cfg.code_sha256; // secours si scrypt est indisponible
   if (!team && cfg.coach_scrypt) { try { isCoach = await matches(n, cfg.coach_scrypt); } catch (e) { err = err || e; } }
+  // Code remplaçant : accès limité, sans la clé de l'équipe (fiches, pools, planning et discussion restent illisibles).
+  if (!team && !isCoach && cfg.remplacant_scrypt) {
+    let sub = false;
+    try { sub = await matches(n, cfg.remplacant_scrypt); } catch (e) { err = err || e; }
+    if (sub) {
+      try {
+        const k = await scrypt(n, cfg.remplacant_salt);
+        writeSecret('remp.bin', { key: k.toString('hex'), hash: cfg.remplacant_scrypt.hash });
+        removeFile('equipe.bin'); removeFile('coach.bin'); removeFile('chef.bin');
+      } catch (e) { return { ok: false, error: "impossible d'enregistrer le code sur cet ordinateur : " + ((e && e.message) || e) }; }
+      return { ok: true, remplacant: true };
+    }
+  }
   if (!team && !isCoach) return { ok: false, error: err ? String((err && err.message) || err) : null };
+  removeFile('remp.bin');
   let key = null;
   try {
     if (team && cfg.fiches_salt) key = await scrypt(n, cfg.fiches_salt);
@@ -104,9 +118,47 @@ async function unlock(code) {
   return { ok: true, coach: isCoach };
 }
 
+function rempOn() {
+  const cfg = getConfig();
+  const r = readSecret('remp.bin');
+  return !!(r && cfg.remplacant_scrypt && r.hash === cfg.remplacant_scrypt.hash && r.key);
+}
+// Clé des remplaçants : les titulaires la retrouvent avec la clé de l'équipe, les remplaçants avec leur code.
+function rempKey() {
+  const cfg = getConfig();
+  const tk = teamKey();
+  if (tk && cfg.remplacant_cle) {
+    try {
+      const w = cfg.remplacant_cle;
+      const d = crypto.createDecipheriv('aes-256-gcm', tk, Buffer.from(w.iv, 'base64'));
+      d.setAAD(Buffer.from('fire-cle-remplacants'));
+      d.setAuthTag(Buffer.from(w.tag, 'base64'));
+      return Buffer.concat([d.update(Buffer.from(w.data, 'base64')), d.final()]);
+    } catch (e) { return null; }
+  }
+  if (rempOn()) return Buffer.from(readSecret('remp.bin').key, 'hex');
+  return null;
+}
+// Paquet pour les remplaçants (planning sans les coachs, salons autorisés), envoyé de PC à PC, chiffré avec leur clé.
+function rempSeal(obj) {
+  const key = rempKey(); if (!key || teamKey() == null) return null; // seuls les titulaires écrivent
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv('aes-256-gcm', key, iv); c.setAAD(Buffer.from('fire-remp'));
+  const data = Buffer.concat([c.update(JSON.stringify(obj), 'utf8'), c.final()]);
+  return { iv: iv.toString('base64'), tag: c.getAuthTag().toString('base64'), data: data.toString('base64') };
+}
+function rempOpen(box) {
+  const key = rempKey(); if (!key || !box) return null;
+  try {
+    const d = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(String(box.iv), 'base64'));
+    d.setAAD(Buffer.from('fire-remp')); d.setAuthTag(Buffer.from(String(box.tag), 'base64'));
+    return JSON.parse(Buffer.concat([d.update(Buffer.from(String(box.data), 'base64')), d.final()]).toString('utf8'));
+  } catch (e) { return null; }
+}
 function isUnlocked() {
   const cfg = getConfig();
   if (!cfg.code_scrypt) return true;
+  if (rempOn()) return true;
   const s = readSecret('equipe.bin');
   return !!(s && s.hash === cfg.code_scrypt.hash && (!cfg.fiches_salt || s.salt === cfg.fiches_salt));
 }
@@ -176,7 +228,9 @@ function coachState() {
   const on = !!(c.hash && cfg.coach_scrypt && c.hash === cfg.coach_scrypt.hash);
   const admin = adminOn();
   // Le créateur a les droits du coach et du chef d'équipe (les clés Claude/GitHub restent celles du coach).
-  return { coach: on || admin, claude: on && !!c.anthropic, github: on && !!c.github, chef: chefOn() || admin, admin };
+  const remplacant = !teamKey() && rempOn();
+  if (remplacant) return { coach: false, claude: false, github: false, chef: false, admin: false, remplacant: true };
+  return { coach: on || admin, claude: on && !!c.anthropic, github: on && !!c.github, chef: chefOn() || admin, admin, remplacant: false };
 }
 
 // ---------- Chef d'équipe : peut modifier le planning (code chef, donné par le coach) ----------
@@ -1089,4 +1143,4 @@ async function closeBug(id) {
   } catch (e) { return { ok: false, error: String(e.message || e) }; }
 }
 
-module.exports = { chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

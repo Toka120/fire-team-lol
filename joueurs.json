@@ -14,6 +14,16 @@
     "salt": "999a211aa27e40f08b878cb90d87290d",
     "hash": "622949bd90c16d7c96a9cbd14a7abd85ae060ce81f5b511d9bc3e57f01315bb7"
   },
+  "remplacant_scrypt": {
+    "salt": "694e97a74e657157fd6a1542e05f94c3",
+    "hash": "46a19e28dcf2d60d045ce0a1594dcb8848442a008c23523e8cefe6eb6c960bfe"
+  },
+  "remplacant_salt": "75f0393b84fad519e8c4f75f980b1b46",
+  "remplacant_cle": {
+    "iv": "ePkOOpovR4rUjpS/",
+    "tag": "aOGA03EB/b5HCHvgTrsJZA==",
+    "data": "IFxzRawX40h6383IS/gXJg5CBjTe61Q14sCAf17dX9A="
+  },
   "fiches_salt": "5916c842ca2b8bc9b75ca3e5558f2fd6",
   "fiches_cle_coach": {
     "salt": "e753cadf35ce116dbb7f5ba47fef987c",

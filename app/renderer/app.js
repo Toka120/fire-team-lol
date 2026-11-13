@@ -330,7 +330,7 @@
     actInit();
     modInit(); voiceTrayInit();
     loadGuides();
-    window.fire.coach.state().then((c) => { S.coachState = c; if (S.section === 'coach' && !typing()) render(); }).catch(() => {});
+    window.fire.coach.state().then((c) => { S.coachState = c; if (SUB()) { subInit(); renderNav(); if (!SUB_OK.has(S.section)) go('stats'); else if (!typing()) render(); } else if (S.section === 'coach' && !typing()) render(); }).catch(() => {});
     loadFiches();
     loadPools();
     loadPlanning();
@@ -1484,6 +1484,7 @@
   }
 
   function openPlayer(slug) {
+    if (SUB() && slug !== S.moi) return;
     S.view = 'player'; S.player = slug; S.tab = 'resume'; S.jour = 'tous'; S.more = false; S.openCard = null;
     render();
     window.scrollTo(0, 0);
@@ -1500,12 +1501,12 @@
         h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · clique sur un joueur pour voir tout le détail.`),
         (S.coachs || []).length ? h('p', { class: 'muted small hub-coachs' }, '🎓 Coachs : ', (S.coachs || []).map((c) => h('b', null, c.pseudo)).reduce((a, x, i) => (i ? a.concat(' · ', x) : [x]), [])) : null,
         S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif : ${S.obj.games} games par semaine (du lundi au dimanche) sur les champions obligatoires, réparties comme chacun veut. Cette semaine : du ${dateFr(S.obj.debut)} au ${dateFr(S.obj.fin)}.`) : null)),
-      homeNotes(),
-      liveSection(),
-      teamCards(),
+      SUB() ? subBanner() : homeNotes(),
+      SUB() ? null : liveSection(),
+      SUB() ? null : teamCards(),
       h('div', { class: 'more-row hub-more' }, h('button', { class: 'btn-ghost more-btn', onclick: () => { S.hubMore = !S.hubMore; render(); } }, S.hubMore ? '➖ Moins de détails' : '➕ Plus de détails')),
       // Les titulaires (Team FIRE) d'abord, les remplaçants dans leur propre catégorie en dessous.
-      ...hubSections(start)
+      ...(SUB() ? subHub(start) : hubSections(start))
     ].filter(Boolean));
   }
 
@@ -2353,6 +2354,7 @@
   const pourLabel = (p) => (!p || p === 'tous') ? "Toute l'équipe" : String(p).split(/\s+/).map((r) => (FC.ROLES[r] ? FC.ROLES[r].label : r)).join(' et ');
 
   function go(sec) {
+    if (SUB() && !SUB_OK.has(sec)) sec = 'stats';
     if (sec !== S.section && S.section !== 'settings') S.prevSection = S.section;
     if (sec !== 'settings') setClose(true);
     if (sec !== 'web' && WEB.open) webClose(true);
@@ -2855,7 +2857,7 @@
         onChange: () => { if (S.section === 'vocal' && !document.fullscreenElement) renderVocal(); },
         onOpen: (from) => { vocalToast(`${vocalName(from)} a ouvert le tableau tactique`, true); if (S.section === 'vocal') { save('fire.vocal.layout', 'focus'); VX.focus = 'board'; } },
       });
-      FV().onApp((from, m) => { if (m && m.t === 'tb') FireBoard.onMsg(from, m); else if (m && m.t === 'clip') clipRecv(from, m); });
+      FV().onApp((from, m) => { if (m && m.t === 'tb') { if (!SUB()) FireBoard.onMsg(from, m); } else if (m && m.t === 'clip') clipRecv(from, m); });
       FV().onPeer((slug) => FireBoard.peerReady(slug));
     }
     // Définition reçue de chaque écran partagé (petit badge en haut à gauche de la vidéo).
@@ -2881,7 +2883,7 @@
       if (np.app) popup(t, b, 'vocal');
       if (np.on && window.fire.notify) deskNotify({ title: t, body: b, section: 'vocal' }).catch(() => {});
     };
-    const hall = () => { if (S.players.length && vocalMe()) FV().lobby({ me: vocalMe(), ids: vocalIds(), code: 'FIRE-salon-equipe', onInvite }).catch(() => {}); };
+    const hall = () => { if (S.players.length && vocalMe()) FV().lobby({ me: vocalMe(), ids: vocalIds(), code: 'FIRE-salon-equipe', onInvite, noChat: subSlugs() }).catch(() => {}); };
     setTimeout(hall, 3000); setInterval(hall, 10000);
     // Rejoindre tout seul au lancement, si le joueur l'a demandé.
     let tries = 0;
@@ -3435,7 +3437,7 @@
           h('div', { class: 'vc-live-pill' }, h('span', { class: 'dot' }), 'Salons vocaux FIRE'),
           h('h1', null, 'Salon vocal'),
           h('p', { class: 'muted' }, 'Choisis ton salon : toute l’équipe, un duo, ou un coaching en tête-à-tête. Voix, caméra et écran passent directement d’un PC à l’autre, chiffrés.'),
-          h('div', { class: 'vc-rooms' }, ROOMS.map((r) => {
+          h('div', { class: 'vc-rooms' }, ROOMS.filter(roomOk).map((r) => {
             const there = roomPeople(r.id);
             const full = r.max && there.length >= r.max;
             const sel = (VX.room || load('fire.vocal.room', 'equipe')) === r.id;
@@ -3475,7 +3477,7 @@
     // Streams que j'ai arrêté de regarder : une case « Regarder » à la place.
     const off = v.members.filter((m) => m.ok && m.remote && m.remote.screen && (v.unwatch || []).includes(m.slug)).map((m) => ({ key: m.slug + ':off', slug: m.slug, kind: 'screenoff' }));
     if (window.FireBoard) FireBoard.setStreams(Object.fromEntries(screens.map((x) => [x.key, x.stream])));
-    const boardTile = window.FireBoard && FireBoard.isOpen() ? [{ key: 'board', slug: me, kind: 'board' }] : [];
+    const boardTile = window.FireBoard && FireBoard.isOpen() && !SUB() ? [{ key: 'board', slug: me, kind: 'board' }] : [];
     const allTiles = boardTile.concat(screens.map((x) => ({ ...x, kind: 'screen', pipCam: pipOf(x.slug) }))).concat(off)
       .concat(people.filter((p) => !pipOf(p.slug)).map((p) => ({ key: p.slug + ':p', slug: p.slug, kind: 'person', p, stream: camOf(p.slug), mine: p.slug === me })));
     // « Afficher les participants sans vidéo » décoché : seules les vidéos restent (s'il y en a).
@@ -3565,7 +3567,7 @@
         cbtn(v.deaf, 'headOff', 'head', `${v.deaf ? 'Réactiver' : 'Couper'} le son (${keyTxt(K.deaf)})`, () => FV().setDeaf(!v.deaf), 'warn'),
         cbtn(!!v.cam, 'cam', 'camOff', `${v.cam ? 'Couper' : 'Allumer'} la caméra (${keyTxt(K.cam)})`, () => (v.cam ? FV().stopCam() : FV().startCam()), 'live'),
         cbtn(!!v.screen, 'screen', 'screen', `${v.screen ? 'Arrêter le partage' : 'Partager ton écran'} (${keyTxt(K.screen)})`, () => (v.screen ? FV().stopScreen() : openScreenPicker()), 'live'),
-        window.FireBoard ? cbtn(FireBoard.isOpen(), 'board', 'board', FireBoard.isOpen() ? 'Fermer le tableau tactique (pour tout le salon)' : 'Ouvrir le tableau tactique : une carte où tout le salon dessine', () => {
+        window.FireBoard && !SUB() ? cbtn(FireBoard.isOpen(), 'board', 'board', FireBoard.isOpen() ? 'Fermer le tableau tactique (pour tout le salon)' : 'Ouvrir le tableau tactique : une carte où tout le salon dessine', () => {
           if (FireBoard.isOpen()) FireBoard.close(); else { save('fire.vocal.layout', 'focus'); VX.focus = 'board'; FireBoard.open(); }
         }, 'live') : null,
         window.FireClips && FireClips.state().on ? h('button', { class: 'cb', title: `Enregistrer un clip : les ${clipCfg().seconds} dernières secondes (${keyTxt(K.clip)})`, onclick: saveClip }, vi('clip')) : null,
@@ -3578,7 +3580,7 @@
         n > 1 ? h('div', { class: 'vc-seg' },
           h('button', { class: layout !== 'focus' ? 'on' : '', title: 'Côte à côte : tout est visible', onclick: () => setLayout('grid') }, vi('grid')),
           h('button', { class: layout === 'focus' ? 'on' : '', title: 'Focus : une vidéo en grand', onclick: () => setLayout('focus', VX.focus || (screens[0] || tiles[0]).key) }, vi('focus'))) : null));
-    const switcher = h('div', { class: 'vc-switch' }, ROOMS.map((r) => {
+    const switcher = h('div', { class: 'vc-switch' }, ROOMS.filter(roomOk).map((r) => {
       const there = roomPeople(r.id);
       const mine = r.id === v.room;
       const full = r.max && there.filter((x) => x !== me).length >= r.max;
@@ -4187,9 +4189,10 @@
     const b = (id, label, badge, cls) => h('button', { class: 'navbtn' + (cls ? ' ' + cls : ''), 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
-    const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'], ['clips', '🎬', 'Clips'],
-      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null],
+    const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
+      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null],
       ['coach', '📣', 'Parole du coach', n || null], ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
+    if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
     if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), items.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }
     $('nav').replaceChildren(...items.map(([id, ico, label, badge, cls]) => b(id, ico + ' ' + label, badge, cls)));
@@ -5667,8 +5670,8 @@
       h('div', { class: 'jg-grid' }, QMODES.map((x) => card(x, false))),
       h('h2', { class: 'hub-sec' }, h('span', null, '🎮 Deviner le champion'), h('small', { class: 'muted' }, 'autant de parties que tu veux')),
       h('div', { class: 'jg-grid' }, JMODES.map((x) => card(x, false))),
-      h('h2', { class: 'hub-sec' }, h('span', null, '🎓 Apprendre en jouant'), h('small', { class: 'muted' }, 'des situations de vraies parties')),
-      h('div', { class: 'jg-grid' }, LMODES.map((x) => card(x, true))),
+      ...(SUB() ? [] : [h('h2', { class: 'hub-sec' }, h('span', null, '🎓 Apprendre en jouant'), h('small', { class: 'muted' }, 'des situations de vraies parties')),
+        h('div', { class: 'jg-grid' }, LMODES.map((x) => card(x, true)))]),
     ];
   }
   function renderJeux() {
@@ -5681,6 +5684,7 @@
       cur ? h('b', { class: 'jg-cur' }, cur[1]) : null));
     if (false) nodes.push(h('div', { class: 'chips jeu-tabs' }, h('span', { class: 'jt-label' }, '🎮 Deviner le champion'), JMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
     if (false) nodes.push(h('div', { class: 'chips jeu-tabs learn' }, h('span', { class: 'jt-label' }, '🎓 Apprendre en jouant'), LMODES.map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(J.tab === k), onclick: () => { J.tab = k; J.msg = ''; render(); } }, l))));
+    if (SUB() && LMODES.some(([k]) => k === J.tab)) { J.home = true; render(); return; }
     if (LMODES.some(([k]) => k === J.tab)) { nodes.push(...renderLearn(J.tab)); view.replaceChildren(...nodes); return; }
     if (!J.data) {
       nodes.push(h('div', { class: 'card' }, J.loading || !J.err ? h('p', { class: 'muted' }, 'Chargement des champions…') : h('p', { class: 'bad' }, '⚠ ' + J.err, ' ', h('button', { class: 'btn-ghost', onclick: () => { J.err = ''; loadJeux(); render(); } }, 'Réessayer'))));
@@ -5984,6 +5988,7 @@
   }
 
   async function loadPlanning() {
+    if (SUB()) { const b = load('fire.remp', null); S.plan = planFrom((b && b.planning) || {}); renderNav(); if (S.section === 'planning' && !typing()) render(); return; }
     let r;
     try { r = await window.fire.planning(); } catch (e) { r = { ok: false, error: String(e) }; }
     if (r && r.ok) { S.plan = planFrom(r); S.planErr = r.offline ? 'Hors ligne : dernier planning enregistré.' : ''; if (!r.offline) { notifPlanning(false); notifResas(false); } }
@@ -5996,7 +6001,7 @@
 
   // Jours à venir (14 jours) où je n'ai pas encore répondu : pastille dans le menu (+ demandes de créneaux à traiter pour un coach).
   function planTodo() {
-    if (!S.plan) return 0;
+    if (!S.plan || SUB()) return 0;
     const t = todayYmd(), lim = addDays(t, 14);
     const team = S.moi && !isCoachUser() ? Object.keys(S.plan.jours).filter((d) => d >= t && d <= lim && !((S.plan.reponses[d] || {})[S.moi])).length : 0;
     return team + coachPending();
@@ -6018,6 +6023,7 @@
 
   function renderPlanning() {
     const view = $('view');
+    if (SUB()) { renderPlanningSub(view); return; }
     if (S.planEdit) { renderPlanEditor(view); return; }
     const t = todayYmd();
     const mon = S.planWeek || mondayOf(t);
@@ -6750,7 +6756,9 @@
     try { if (FV() && FV().onChat) FV().onChat((m) => chatMerge([m], true)); } catch (e) { /* */ }
     applySalons(SAL.data);
     chatLoad(); salonsLoad(); membresLoad(); pendingRetry();
-    setInterval(() => { chatLoad(); salonsLoad(); membresLoad(); pendingRetry(); }, 2 * 60 * 1000);
+    setInterval(() => { chatLoad(); salonsLoad(); membresLoad(); pendingRetry(); subPush(); }, 2 * 60 * 1000);
+    setTimeout(subPush, 20000);
+    if (FV().onRemp) FV().onRemp(subRecv);
     // Statut : envoyé tout de suite, puis chaque minute ; les cartes reçues sont gardées.
     setTimeout(statusPush, 4000);
     setInterval(() => { statusPush(); profilesKeep(); chatPaint(); }, 60000);
@@ -6768,6 +6776,74 @@
   // ===== Nouveaux membres : « Qui es-tu ? » → lien dpm.lol, rôle ; validé par le créateur, un coach ou le chef d'équipe =====
   // En attendant, le profil du nouveau se charge chez lui (ses stats, sa carte) ; les autres le voient une fois accepté.
   const roleIdOf = (role) => ({ top: 'top', jungle: 'jungle', mid: 'mid', adc: 'adc', support: 'support' })[String(role || '').split(' ')[0].toLowerCase()] || 'mid';
+
+  // ===== Remplaçants : code à part, accès limité =====
+  // Avec le code remplaçant, FIRE n'a pas la clé de l'équipe : fiches du coach, pools, discussion et planning complet
+  // restent chiffrés et illisibles. Les titulaires leur envoient de PC à PC un petit paquet chiffré pour eux :
+  // les séances du planning d'équipe (sans les dispos des coachs ni les réponses de chacun).
+  const SUB = () => !!(S.coachState && S.coachState.remplacant);
+  const SUB_OK = new Set(['stats', 'planning', 'jeux', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web']);
+  const roomOk = (r) => !SUB() || (r && r.id !== 'coaching' && !r.staff);
+  const subSlugs = () => S.players.filter((p) => p.slug && isSub(p)).map((p) => p.slug);
+  function subInit() {
+    if (S.subInit) return; S.subInit = true;
+    document.documentElement.classList.add('sub-mode');
+    if (!S.moi || !S.players.some((p) => p.slug === S.moi && isSub(p))) { S.moi = null; save('fire.moi', null); setTimeout(() => askWho(), 300); }
+    loadPlanning();
+  }
+  function subBanner() {
+    return h('div', { class: 'card sub-banner' }, h('b', null, '🔁 Accès remplaçant'),
+      h('p', { class: 'muted small' }, 'Tu as tes stats, le planning des séances, le vocal (salon de l’équipe et duos), les quiz et « Deviner le champion », les clips, l’e-sport et les patchs. Le reste est réservé aux titulaires.'));
+  }
+  function subHub(start) {
+    const me = S.players.find((p) => p.slug === S.moi);
+    return [h('h2', { class: 'hub-sec subs' }, h('span', null, '📊 Mes stats')),
+      me ? h('div', { class: 'hub-grid' + (S.hubMore ? '' : ' compact') }, hubCard(me, start)) : h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Choisis ton pseudo pour voir tes stats.'), h('button', { class: 'btn-fire small-btn', onclick: () => askWho() }, 'Qui es-tu ?'))];
+  }
+  function renderPlanningSub(view) {
+    const t = todayYmd();
+    const mon = S.planWeek || mondayOf(t); S.planWeek = mon;
+    const days = weekDays(mon);
+    const b = load('fire.remp', null);
+    const planned = days.filter((d) => S.plan && S.plan.jours[d]);
+    view.replaceChildren(h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🗓️'), h('div', null, h('h1', { class: 'title' }, 'Planning'),
+      h('p', { class: 'muted' }, 'Les séances de l’équipe. Tu n’as rien à remplir : le coach te préviendra s’il a besoin de toi.'))),
+      h('div', { class: 'row plan-nav' },
+        h('button', { class: 'btn-ghost', onclick: () => { S.planWeek = addDays(mon, -7); render(); } }, '←'),
+        h('b', { class: 'plan-week' }, `Semaine du ${dayFr(days[0], { day: 'numeric', month: 'long' })} au ${dayFr(days[6], { day: 'numeric', month: 'long' })}`),
+        h('button', { class: 'btn-ghost', onclick: () => { S.planWeek = addDays(mon, 7); render(); } }, '→'),
+        mon !== mondayOf(t) ? h('button', { class: 'chip', onclick: () => { S.planWeek = mondayOf(t); render(); } }, "Aujourd'hui") : null),
+      !b ? h('p', { class: 'muted small' }, '⏳ Le planning arrive dès qu’un titulaire a FIRE ouvert en même temps que toi.') : h('p', { class: 'muted small' }, `Mis à jour ${dayFrT(b.at)} à ${hm(b.at)}.`),
+      ...(planned.length ? planned.map((d) => { const j = S.plan.jours[d]; const type = PLAN_TYPES.find((x) => x[0] === j.type) || PLAN_TYPES[0];
+        return h('div', { class: 'card plan-day' + (d < t ? ' past' : '') + (d === t ? ' today' : '') }, h('div', { class: 'plan-head' }, h('div', null,
+          h('div', { class: 'plan-date' }, cap(dayFr(d)), d === t ? h('span', { class: 'plan-tag' }, "aujourd'hui") : null, j.note ? h('span', { class: 'plan-note' }, '📝 ' + j.note) : null),
+          h('div', { class: 'plan-hours' }, '🕒 ', hourBlocks(j.heures), h('span', { class: 'plan-type' }, type[1]))))); })
+        : [h('div', { class: 'card plan-empty' }, h('p', { class: 'muted' }, 'Rien de prévu cette semaine.'))]));
+  }
+  // Titulaire : envoie le paquet des remplaçants à ceux qui ont FIRE ouvert.
+  async function subPush() {
+    if (SUB() || !S.plan || !window.fire.staff || !window.fire.staff.rempSeal || !FV().hallSend) return;
+    const subs = subSlugs().filter((x) => x !== vocalMe());
+    if (!subs.length) return;
+    const t = addDays(todayYmd(), -7), jours = {};
+    for (const [d, j] of Object.entries(S.plan.jours || {})) if (d >= t) jours[d] = { heures: j.heures, type: j.type, note: j.note || '' };
+    const box = await window.fire.staff.rempSeal({ at: Date.now(), planning: { jours } }).catch(() => null);
+    if (!box) return;
+    for (const x of subs) FV().hallSend(x, { t: 'remp', box }).catch(() => {});
+  }
+  // Remplaçant : reçoit le paquet d'un titulaire ou d'un coach.
+  async function subRecv(from, box) {
+    if (!SUB()) return;
+    const sender = S.players.find((p) => p.slug === from);
+    if (!(sender && !isSub(sender)) && !(S.coachs || []).some((c) => c.slug === from) && from !== 'coach') return;
+    const b = await window.fire.staff.rempOpen(box).catch(() => null);
+    if (!b || !b.planning) return;
+    const cur = load('fire.remp', null);
+    if (cur && cur.at >= b.at) return;
+    save('fire.remp', b);
+    loadPlanning();
+  }
+
   function membresMerge(list, prune) {
     // Liste fraîche du serveur : un membre retiré ou dont le lien a été corrigé disparaît sous son ancien identifiant.
     if (prune) S.players = S.players.filter((p) => !p.nouveau || (list || []).some((m) => m.slug === p.slug && m.statut === 'ok'));
@@ -6882,11 +6958,11 @@
     const box = h('div', { class: 'who' }, h('div', { class: 'who-card' },
       h('div', { class: 'who-t' }, '👋 Qui es-tu ?'),
       h('p', { class: 'muted' }, 'Choisis ton pseudo : l’app te reconnaîtra, et dans POOL un seul bouton « ✏️ Faire ma tierlist » suffira. Tu pourras changer plus tard.'),
-      h('div', { class: 'who-grid' }, S.players.filter((x) => x.slug && !x.pending).map((p) => h('button', { class: 'who-p', onclick: () => close(p.slug) },
+      h('div', { class: 'who-grid' }, S.players.filter((x) => x.slug && !x.pending && (!SUB() || isSub(x))).map((p) => h('button', { class: 'who-p', onclick: () => close(p.slug) },
         h('span', { class: 'who-ico' }, roleOf(p).ico), h('span', { class: 'who-n' }, String(p.pseudo).split('#')[0]), h('span', { class: 'muted small' }, p.role || roleOf(p).label))),
-        (S.coachs || []).map((c) => h('button', { class: 'who-p coach', onclick: () => close(c.slug) },
+        (SUB() ? [] : (S.coachs || [])).map((c) => h('button', { class: 'who-p coach', onclick: () => close(c.slug) },
           h('span', { class: 'who-ico' }, '🎓'), h('span', { class: 'who-n' }, c.pseudo), h('span', { class: 'muted small' }, 'Coach')))),
-      h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => { box.remove(); askNew(true); } }, '🆕 Je ne suis pas dans la liste'), h('button', { class: 'btn-ghost', onclick: () => close(null) }, 'Plus tard'))));
+      h('div', { class: 'row' }, SUB() ? null : h('button', { class: 'btn-fire small-btn', onclick: () => { box.remove(); askNew(true); } }, '🆕 Je ne suis pas dans la liste'), h('button', { class: 'btn-ghost', onclick: () => close(null) }, 'Plus tard'))));
     document.body.append(box);
   }
 
