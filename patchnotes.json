@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.111",
+   "date": "2026-11-13",
+   "titre": "Outils, analyse de parties, zéro pub",
+   "items": [
+    [
+     "new",
+     "Nouvelle catégorie « Outils » dans le menu, pour que tout soit facile à trouver : Analyse de parties, Outils et Salle de réunion (coachs)."
+    ],
+    [
+     "new",
+     "Analyse de parties : « Mon compte » ou recherche manuelle (région, pseudo # tag ; tu peux coller « Pseudo#TAG »), avec les dernières recherches. Tu vois les games classées des 30 derniers jours de n'importe quel joueur, analysées une par une comme pour l'équipe : résumé, points forts, jour par jour avec chaque game, champions."
+    ],
+    [
+     "new",
+     "Page Outils : tous les sites utiles rangés par thème. Revoir ses parties : Invade (ward.invade.lol), Replays.lol. Carte et stratégie : RiftKit, Level Legendary, carte des patterns de MOBA Trainer. Stats et builds : dpm.lol, LoLalytics, mid.gg. Compte : LoLValue. Tout s'ouvre dans FIRE, avec des onglets pour passer de l'un à l'autre."
+    ],
+    [
+     "fix",
+     "Plus aucune pub dans le navigateur intégré (one-tricks, sites de stats, outils…) : plus de 100 régies publicitaires sont bloquées et les emplacements de pub masqués dans chaque page."
+    ]
+   ]
+  },
+  {
    "v": "1.10.110",
    "date": "2026-11-13",
    "titre": "Salle de réunion des coachs",

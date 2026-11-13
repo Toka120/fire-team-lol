@@ -2343,3 +2343,14 @@ html.sub-mode #chat { display: none !important; }
 .meet-card b { font-size: 17px; }
 .meet-go { margin-top: auto; font-weight: 700; color: var(--accent, #ff6b3d); }
 .meet-tabs { gap: 6px; margin: 6px 0; flex-wrap: wrap; }
+
+/* ===== Analyse de parties ===== */
+.pt-modes { gap: 8px; margin: 10px 0; }
+.pt-recent { gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+.pt-recent .chip b { margin-right: 4px; }
+.pt-form { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; padding: 16px; margin: 8px 0 14px; }
+.pt-f { display: flex; flex-direction: column; gap: 4px; }
+.pt-f small { text-transform: uppercase; letter-spacing: .05em; opacity: .7; font-size: 11px; }
+.pt-f .inp { min-width: 140px; }
+.pt-hash { font-size: 22px; color: var(--accent, #ff6b3d); padding-bottom: 8px; }
+.pt-head + .hero { margin-top: 10px; }

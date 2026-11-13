@@ -169,7 +169,7 @@
   // Games obligatoires ajoutées par le coach à un joueur pour la semaine en cours (lundi → dimanche).
   const bonusFor = (slug) => (((S.bonus || {})[mondayOf(todayYmd())] || {})[slug]) || 0;
   function objFor(p, d) {
-    if (!S.obj || !d) return null;
+    if (!S.obj || !d || (p && p.temp)) return null;
     const b = bonusFor(p.slug);
     const o = FC.objectif(p, d.matches, { ...S.obj, games: Math.max(0, (Number(S.obj.games) || 0) + b) });
     if (o) o.bonus = b;
@@ -224,6 +224,7 @@
   // remonte à cette date (ex. le début de l'année) au lieu du début de l'équipe.
   const ownStart = (p) => (p && /^\d{4}-\d{2}-\d{2}$/.test(p.stats_depuis || '') && S.period === 'debut' && S.debut ? p.stats_depuis : null);
   function periodStart(p) {
+    if (p && p.temp) return Date.now() - 30 * 86400000;
     if (ownStart(p)) return new Date(ownStart(p) + 'T00:00:00').getTime();
     if (S.period === 'debut' && S.debut) return new Date(S.debut + 'T00:00:00').getTime();
     if (S.period === 'obj' && S.obj) return new Date(S.obj.debut + 'T00:00:00').getTime();
@@ -233,6 +234,7 @@
     return Date.now() - n * 86400000;
   }
   function periodLabel(p) {
+    if (p && p.temp) return 'sur les 30 derniers jours';
     if (ownStart(p)) return `depuis le ${dateFr(ownStart(p))} ${ownStart(p).slice(0, 4)}`;
     if (S.period === 'debut' && S.debut) return `depuis le ${dateFr(S.debut)}`;
     if (S.period === 'obj' && S.obj) return `cette semaine (depuis le ${dateFr(S.obj.debut)})`;
@@ -1051,9 +1053,9 @@
     if (!WEB.open) { S.section = WEB.from || 'stats'; render(); return; }
     const view = $('view');
     const nav = (a) => window.fire.web.nav(a);
-    const inMeet = WEB.from === 'reunion';
+    const inMeet = WEB.from === 'reunion' || WEB.from === 'outils';
     const bar = h('div', { class: 'web-bar' },
-      h('button', { class: 'btn-fire small-btn web-home', onclick: () => webClose() }, inMeet ? '← Salle de réunion' : '← Retour à FIRE'),
+      h('button', { class: 'btn-fire small-btn web-home', onclick: () => webClose() }, WEB.from === 'reunion' ? '← Salle de réunion' : WEB.from === 'outils' ? '← Outils' : '← Retour à FIRE'),
       h('button', { class: 'web-b', title: 'Page précédente', disabled: WEB.back ? null : true, onclick: () => nav('back') }, '‹'),
       h('button', { class: 'web-b', title: 'Page suivante', disabled: WEB.fwd ? null : true, onclick: () => nav('fwd') }, '›'),
       h('button', { class: 'web-b', title: WEB.loading ? 'Arrêter' : 'Recharger', onclick: () => nav(WEB.loading ? 'stop' : 'reload') }, WEB.loading ? '✕' : '⟳'),
@@ -1061,7 +1063,7 @@
         WEB.loading ? h('i', { class: 'web-spin' }) : null));
     const slot = h('div', { id: 'web-slot', class: 'web-slot' }, WEB.error ? h('div', { class: 'web-err' }, h('b', null, 'Page indisponible'), h('p', { class: 'muted' }, WEB.error)) : null);
     // Salle de réunion : on passe d'un outil à l'autre sans revenir en arrière.
-    const tools = inMeet ? h('div', { class: 'row meet-tabs' }, MEET_TOOLS.map((t) => h('button', { class: 'chip', 'aria-pressed': String(webHost(WEB.url) === webHost(t.url) && (t.k !== 'll' || /lol-map/.test(WEB.url))), onclick: () => webOpen(t.url) }, t.ico + ' ' + t.name))) : null;
+    const tools = inMeet ? h('div', { class: 'row meet-tabs' }, (WEB.from === 'outils' ? ALL_TOOLS() : MEET_TOOLS).map((t) => h('button', { class: 'chip', 'aria-pressed': String(webHost(WEB.url) === webHost(t.url) && (t.k !== 'll' || /lol-map/.test(WEB.url))), onclick: () => webOpen(t.url) }, t.ico + ' ' + t.name))) : null;
     view.replaceChildren(...[bar, tools, slot].filter(Boolean));
     requestAnimationFrame(() => {
       const r = webRect(); if (r) window.fire.web.bounds(r);
@@ -1089,6 +1091,100 @@
     window.addEventListener('resize', () => { if (WEB.open) { const r = webRect(); if (r) window.fire.web.bounds(r); } });
   }
 
+
+
+  // ===== Outils : tous les sites utiles, rangés par thème, ouverts dans FIRE =====
+  const TOOL_CATS = [
+    ['🎞️ Revoir ses parties', [
+      { k: 'invade', ico: '🛡️', name: 'Invade', url: 'https://ward.invade.lol/', desc: 'Revue de replays et de scrims : reprendre une partie de l’équipe et l’analyser ensemble.' },
+      { k: 'replays', ico: '🎬', name: 'Replays.lol (bêta)', url: 'https://beta.replays.lol/', desc: 'Enregistre les games et sort une revue vidéo par IA juste après la partie.' }]],
+    ['🗺️ Carte et stratégie', [
+      { k: 'riftkit', ico: '🗺️', name: 'RiftKit', url: 'https://kdx.gg/riftkit', desc: 'Carte de la Faille : champions, objectifs, timeline, graphiques d’or et de dégâts, annotations.' },
+      { k: 'll', ico: '🧭', name: 'Level Legendary · Map Planner', url: 'https://levellegendary.com/tools/lol-map/', desc: 'La Faille en 3D avec les vraies portées des sorts et des tours, wards et zones de freeze.' },
+      { k: 'mobapat', ico: '🧩', name: 'MOBA Trainer · Carte des patterns', url: 'https://www.mobatrainer.com/patterns', desc: '51 patterns de macro, chacun avec une vidéo et des puzzles de décision.' }]],
+    ['📊 Stats et builds', [
+      { k: 'dpm', ico: '📈', name: 'dpm.lol', url: 'https://dpm.lol/', desc: 'Profils, historique et stats détaillées des joueurs (la source des stats de FIRE).' },
+      { k: 'lolalytics', ico: '📊', name: 'LoLalytics', url: 'https://lolalytics.com/lol/tierlist/', desc: 'Tier list, builds, runes et matchups de chaque champion, à chaque elo.' },
+      { k: 'midgg', ico: '🎥', name: 'mid.gg', url: 'https://mid.gg/', desc: 'Parties de pros avec build, runes et chronologie.' }]],
+    ['👤 Compte', [
+      { k: 'lolvalue', ico: '💎', name: 'LoLValue', url: 'https://lolvalue.com/', desc: 'Temps passé sur LoL, valeur du compte et des skins.' }]],
+  ];
+  const ALL_TOOLS = () => TOOL_CATS.flatMap(([, l]) => l);
+  function renderOutils() {
+    const view = $('view');
+    view.replaceChildren(
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🧰'), h('div', null, h('h1', { class: 'title' }, 'Outils'),
+        h('p', { class: 'muted' }, 'Tous les sites utiles pour progresser, rangés par thème. Ils s’ouvrent dans FIRE.'))),
+      h('div', { class: 'row meet-tabs' },
+        h('button', { class: 'btn-fire small-btn', onclick: () => go('parties') }, '🔎 Analyse de parties (dans FIRE)'),
+        meetOk() ? h('button', { class: 'btn-ghost', onclick: () => go('reunion') }, '🧑‍🏫 Salle de réunion (coachs)') : null,
+        h('button', { class: 'btn-ghost', onclick: () => go('draft') }, '⚡ Draft, matchups et tier list')),
+      ...TOOL_CATS.flatMap(([title, list]) => [h('h2', { class: 'hub-sec' }, h('span', null, title)),
+        h('div', { class: 'meet-grid' }, list.map((t) => h('button', { class: 'card meet-card', onclick: () => webOpen(t.url) },
+          h('span', { class: 'meet-ico' }, t.ico), h('b', null, t.name), h('small', { class: 'muted' }, t.desc), h('span', { class: 'meet-go' }, 'Ouvrir →'))))]));
+  }
+
+  // ===== Analyse de parties : les dernières games de n'importe quel joueur (dpm.lol), analysées une par une =====
+  const PT = { mode: 'moi', region: 'EUW', name: '', tag: '', busy: false, err: '', sel: null, extra: {}, recent: load('fire.pt.recent', []) };
+  const PT_REG = ['EUW', 'EUNE', 'NA', 'KR', 'BR', 'LAN', 'LAS', 'OCE', 'TR', 'RU', 'JP'];
+  const LANE_ROLE = { TOP: 'top', JUNGLE: 'jungle', MIDDLE: 'mid', BOTTOM: 'adc', UTILITY: 'support' };
+  async function ptSearch(name, tag, region) {
+    name = String(name || '').trim(); tag = String(tag || '').trim().replace(/^#/, '');
+    if (!name || !tag) { PT.err = 'Entre le pseudo et le tag (ex. Faker # EUW).'; renderParties(); return; }
+    const slug = encodeURIComponent(name) + '-' + encodeURIComponent(tag);
+    const known = S.players.find((p) => p.slug === slug);
+    PT.recent = [{ name, tag, region }].concat(PT.recent.filter((x) => !(x.name.toLowerCase() === name.toLowerCase() && x.tag.toLowerCase() === tag.toLowerCase()))).slice(0, 6);
+    save('fire.pt.recent', PT.recent);
+    PT.err = ''; PT.sel = slug;
+    if (known && S.data[slug]) { PT.extra[slug] = null; renderParties(); return; }
+    PT.busy = true; renderParties();
+    let r; try { r = await window.fire.fetchPlayer({ slug, puuid: null, pages: 8 }, 31); } catch (e) { r = { ok: false, error: String(e) }; }
+    PT.busy = false;
+    if (!r || !r.ok) { PT.err = `Impossible de lire ${name}#${tag} sur dpm.lol (${(r && r.error) || 'erreur'}). Vérifie le pseudo et le tag.`; PT.sel = null; renderParties(); return; }
+    // Poste le plus joué en Solo/Duo, pour les repères de l'analyse.
+    const cnt = {}; (r.matches || []).forEach((m) => { const k = LANE_ROLE[m.lane]; if (k) cnt[k] = (cnt[k] || 0) + 1; });
+    const role_id = Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([k]) => k)[0] || 'mid';
+    PT.extra[slug] = { slug, pseudo: name + '#' + tag, role: FC.ROLES[role_id].label + ' · recherche', role_id, temp: true, region };
+    S.data[slug] = r; S.status[slug] = { state: 'ok' };
+    renderParties();
+  }
+  function renderParties() {
+    const view = $('view');
+    const meP = S.players.find((p) => p.slug === S.moi);
+    const field = (lab, el) => h('label', { class: 'pt-f' }, h('small', null, lab), el);
+    const nameI = h('input', { class: 'inp', placeholder: 'Faker', value: PT.name, oninput: (e) => { PT.name = e.target.value; } });
+    const tagI = h('input', { class: 'inp', placeholder: 'EUW', value: PT.tag, oninput: (e) => { PT.tag = e.target.value; } });
+    const go2 = () => ptSearch(PT.name, PT.tag, PT.region);
+    [nameI, tagI].forEach((x) => x.addEventListener('keydown', (e) => { if (e.key === 'Enter') go2(); }));
+    // Coller « Pseudo#TAG » dans le champ pseudo remplit les deux.
+    nameI.addEventListener('paste', (e) => { const t = (e.clipboardData && e.clipboardData.getData('text')) || ''; if (t.includes('#')) { e.preventDefault(); const j = t.lastIndexOf('#'); PT.name = t.slice(0, j).trim(); PT.tag = t.slice(j + 1).trim(); renderParties(); } });
+    const head = h('div', { class: 'pt-head' },
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🔎'), h('div', null, h('h1', { class: 'title' }, 'Analyse de parties'),
+        h('p', { class: 'muted' }, 'Retrouve les dernières games classées de n’importe quel joueur et analyse-les une par une.'))),
+      h('div', { class: 'row pt-modes' },
+        h('button', { class: 'plan-tab', 'aria-pressed': String(PT.mode === 'moi'), onclick: () => { PT.mode = 'moi'; PT.sel = S.moi; renderParties(); } }, '👤 Mon compte'),
+        h('button', { class: 'plan-tab', 'aria-pressed': String(PT.mode === 'manuel'), onclick: () => { PT.mode = 'manuel'; PT.sel = PT.sel === S.moi ? null : PT.sel; renderParties(); } }, '🔎 Recherche manuelle')),
+      PT.mode === 'manuel' ? [
+        PT.recent.length ? h('div', { class: 'row pt-recent' }, h('small', { class: 'muted' }, 'Dernières recherches'),
+          PT.recent.map((x) => h('button', { class: 'chip', onclick: () => { PT.name = x.name; PT.tag = x.tag; PT.region = x.region || 'EUW'; ptSearch(x.name, x.tag, x.region); } }, h('b', null, x.name), h('span', { class: 'muted' }, '#' + x.tag + ' · ' + (x.region || 'EUW'))))) : null,
+        h('div', { class: 'card pt-form' },
+          field('Région', h('select', { class: 'inp', onchange: (e) => { PT.region = e.target.value; } }, PT_REG.map((r) => h('option', { value: r, selected: PT.region === r ? true : null }, r)))),
+          field('Pseudo', nameI), h('span', { class: 'pt-hash' }, '#'), field('Tag', tagI),
+          h('button', { class: 'btn-fire small-btn', disabled: PT.busy ? true : null, onclick: go2 }, PT.busy ? 'Recherche…' : 'Chercher')),
+        PT.err ? h('p', { class: 'bad small' }, '⚠ ' + PT.err) : null,
+        PT.busy ? h('div', { class: 'card' }, h('p', { class: 'muted' }, '⏳ Lecture des parties sur dpm.lol… (20 à 40 secondes)')) : null] : null);
+    const slug = PT.mode === 'moi' ? S.moi : PT.sel;
+    if (!slug || PT.busy) {
+      view.replaceChildren(...[head, PT.mode === 'moi' && !meP ? h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Choisis d’abord qui tu es.'), h('button', { class: 'btn-fire small-btn', onclick: () => askWho() }, 'Qui es-tu ?'))
+        : !PT.busy && PT.mode === 'manuel' ? h('p', { class: 'muted small' }, 'Astuce : colle directement « Pseudo#TAG » dans le champ Pseudo.') : null].flat().filter(Boolean));
+      return;
+    }
+    // Analyse : la même page que celle d'un joueur de l'équipe (résumé, points forts, jour par jour avec chaque game, champions).
+    if (S.player !== slug) { S.player = slug; S.tab = 'jours'; S.jour = 'tous'; }
+    if (!S.data[slug] && PT.mode === 'moi') { view.replaceChildren(...[head, h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Tes stats sont en cours de lecture…'))].flat().filter(Boolean)); return; }
+    renderPlayer();
+    view.prepend(...[head].flat().filter(Boolean));
+  }
 
   // ===== Salle de réunion des coachs : les outils pour enseigner, ouverts dans FIRE =====
   const MEET_TOOLS = [
@@ -1119,7 +1215,7 @@
   // Chaque FIRE note ses actions (pages ouvertes, messages, vocal, planning, POOL, quiz, clips…) et les envoie toutes les
   // 3 minutes dans le fichier d'activité du joueur (chiffré avec le code d'équipe). Le contenu des messages privés n'est jamais noté.
   const PAGE_NAMES = { stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
-    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', web: 'navigateur' };
+    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', web: 'navigateur' };
   const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
   function actLog(k, d) {
     if (!vocalMe() || !window.fire.staff) return;
@@ -1487,7 +1583,7 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'carnet' || S.section === 'clips' || S.section === 'reunion' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'carnet' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -1496,6 +1592,8 @@
     else if (S.section === 'carnet') renderCarnet();
     else if (S.section === 'clips') renderClipsPage();
     else if (S.section === 'reunion') renderReunion();
+    else if (S.section === 'outils') renderOutils();
+    else if (S.section === 'parties') renderParties();
     else if (S.section === 'pool') renderPool();
     else if (S.section === 'planning') renderPlanning();
     else if (S.section === 'jeux') renderJeux();
@@ -1943,7 +2041,7 @@
 
   // ----- Page joueur -----
   function renderPlayer() {
-    const p = S.players.find((x) => x.slug === S.player);
+    const p = S.players.find((x) => x.slug === S.player) || (S.section === 'parties' ? PT.extra[S.player] : null);
     const view = $('view');
     if (!p) { S.view = 'hub'; renderHub(); return; }
     const R = roleOf(p);
@@ -1975,7 +2073,7 @@
           : h('span', null, 'compte actuel ', h('a', { href: 'https://dpm.lol/' + c.slug, target: '_blank' }, c.pseudo || decodeURIComponent(c.slug)), c.depuis ? ` (depuis le ${dateFr(c.depuis)})` : '')).reduce((a, x, i) => (i ? a.concat(' · ', x) : [x]), [])) : null,
         S.more ? h('p', { class: 'lead' }, FC.lead(p, s)) : null,
         progress(obj, S.more),
-        S.coachState.coach && S.obj ? bonusCtl(p) : null,
+        S.coachState.coach && S.obj && !p.temp ? bonusCtl(p) : null,
         S.more && s.games ? catBar({ oblig: s.oblig, maitrise: s.maitrise_g, autres: s.autres }) : null),
       ringBox));
     later(() => ring(ringBox, s, 170));
@@ -4220,7 +4318,7 @@
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null],
-      ['coach', '📣', 'Parole du coach', n || null], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
+      ['coach', '📣', 'Parole du coach', n || null], ['parties', '🔎', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
     if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), items.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }
@@ -6811,7 +6909,7 @@
   // restent chiffrés et illisibles. Les titulaires leur envoient de PC à PC un petit paquet chiffré pour eux :
   // les séances du planning d'équipe (sans les dispos des coachs ni les réponses de chacun).
   const SUB = () => !!(S.coachState && S.coachState.remplacant);
-  const SUB_OK = new Set(['stats', 'planning', 'jeux', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web']);
+  const SUB_OK = new Set(['stats', 'planning', 'jeux', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils', 'parties']);
   const roomOk = (r) => !SUB() || (r && r.id !== 'coaching' && !r.staff);
   const subSlugs = () => S.players.filter((p) => p.slug && isSub(p)).map((p) => p.slug);
   function subInit() {

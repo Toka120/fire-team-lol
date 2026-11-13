@@ -21,7 +21,9 @@
     "Discussion": "MessagesSquare",
     "Carnet de bord": "NotebookTabs",
     "Clips": "Clapperboard",
-    "Salle de réunion": "Presentation"
+    "Salle de réunion": "Presentation",
+    "Outils": "Wrench",
+    "Analyse de parties": "Focus"
   },
   "roles": {
     "Top": "Shield",

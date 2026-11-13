@@ -224,9 +224,40 @@ const AD_HOSTS = ['googlesyndication.com', 'doubleclick.net', 'googleadservices.
   'adinplay.com', 'amazon-adsystem.com', 'adnxs.com', 'criteo.com', 'criteo.net', 'taboola.com', 'outbrain.com', 'pubmatic.com',
   'rubiconproject.com', 'openx.net', 'casalemedia.com', 'smartadserver.com', 'teads.tv', 'moatads.com', '2mdn.net', 'adsrvr.org',
   'yieldmo.com', 'sharethrough.com', 'media.net', 'lijit.com', 'sovrn.com', '33across.com', 'id5-sync.com', 'quantserve.com',
-  'cookielaw.org', 'quantcast.com', 'consensu.org', 'snigelweb.com', 'ezoic.net', 'venatusmedia.com', 'playwire.com', 'nitropay.com'];
+  'cookielaw.org', 'quantcast.com', 'consensu.org', 'snigelweb.com', 'ezoic.net', 'venatusmedia.com', 'playwire.com', 'nitropay.com',
+  // Régies des sites de stats LoL (one-tricks, builds, tier lists…) et des grands réseaux vidéo/natifs.
+  'adthrive.com', 'cafemedia.com', 'raptive.com', 'mediavine.com', 'freestar.com', 'freestar.io', 'pbxai.com', 'aniview.com', 'primis.tech',
+  'connatix.com', 'vidazoo.com', 'seedtag.com', 'indexww.com', 'adform.net', 'bidswitch.net', '3lift.com', 'triplelift.com', 'gumgum.com',
+  'kargo.com', 'undertone.com', 'richaudience.com', 'onetag-sys.com', 'smilewanted.com', 'adyoulike.com', 'e-planning.net', 'adkernel.com',
+  'betweendigital.com', 'improvedigital.com', '360yield.com', 'unrulymedia.com', 'spotxchange.com', 'springserve.com', 'stickyadstv.com',
+  'mgid.com', 'revcontent.com', 'nativo.com', 'zergnet.com', 'adpushup.com', 'setupad.net', 'adscale.de', 'yieldlove.com', 'yieldlove-ad-serving.net',
+  'adalliance.io', 'asadcdn.com', 'ad-delivery.net', 'admixer.net', 'adtelligent.com', 'sonobi.com', 'emxdgt.com', 'contextweb.com', 'lkqd.net',
+  'adition.com', 'ogury.io', 'presage.io', 'tremorhub.com', 'adrta.com', 'doubleverify.com', 'adsafeprotected.com', 'confiant-integrations.net',
+  'fwmrm.net', 'adsco.re', 'ad-score.com', 'enthusiastgaming.net', 'pubnation.com', 'adnuntius.com', 'sascdn.com', 'servedbyadbutler.com',
+  'adbutler.com', 'carbonads.com', 'carbonads.net', 'buysellads.com', 'buysellads.net', 'ads.yahoo.com', 'advertising.com', 'yieldmanager.com',
+  'pubfuture-ad.com', 'adsterra.com', 'propellerads.com', 'popads.net', 'popcash.net', 'exoclick.com', 'juicyads.com', 'hilltopads.net',
+  'a-ads.com', 'coinzilla.com', 'bidvertiser.com', 'clickadu.com', 'adcash.com', 'monetag.com', 'galaksion.com', 'trafficjunky.net',
+  'snack-media.com', 'snackmedia.net', 'bannerflow.com', 'adsby.bidtheatre.com', 'bidtheatre.com', 'admanmedia.com', 'adagio.io', 'minutemedia-prebid.com',
+  'aps.amazon-adsystem.com', 'c.amazon-adsystem.com', 'ads.pubmatic.com', 'cdn.adsafeprotected.com', 'micro.rubiconproject.com', 'prebid.org'];
 const isAdHost = (h) => AD_HOSTS.some((d) => h === d || h.endsWith('.' + d));
-const AD_CSS = 'ins.adsbygoogle,.adsbygoogle,[id*="-com_300x250"],[id*="-com_728x90"],[id*="-com_160x600"],[id*="_300x250"],[id*="_728x90"],[id*="_160x600"],[class*="ad-container"],[id^="aip_"],iframe[src*="googlesyndication"],iframe[src*="doubleclick"]{display:none!important}';
+const AD_CSS = '[id^="div-gpt-ad"],[id*="google_ads_iframe"],[class*="adthrive"],[id*="adthrive"],[class*="ad-slot"],[class*="AdSlot"],[class*="ad_slot"],[class*="adSlot"],[id*="ad-slot"],[class*="ad-banner"],[class*="AdBanner"],[class*="ad-wrapper"],[class*="AdWrapper"],[class*="ads-wrapper"],[class*="ad-unit"],[class*="adunit"],[class*="sponsored-ad"],[data-ad-slot],[data-ad-unit],[data-adunit],[data-google-query-id],[aria-label="Advertisement"],[aria-label="Publicité"],[id^="nitropay"],[class*="nitropay"],[id^="nn_"],[class*="venatus"],[id*="venatus"],[class*="vm-placement"],[id^="pw-"],[class*="playwire"],[class*="fs-sticky"],[class*="freestar"],[id*="freestar"],[class*="mv-ad"],[class*="ezoic"],[id^="ezoic"],[class*="sticky-ad"],[class*="StickyAd"],[class*="video-ad"],[class*="primis"],[id*="primis"],[class*="aniview"],[class*="connatix"],[class*="ad-placeholder"],[class*="adPlaceholder"],' + 'ins.adsbygoogle,.adsbygoogle,[id*="-com_300x250"],[id*="-com_728x90"],[id*="-com_160x600"],[id*="_300x250"],[id*="_728x90"],[id*="_160x600"],[class*="ad-container"],[id^="aip_"],iframe[src*="googlesyndication"],iframe[src*="doubleclick"]{display:none!important}';
+// Navigateur intégré (liens, outils) : aucune pub non plus. Régies bloquées + emplacements masqués dans chaque page et cadre.
+function blockAdsWeb(wc) {
+  try {
+    const s = session.fromPartition('persist:fire-web');
+    if (!s.__fireAds) {
+      s.__fireAds = true;
+      s.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
+        let host = '';
+        try { host = new URL(d.url).hostname; } catch (e) { /* */ }
+        cb({ cancel: !!host && isAdHost(host) && d.resourceType !== 'mainFrame' });
+      });
+    }
+  } catch (e) { /* */ }
+  const css = AD_CSS;
+  wc.on('dom-ready', () => { wc.insertCSS(css, { cssOrigin: 'user' }).catch(() => {}); });
+  hideAdSlots(wc);
+}
 function blockAds() {
   session.defaultSession.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
     let host = '';
@@ -299,6 +330,7 @@ function ensureWebView() {
   webView = new WebContentsView({ webPreferences: { partition: 'persist:fire-web', sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: true } });
   webView.setBackgroundColor('#0B0D10');
   const wc = webView.webContents;
+  blockAdsWeb(wc);
   wc.setWindowOpenHandler(({ url }) => { if (isInstaller(url)) shell.openExternal(url); else if (WEB_OK.test(url)) wc.loadURL(url).catch(() => {}); return { action: 'deny' }; });
   wc.on('will-navigate', (e, url) => { if (!WEB_OK.test(url)) e.preventDefault(); });
   ['did-start-loading', 'did-stop-loading', 'page-title-updated', 'did-navigate', 'did-navigate-in-page'].forEach((ev) => wc.on(ev, webState));
