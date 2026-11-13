@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "1.10.98",
+   "date": "2026-11-13",
+   "titre": "Carnet de bord et rôle de créateur",
+   "items": [
+    [
+     "new",
+     "Carnet de bord pour le staff (créateur, coachs, chef d'équipe, modérateurs) : ce que fait chaque membre dans FIRE, avec sa dernière activité, son temps dans FIRE (aujourd'hui et sur 7 jours), ses messages et les pages qu'il ouvre le plus."
+    ],
+    [
+     "new",
+     "Journal : chaque action, avec un filtre par personne et par type (pages, messages, vocal, planning, POOL, quiz, clips, modération…)."
+    ],
+    [
+     "new",
+     "Notes du staff partagées, et modération : un modérateur peut supprimer un message d'un salon pour tout le monde. Badges COACH et MODO dans la discussion."
+    ],
+    [
+     "new",
+     "Rôle de créateur : tous les droits, seulement sur l'ordinateur du créateur (clé gardée par Windows sur ce PC). Le créateur et les coachs choisissent les modérateurs."
+    ],
+    [
+     "improve",
+     "Transparence : Paramètres › Confidentialité explique ce que le staff voit. Le contenu des messages privés n'est jamais noté."
+    ]
+   ]
+  },
+  {
    "v": "1.10.97",
    "date": "2026-11-13",
    "titre": "Salons de l'équipe",

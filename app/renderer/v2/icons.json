@@ -18,7 +18,8 @@
     "Vocal": "Headphones",
     "Patch notes": "History",
     "Paramètres": "Settings",
-    "Discussion": "MessagesSquare"
+    "Discussion": "MessagesSquare",
+    "Carnet de bord": "NotebookTabs"
   },
   "roles": {
     "Top": "Shield",

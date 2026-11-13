@@ -136,11 +136,47 @@ function chefOn() {
   const cfg = getConfig();
   return !!(c.hash && cfg.chef_scrypt && c.hash === cfg.chef_scrypt.hash);
 }
+// ---------- Créateur (admin) : tous les droits, seulement sur SON ordinateur ----------
+// Une clé privée créée sur ce PC et gardée chiffrée par Windows (on ne peut pas la copier sur un autre PC).
+// Sa clé publique est listée dans joueurs.json → « admins » : ce PC-là, et lui seul, a tous les droits.
+function adminKey() {
+  const k = readSecret('admin.bin');
+  return k && k.priv && k.pub ? k : null;
+}
+let adminCache = null;
+function adminOn() {
+  if (adminCache && adminCache.at > Date.now() - 60000) return adminCache.on;
+  let on = false;
+  try {
+    const k = adminKey();
+    const list = (getConfig().admins || []).map((a) => String(a.pub || '')).filter(Boolean);
+    if (k && list.includes(k.pub)) {
+      // La clé privée de ce PC correspond bien à la clé publique déclarée.
+      const msg = Buffer.from('FIRE-admin:' + Date.now());
+      const sig = crypto.sign('sha256', msg, crypto.createPrivateKey(k.priv));
+      on = crypto.verify('sha256', msg, crypto.createPublicKey({ key: Buffer.from(k.pub, 'base64'), format: 'der', type: 'spki' }), sig);
+    }
+  } catch (e) { on = false; }
+  adminCache = { on, at: Date.now() };
+  return on;
+}
+function adminSetup() {
+  let k = adminKey();
+  if (!k) {
+    const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
+    k = { priv: privateKey.export({ type: 'pkcs8', format: 'pem' }), pub: publicKey.export({ type: 'spki', format: 'der' }).toString('base64') };
+    writeSecret('admin.bin', k);
+    adminCache = null;
+  }
+  return { pub: k.pub, empreinte: crypto.createHash('sha256').update(k.pub).digest('hex').slice(0, 16).toUpperCase().match(/.{4}/g).join('-'), admin: adminOn() };
+}
 function coachState() {
   const c = readSecret('coach.bin') || {};
   const cfg = getConfig();
   const on = !!(c.hash && cfg.coach_scrypt && c.hash === cfg.coach_scrypt.hash);
-  return { coach: on, claude: on && !!c.anthropic, github: on && !!c.github, chef: chefOn() };
+  const admin = adminOn();
+  // Le créateur a les droits du coach et du chef d'équipe (les clés Claude/GitHub restent celles du coach).
+  return { coach: on || admin, claude: on && !!c.anthropic, github: on && !!c.github, chef: chefOn() || admin, admin };
 }
 
 // ---------- Chef d'équipe : peut modifier le planning (code chef, donné par le coach) ----------
@@ -795,6 +831,110 @@ async function salonsSave(d) {
     throw new Error("les salons ont changé pendant l'enregistrement, réessaie");
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
+// ---------- Carnet de bord (staff) : rôles, activité de chacun, notes du staff, modération ----------
+// Fichiers chiffrés avec le code d'équipe dans le dépôt de données. L'activité : un fichier par membre,
+// écrit seulement par son FIRE (pas de conflit), lu par le carnet de bord du staff.
+const ROLES = 'roles.json', STAFF = 'staff.json';
+const actPath = (slug) => 'activite/' + crypto.createHash('sha256').update(String(slug)).digest('hex').slice(0, 24) + '.json';
+async function teamRead(p) {
+  const dr = getConfig().data_repo || null;
+  if (!dr || !teamKey()) return null;
+  const tok = await teamToken();
+  let box = null;
+  try { box = await readPublic(p, dr, tok); if (box) saveCache('t-' + p.replace(/\W/g, '_'), box); } catch (e) { box = loadCache('t-' + p.replace(/\W/g, '_')); }
+  return box ? open(box) : null;
+}
+async function teamWrite(p, fn, label) {
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) throw new Error("le coach n'a pas encore activé le jeton d'équipe");
+  for (let i = 0; i < 4; i++) {
+    const cur = await ghGet(tok, p, dr);
+    let d = null;
+    try { d = cur && cur.json ? open(cur.json) : null; } catch (e) { d = null; }
+    const next = fn(d);
+    const r = await ghPut(tok, p, seal(next, p), cur && cur.sha, label, dr);
+    if (r.ok) return next;
+  }
+  throw new Error("le fichier a changé pendant l'enregistrement, réessaie");
+}
+const isStaffHere = () => { const st = coachState(); return st.coach || st.chef || st.admin; };
+async function roles() {
+  try { const d = await teamRead(ROLES); return { ok: true, modos: (d && Array.isArray(d.modos) ? d.modos : []).map(String).slice(0, 20) }; }
+  catch (e) { return { ok: false, error: 'rôles illisibles avec ce code', modos: [] }; }
+}
+async function rolesSave(modos, who) {
+  const st = coachState();
+  if (!st.coach && !st.admin) return { ok: false, error: 'réservé au coach et au créateur' };
+  try {
+    const d = await teamWrite(ROLES, () => ({ modos: (Array.isArray(modos) ? modos : []).map((x) => String(x).slice(0, 80)).slice(0, 20), maj: Date.now() }), 'Rôles');
+    activityPush(who, [{ t: Date.now(), k: 'roles', d: 'Modérateurs : ' + (d.modos.length ? d.modos.length : 'aucun') }]).catch(() => {});
+    return { ok: true, modos: d.modos };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+const cleanEvt = (e) => ({ t: Math.min(Number(e && e.t) || Date.now(), Date.now() + 60000), k: str(e && e.k, 20), d: str(e && e.d, 160) });
+// Mon activité (envoyée par mon FIRE toutes les quelques minutes) : 600 dernières actions, plus la dernière présence.
+async function activityPush(slug, evts) {
+  slug = String(slug || '').slice(0, 80);
+  if (!slug) return { ok: false };
+  const list = (Array.isArray(evts) ? evts : []).map(cleanEvt).filter((x) => x.k);
+  try {
+    await teamWrite(actPath(slug), (d) => {
+      const old = d && Array.isArray(d.evts) ? d.evts : [];
+      const keys = new Set(old.map((x) => x.t + x.k + x.d));
+      const all = old.concat(list.filter((x) => !keys.has(x.t + x.k + x.d))).sort((a, b) => a.t - b.t).slice(-600);
+      return { slug, evts: all, vu: Date.now(), v: app.getVersion() };
+    }, 'Activité');
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+async function activityAll(slugs) {
+  if (!isStaffHere() && !(slugs && slugs.modo)) return { ok: false, error: 'réservé au staff' };
+  const list = (Array.isArray(slugs) ? slugs : (slugs && slugs.list) || []).map(String).slice(0, 40);
+  const out = {};
+  await Promise.all(list.map(async (sl) => { try { const d = await teamRead(actPath(sl)); if (d) out[sl] = { evts: d.evts || [], vu: d.vu || 0, v: d.v || '' }; } catch (e) { /* illisible */ } }));
+  return { ok: true, act: out };
+}
+async function staffNotes() {
+  try { const d = await teamRead(STAFF); return { ok: true, notes: (d && Array.isArray(d.notes) ? d.notes : []) }; }
+  catch (e) { return { ok: false, error: 'notes illisibles avec ce code', notes: [] }; }
+}
+async function staffNoteSave(note, who) {
+  const n = { id: String((note && note.id) || Date.now().toString(36) + crypto.randomBytes(3).toString('hex')).replace(/[^\w-]/g, '').slice(0, 30),
+    by: String(who || '').slice(0, 80), at: Date.now(), titre: str(note && note.titre, 80), texte: str(note && note.texte, 3000), tag: str(note && note.tag, 30), del: !!(note && note.del) };
+  try {
+    const d = await teamWrite(STAFF, (cur) => {
+      let notes = cur && Array.isArray(cur.notes) ? cur.notes : [];
+      notes = notes.filter((x) => x.id !== n.id);
+      if (!n.del) notes.push(n);
+      return { notes: notes.sort((a, b) => b.at - a.at).slice(0, 300) };
+    }, 'Notes du staff');
+    activityPush(who, [{ t: Date.now(), k: 'staff', d: (n.del ? 'Note supprimée : ' : 'Note du staff : ') + (n.titre || 'sans titre') }]).catch(() => {});
+    return { ok: true, notes: d.notes };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+// Modération : supprimer un message de la discussion (salons ou messages privés).
+async function chatDelete(id, who) {
+  id = String(id || '').replace(/[^\w-]/g, '').slice(0, 40);
+  if (!id) return { ok: false, error: 'message inconnu' };
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, error: "le coach n'a pas encore activé le jeton d'équipe" };
+  try {
+    let gone = null;
+    for (let i = 0; i < 5; i++) {
+      const cur = await ghGet(tok, CHAT, dr);
+      const d = cur && cur.json ? open(cur.json) : { msgs: [] };
+      gone = (d.msgs || []).find((x) => x.id === id) || null;
+      d.msgs = (d.msgs || []).filter((x) => x.id !== id);
+      const box = seal(d, 'chat');
+      const r = await ghPut(tok, CHAT, box, cur && cur.sha, 'Discussion (modération)', dr);
+      if (r.ok) { saveCache('chat', box); break; }
+    }
+    activityPush(who, [{ t: Date.now(), k: 'modo', d: 'Message supprimé' + (gone ? ` de ${gone.from} : « ${String(gone.text).slice(0, 60)} »` : '') }]).catch(() => {});
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
 async function chatSend(m) {
   const dr = getConfig().data_repo || null;
   const tok = dr ? await teamToken() : null;
@@ -905,4 +1045,4 @@ async function closeBug(id) {
   } catch (e) { return { ok: false, error: String(e.message || e) }; }
 }
 
-module.exports = { chat, chatSend, salons, salonsSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { chat, chatSend, chatDelete, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

@@ -2140,3 +2140,33 @@ html.chat-page #chat{display:none}
 .sal-b:disabled{opacity:.3}
 .sal-b.del:hover{border-color:var(--bad)}
 .sal-act{margin-top:12px}
+
+/* Rôles et carnet de bord */
+.role-b{display:inline-block;margin-left:5px;padding:0 5px;border-radius:4px;font-size:9px;font-weight:800;letter-spacing:.04em;line-height:15px;vertical-align:1px}
+.role-b.admin{background:none;font-size:13px}
+.role-b.coach{background:#579dff;color:#fff}
+.role-b.modo{background:#39c58a;color:#0b0d10}
+.chat-del{margin-left:auto;border:none;background:none;cursor:pointer;opacity:0;font-size:12px}
+.chat-m:hover .chat-del{opacity:.7}
+.chat-del:hover{opacity:1!important}
+.stf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.stf-p{display:flex;flex-direction:column;gap:8px}
+.stf-ph{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.stf-ph small{margin-left:auto}
+.stf-kv{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.stf-kv span{display:flex;flex-direction:column;padding:6px 8px;border-radius:8px;background:var(--panel2)}
+.stf-last{margin:0}
+.stf-filt{gap:8px;margin-bottom:8px}
+.stf-filt select{max-width:260px}
+.stf-list{display:flex;flex-direction:column}
+.stf-day{margin:12px 0 4px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.stf-ev{display:grid;grid-template-columns:52px 24px 150px 1fr;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent);font-size:14px}
+.stf-t{font-variant-numeric:tabular-nums;font-size:12px}
+.stf-who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stf-edit{display:flex;flex-direction:column;gap:8px}
+.stf-note .stf-nh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stf-note .stf-nh small{margin-left:auto}
+.stf-nt{white-space:pre-wrap}
+.stf-msg{display:grid;grid-template-columns:120px 140px 110px 1fr 40px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.stf-mt{overflow-wrap:anywhere}
+.adm-key{width:100%;font-family:'JetBrains Mono',monospace;font-size:11px}

@@ -183,7 +183,8 @@
       if (busy) return;
       S.bonusBusy = p.slug; S.bonusErr = ''; render();
       let r;
-      try { r = await window.fire.coach.savePools({ type: 'bonus', semaine: mondayOf(todayYmd()), slug: p.slug, delta, base }); } catch (err) { r = { ok: false, error: String(err) }; }
+      actLog('pool', `Bonus ${delta > 0 ? '+' : ''}${delta} game(s) pour ${vocalName(p.slug)}`);
+    try { r = await window.fire.coach.savePools({ type: 'bonus', semaine: mondayOf(todayYmd()), slug: p.slug, delta, base }); } catch (err) { r = { ok: false, error: String(err) }; }
       S.bonusBusy = null;
       if (r && r.ok) { S.pools = r.semaines || S.pools; S.bonus = r.bonus || {}; } else S.bonusErr = (r && r.error) || 'envoi impossible';
       render();
@@ -325,6 +326,7 @@
       if (sec && sec !== 'stats' && START_PAGES.some(([k]) => k === sec)) go(sec); }
     render();
     chatInit();
+    actInit();
     loadGuides();
     window.fire.coach.state().then((c) => { S.coachState = c; if (S.section === 'coach' && !typing()) render(); }).catch(() => {});
     loadFiches();
@@ -710,7 +712,7 @@
     return [
       uxCard('👤 Qui es-tu ?', 'Choisis ton pseudo : FIRE te reconnaît (tierlist dans POOL, discussion, vocal).', h('div', { class: 'row' }, meSelect())),
       uxCard('🟢 Statut', 'Ce que l’équipe voit à côté de ton nom. « Occupé » coupe aussi tes notifications. « En game » s’affiche tout seul pendant une partie.',
-        uxSeg(['online', 'busy', 'away', 'invisible'].map((k) => [k, ST_LABEL[k].join(' ')]), UX.status, (v) => { setUx({ status: v }); renderSettings(); }),
+        uxSeg(['online', 'busy', 'away', 'invisible'].map((k) => [k, ST_LABEL[k].join(' ')]), UX.status, (v) => { setUx({ status: v }); actLog('statut', 'Statut : ' + ST_LABEL[v][1]); renderSettings(); }),
         LIVE.mine ? h('p', { class: 'good small' }, '🎮 Tu es en game : l’équipe le voit.') : null),
       uxCard('🪪 Ta carte de profil', 'Visible par l’équipe quand on clique sur ton nom dans la discussion.',
         h('label', { class: 'fld' }, h('span', null, 'Petite bio (140 caractères)'),
@@ -809,6 +811,7 @@
       h('p', { class: 'small ' + (streamerOn() ? 'good' : 'muted') }, streamerOn() ? '📺 Mode streamer actif en ce moment.' : UX.streamer === 'auto' ? 'Aucun logiciel de stream ouvert pour l’instant.' : 'Mode streamer désactivé.')),
       uxCard('💬 Messages privés', 'Qui peut t’écrire en privé dans la discussion.',
         uxSeg([['all', 'Toute l’équipe'], ['coach', 'Seulement les coachs'], ['none', 'Personne']], UX.dm, (v) => { setUx({ dm: v }); renderSettings(); })),
+      uxCard('📒 Ce que voit le staff', 'Pour aider l’équipe, ton FIRE note tes actions dans l’application : pages ouvertes, messages dans les salons, vocal, planning, POOL, quiz, clips. Le créateur, les coachs, le chef d’équipe et les modérateurs les voient dans leur carnet de bord. Le contenu de tes messages privés n’est jamais noté.'),
       uxCard('🎮 Ma partie en direct', null,
         uxBox(!UX.hideLive, 'Montrer ma partie en direct à l’équipe', 'Champion, score et temps de jeu dans « Stats des joueurs ». Décoche pour jouer discrètement.', (v) => { setUx({ hideLive: !v }); if (!v) { try { FV().liveSend(null); } catch (e) { /* */ } } renderSettings(); }))];
   }
@@ -941,7 +944,7 @@
     const [nDnd, nSon] = notifExtraCards();
     const sub = SET_SUB[tab] ? (SET_SUB[tab].some(([k]) => k === S.setSub) ? S.setSub : SET_SUB[tab][0][0]) : null;
     const pages = {
-      compte: () => [pWho, C.access],
+      compte: () => [pWho, adminCard(), C.access],
       profil: () => ({ statut: [pStatus], carte: [pCard] }[sub]),
       confid: () => [cDm, cLive],
       apparence: () => ({ theme: [aTheme], couleurs: [aAccent, aBg], affichage: [aDisp] }[sub]),
@@ -994,6 +997,7 @@
     if (!window.fire.web || !/^https?:\/\//i.test(String(url || ''))) return;
     if (!WEB.open) WEB.from = S.section === 'web' ? WEB.from : S.section;
     WEB.open = true; WEB.url = url; WEB.title = ''; WEB.error = ''; WEB.loading = true;
+    actLog('web', 'Page web : ' + webHost(url));
     if (S.section !== 'web') { S.prevSection = S.section; S.section = 'web'; }
     document.documentElement.classList.add('web-open');
     render();
@@ -1046,6 +1050,179 @@
     });
     new MutationObserver(() => webCovered()).observe(document.body, { childList: true });
     window.addEventListener('resize', () => { if (WEB.open) { const r = webRect(); if (r) window.fire.web.bounds(r); } });
+  }
+
+
+  // ===== Carnet de bord (staff) : ce que fait chaque membre dans FIRE, notes du staff, modération, rôles =====
+  // Chaque FIRE note ses actions (pages ouvertes, messages, vocal, planning, POOL, quiz, clips…) et les envoie toutes les
+  // 3 minutes dans le fichier d'activité du joueur (chiffré avec le code d'équipe). Le contenu des messages privés n'est jamais noté.
+  const PAGE_NAMES = { stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
+    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', web: 'navigateur' };
+  const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
+  function actLog(k, d) {
+    if (!vocalMe() || !window.fire.staff) return;
+    const last = ACT.buf[ACT.buf.length - 1];
+    if (last && last.k === k && last.d === d && Date.now() - last.t < 60000) return;
+    ACT.buf.push({ t: Date.now(), k, d: String(d || '').slice(0, 160) });
+    ACT.buf = ACT.buf.slice(-300);
+    save('fire.act.buf', ACT.buf);
+  }
+  async function actFlush() {
+    const me = vocalMe();
+    if (ACT.sending || !me || !window.fire.staff) return;
+    const out = ACT.buf.slice();
+    ACT.sending = true;
+    try {
+      const r = await window.fire.staff.actPush(me, out);
+      if (r && r.ok) { ACT.buf = ACT.buf.slice(out.length); save('fire.act.buf', ACT.buf); }
+    } catch (e) { /* hors ligne : on réessaiera */ }
+    ACT.sending = false;
+  }
+  function actInit() {
+    if (ACT.timer || !window.fire.staff) return;
+    actLog('app', `Ouvre FIRE (v${S.version})`);
+    setTimeout(actFlush, 20000);
+    ACT.timer = setInterval(actFlush, 3 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) actFlush(); });
+    staffLoad();
+  }
+  // Rôles : créateur (son PC), coach, chef d'équipe, modérateurs (choisis par le coach ou le créateur).
+  const STF = { modos: load('fire.modos', []), tab: 'activite', act: null, notes: null, loading: false, who: '', kind: '', msg: '', edit: null, admin: null };
+  async function staffLoad() {
+    if (!window.fire.staff) return;
+    try { const r = await window.fire.staff.roles(); if (r && r.ok) { STF.modos = r.modos || []; save('fire.modos', STF.modos); renderNav(); } } catch (e) { /* */ }
+  }
+  const isModo = (slug) => (STF.modos || []).includes(slug || vocalMe());
+  const isStaff = () => !!(S.coachState.coach || S.coachState.chef || S.coachState.admin || isModo());
+  const roleBadge = (slug) => {
+    if (slug === vocalMe() && S.coachState.admin) return h('span', { class: 'role-b admin', title: 'Créateur de FIRE' }, '👑');
+    if (coachOf(slug)) return h('span', { class: 'role-b coach', title: 'Coach' }, 'COACH');
+    if (isModo(slug)) return h('span', { class: 'role-b modo', title: 'Modérateur' }, 'MODO');
+    return null;
+  };
+  const ACT_KIND = { app: ['🚀', 'Ouverture'], page: ['📄', 'Page'], msg: ['💬', 'Message'], vocal: ['🎙️', 'Vocal'], plan: ['📅', 'Planning'], pool: ['🧙', 'POOL'], jeu: ['🎮', 'Jeu'],
+    clip: ['🎬', 'Clip'], web: ['🌐', 'Web'], statut: ['🟢', 'Statut'], modo: ['🛡️', 'Modération'], roles: ['👑', 'Rôles'], staff: ['📒', 'Staff'], salons: ['⚙️', 'Salons'] };
+  const members = () => S.players.filter((p) => p.slug).map((p) => [p.slug, roleOf(p).ico, String(p.pseudo).split('#')[0]]).concat((S.coachs || []).map((c) => [c.slug, '🎓', c.pseudo]));
+  async function staffFetch() {
+    if (STF.loading || !window.fire.staff) return;
+    STF.loading = true; STF.err = '';
+    try {
+      const [a, n] = await Promise.all([window.fire.staff.actAll({ list: members().map(([sl]) => sl), modo: isModo() }), window.fire.staff.notes()]);
+      if (a && a.ok) STF.act = a.act || {}; else STF.err = (a && a.error) || 'activité illisible';
+      if (n && n.ok) STF.notes = n.notes || [];
+    } catch (e) { STF.err = String(e); }
+    STF.loading = false;
+    if (S.section === 'carnet' && !typing()) renderCarnet();
+  }
+  const dayFrT = (t) => new Date(t).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+  const ago = (t) => { if (!t) return 'jamais'; const m = Math.round((Date.now() - t) / 60000); return m < 2 ? 'à l’instant' : m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : `il y a ${Math.round(m / 1440)} j`; };
+  // Temps passé dans FIRE sur une période : écarts de moins de 10 min entre deux actions.
+  function timeIn(evts, since) { let ms = 0, prev = null; for (const e of evts) { if (e.t < since) { prev = e.t; continue; } if (prev && e.t - prev < 600000) ms += e.t - prev; prev = e.t; } return ms; }
+  const dur = (ms) => { const m = Math.round(ms / 60000); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`; };
+  function renderCarnet() {
+    const view = $('view');
+    if (!isStaff()) { view.replaceChildren(h('div', { class: 'card' }, h('p', null, 'Le carnet de bord est réservé au staff (créateur, coachs, chef d’équipe, modérateurs).'))); return; }
+    if (!STF.act && !STF.loading) staffFetch();
+    const tabs = [['activite', '👥 Activité de chacun'], ['journal', '📜 Journal'], ['notes', '📒 Notes du staff'], ['modo', '🛡️ Modération'], ['roles', '👑 Rôles']];
+    const tabBar = h('div', { class: 'row plan-tabs' }, tabs.map(([k, l]) => h('button', { class: 'plan-tab', 'aria-pressed': String(STF.tab === k), onclick: () => { STF.tab = k; renderCarnet(); } }, l)),
+      h('button', { class: 'btn-ghost', onclick: () => { STF.act = null; staffFetch(); renderCarnet(); } }, STF.loading ? 'Chargement…' : '⟳ Actualiser'));
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📒'), h('div', null, h('h1', { class: 'title' }, 'Carnet de bord'),
+      h('p', { class: 'muted' }, 'Ce que fait chaque membre dans FIRE, les notes du staff et la modération. Mis à jour toutes les 3 minutes par le FIRE de chacun.')));
+    const A = STF.act || {};
+    let body;
+    const allEvts = () => Object.entries(A).flatMap(([sl, x]) => (x.evts || []).map((e) => ({ ...e, who: sl }))).sort((a, b) => b.t - a.t);
+    if (STF.err && !STF.act) body = h('div', { class: 'card' }, h('p', { class: 'bad' }, '⚠ ' + STF.err));
+    else if (STF.tab === 'activite') {
+      const now = Date.now(), d1 = new Date(); d1.setHours(0, 0, 0, 0); const today = d1.getTime(), week = now - 7 * 86400000;
+      body = h('div', { class: 'stf-grid' }, members().sort((a, b) => a[2].localeCompare(b[2], 'fr')).map(([sl, ico, name]) => {
+        const x = A[sl] || { evts: [], vu: 0 };
+        const ev = x.evts || [];
+        const last = ev[ev.length - 1];
+        const lastSeen = Math.max(x.vu || 0, last ? last.t : 0);
+        const pages = {}; ev.filter((e) => e.k === 'page' && e.t > week).forEach((e) => { pages[e.d] = (pages[e.d] || 0) + 1; });
+        const topPages = Object.entries(pages).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([p]) => p.replace(/^Page /, ''));
+        const nMsg = ev.filter((e) => e.k === 'msg' && e.t > week).length;
+        const st = statusOf(sl);
+        return h('div', { class: 'card stf-p' + (STF.who === sl ? ' on' : '') },
+          h('div', { class: 'stf-ph' }, h('b', null, ico + ' ' + name), stDot(sl), roleBadge(sl), h('small', { class: 'muted' }, st.game ? '🎮 en game' : (ST_LABEL[st.st] || ST_LABEL.offline)[1])),
+          h('div', { class: 'stf-kv' },
+            h('span', null, h('small', { class: 'muted' }, 'Dernière activité'), h('b', null, ago(lastSeen))),
+            h('span', null, h('small', { class: 'muted' }, 'Aujourd’hui'), h('b', null, dur(timeIn(ev, today)))),
+            h('span', null, h('small', { class: 'muted' }, '7 jours'), h('b', null, dur(timeIn(ev, week)))),
+            h('span', null, h('small', { class: 'muted' }, 'Messages (7 j)'), h('b', null, String(nMsg)))),
+          topPages.length ? h('p', { class: 'muted small' }, 'Pages les plus ouvertes : ' + topPages.join(', ')) : null,
+          last ? h('p', { class: 'small stf-last' }, (ACT_KIND[last.k] || ['•'])[0] + ' ' + last.d, h('small', { class: 'muted' }, ' · ' + ago(last.t))) : h('p', { class: 'muted small' }, 'Aucune activité reçue (FIRE pas encore mis à jour, ou pas ouvert).'),
+          h('button', { class: 'btn-ghost', onclick: () => { STF.who = sl; STF.tab = 'journal'; renderCarnet(); } }, 'Voir tout son journal →'));
+      }));
+    } else if (STF.tab === 'journal') {
+      const evts = allEvts().filter((e) => (!STF.who || e.who === STF.who) && (!STF.kind || e.k === STF.kind)).slice(0, 400);
+      const rows = []; let lastDay = '';
+      for (const e of evts) {
+        const d = dayFrT(e.t);
+        if (d !== lastDay) { rows.push(h('div', { class: 'stf-day' }, d)); lastDay = d; }
+        rows.push(h('div', { class: 'stf-ev' }, h('span', { class: 'muted stf-t' }, hm(e.t)), h('span', { class: 'stf-k', title: (ACT_KIND[e.k] || ['', e.k])[1] }, (ACT_KIND[e.k] || ['•'])[0]),
+          h('b', { class: 'stf-who' }, vocalName(e.who)), h('span', null, e.d)));
+      }
+      body = h('div', { class: 'card' },
+        h('div', { class: 'row stf-filt' },
+          h('select', { class: 'inp', onchange: (e) => { STF.who = e.target.value; renderCarnet(); } }, h('option', { value: '' }, 'Tout le monde'), members().map(([sl, , n]) => h('option', { value: sl, selected: STF.who === sl ? true : null }, n))),
+          h('select', { class: 'inp', onchange: (e) => { STF.kind = e.target.value; renderCarnet(); } }, h('option', { value: '' }, 'Toutes les actions'), Object.entries(ACT_KIND).map(([k, [ico, l]]) => h('option', { value: k, selected: STF.kind === k ? true : null }, ico + ' ' + l)))),
+        rows.length ? h('div', { class: 'stf-list' }, rows) : h('p', { class: 'muted' }, STF.loading ? 'Chargement…' : 'Rien pour ce filtre.'));
+    } else if (STF.tab === 'notes') {
+      const notes = STF.notes || [];
+      const E = STF.edit;
+      const saveNote = async (n) => { STF.msg = ''; const r = await window.fire.staff.noteSave(n, vocalMe()).catch((e) => ({ ok: false, error: String(e) })); if (r && r.ok) { STF.notes = r.notes; STF.edit = null; } else STF.msg = '⚠ ' + ((r && r.error) || 'erreur'); renderCarnet(); };
+      body = h('div', null,
+        E ? h('div', { class: 'card stf-edit' },
+          h('input', { class: 'inp', placeholder: 'Titre (ex. : Toks : travailler le wave management)', value: E.titre || '', oninput: (e) => { E.titre = e.target.value; } }),
+          h('input', { class: 'inp', placeholder: 'Étiquette (joueur, scrim, objectif…)', value: E.tag || '', oninput: (e) => { E.tag = e.target.value; } }),
+          h('textarea', { class: 'inp', rows: 6, placeholder: 'Ta note pour le staff…', oninput: (e) => { E.texte = e.target.value; } }, E.texte || ''),
+          h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => saveNote(E) }, '💾 Enregistrer'), h('button', { class: 'btn-ghost', onclick: () => { STF.edit = null; renderCarnet(); } }, 'Annuler')))
+          : h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => { STF.edit = { titre: '', texte: '', tag: '' }; renderCarnet(); } }, '➕ Nouvelle note')),
+        STF.msg ? h('p', { class: 'bad small' }, STF.msg) : null,
+        notes.length ? notes.map((n) => h('div', { class: 'card stf-note' },
+          h('div', { class: 'stf-nh' }, h('b', null, n.titre || 'Sans titre'), n.tag ? h('span', { class: 'chip' }, n.tag) : null, h('small', { class: 'muted' }, `${vocalName(n.by)} · ${dayFrT(n.at)} ${hm(n.at)}`)),
+          h('p', { class: 'stf-nt' }, n.texte),
+          h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => { STF.edit = { ...n }; renderCarnet(); window.scrollTo(0, 0); } }, '✏️ Modifier'),
+            h('button', { class: 'btn-ghost', onclick: () => { if (confirm('Supprimer cette note ?')) saveNote({ ...n, del: true }); } }, '🗑 Supprimer')))) : h('p', { class: 'muted' }, 'Aucune note pour l’instant. Les notes sont visibles par tout le staff.'));
+    } else if (STF.tab === 'modo') {
+      const msgs = CH.msgs.filter((m) => !m.to).slice(-80).reverse();
+      body = h('div', { class: 'card' }, h('p', { class: 'muted small' }, 'Les derniers messages des salons. Un message supprimé disparaît pour tout le monde. Les messages privés ne sont pas affichés ici.'),
+        msgs.length ? msgs.map((m) => h('div', { class: 'stf-msg' }, h('span', { class: 'muted stf-t' }, `${dayFrT(m.at)} ${hm(m.at)}`), h('b', null, vocalName(m.from)),
+          h('span', { class: 'muted' }, m.ch ? convName('ch:' + m.ch) : '#général'), h('span', { class: 'stf-mt' }, m.text),
+          h('button', { class: 'btn-ghost', onclick: () => chatModDelete(m) }, '🗑'))) : h('p', { class: 'muted' }, 'Aucun message.'));
+    } else {
+      const canSet = S.coachState.coach || S.coachState.admin;
+      const sel = new Set(STF.modos || []);
+      body = h('div', null,
+        h('div', { class: 'card' }, h('h2', null, '👑 Les rôles'),
+          h('p', { class: 'small' }, '👑 Créateur : tous les droits, seulement sur son PC. 🎓 Coachs : code coach. ⭐ Chef d’équipe : code chef. 🛡️ Modérateurs : choisis ici par un coach ou le créateur (carnet de bord, suppression de messages, salons).'),
+          S.coachState.admin ? h('p', { class: 'good small' }, '👑 Tu es le créateur sur ce PC : tous les droits.') : null),
+        h('div', { class: 'card' }, h('h2', null, '🛡️ Modérateurs'),
+          members().filter(([sl]) => !coachOf(sl)).map(([sl, ico, n]) => h('label', { class: 'nrow' }, h('input', { type: 'checkbox', checked: sel.has(sl) ? true : null, disabled: canSet ? null : true,
+            onchange: async (e) => { if (e.target.checked) sel.add(sl); else sel.delete(sl); const r = await window.fire.staff.rolesSave([...sel], vocalMe()).catch((er) => ({ ok: false, error: String(er) }));
+              if (r && r.ok) { STF.modos = r.modos; save('fire.modos', r.modos); } else alert('⚠ ' + ((r && r.error) || 'erreur')); renderCarnet(); renderNav(); } }), h('span', null, ico + ' ' + n))),
+          canSet ? null : h('p', { class: 'muted small' }, 'Seuls un coach et le créateur peuvent choisir les modérateurs.')));
+    }
+    view.replaceChildren(hero, tabBar, body);
+  }
+  async function chatModDelete(m) {
+    if (!confirm(`Supprimer ce message de ${vocalName(m.from)} pour tout le monde ?\n\n« ${m.text.slice(0, 200)} »`)) return;
+    const r = await window.fire.staff.chatDelete(m.id, vocalMe()).catch((e) => ({ ok: false, error: String(e) }));
+    if (r && r.ok) { CH.msgs = CH.msgs.filter((x) => x.id !== m.id); CH.deleted = (CH.deleted || new Set()); CH.deleted.add(m.id); chatPaint(); if (S.section === 'carnet') renderCarnet(); }
+    else alert('⚠ ' + ((r && r.error) || 'suppression impossible'));
+  }
+  // Paramètres › Mon compte : préparer ce PC pour le rôle de créateur (clé gardée par Windows sur ce PC).
+  function adminCard() {
+    if (!window.fire.staff) return null;
+    if (S.coachState.admin) return uxCard('👑 Créateur', null, h('p', { class: 'good' }, '👑 Tu es le créateur de FIRE sur ce PC : tous les droits (coach, chef d’équipe, modération, carnet de bord).'));
+    const a = STF.admin;
+    return uxCard('👑 Rôle de créateur', 'Tous les droits, seulement sur TON ordinateur. FIRE crée une clé gardée par Windows sur ce PC : elle ne marche sur aucun autre.',
+      a ? [h('p', { class: 'small' }, 'Empreinte de ce PC : ', h('b', null, a.empreinte)),
+        h('textarea', { class: 'inp adm-key', rows: 3, readonly: true }, a.pub),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => { navigator.clipboard.writeText(a.pub).then(() => { STF.copied = true; renderSettings(); }).catch(() => {}); } }, STF.copied ? '✓ Copiée' : '📋 Copier la clé')),
+        h('p', { class: 'muted small' }, 'Envoie cette clé (elle n’est pas secrète) à celui qui gère FIRE : elle sera ajoutée à la liste des créateurs, et ce PC aura tous les droits à la prochaine mise à jour.')]
+        : h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: async () => { try { STF.admin = await window.fire.staff.adminSetup(); } catch (e) { /* */ } renderSettings(); } }, '👑 Préparer ce PC pour le rôle de créateur')));
   }
 
   // Fenêtre plein écran des paramètres, par-dessus FIRE (comme Discord).
@@ -1216,12 +1393,13 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'carnet' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
     else if (S.section === 'web') renderWeb();
     else if (S.section === 'chat') renderChatPage();
+    else if (S.section === 'carnet') renderCarnet();
     else if (S.section === 'pool') renderPool();
     else if (S.section === 'planning') renderPlanning();
     else if (S.section === 'jeux') renderJeux();
@@ -2032,6 +2210,7 @@
     document.documentElement.classList.toggle('chat-page', sec === 'chat');
     S.section = sec;
     if (START_PAGES.some(([k]) => k === sec)) save('fire.lastSection', sec);
+    if (sec !== S.prevSection || sec === 'settings') actLog('page', 'Page ' + (PAGE_NAMES[sec] || sec));
     if (sec === 'guides') { S.theme = null; S.guideCat = null; }
     if (sec === 'coach') S.ficheId = null;
     if (sec === 'stats') { S.view = 'hub'; S.player = null; }
@@ -2312,6 +2491,7 @@
   }
   function vocalJoin(roomId) {
     if (!vocalMe()) return;
+    actLog('vocal', 'Rejoint le salon vocal ' + roomOf(typeof roomId === 'string' ? roomId : (VX.room || load('fire.vocal.room', 'equipe'))).name);
     const v = FV().state();
     const id = roomOf(typeof roomId === 'string' ? roomId : (VX.room || load('fire.vocal.room', 'equipe'))).id;
     const r = roomOf(id);
@@ -2652,6 +2832,7 @@
     syncKeys(true);
   }
   async function saveClip() {
+    actLog('clip', 'Clip instantané enregistré');
     if (!window.FireClips) return;
     const st = FireClips.state();
     if (!st.on) { vocalToast('Les clips ne sont pas activés : Vocal › Paramètres › Clips instantanés', false); return; }
@@ -3648,7 +3829,7 @@
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null],
-      ['coach', '📣', 'Parole du coach', n || null], ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
+      ['coach', '📣', 'Parole du coach', n || null], ...(isStaff() ? [['carnet', '📒', 'Carnet de bord']] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
     if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), items.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }
     $('nav').replaceChildren(...items.map(([id, ico, label, badge, cls]) => b(id, ico + ' ' + label, badge, cls)));
@@ -5078,6 +5259,7 @@
         R.done = true;
         const all = qBest();
         if (!all[mode] || R.ok > all[mode].ok) { all[mode] = { ok: R.ok, at: Date.now() }; save('fire.quiz', all); R.record = true; }
+        actLog('jeu', `Quiz ${(QMODES.find(([k]) => k === mode) || [, mode])[1].replace(/^\S+\s/, '')} : ${R.ok}/${QN} (${qRank(R.ok)[0]})`);
       } else { R.q = qMake(mode); R.ans = null; }
       render();
     };
@@ -5459,6 +5641,7 @@
     const before = rep[slug];
     if (statut) rep[slug] = { statut, at: Date.now() }; else delete rep[slug];
     render();
+    actLog('plan', `Planning : ${statut} le ${date}`);
     const r = await window.fire.savePlanning({ type: 'reponse', date, slug, statut });
     if (r && r.ok) S.plan = planFrom(r);
     else { if (before) rep[slug] = before; else delete rep[slug]; S.flash = 'Réponse non enregistrée : ' + ((r && r.error) || 'erreur'); }
@@ -5660,6 +5843,7 @@
     });
     const save = h('button', { class: 'btn-fire small-btn', disabled: e.busy ? true : null, onclick: async () => {
       e.busy = true; e.err = ''; render();
+      actLog('plan', e.coach ? 'Disponibilités de coach publiées' : 'Semaine de planning publiée');
       const r = await window.fire.savePlanning(e.coach ? { type: 'dispos', coach: e.coach, debut: e.mon, jours: e.jours } : { type: 'semaine', debut: e.mon, jours: e.jours });
       e.busy = false;
       if (r && r.ok) { S.plan = planFrom(r); if (!e.coach) notifPlanning(true); S.planWeek = e.mon; S.planEdit = null; S.flash = e.coach ? 'Dispos publiées ✓ Les joueurs peuvent demander un créneau.' : 'Planning publié ✓ Les joueurs peuvent répondre.'; }
@@ -5826,7 +6010,7 @@
   function chatMerge(list, live) {
     const by = new Map(CH.msgs.map((m) => [m.id, m]));
     const fresh = [];
-    for (const m of list || []) if (m && m.id && m.text && !by.has(m.id)) { by.set(m.id, m); fresh.push(m); }
+    for (const m of list || []) if (m && m.id && m.text && !by.has(m.id) && !(CH.deleted && CH.deleted.has(m.id))) { by.set(m.id, m); fresh.push(m); }
     if (!fresh.length) return;
     CH.msgs = [...by.values()].sort((a, b) => a.at - b.at).slice(-300);
     // Notification Windows pour les messages des autres, si FIRE n'est pas au premier plan (une seule fois par message).
@@ -5846,7 +6030,12 @@
     if (!window.fire.chat) return;
     let r;
     try { r = await window.fire.chat.list(); } catch (e) { r = { ok: false, error: String(e) }; }
-    if (r && r.ok) { CH.err = r.offline ? 'Hors ligne : derniers messages enregistrés.' : ''; chatMerge(r.msgs); }
+    if (r && r.ok) {
+      CH.err = r.offline ? 'Hors ligne : derniers messages enregistrés.' : '';
+      // La liste en ligne fait foi : un message supprimé par la modération disparaît aussi ici (sauf ceux des 2 dernières minutes, pas encore enregistrés).
+      if (!r.offline && Array.isArray(r.msgs)) { const ids = new Set(r.msgs.map((m) => m.id)); const before = CH.msgs.length; CH.msgs = CH.msgs.filter((m) => ids.has(m.id) || m.at > Date.now() - 120000); if (CH.msgs.length !== before) chatPaint(); }
+      chatMerge(r.msgs);
+    }
     else CH.err = (r && r.error) || 'discussion indisponible';
     CH.ready = true;
     chatPaint();
@@ -5872,6 +6061,7 @@
     const msg = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), from: me, text, at: Date.now() };
     if (CH.conv.startsWith('ch:')) msg.ch = CH.conv.slice(3);
     else if (CH.conv !== 'team') msg.to = CH.conv;
+    actLog('msg', msg.to ? `Message privé à ${vocalName(msg.to)}` : `Dans ${convName(CH.conv)} : « ${text.slice(0, 70)} »`);
     inp.value = ''; chatGrow();
     chatMerge([msg], true);
     try { if (FV() && FV().chatSend) FV().chatSend(msg); } catch (e) { /* hall pas prêt */ }
@@ -5916,7 +6106,8 @@
       const grouped = last && last.from === m.from && m.at - last.at < 5 * 60000;
       const col = st(m.from).color;
       rows.push(h('div', { class: 'chat-m' + (m.from === me ? ' mine' : '') + (grouped ? ' grp' : '') },
-        grouped ? null : h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n', style: col ? `color:${col}` : '', title: 'Voir sa carte de profil', onclick: () => openProfile(m.from) }, chatWho(m.from)), h('span', { class: 'muted' }, hm(m.at))),
+        grouped ? null : h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n', style: col ? `color:${col}` : '', title: 'Voir sa carte de profil', onclick: () => openProfile(m.from) }, chatWho(m.from)), roleBadge(m.from), h('span', { class: 'muted' }, hm(m.at)),
+          isStaff() && !m.to ? h('button', { class: 'chat-del', title: 'Supprimer ce message (modération)', onclick: () => chatModDelete(m) }, '🗑') : null),
         h('div', { class: 'chat-tx' }, m.text)));
       last = m;
     }
@@ -6210,6 +6401,7 @@
         tools.push(h('button', { class: c ? 'btn-danger' : 'btn-ghost', onclick: async () => {
           if (!c) { S.confirm = 'delpool:' + w.id; render(); return; }
           S.confirm = null;
+          actLog('pool', 'Semaine de pool supprimée');
           const r = await window.fire.coach.savePools({ type: 'delete', id: w.id });
           S.flash = r.ok ? 'Semaine supprimée.' : 'Suppression impossible : ' + r.error;
           if (r.ok) { S.pools = r.semaines; S.poolWeek = null; applyWeek(); }
@@ -6400,6 +6592,7 @@
       h('div', { class: 'row' },
         h('button', { class: 'btn-fire small-btn', disabled: e.busy ? true : null, onclick: async () => {
           e.busy = true; e.err = ''; render();
+          actLog('pool', S.moi === p.slug ? 'Tierlist POOL modifiée' : `Tierlist POOL de ${vocalName(p.slug)} modifiée`);
           const r = await window.fire.coach.savePools({ type: 'joueur', slug: p.slug, debut, objectif: (w && w.objectif) || (S.cfgObj && S.cfgObj.games) || 20, tiers: { O: e.O, M: e.M }, par: S.coachState.coach && S.moi !== p.slug ? 'coach' : 'joueur' });
           e.busy = false;
           if (r.ok) { S.pools = r.semaines; S.cardEdit = null; const nw = r.semaines.find((x) => x.debut === debut); if (nw) S.poolWeek = nw.id; S.flash = `Tierlist de ${p.pseudo} enregistrée ✓ Toute l'équipe la verra à sa prochaine ouverture.`; applyWeek(); }
@@ -6441,6 +6634,7 @@
     });
     const save = h('button', { class: 'btn-fire small-btn', disabled: e.busy || !(S.poolWrite || S.coachState.github) ? true : null, onclick: async () => {
       e.busy = true; e.err = ''; render();
+      actLog('pool', 'Semaine de pool publiée');
       const r = await window.fire.coach.savePools({ type: 'save', semaine: { id: e.id, debut: e.debut, objectif: e.objectif, note: e.note, joueurs: e.joueurs } });
       e.busy = false;
       if (r.ok) { S.pools = r.semaines; const w = r.semaines.find((x) => x.debut === e.debut); S.poolWeek = w ? w.id : null; S.poolEdit = null; S.flash = 'Semaine publiée ✓ Les joueurs la verront à leur prochaine ouverture.'; applyWeek(); }

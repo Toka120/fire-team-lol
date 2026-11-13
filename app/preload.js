@@ -36,6 +36,8 @@ contextBridge.exposeInMainWorld('fire', {
   clips: { save: call('clips:save'), list: call('clips:list'), read: call('clips:read'), show: call('clips:show'), del: call('clips:delete') },
   chat: { list: call('chat'), send: call('chat:send') },
   salons: { list: call('salons'), save: call('salons:save') },
+  staff: { adminSetup: call('admin:setup'), roles: call('roles'), rolesSave: call('roles:save'), actPush: call('act:push'), actAll: call('act:all'),
+    notes: call('staff:notes'), noteSave: call('staff:save'), chatDelete: call('chat:delete') },
   savePlanning: call('planning:save'),
   champions: call('champions'),
   jeux: { data: call('jeux:data'), lore: call('jeux:lore') },
