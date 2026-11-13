@@ -1604,7 +1604,9 @@
         if (S.section === 'stats' && S.view === 'hub') render();
         let res;
         if (Array.isArray(p.comptes) && p.comptes.length) res = await fetchAccounts(p);
-        else { try { res = await window.fire.fetchPlayer({ slug: p.slug, puuid: p.puuid || null, pages: p.stats_depuis ? 70 : 14 }, fetchDays(p)); } catch (e) { res = { ok: false, error: String(e) }; } }
+        else { try { res = await window.fire.fetchPlayer({ slug: p.slug, puuid: p.puuid || (load('fire.puuids', {}) || {})[p.slug] || null, pages: p.stats_depuis ? 70 : 14 }, fetchDays(p)); } catch (e) { res = { ok: false, error: String(e) }; } }
+        // Identifiant Riot gardé : la prochaine lecture marche même si dpm.lol tarde à répondre (membres ajoutés par l'accueil).
+        if (res && res.ok && res.puuid && !p.puuid) { const m = load('fire.puuids', {}) || {}; if (m[p.slug] !== res.puuid) { m[p.slug] = res.puuid; save('fire.puuids', m); } }
         if (res && res.ok) {
           S.data[p.slug] = { matches: res.matches, champs: res.champs, rank: res.rank, record: res.record, at: res.at, acc: res.acc };
           save('fire.data', S.data);

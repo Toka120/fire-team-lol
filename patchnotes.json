@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.116",
+   "date": "2026-11-13",
+   "titre": "Stats des nouveaux membres",
+   "items": [
+    [
+     "fix",
+     "« dpm.lol n'a pas répondu » pour un nouveau membre (ex. Mortarius) : son profil existe bien, mais dpm.lol ne passait pas toujours par l'appel que FIRE attendait. FIRE lit maintenant l'identifiant du joueur directement dans la page, puis le garde pour les fois suivantes."
+    ]
+   ]
+  },
+  {
    "v": "1.10.115",
    "date": "2026-11-13",
    "titre": "Outils sans pub, comme dans FIRE",

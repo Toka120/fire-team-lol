@@ -852,6 +852,10 @@ async function fetchPlayer(player, days) {
       puuid = captured.get(id) || null;
       if (!puuid) await sleep(400);
     }
+    // dpm.lol n'appelle pas toujours son API tout de suite (page déjà prête côté serveur) : l'identifiant est aussi dans la page.
+    if (!puuid) {
+      puuid = await win.webContents.executeJavaScript(`(() => { const h = document.documentElement.innerHTML; const m = h.match(/player\\\\?"\\s*:\\s*\\{\\\\?"puuid\\\\?"\\s*:\\s*\\\\?"([A-Za-z0-9_-]{60,90})/); return m ? m[1] : null; })()`).catch(() => null);
+    }
     puuid = puuid || player.puuid;
     if (!puuid) throw new Error('profil introuvable sur dpm.lol');
     // Demande à dpm.lol de rafraîchir le profil (bouton « Update now »), puis laisse-lui le temps.
