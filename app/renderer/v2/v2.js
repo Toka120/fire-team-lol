@@ -26,6 +26,7 @@
     s.setAttribute('viewBox', '0 0 24 24');
     s.setAttribute('aria-hidden', 'true');
     s.setAttribute('class', 'v2i' + (cls ? ' ' + cls : ''));
+    s.dataset.i = n;
     s.innerHTML = LUC[n];
     return s;
   }
@@ -86,6 +87,8 @@
     '✅': 'CircleCheck', '❌': 'CircleX', '💪': 'BicepsFlexed', '📖': 'BookOpen', '🧭': 'Compass', '🤝': 'micro.Duo', '👥': 'Users',
     '🥶': 'TrendingDown', '👉': 'controls.Suivant', '🧑‍🏫': 'controls.Coach', '📜': 'navigation.Patch notes', '🧙': 'navigation.POOL',
     '🏰': 'esport.Tours', '⌛': 'controls.Sans réponse', '🐢': 'Turtle', '🙋': 'controls.Identité',
+    '💤': 'Moon', '😴': 'Moon', '🔎': 'controls.Recherche', '👌': 'controls.Valider', '💡': 'Lightbulb', '💾': 'Save',
+    '🧠': 'controls.Mental et progression', '✍️': 'controls.Modifier', '⏳': 'controls.Sans réponse',
   };
   // Le même emoji sert à plusieurs choses : le texte qui suit décide quand il est clair (« 🏆 Win rate » ≠ « 🏆 5c5 »).
   const BYTEXT = [
@@ -104,11 +107,14 @@
   const LABEL_SEL = '.tab, .plan-tab, .chip, .card > h2, .settings-card h2, .hub-sec > span, .chat-t, .seg';
   // Stats, profils et analyse d'équipe : libellés système uniquement (jamais les notes, fiches ou messages).
   const STAT_SEL = '.tile-h, .acol > h3, .cgroup > h3, .catpill, .bdg, .team-kick, .hp, .more-btn, .tags > .tag:not(.tag-cap), '
-    + '.objline > span, .hub-coachs, .team-h, .ta-k, .ta-keep, .wr-g, .tg-q, .pstatus, .cc .m > span, .bonus-l, .sec-hero p.muted.small';
+    + '.objline > span, .hub-coachs, .team-h, .ta-k, .ta-keep, .wr-g, .tg-q, .pstatus, .cc .m > span, .bonus-l, .sec-hero p.muted.small, '
+    + '.btn-fire, .btn-ghost, .fld-inline, .verdict, .pk-mode, .pc-head > .tag';
   // Petites icônes seules (cartes d'analyse, points forts d'équipe, objectifs d'une game).
-  const ICO_SEL = '.acard-ico, .tf-ico';
+  const ICO_SEL = '.acard-ico, .tf-ico, .pc-ico, .tier-ico, .pk-b, .ibtn, .apill-ico, .mini-tag, .pool-card table.t td';
+  // Libellés où 🎯 ⭐ ❔ apparaissent au milieu du texte (légendes POOL, changements de tierlist).
+  const CAT_SEL = '.acard-chip, .chg, .catleg > span, .pool-hero p, .week-banner .wb-main .muted.small, .card-editor > p.muted.small';
   const OBJ = { '🩸': 'Droplet', '⚔️': 'Swords', '🐉': 'esport.Dragons', '🪱': 'esport.Larves', '👾': 'esport.Barons', '⏱️': 'controls.Heure', '🏰': 'esport.Tours' };
-  const ICO = { ...LABEL, '🛡️': 'roles.Top', '🎯': 'Goal', '⚔️': 'Swords', '💰': 'controls.Recall, golds et objets', '🧠': 'controls.Mental et progression' };
+  const ICO = { ...LABEL, '🛡️': 'roles.Top', '🎯': 'Goal', '🌲': 'roles.Jungle', '✨': 'roles.Mid', '🏹': 'roles.ADC', '💞': 'roles.Support', '⚔️': 'Swords', '💰': 'controls.Recall, golds et objets', '🧠': 'controls.Mental et progression' };
   const EMO = /\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*\uFE0F?/gu;
   const LEAD_RUN = /^\s*((?:\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*\uFE0F?)+)\s*/u;
   function pick(em, rest, map) {
@@ -164,12 +170,15 @@
     once(root, LABEL_SEL, (el) => leadIcon(el, LABEL));
     once(root, STAT_SEL, (el) => leadIcon(el, LABEL));
     once(root, '.tg-obj > span', (el) => leadIcon(el, OBJ));
-    once(root, '.acard-chip', (el) => inlineIcons(el, CAT));
+    once(root, CAT_SEL, (el) => inlineIcons(el, CAT));
     once(root, ICO_SEL, (el) => {
+      // Seulement si l'élément ne contient que des emojis connus (« 🎯⭐ » donne deux icônes).
       const em = el.textContent.trim();
-      const name = (em.match(EMO) || [])[0] === em && pick(em, '', ICO);
-      const ic = name && icon(name);
-      if (ic) el.replaceChildren(ic);
+      const ems = em.match(EMO) || [];
+      if (!ems.length || ems.join('') !== em.replace(/\s+/g, '')) return;
+      const cat = ems.length > 1 || el.matches('.tier-ico, .pk-b, .mini-tag, .ibtn, td');
+      const ics = ems.map((e) => { const n = pick(e, '', cat ? { ...ICO, ...CAT } : ICO); return n && icon(n); });
+      if (ics.every(Boolean)) el.replaceChildren(...ics);
     });
     root.querySelectorAll('.role > .ico:not([data-v2])').forEach((el) => { el.dataset.v2 = '1'; const ic = HERO[el.textContent.trim()] && icon(HERO[el.textContent.trim()]); if (ic) el.replaceChildren(ic); });
     root.querySelectorAll('.sec-ico:not([data-v2])').forEach((el) => {

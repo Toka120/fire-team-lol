@@ -150,7 +150,7 @@ html.v2 #chat:not(.open) .chat-chev { display: none; }
 
 /* ---------- Stats des joueurs, profils, analyse d'équipe ---------- */
 /* Icônes dans les libellés : 16 px, alignées sur le texte */
-html.v2 :where(.tile-h, .acol > h3, .cgroup > h3, .catpill, .bdg, .team-kick, .hp, .more-btn, .tag, .objline > span, .hub-coachs, .team-h,
+html.v2 :where(.tile-h, .acol > h3, .cgroup > h3, .catpill, .bdg, .team-kick, .hp, .more-btn, .tag, .pc-head > .tag, .objline > span, .hub-coachs, .team-h,
   .ta-k, .ta-keep, .wr-g, .tg-q, .tg-obj > span, .pstatus, .acard-chip, .cc .m > span, .bonus-l, .sec-hero p.muted.small) > .v2i {
   width: 16px; height: 16px; margin-right: 4px; vertical-align: -3px;
 }
@@ -238,6 +238,87 @@ html.v2 .ta-strat { background: var(--v2-sel); border-color: color-mix(in srgb, 
 html.v2 .ta-k, html.v2 .wr-g { color: var(--fire1); font: 600 12px/16px var(--v2-font); letter-spacing: .04em; }
 html.v2 .ta-keep { color: var(--ok); font: 600 14px/24px var(--v2-font); }
 html.v2 .tf-ico .v2i, html.v2 .acard-ico .v2i { width: 20px; height: 20px; }
+
+/* ---------- POOL ---------- */
+html.v2 :where(.btn-fire, .btn-ghost, .fld-inline, .verdict, .pk-mode, .chg, .catleg > span, .apill-ico, .mini-tag, .pk-b, .ibtn) > .v2i,
+html.v2 :where(.pool-hero p, .week-banner .muted.small, .card-editor > p.muted.small, .acard-chip) .v2i {
+  width: 16px; height: 16px; vertical-align: -3px;
+}
+html.v2 :where(.btn-fire, .btn-ghost, .fld-inline, .verdict, .pk-mode) > .v2i:first-child { margin-right: 8px; }
+html.v2 :where(.pool-hero p, .week-banner .muted.small, .card-editor > p.muted.small, .catleg > span, .acard-chip) .v2i { margin: 0 4px; }
+/* Catégories de champions : Obligatoire toujours or, Maîtrisé toujours bleu */
+html.v2 .v2i[data-i=CircleDot] { color: var(--fire1); }
+html.v2 .v2i[data-i=Badge] { color: var(--v2-blue); }
+html.v2 :where(.btn-fire, .btn-ghost) { display: inline-flex; align-items: center; justify-content: center; }
+html.v2 .btn-fire.big-cta { min-height: 48px; font-size: 16px; }
+html.v2 .fld-inline { font: 400 14px/24px var(--v2-font); }
+html.v2 .wb-big { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--fire1); font: 700 48px/56px var(--v2-font); }
+html.v2 .wb-t { font: 600 20px/28px var(--v2-font); }
+html.v2 .wb-note { border-left: 2px solid var(--fire1); }
+html.v2 .pc-ico { width: 48px; height: 48px; border-radius: 8px; background: var(--panel2); color: var(--fg); }
+html.v2 .pc-ico .v2i { width: 24px; height: 24px; }
+html.v2 .pname { font: 600 20px/28px var(--v2-font); }
+html.v2 .me-tag { border-radius: 8px; padding: 4px 8px; background: var(--fire1); color: #0B0D10; font: 600 12px/16px var(--v2-font); }
+html.v2 .pool-card.editing { border-color: var(--fire1); box-shadow: none; }
+
+/* Rangées de tierlist : Obligatoire or, Maîtrisés bleu */
+html.v2 .tier-row { border-radius: 8px; background: var(--panel2); padding: 8px; gap: 8px; min-height: 56px; }
+html.v2 .tier-row.rO { background: var(--panel2); border-color: color-mix(in srgb, var(--fire1) 40%, transparent); box-shadow: inset 4px 0 var(--fire1); }
+html.v2 .tier-row.rM { background: var(--panel2); border-color: color-mix(in srgb, var(--v2-blue) 40%, transparent); box-shadow: inset 4px 0 var(--v2-blue); }
+html.v2 .tier.tlO, html.v2 .tier.tlM { min-width: 128px; padding: 8px; border-radius: 8px; gap: 4px; font: 600 12px/16px var(--v2-font); letter-spacing: .08em; }
+html.v2 .tier.tlO { background: var(--v2-sel); color: var(--fire1); }
+html.v2 .tier.tlM { background: color-mix(in srgb, var(--v2-blue) 14%, var(--panel)); color: var(--v2-blue); }
+html.v2 .tier small { font: 400 11px/16px var(--v2-font); letter-spacing: 0; color: var(--muted); opacity: 1; }
+html.v2 .tier-ico .v2i { width: 20px; height: 20px; }
+html.v2 .pchip { border-radius: 8px; background: var(--panel); padding: 4px 12px 4px 4px; }
+html.v2 .pchip .cico { border-radius: 8px; }
+html.v2 .pchip.v-good { border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+html.v2 .pchip.v-bad { border-color: color-mix(in srgb, var(--bad) 50%, transparent); }
+
+/* Changements, répartition, notes */
+html.v2 .chg { border-radius: 8px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px; font: 600 12px/16px var(--v2-font); }
+html.v2 .chg.add { background: var(--v2-ok-bg); } html.v2 .chg.del { background: var(--v2-bad-bg); }
+html.v2 .catbar { border-radius: 8px; background: var(--panel2); }
+html.v2 .c-o, html.v2 .catbar .c-o { background: var(--fire1); }
+html.v2 .c-m, html.v2 .catbar .c-m { background: var(--v2-blue); }
+html.v2 .c-a, html.v2 .catbar .c-a { background: var(--line); }
+html.v2 .catbar i { color: #0B0D10; font-weight: 600; }
+html.v2 .catleg i { border-radius: 4px; }
+html.v2 .apill { border-radius: 8px; background: var(--panel2); align-items: center; }
+html.v2 .apill.k-good { background: var(--v2-ok-bg); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+html.v2 .apill.k-bad { background: var(--v2-bad-bg); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
+html.v2 .apill.k-warn { background: var(--v2-warn-bg); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+html.v2 .apill.k-good .apill-ico { color: var(--ok); } html.v2 .apill.k-bad .apill-ico { color: var(--bad); } html.v2 .apill.k-warn .apill-ico { color: var(--warn); }
+html.v2 .apill-ico { display: inline-grid; place-items: center; }
+
+/* Cartes champion */
+html.v2 .verdict { border-radius: 8px; padding: 4px 8px; display: inline-flex; align-items: center; font: 600 12px/16px var(--v2-font); }
+html.v2 .verdict.v-good { background: var(--v2-ok-bg); } html.v2 .verdict.v-bad { background: var(--v2-bad-bg); }
+html.v2 .verdict > .v2i:first-child { margin-right: 4px; }
+html.v2 .mini-tag { display: inline-flex; gap: 2px; margin-left: 4px; vertical-align: -2px; }
+html.v2 .mini-tag .v2i { width: 14px; height: 14px; }
+html.v2 .mini-tag .v2i:first-child { color: var(--fire1); } html.v2 .mini-tag .v2i:last-child { color: var(--v2-blue); }
+html.v2 .cc-top .cico { border-radius: 8px; }
+html.v2 .cc-pct { font: 700 24px/32px var(--v2-font); }
+html.v2 .cc-stats span { border-radius: 8px; background: var(--panel2); padding: 4px 8px; }
+html.v2 table.t td .v2i { width: 16px; height: 16px; }
+
+/* Éditeur de tierlist */
+html.v2 .pk-mode { border-radius: 8px; min-height: 40px; padding: 8px 16px; background: var(--panel); color: var(--muted); font: 600 14px/24px var(--v2-font); display: inline-flex; align-items: center; }
+html.v2 .pk-mode[aria-pressed="true"].mO { border-color: var(--fire1); background: var(--v2-sel); color: var(--fg); }
+html.v2 .pk-mode[aria-pressed="true"].mM { border-color: var(--v2-blue); background: color-mix(in srgb, var(--v2-blue) 12%, var(--panel)); color: var(--fg); }
+html.v2 .pk-mode.mO > .v2i { color: var(--fire1); } html.v2 .pk-mode.mM > .v2i { color: var(--v2-blue); }
+html.v2 .pk-grid { border-radius: 8px; background: var(--panel2); padding: 8px; }
+html.v2 .pk { border-radius: 8px; border-width: 1px; }
+html.v2 .pk .cico { border-radius: 8px; }
+html.v2 .pk.inO, html.v2 .pk.inM { background: var(--panel); }
+html.v2 .pk.sel { border-color: var(--fire1); }
+html.v2 .pk-b { top: 4px; right: 4px; display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--bg); }
+html.v2 .pk-b .v2i { width: 14px; height: 14px; }
+html.v2 .pk-b .v2i:first-child { color: var(--fire1); } html.v2 .pk.inM:not(.inO) .pk-b .v2i, html.v2 .pk-b .v2i + .v2i { color: var(--v2-blue); }
+html.v2 .ibtn { width: 28px; height: 28px; border-radius: 8px; background: var(--panel2); }
+html.v2 .ibtn.on { background: var(--v2-sel); border-color: var(--fire1); color: var(--fire1); }
+html.v2 .ibtn .v2i { width: 14px; height: 14px; }
 
 /* ---------- Divers ---------- */
 html.v2 .flash { border-radius: 8px; background: var(--v2-ok-bg); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
