@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.84",
+   "date": "2026-11-13",
+   "titre": "Réglages voix et vidéo façon Discord",
+   "items": [
+    [
+     "improve",
+     "Vocal › Réglages : une grande fenêtre avec un menu à gauche comme sur Discord (Voix, Casque et sons, Caméra et streaming, Clips instantanés, Raccourcis clavier)."
+    ],
+    [
+     "new",
+     "Profil d'entrée audio : Isolement de la voix (tous les filtres, recommandé), Studio (micro sans aucun traitement) ou Personnalisé (chaque filtre à la main)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.83",
    "date": "2026-11-13",
    "titre": "Arbre des points forts",

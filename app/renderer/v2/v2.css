@@ -629,3 +629,7 @@ html.v2 .jg-ico .v2i { width: 26px; height: 26px; }
 html.v2 .jg-cur { font: 600 20px/28px var(--v2-font); display: inline-flex; align-items: center; gap: 8px; }
 html.v2 .sec-hero.compact { padding: 12px 20px; }
 html.v2 .sec-hero.compact .title { font-size: 24px; line-height: 32px; }
+html.v2 .vs-modal .vs-drawer { background: var(--panel); border-color: var(--line); }
+html.v2 .vs-title { font: 600 22px/28px var(--v2-font); }
+html.v2 .vs-nav-b .vi, html.v2 .vs-nav-b svg { width: 18px; height: 18px; }
+html.v2 .vs-prof.on { background: var(--v2-sel); }

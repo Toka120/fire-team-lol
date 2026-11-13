@@ -2311,8 +2311,17 @@
     const gateMark = c.vad === 'manual' ? h('div', { class: 'vc-meter-mark', style: `left:${Math.min(100, (c.gate || 0) / 0.6)}%` }) : null;
     const K = vkeys();
     const bad = VX.keyBad || [];
-    return h('div', { class: 'vs-body' },
-      h('section', { class: 'vs-sec' }, h('h3', null, vi('mic'), 'Micro'),
+    // Profil d'entrée (comme Discord) : Isolement de la voix (tous les filtres), Studio (aucun traitement), Personnalisé.
+    const PROFILES = {
+      iso: { ai: true, ns: true, ec: true, agc: false, hp: true, clarity: true, keys: true, vad: 'auto' },
+      studio: { ai: false, ns: false, ec: false, agc: false, hp: false, clarity: false, keys: false, vad: 'off' },
+    };
+    const prof = c.profile || 'iso';
+    const setProf = (k) => { FV().setCfg(k === 'custom' ? { profile: 'custom' } : { profile: k, ...PROFILES[k] }); renderVocal(); };
+    const profRow = (k, t, d) => h('label', { class: 'vs-prof' + (prof === k ? ' on' : '') }, h('input', { type: 'radio', name: 'vsprof', checked: prof === k ? true : null, onchange: () => setProf(k) }),
+      h('span', null, h('b', null, t), h('small', null, d)));
+    const S2 = {
+      voix: [h('section', { class: 'vs-sec' }, h('h3', null, vi('mic'), 'Micro'),
         field('Appareil', sel('mic', D.mics, 'Micro par défaut de Windows', 'Micro')),
         field('Volume du micro', range('gain', 0, 2, 0.05, pct)),
         h('div', { class: 'vc-meter' }, h('div', { class: 'vc-meter-fill' }), gateMark),
@@ -2324,18 +2333,24 @@
             : 'FIRE n’ouvre ton micro que quand il reconnaît TA voix : il apprend ton niveau en quelques phrases, et ignore les voix au fond de la pièce, le clavier, la souris et les coups sur le micro ou le bureau. Une fois ouvert, il reste ouvert tant que tu parles.'),
         sw('ai', 'Suppression du bruit par IA', v.ai ? 'Active : efface clavier, souris, ventilateur pendant que tu parles.' : 'Efface clavier, souris, ventilateur pendant que tu parles (RNNoise).'),
         h('button', { class: 'vs-btn' + (v.monitor ? ' on' : ''), onclick: () => FV().setMonitor(!v.monitor) }, v.monitor ? '⏹ Arrêter le test' : '🎧 Tester mon micro (tu t’entends)')),
-      h('section', { class: 'vs-sec' }, h('h3', null, vi('vol'), 'Traitement de la voix'),
+      h('section', { class: 'vs-sec' }, h('h3', null, vi('vol'), 'Profil d’entrée audio'),
+        profRow('iso', 'Isolement de la voix', 'Rien que ta voix : FIRE retire le bruit, le clavier, l’écho et les voix au fond de la pièce (recommandé).'),
+        profRow('studio', 'Studio', 'Son pur : micro ouvert sans aucun traitement (micro de qualité, pièce calme).'),
+        profRow('custom', 'Personnalisé', 'Mode avancé : tu règles chaque filtre toi-même.')),
+      prof !== 'custom' ? null : h('section', { class: 'vs-sec' }, h('h3', null, vi('vol'), 'Traitement de la voix'),
         sw('clarity', 'Voix claire', 'Moins de résonance et d’écho de la pièce, plus d’articulation, volume régulier.'),
         sw('keys', 'Anti-clavier', 'Les clics de touches perdent leur bruit sec, même pendant que tu parles. Ta voix n’est jamais coupée.'),
         sw('ns', 'Réduction de bruit', 'Ventilateur, clavier, bruits de fond.'),
         sw('ec', 'Annulation d’écho', 'Indispensable sur haut-parleurs.'),
         sw('agc', 'Gain automatique', 'Ta voix garde le même volume.'),
         sw('hp', 'Filtre anti-souffle', 'Coupe les sons très graves.')),
-      h('section', { class: 'vs-sec' }, h('h3', null, vi('head'), 'Casque / haut-parleurs'),
+      ],
+      sortie: [h('section', { class: 'vs-sec' }, h('h3', null, vi('head'), 'Casque / haut-parleurs'),
         field('Sortie', sel('out', D.outs, 'Sortie par défaut de Windows', 'Sortie')),
         field('Volume général du salon', range('outVol', 0, 1, 0.05, pct)),
         sw('sounds', 'Sons d’arrivée et de départ', 'Quand quelqu’un rejoint ou quitte.')),
-      h('section', { class: 'vs-sec' }, h('h3', null, vi('cam'), 'Caméra et écran'),
+      ],
+      video: [h('section', { class: 'vs-sec' }, h('h3', null, vi('cam'), 'Caméra et écran'),
         field('Caméra', sel('cam', D.cams, 'Caméra par défaut', 'Caméra')),
         field('Qualité des streams que je regarde', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ recvQ: e.target.value }); done(e); } },
           [['auto', 'Auto : s’adapte à ma connexion (recommandé)'], ['high', 'Haute : la meilleure image possible'], ['medium', 'Moyenne : 720p, 30 images/s max'], ['low', 'Petite connexion : 480p, très peu de retard']].map(([k, t]) =>
@@ -2347,14 +2362,23 @@
             h('option', { value: n, selected: (c.screenFps || 15) === n ? true : null }, t)))),
         h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Rejoindre au lancement de FIRE'), h('small', null, 'Tu arrives directement dans le salon.')),
           h('input', { type: 'checkbox', class: 'vs-tog', checked: load('fire.vocal.auto', false) ? true : null, onchange: (e) => { save('fire.vocal.auto', e.target.checked); done(e); } }))),
-      clipSettings(),
-      h('section', { class: 'vs-sec' }, h('h3', null, vi('keys'), 'Raccourcis clavier'),
+      ],
+      clips: [clipSettings()],
+      keys: [h('section', { class: 'vs-sec' }, h('h3', null, vi('keys'), 'Raccourcis clavier'),
         h('p', { class: 'vs-hint' }, 'Ils marchent partout, même en pleine partie. Un petit bip confirme chaque changement. Clique sur un raccourci pour le changer.'),
         Object.keys(VKEY_DEF).map((a) => h('div', { class: 'vs-key' + (bad.includes(a) ? ' bad' : '') },
           h('span', null, VKEY_LAB[a], bad.includes(a) ? h('small', null, 'déjà pris par une autre app : choisis-en un autre') : null),
           h('button', { class: 'vs-kbd' + (VX.rec === a ? ' rec' : ''), onclick: () => (VX.rec ? null : recordKey(a)) }, VX.rec === a ? 'Appuie sur ta combinaison…' : keyTxt(K[a])))),
         VX.recMsg ? h('p', { class: 'bad small' }, VX.recMsg) : null,
-        h('p', { class: 'vs-hint' }, 'Échap annule, Retour arrière efface. ', h('button', { class: 'linkbtn small', onclick: () => { save('fire.vocal.keys', {}); syncKeys(true); renderVocal(); } }, 'Remettre les raccourcis par défaut'))));
+        h('p', { class: 'vs-hint' }, 'Échap annule, Retour arrière efface. ', h('button', { class: 'linkbtn small', onclick: () => { save('fire.vocal.keys', {}); syncKeys(true); renderVocal(); } }, 'Remettre les raccourcis par défaut')))],
+    };
+    // Menu à gauche (comme les paramètres de Discord), la catégorie choisie à droite.
+    const CATS = [['voix', 'mic', 'Voix'], ['sortie', 'head', 'Casque et sons'], ['video', 'cam', 'Caméra et streaming'], ['clips', 'clip', 'Clips instantanés'], ['keys', 'keys', 'Raccourcis clavier']];
+    const cur = S2[VX.setTab] ? VX.setTab : 'voix';
+    return h('div', { class: 'vs-body vs-split' },
+      h('nav', { class: 'vs-nav' }, h('p', { class: 'vs-nav-t' }, 'Voix et vidéo'),
+        CATS.map(([k, ic, t]) => h('button', { class: 'vs-nav-b' + (cur === k ? ' on' : ''), onclick: () => { VX.setTab = k; renderVocal(); } }, vi(ic), t))),
+      h('div', { class: 'vs-content' }, h('h2', { class: 'vs-title' }, (CATS.find((x) => x[0] === cur) || [])[2]), ...S2[cur].filter(Boolean)));
   }
 
   // ----- Le salon : scène (vidéos et participants), barre de contrôle, réglages -----
@@ -2368,7 +2392,7 @@
     if (!VX.dev) { VX.dev = { mics: [], outs: [], cams: [] }; FV().devices().then((d) => { VX.dev = d; if (S.section === 'vocal') { if (typing()) VX.pending = true; else renderVocal(); } }); }
     const playerOf = (slug) => S.players.find((x) => x.slug === slug) || {};
     const K = vkeys();
-    const drawer = VX.drawer ? h('div', { class: 'vs-drawer-wrap', onclick: (e) => { if (e.target.classList.contains('vs-drawer-wrap')) { VX.drawer = false; renderVocal(); } } },
+    const drawer = VX.drawer ? h('div', { class: 'vs-drawer-wrap vs-modal', onclick: (e) => { if (e.target.classList.contains('vs-drawer-wrap')) { VX.drawer = false; renderVocal(); } } },
       h('aside', { class: 'vs-drawer' },
         h('div', { class: 'vs-head' }, h('b', null, 'Réglages voix et vidéo'), h('button', { class: 'vs-x', title: 'Fermer', onclick: () => { VX.drawer = false; renderVocal(); } }, vi('x'))),
         vocalSettings(v))) : null;
