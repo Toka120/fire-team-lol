@@ -44,7 +44,7 @@ for (const [group, map] of Object.entries(dict)) {
   if (!map || typeof map !== 'object' || group === 'aliases' || group === 'revisions') continue;
   Object.values(map).forEach((n) => names.add(n));
 }
-['Moon', 'ChevronUp', 'Minus', 'Users', 'LayoutGrid', 'Flame'].forEach((n) => names.add(n)); // utilisées par le cadre V2
+['Moon', 'ChevronUp', 'Minus', 'Users', 'LayoutGrid', 'Flame', 'ArrowLeftRight', 'Droplet', 'Wheat', 'CircleCheck', 'CircleX', 'BicepsFlexed', 'Compass', 'TrendingDown', 'Award', 'Turtle'].forEach((n) => names.add(n)); // utilisées par le cadre V2
 const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/([A-Z])([A-Z][a-z])/g, '$1-$2').replace(/([a-zA-Z])([0-9])/g, '$1-$2').toLowerCase();
 const icons = {};
 for (const n of names) {

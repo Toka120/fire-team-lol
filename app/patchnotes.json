@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.69",
+   "date": "2026-11-13",
+   "titre": "Interface V2 : stats et profils",
+   "items": [
+    [
+     "improve",
+     "V2 : pages Stats des joueurs, profils et stats d'équipe passées à la nouvelle charte. Les emojis système (tuiles, alertes, catégories de champions, badges de game, objectifs) deviennent des icônes Lucide ; les notes et messages ne sont pas touchés."
+    ],
+    [
+     "improve",
+     "V2 : pastilles V/D carrées 24×24, anneaux et barres en couleurs sémantiques, cartes de game et d'analyse bordées de vert ou de rouge, catégories Obligatoire (or) / Maîtrisé (bleu) / Hors pool."
+    ],
+    [
+     "improve",
+     "V2 : compteur du coach (−10 −1 +1 +10) plus lisible : moins en rouge, plus en vert, sur fond neutre."
+    ]
+   ]
+  },
+  {
    "v": "1.10.68",
    "date": "2026-11-13",
    "titre": "Aperçu de l'interface V2",

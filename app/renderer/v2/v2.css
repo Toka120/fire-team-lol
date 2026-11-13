@@ -148,6 +148,97 @@ html.v2 #chat:not(.open) { width: 224px; }
 html.v2 #chat:not(.open) .chat-bar { padding: 8px 12px; }
 html.v2 #chat:not(.open) .chat-chev { display: none; }
 
+/* ---------- Stats des joueurs, profils, analyse d'équipe ---------- */
+/* Icônes dans les libellés : 16 px, alignées sur le texte */
+html.v2 :where(.tile-h, .acol > h3, .cgroup > h3, .catpill, .bdg, .team-kick, .hp, .more-btn, .tag, .objline > span, .hub-coachs, .team-h,
+  .ta-k, .ta-keep, .wr-g, .tg-q, .tg-obj > span, .pstatus, .acard-chip, .cc .m > span, .bonus-l, .sec-hero p.muted.small) > .v2i {
+  width: 16px; height: 16px; margin-right: 4px; vertical-align: -3px;
+}
+html.v2 :is(.team-h, .acol > h3, .cgroup > h3) > .v2i { width: 20px; height: 20px; margin-right: 8px; vertical-align: -4px; }
+html.v2 .hub-sec { border-bottom: 1px solid var(--line); font: 600 20px/28px var(--v2-font); }
+html.v2 .hub-sec.subs { border-bottom-color: var(--line); }
+html.v2 .hub-coachs b { color: var(--fg); }
+html.v2 .team-kick { color: var(--fire1); font: 600 12px/16px var(--v2-font); letter-spacing: .08em; }
+
+/* Pastilles V/D : 24×24, rayon 8 */
+html.v2 .tdot { width: 24px; height: 24px; border-radius: 8px; font: 600 12px/16px var(--v2-font); color: #0B0D10; }
+html.v2 .team-dots { gap: 4px; }
+
+/* Alertes, étiquettes, badges : rectangles arrondis 8 */
+html.v2 .hp { border-radius: 8px; padding: 4px 8px; font: 600 12px/16px var(--v2-font); }
+html.v2 .hp.good { background: var(--v2-ok-bg); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+html.v2 .hp.bad { background: var(--v2-bad-bg); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+html.v2 .tag { border-radius: 8px; padding: 4px 8px; background: var(--panel2); font: 600 12px/16px var(--v2-font); }
+html.v2 .tag.tag-cap { background: var(--b1); border-color: var(--b1); color: var(--bt); }
+html.v2 .bdg { border-radius: 8px; padding: 4px 8px; background: var(--panel2); font: 600 12px/16px var(--v2-font); }
+html.v2 .acount { border-radius: 8px; min-width: 24px; height: 24px; }
+html.v2 .tg-q { border-radius: 8px; padding: 4px 8px; }
+html.v2 .tg-p { border-radius: 8px; background: var(--panel2); }
+html.v2 .tg-obj { gap: 16px; }
+
+/* Catégories de champions : Obligatoire or, Maîtrisé bleu, autres neutres */
+html.v2 .catpill { border-radius: 8px; padding: 4px 8px; font: 600 12px/16px var(--v2-font); }
+html.v2 .catpill.c-oblig { background: var(--v2-sel); color: var(--fire1); }
+html.v2 .catpill.c-maitrise { background: color-mix(in srgb, var(--v2-blue) 14%, var(--panel)); color: var(--v2-blue); }
+html.v2 .catpill.c-autre { background: var(--panel2); color: var(--muted); }
+html.v2 .cgroup h3 { font: 600 16px/24px var(--v2-font); }
+
+/* Tuiles de chiffres */
+html.v2 .tile-h { font: 600 12px/16px var(--v2-font); color: var(--muted); }
+html.v2 .num { font: 700 32px/40px var(--v2-font); font-variant-numeric: tabular-nums; }
+html.v2 .tiles { gap: 16px; }
+html.v2 .tiles.compact .tile { padding: 16px; }
+html.v2 .tiles.compact .num { font-size: 28px; line-height: 36px; }
+
+/* Anneaux : couleurs sémantiques, chiffres en Inter */
+html.v2 .ring-bg { fill: var(--panel2); }
+html.v2 .ring-big { font-family: var(--v2-font); font-weight: 700; }
+html.v2 .ring-mid { font-family: var(--v2-font); font-weight: 600; }
+
+/* Barres de progression : or plein, vert une fois atteint */
+html.v2 .prog { background: var(--panel2); border-radius: 8px; }
+html.v2 .prog > i { background: var(--fire1); border-radius: 8px; }
+html.v2 .prog.done > i { background: var(--ok); }
+
+/* Compteur du coach (−10 −1 +1 +10) : moins en rouge, plus en vert, fond neutre */
+html.v2 .bonus-ctl { border: 1px solid var(--line); border-radius: 8px; background: var(--panel2); padding: 8px; gap: 8px; }
+html.v2 .bonus-l { color: var(--fire1); font: 600 12px/16px var(--v2-font); }
+html.v2 .bonus-b { min-width: 40px; min-height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ok); font: 600 12px/16px var(--v2-font); }
+html.v2 .bonus-b.minus { border-color: var(--line); background: var(--panel); color: var(--bad); }
+html.v2 .bonus-b:hover:not([disabled]) { filter: none; border-color: var(--muted); background: var(--panel2); }
+html.v2 .bonus-v { font: 600 14px/24px var(--v2-font); }
+html.v2 .bonus-tag { color: var(--fire1); font-weight: 600; }
+
+/* Cartes de match : bord gauche vert ou rouge */
+html.v2 .match { border-radius: 16px; border-left-width: 1px; padding: 16px; }
+html.v2 .match.win { border-left-color: var(--line); box-shadow: inset 4px 0 var(--ok); }
+html.v2 .match.loss { border-left-color: var(--line); box-shadow: inset 4px 0 var(--bad); }
+html.v2 .cc.cat-oblig, html.v2 .cc.cat-maitrise, html.v2 .cc.cat-autre { border-left: 1px solid var(--line); }
+html.v2 .cc.cat-oblig { box-shadow: inset 4px 0 var(--fire1); } html.v2 .cc.cat-maitrise { box-shadow: inset 4px 0 var(--v2-blue); }
+html.v2 .match.flash { outline: 2px solid var(--fire1); }
+html.v2 .pill { border-radius: 8px; padding: 4px 8px; font: 600 12px/16px var(--v2-font); }
+html.v2 .team-act.tbad, html.v2 .team-act.tgood { border-left-width: 1px; border-left-color: var(--line); }
+html.v2 .team-act.tbad, html.v2 .tgame.l { box-shadow: inset 4px 0 var(--bad); } html.v2 .team-act.tgood, html.v2 .tgame.w { box-shadow: inset 4px 0 var(--ok); }
+
+/* Analyse : points forts / à travailler */
+html.v2 .acol h3 { font: 600 16px/24px var(--v2-font); }
+html.v2 .acard { border-radius: 16px; padding: 16px; background: var(--panel); }
+html.v2 .acard:hover { transform: none; border-color: var(--muted); }
+html.v2 .acard.k-plus { background: var(--v2-ok-bg); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+html.v2 .acard.k-warn { background: var(--v2-bad-bg); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
+html.v2 .acard.k-info { background: color-mix(in srgb, var(--v2-blue) 10%, var(--panel)); border-color: color-mix(in srgb, var(--v2-blue) 40%, transparent); }
+html.v2 .acard-ico, html.v2 .tf-ico { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border-radius: 8px; background: var(--panel2); color: var(--fg); font-size: 20px; }
+html.v2 .acard.k-plus .acard-ico { color: var(--ok); } html.v2 .acard.k-warn .acard-ico { color: var(--bad); } html.v2 .acard.k-info .acard-ico { color: var(--v2-blue); }
+html.v2 .acard-chip { border-radius: 8px; padding: 4px 8px; background: var(--panel2); font: 600 12px/16px var(--v2-font); }
+
+/* Analyse d'équipe */
+html.v2 .team-h { font: 600 20px/28px var(--v2-font); }
+html.v2 .ta-t { font: 600 16px/24px var(--v2-font); }
+html.v2 .ta-strat { background: var(--v2-sel); border-color: color-mix(in srgb, var(--fire1) 35%, transparent); border-radius: 8px; padding: 16px; }
+html.v2 .ta-k, html.v2 .wr-g { color: var(--fire1); font: 600 12px/16px var(--v2-font); letter-spacing: .04em; }
+html.v2 .ta-keep { color: var(--ok); font: 600 14px/24px var(--v2-font); }
+html.v2 .tf-ico .v2i, html.v2 .acard-ico .v2i { width: 20px; height: 20px; }
+
 /* ---------- Divers ---------- */
 html.v2 .flash { border-radius: 8px; background: var(--v2-ok-bg); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
 html.v2 .tip { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--v2-shadow); font: 400 12px/16px var(--v2-font); }

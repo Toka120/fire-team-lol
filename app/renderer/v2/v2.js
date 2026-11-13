@@ -78,28 +78,99 @@
   const LABEL = {
     ...HERO, '🔥': 'ribbons.L’acharné', '✨': 'Sparkles', '👤': 'settings.Mon profil', '🔄': 'settings.Version', '🎨': 'settings.Thème',
     '🔔': 'settings.Notifications', '🔐': 'settings.Accès', '🔒': 'settings.Accès', 'ℹ️': 'settings.À propos', '🐞': 'patchNotes.Signaler un bug',
-    '💬': 'controls.Discussion', '📊': 'settings.Stats et contenu', '🎯': 'controls.Objectif de la semaine', '🗓️': 'navigation.Planning',
+    '💬': 'controls.Discussion', '📊': 'navigation.Stats des joueurs', '🎯': 'controls.Objectif de la semaine', '🗓️': 'navigation.Planning',
     '📈': 'ribbons.En progression', '👑': 'ribbons.Chef d’équipe', '🌠': 'ribbons.Étoile montante', '⚔️': 'controls.Gérer ses fights',
+    '🔁': 'sessions.Flex', '🏆': 'sessions.5c5', '⚠️': 'controls.Notification importante', '⚠': 'controls.Notification importante',
+    '➕': 'controls.Ajouter', '➖': 'Minus', '💀': 'controls.Morts', '⏱️': 'controls.Heure', '🐉': 'esport.Dragons', '🪱': 'esport.Larves',
+    '👾': 'esport.Barons', '🩸': 'Droplet', '👁️': 'controls.La vision', '🌾': 'Wheat', '⭐': 'controls.Maîtrisé', '❔': 'controls.Incertain',
+    '✅': 'CircleCheck', '❌': 'CircleX', '💪': 'BicepsFlexed', '📖': 'BookOpen', '🧭': 'Compass', '🤝': 'micro.Duo', '👥': 'Users',
+    '🥶': 'TrendingDown', '👉': 'controls.Suivant', '🧑‍🏫': 'controls.Coach', '📜': 'navigation.Patch notes', '🧙': 'navigation.POOL',
+    '🏰': 'esport.Tours', '⌛': 'controls.Sans réponse', '🐢': 'Turtle', '🙋': 'controls.Identité',
   };
+  // Le même emoji sert à plusieurs choses : le texte qui suit décide quand il est clair (« 🏆 Win rate » ≠ « 🏆 5c5 »).
+  const BYTEXT = [
+    [/^Stats et contenu/, 'settings.Stats et contenu'],
+    [/^Win rate/i, 'controls.Win rate'], [/^KDA/, 'controls.KDA'], [/^Morts/, 'controls.Morts'], [/^Vision/, 'controls.La vision'],
+    [/^Remplaçants/, 'ArrowLeftRight'], [/^Golds à 15/, 'controls.Recall, golds et objets'], [/^Premier sang/, 'Droplet'],
+    [/^Obligatoire/, 'controls.Obligatoire'], [/^Maîtrisé/, 'controls.Maîtrisé'], [/^(Hors pool|Autres champions)/, 'controls.Incertain'],
+    [/^Dragons/, 'esport.Dragons'], [/^Baron/, 'esport.Barons'], [/^Larves/, 'esport.Larves'], [/^Coachs?\b/, 'controls.Coach'],
+    [/^Plus de détails/, 'controls.Ajouter'], [/^Moins de détails/, 'Minus'], [/^(Vos )?[Pp]oints forts/, 'BicepsFlexed'],
+    [/^À travailler/, 'controls.Notification importante'], [/^Mauvaises actions/, 'CircleX'], [/^Bonnes actions/, 'CircleCheck'],
+    [/^La stratégie/, 'controls.Objectifs et macro'], [/^Comprendre les stats/, 'BookOpen'], [/^Bilan et stratégie/, 'Compass'],
+    [/^Qui joue avec qui/, 'micro.Duo'], [/^Stats de l’équipe · .*5c5/, 'sessions.5c5'], [/^Stats de l’équipe/, 'sessions.Flex'],
+    [/victoires? de suite/, 'ribbons.L’acharné'], [/défaites? de suite/, 'TrendingDown'], [/hors pool/, 'controls.Incertain'],
+    [/^Objectif/, 'controls.Objectif de la semaine'], [/^5c5/, 'sessions.5c5'], [/^Flex/, 'sessions.Flex'],
+  ];
   const LABEL_SEL = '.tab, .plan-tab, .chip, .card > h2, .settings-card h2, .hub-sec > span, .chat-t, .seg';
+  // Stats, profils et analyse d'équipe : libellés système uniquement (jamais les notes, fiches ou messages).
+  const STAT_SEL = '.tile-h, .acol > h3, .cgroup > h3, .catpill, .bdg, .team-kick, .hp, .more-btn, .tags > .tag:not(.tag-cap), '
+    + '.objline > span, .hub-coachs, .team-h, .ta-k, .ta-keep, .wr-g, .tg-q, .pstatus, .cc .m > span, .bonus-l, .sec-hero p.muted.small';
+  // Petites icônes seules (cartes d'analyse, points forts d'équipe, objectifs d'une game).
+  const ICO_SEL = '.acard-ico, .tf-ico';
+  const OBJ = { '🩸': 'Droplet', '⚔️': 'Swords', '🐉': 'esport.Dragons', '🪱': 'esport.Larves', '👾': 'esport.Barons', '⏱️': 'controls.Heure', '🏰': 'esport.Tours' };
+  const ICO = { ...LABEL, '🛡️': 'roles.Top', '🎯': 'Goal', '⚔️': 'Swords', '💰': 'controls.Recall, golds et objets', '🧠': 'controls.Mental et progression' };
+  const EMO = /\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*\uFE0F?/gu;
+  const LEAD_RUN = /^\s*((?:\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*\uFE0F?)+)\s*/u;
+  function pick(em, rest, map) {
+    if (map === LABEL) for (const [re, n] of BYTEXT) if (re.test(rest)) return n;
+    return map[em] || map[em.replace(/\uFE0F/g, '')] || map[em + '\uFE0F'];
+  }
+  // Remplace l'emoji (ou la suite d'emojis, « 🎯⭐ ») en tête du premier texte de l'élément. Rien n'est remplacé si un seul est inconnu.
   function leadIcon(el, map) {
     const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     let t = w.nextNode();
     while (t && !t.textContent.trim()) t = w.nextNode();
     if (!t) return;
-    const m = t.textContent.match(LEAD_EMOJI);
-    const ic = m && map[m[1]] && icon(map[m[1]]);
-    if (!ic) return;
-    t.textContent = t.textContent.slice(m[0].length);
-    t.parentNode.insertBefore(ic, t);
+    const m = t.textContent.match(LEAD_RUN);
+    if (!m) return;
+    const rest = t.textContent.slice(m[0].length);
+    const ems = m[1].match(EMO) || [];
+    // Suite d'emojis : ce sont les catégories de champions (« 🎯⭐ Obligatoire et maîtrisé »).
+    const names = ems.length === 1 ? [pick(ems[0], rest, map)] : ems.map((e) => pick(e, '', { ...map, '🎯': 'controls.Obligatoire' }));
+    const ics = names.map((n) => n && icon(n));
+    if (!ics.length || ics.some((x) => !x)) return;
+    t.textContent = rest;
+    ics.forEach((ic) => t.parentNode.insertBefore(ic, t));
   }
   // Bandeaux : le thème des données décide de l'icône (DECISIONS-V2 §2). Thème inconnu : Award.
   const RIBBON = { ruby: 'ribbons.Le pilier', fire: 'ribbons.L’acharné', gold: 'ribbons.Chef d’équipe', star: 'ribbons.Étoile montante',
     emerald: 'ribbons.En progression', blade: 'ribbons.Monstre OTP Irelia' };
+  const THEMES = Object.keys(RIBBON);
   const LEAD_EMOJI = /^\s*(\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic})*)\s+/u;
+  function ribbon(el, holder) {
+    const theme = holder && THEMES.find((t) => holder.classList.contains('b-' + t));
+    const first = el.firstChild;
+    if (first && first.nodeType === 3) first.textContent = first.textContent.replace(LEAD_EMOJI, '');
+    const ic = icon(theme ? RIBBON[theme] : 'Award');
+    if (ic) el.prepend(ic);
+  }
+  // Catégories de champions au milieu d'un libellé (« 23 obligatoires · ⭐ 2 maîtrisés · ❔ 2 autres »).
+  const CAT = { '🎯': 'controls.Obligatoire', '⭐': 'controls.Maîtrisé', '❔': 'controls.Incertain' };
+  function inlineIcons(el, map) {
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    for (let t = w.nextNode(); t; t = w.nextNode()) if (/\p{Extended_Pictographic}/u.test(t.textContent)) nodes.push(t);
+    for (const t of nodes) {
+      const parts = t.textContent.split(/(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*\uFE0F?)\s?/u);
+      const out = parts.map((x, i) => (i % 2 ? (pick(x, '', map) && icon(pick(x, '', map))) || document.createTextNode(x) : document.createTextNode(x)));
+      t.replaceWith(...out);
+    }
+  }
+  function once(root, sel, fn) {
+    root.querySelectorAll(sel).forEach((el) => { if (el.dataset.v2l === el.textContent) return; fn(el); el.dataset.v2l = el.textContent; });
+  }
 
   function decorate(root) {
-    root.querySelectorAll(LABEL_SEL).forEach((el) => { if (el.dataset.v2l === el.textContent) return; leadIcon(el, LABEL); el.dataset.v2l = el.textContent; });
+    once(root, LABEL_SEL, (el) => leadIcon(el, LABEL));
+    once(root, STAT_SEL, (el) => leadIcon(el, LABEL));
+    once(root, '.tg-obj > span', (el) => leadIcon(el, OBJ));
+    once(root, '.acard-chip', (el) => inlineIcons(el, CAT));
+    once(root, ICO_SEL, (el) => {
+      const em = el.textContent.trim();
+      const name = (em.match(EMO) || [])[0] === em && pick(em, '', ICO);
+      const ic = name && icon(name);
+      if (ic) el.replaceChildren(ic);
+    });
     root.querySelectorAll('.role > .ico:not([data-v2])').forEach((el) => { el.dataset.v2 = '1'; const ic = HERO[el.textContent.trim()] && icon(HERO[el.textContent.trim()]); if (ic) el.replaceChildren(ic); });
     root.querySelectorAll('.sec-ico:not([data-v2])').forEach((el) => {
       el.dataset.v2 = '1';
@@ -107,15 +178,8 @@
       const ic = name && icon(name);
       if (ic) el.replaceChildren(ic);
     });
-    root.querySelectorAll('.pcap:not([data-v2])').forEach((el) => {
-      el.dataset.v2 = '1';
-      const card = el.closest('.pcard');
-      const theme = card && ['ruby', 'fire', 'gold', 'star', 'emerald', 'blade'].find((t) => card.classList.contains('b-' + t));
-      const first = el.firstChild;
-      if (first && first.nodeType === 3) first.textContent = first.textContent.replace(LEAD_EMOJI, '');
-      const ic = icon(theme ? RIBBON[theme] : 'Award');
-      if (ic) el.prepend(ic);
-    });
+    root.querySelectorAll('.pcap:not([data-v2])').forEach((el) => { el.dataset.v2 = '1'; ribbon(el, el.closest('.pcard')); });
+    root.querySelectorAll('.tag.tag-cap:not([data-v2])').forEach((el) => { el.dataset.v2 = '1'; ribbon(el, el); });
   }
 
   function mount() {
