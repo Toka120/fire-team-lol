@@ -91,10 +91,12 @@
     '🧠': 'controls.Mental et progression', '✍️': 'controls.Modifier', '⏳': 'controls.Sans réponse',
     '🕒': 'controls.Heure', '📝': 'controls.Modifier', '🎥': 'sessions.Review', '📌': 'sessions.Autre',
     '⏱': 'controls.Heure', '⬇': 'Download', '🔵': 'Circle', '🔴': 'Circle',
+    '📨': 'controls.Envoyer', '↗': 'ExternalLink', '🎞️': 'controls.Diaporama', '🆕': 'patchNotes.Nouveau', '🛠️': 'patchNotes.Corrigé', '🎮': 'navigation.Détente',
+    '🌊': 'detente.Lis la wave', '💰': 'controls.Recall, golds et objets', '🏳️': 'controls.Savoir concéder', '🧭': 'controls.Les bases de LoL',
   };
   // Le même emoji sert à plusieurs choses : le texte qui suit décide quand il est clair (« 🏆 Win rate » ≠ « 🏆 5c5 »).
   const BYTEXT = [
-    [/^Stats et contenu/, 'settings.Stats et contenu'],
+    [/^Stats et contenu/, 'settings.Stats et contenu'], [/^Actualiser/, 'controls.Actualiser'],
     [/^Win rate/i, 'controls.Win rate'], [/^KDA/, 'controls.KDA'], [/^Morts/, 'controls.Morts'], [/^Vision/, 'controls.La vision'],
     [/^Remplaçants/, 'ArrowLeftRight'], [/^Golds à 15/, 'controls.Recall, golds et objets'], [/^Premier sang/, 'Droplet'],
     [/^Obligatoire/, 'controls.Obligatoire'], [/^Maîtrisé/, 'controls.Maîtrisé'], [/^(Hors pool|Autres champions)/, 'controls.Incertain'],
@@ -111,7 +113,8 @@
   const STAT_SEL = '.tile-h, .acol > h3, .cgroup > h3, .catpill, .bdg, .team-kick, .hp, .more-btn, .tags > .tag:not(.tag-cap), '
     + '.objline > span, .hub-coachs, .team-h, .ta-k, .ta-keep, .wr-g, .tg-q, .pstatus, .cc .m > span, .bonus-l, .sec-hero p.muted.small, '
     + '.btn-fire, .btn-ghost, .fld-inline, .verdict, .pk-mode, .pc-head > .tag, .plan-type, .plan-note, .pc-name, .pc-hr, .plan-hours, '
-    + '.dr-live, .dr-timer, .dr-teams h3, .card > h3';
+    + '.dr-live, .dr-timer, .dr-teams h3, .card > h3, '
+    + '.jt-label, .cchip, .diapo-tag, .tr-head b, .pk-tag, .nrow > span, h2:not(.md h2)';
   // Planning : réponses des joueurs et demandes de créneau (Présent ✓, Incertain ?, Absent ✕, Sans réponse ⌛).
   const PLAN = { '✅': 'controls.Valider', '❔': 'controls.Incertain', '❌': 'controls.Fermer', '⏳': 'controls.Sans réponse' };
   const PLAN_SEL = '.plan-count > span, .plan-btn, .pc-state > span, .pc-me > span, .pc-req > span, .plan-tabs .tab';
@@ -121,15 +124,23 @@
     '🔕': 'voice.Casque coupé', '📞': 'voice.Quitter', '🔴': 'voice.EN DIRECT', '👑': 'ribbons.Chef d’équipe' };
   const ROLES = { '🛡️': 'roles.Top', '🌲': 'roles.Jungle', '✨': 'roles.Mid', '🏹': 'roles.ADC', '💞': 'roles.Support' };
   // Petites icônes seules (cartes d'analyse, points forts d'équipe, objectifs d'une game).
-  const ICO_SEL = '.acard-ico, .tf-ico, .pz-lane, .pc-ico, .tier-ico, .pk-b, .ibtn, .apill-ico, .mini-tag, .pool-card table.t td';
+  const ICO_SEL = '.acard-ico, .tf-ico, .pz-lane, .cat-ico, .pc-ico, .tier-ico, .pk-b, .ibtn, .apill-ico, .mini-tag, .pool-card table.t td';
   // Libellés où 🎯 ⭐ ❔ apparaissent au milieu du texte (légendes POOL, changements de tierlist).
   const CAT_SEL = '.acard-chip, .chg, .catleg > span, .pool-hero p, .week-banner .wb-main .muted.small, .card-editor > p.muted.small';
   const OBJ = { '🩸': 'Droplet', '⚔️': 'Swords', '🐉': 'esport.Dragons', '🪱': 'esport.Larves', '👾': 'esport.Barons', '⏱️': 'controls.Heure', '🏰': 'esport.Tours' };
   const ICO = { ...LABEL, '🛡️': 'roles.Top', '🎯': 'Goal', '🌲': 'roles.Jungle', '✨': 'roles.Mid', '🏹': 'roles.ADC', '💞': 'roles.Support', '⚔️': 'Swords', '💰': 'controls.Recall, golds et objets', '🧠': 'controls.Mental et progression' };
   const EMO = /\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*\uFE0F?/gu;
   const LEAD_RUN = /^\s*((?:\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*\uFE0F?)+)\s*/u;
+  // Libellé exact du dictionnaire (« Passif », « Gérer ses fights », « Nouveau »…) -> son icône, quel que soit l'emoji d'origine.
+  const norm = (x) => String(x).toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ').trim();
+  const NAMES = {};
+  for (const g of ['detente', 'micro', 'patchNotes', 'controls', 'sessions', 'settings', 'navigation', 'esport']) {
+    for (const k of Object.keys(DICT[g] || {})) NAMES[norm(k)] = g + '.' + k;
+  }
+  for (const k of Object.keys(DICT.aliases || {})) if (!/[/]/.test(k)) NAMES[norm(k)] = k;
   function pick(em, rest, map) {
     if (map === LABEL) for (const [re, n] of BYTEXT) if (re.test(rest)) return n;
+    if (map === LABEL && rest && NAMES[norm(rest)]) return NAMES[norm(rest)];
     return map[em] || map[em.replace(/\uFE0F/g, '')] || map[em + '\uFE0F'];
   }
   // Remplace l'emoji (ou la suite d'emojis, « 🎯⭐ ») en tête du premier texte de l'élément. Rien n'est remplacé si un seul est inconnu.
@@ -184,6 +195,17 @@
     once(root, CAT_SEL, (el) => inlineIcons(el, CAT));
     once(root, PLAN_SEL, (el) => leadIcon(el, PLAN));
     once(root, '.sec-hero p.muted', (el) => inlineIcons(el, PLAN));
+    // Mode de Micro : l'icône suit le nom du mode (dictionnaire « micro »).
+    once(root, '.tr-ico', (el) => {
+      const lab = el.parentNode && el.parentNode.querySelector('b');
+      const n = lab && NAMES[norm(lab.textContent)];
+      const ic = n && icon(n);
+      if (ic) el.replaceChildren(ic);
+    });
+    // Cases d'indices du jeu Classique : vert / ambre / rouge (DECISIONS-V2 §7).
+    once(root, '.card > p.muted', (el) => inlineIcons(el, { '🟩': 'Square', '🟧': 'Square', '🟥': 'Square' }));
+    // Pastille du thème FIRE : la couleur suffit, pas d'icône.
+    once(root, '.theme-sw', (el) => { const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); for (let t = w.nextNode(); t; t = w.nextNode()) if (t.textContent.trim()) { t.textContent = t.textContent.replace(LEAD_RUN, ''); break; } });
     once(root, '.vr-ico', (el) => { const n = ROOMS[el.textContent.trim()]; const ic = n && icon(n); if (ic) el.replaceChildren(ic); });
     once(root, '.vs-rh, .vc-live-pill', (el) => leadIcon(el, ROOMS));
     once(root, '.vc-ghost, .vb-go, .vl-txt', (el) => leadIcon(el, { ...VOICE, '🎧': 'Tester mon micro' }));

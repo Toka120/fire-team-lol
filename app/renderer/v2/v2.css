@@ -464,6 +464,41 @@ html.v2 .plan-hr .v2i { width: 14px; height: 14px; margin-right: 4px; vertical-a
 html.v2 .tdot.w { background: var(--v2-ok-bg); color: var(--ok); }
 html.v2 .tdot.l { background: var(--v2-bad-bg); color: var(--bad); }
 
+/* ---------- Détente, Micro, Lanes, Patch notes, Paramètres ---------- */
+html.v2 :where(.jt-label, .cchip, .diapo-tag, .tr-head b, .pk-tag, .nrow > span, .theme-sw, h2) > .v2i:first-child { width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px; }
+html.v2 h2 > .v2i:first-child { width: 20px; height: 20px; vertical-align: -4px; color: var(--muted); }
+html.v2 .jt-label { color: var(--fire1); font: 600 14px/24px var(--v2-font); display: inline-flex; align-items: center; }
+/* Indices du Classique : pareil vert, en partie ambre, différent rouge */
+html.v2 .jc { border-radius: 8px; font: 600 13px/20px var(--v2-font); }
+html.v2 .jc.ok, html.v2 .jc-champ.ok { background: var(--v2-ok-bg); border-color: var(--ok); color: var(--fg); }
+html.v2 .jc.mid { background: var(--v2-warn-bg); border-color: var(--warn); color: var(--fg); }
+html.v2 .jc.ko { background: var(--v2-bad-bg); border-color: var(--bad); color: var(--fg); }
+html.v2 .card > p.muted .v2i[data-i=Square] { width: 14px; height: 14px; vertical-align: -2px; margin: 0 4px; stroke: none; }
+html.v2 .card > p.muted .v2i[data-i=Square]:nth-of-type(1) { fill: var(--ok); }
+html.v2 .card > p.muted .v2i[data-i=Square]:nth-of-type(2) { fill: var(--warn); }
+html.v2 .card > p.muted .v2i[data-i=Square]:nth-of-type(3) { fill: var(--bad); }
+/* Micro */
+html.v2 .tr-mode { border-radius: 8px; }
+html.v2 .tr-mode[aria-pressed=true] { border-color: var(--fire1); background: var(--v2-sel); box-shadow: none; }
+html.v2 .tr-mode[aria-pressed=true] .tr-ico { color: var(--fire1); }
+html.v2 .tr-ico { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 8px; background: var(--panel2); color: var(--fg); }
+html.v2 .tr-ico .v2i { width: 20px; height: 20px; }
+/* Lanes et principes */
+html.v2 .catcard { border-radius: 16px; }
+html.v2 .cat-ico { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 8px; background: var(--panel2); color: var(--fire1); }
+html.v2 .cat-ico .v2i { width: 28px; height: 28px; }
+html.v2 .cchip, html.v2 .diapo-tag { border-radius: 8px; display: inline-flex; align-items: center; }
+html.v2 .cchip > .v2i:first-child, html.v2 .diapo-tag > .v2i:first-child { width: 14px; height: 14px; margin-right: 4px; color: var(--muted); }
+/* Patch notes : Nouveau / Amélioré / Corrigé */
+html.v2 .pk-tag { border-radius: 8px; padding: 4px 8px; display: inline-flex; align-items: center; font: 600 12px/16px var(--v2-font); }
+html.v2 .pk-tag > .v2i:first-child { width: 14px; height: 14px; margin-right: 4px; }
+html.v2 .pk-new .pk-tag { color: var(--fire1); } html.v2 .pk-improve .pk-tag { color: var(--v2-blue); } html.v2 .pk-fix .pk-tag { color: var(--ok); }
+/* Paramètres */
+html.v2 .theme-sw { border-radius: 8px; }
+html.v2 .theme-sw[aria-pressed=true] { border-color: var(--fire1); box-shadow: none; background: var(--v2-sel); }
+html.v2 .pz-dot.on { background: var(--v2-sel); }
+html.v2 .nrow > span > .v2i:first-child { color: var(--muted); }
+
 /* ---------- Divers ---------- */
 html.v2 .flash { border-radius: 8px; background: var(--v2-ok-bg); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
 html.v2 .tip { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--v2-shadow); font: 400 12px/16px var(--v2-font); }

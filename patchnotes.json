@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.74",
+   "date": "2026-11-13",
+   "titre": "Interface V2 : toutes les pages",
+   "items": [
+    [
+     "improve",
+     "V2 : Détente, Micro, Lanes et principes, E-sport, Parole du coach, Patch notes, Patchs LoL et Paramètres passés à la nouvelle charte. Chaque mode, thème et onglet a son icône du dictionnaire V2 (Passif, Lis la wave, Esquive, Gérer ses fights, Nouveau, Corrigé…)."
+    ],
+    [
+     "improve",
+     "V2 : Classique de Détente : cases pareil en vert, en partie en ambre, différent en rouge. Les emojis du jeu Emoji et le texte des patch notes ne sont pas touchés."
+    ],
+    [
+     "improve",
+     "V2 : sélections (mode de Micro, thème, jour des puzzles) en or, comme partout ailleurs."
+    ]
+   ]
+  },
+  {
    "v": "1.10.73",
    "date": "2026-11-13",
    "titre": "Interface V2 : Vocal",
