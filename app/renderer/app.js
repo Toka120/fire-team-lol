@@ -1103,6 +1103,239 @@
 
 
 
+
+  // ===== Revue de parties : chaque game jouée est enregistrée par FIRE (API locale officielle de Riot) et se revoit ici =====
+  // Carte avec tours, inhibiteurs et objectifs dans le temps, tableau à chaque instant, timeline des kills et objectifs,
+  // clips de la partie, dessins et notes horodatées. Une partie peut être partagée avec l'équipe pour la revoir ensemble.
+  const RV = { tab: 'mine', list: null, team: null, g: null, src: 'local', t: 0, play: false, speed: 8, timer: null, col: '#ff6b3d', strokes: [], cur: null, show: null, filter: 'tout', err: '' };
+  // Positions (coordonnées de la Faille, 0 à 14 870) : tours, inhibiteurs et fosses.
+  const RV_TW = {
+    T1_L_03: [981, 10441], T1_L_02: [1512, 6699], T1_L_01: [1169, 4287], T1_C_05: [5846, 6396], T1_C_04: [5048, 4812], T1_C_03: [3651, 3696], T1_C_01: [1748, 2270], T1_C_02: [2177, 1807],
+    T1_R_03: [10504, 1029], T1_R_02: [6919, 1483], T1_R_01: [4281, 1253],
+    T2_L_03: [4318, 13875], T2_L_02: [7943, 13411], T2_L_01: [10481, 13650], T2_C_05: [8955, 8510], T2_C_04: [9767, 10113], T2_C_03: [11134, 11207], T2_C_01: [13052, 12612], T2_C_02: [12611, 13084],
+    T2_R_03: [13866, 4505], T2_R_02: [13327, 8226], T2_R_01: [13624, 10572] };
+  const RV_IN = { T1_L: [1171, 3571], T1_C: [3203, 3208], T1_R: [3452, 1236], T2_L: [11261, 13676], T2_C: [11598, 11667], T2_R: [13604, 11316] };
+  const RV_PIT = { drag: [9866, 4414], baron: [5007, 10471], atakhan: [7400, 7400] };
+  const rvXY = (c) => [c[0] / 14870 * 100, (1 - c[1] / 14870) * 100];
+  function rvTeams(g) {
+    const team = {}, champ = {};
+    for (const p of g.players || []) { team[p.n] = p.team; team[p.n.split('#')[0]] = p.team; champ[p.n] = p.c; champ[p.n.split('#')[0]] = p.c; }
+    const tOf = (n) => team[n] || team[String(n).split('#')[0]] || '';
+    const cOf = (n) => champ[n] || champ[String(n).split('#')[0]] || '';
+    return { tOf, cOf };
+  }
+  // État de la partie à l'instant t (événements jusqu'à t).
+  function rvState(g, t) {
+    const { tOf, cOf } = rvTeams(g);
+    const st = { kills: { ORDER: 0, CHAOS: 0 }, towers: {}, inhibs: {}, drag: { ORDER: [], CHAOS: [] }, baron: { ORDER: 0, CHAOS: 0 }, grubs: { ORDER: 0, CHAOS: 0 }, herald: { ORDER: 0, CHAOS: 0 }, recent: [] };
+    for (const e of g.events || []) {
+      if (e.t > t) break;
+      const kt = tOf(e.k);
+      if (e.x === 'ChampionKill') { const vt = tOf(e.v); const tm = kt || (vt === 'ORDER' ? 'CHAOS' : vt === 'CHAOS' ? 'ORDER' : ''); if (tm) st.kills[tm]++; }
+      else if (e.x === 'TurretKilled') { const m = String(e.tw).match(/T([12])_([LCR])_(\d\d)/); if (m) st.towers[`T${m[1]}_${m[2]}_${m[3]}`] = e.t; }
+      else if (e.x === 'InhibKilled') { const m = String(e.tw).match(/T([12])_([LCR])/); if (m) st.inhibs[`T${m[1]}_${m[2]}`] = e.t; }
+      else if (e.x === 'DragonKill' && kt) st.drag[kt].push(e.dr);
+      else if (e.x === 'BaronKill' && kt) st.baron[kt]++;
+      else if (e.x === 'HordeKill' && kt) st.grubs[kt]++;
+      else if (e.x === 'HeraldKill' && kt) st.herald[kt]++;
+      if (t - e.t <= 20 && /Kill|Killed/.test(e.x)) st.recent.push({ ...e, kt, kc: cOf(e.k), vc: cOf(e.v) });
+    }
+    // Les inhibiteurs reviennent 5 minutes après.
+    for (const [k, at] of Object.entries(st.inhibs)) if (t - at > 300) delete st.inhibs[k];
+    return st;
+  }
+  const rvFrame = (g, t) => { let f = null; for (const x of g.frames || []) { if (x.t <= t) f = x; else break; } return f || (g.frames || [])[0]; };
+  async function rvLoadList() {
+    RV.list = window.fire.parties ? await window.fire.parties.list().catch(() => []) : [];
+    if (S.section === 'revue' && !RV.g) renderRevue();
+  }
+  async function rvLoadTeam() {
+    const r = window.fire.revues ? await window.fire.revues.list().catch((e) => ({ ok: false, error: String(e) })) : { ok: false, list: [] };
+    RV.team = (r && r.list) || []; RV.err = r && !r.ok ? r.error || '' : '';
+    if (S.section === 'revue' && !RV.g) renderRevue();
+  }
+  async function rvOpen(id, src) {
+    const g = src === 'team' ? await window.fire.revues.get(id).catch(() => null) : await window.fire.parties.get(id).catch(() => null);
+    if (!g) { RV.err = 'Partie introuvable.'; renderRevue(); return; }
+    rvStop(); RV.g = g; RV.src = src; RV.t = 0; RV.strokes = []; RV.show = null;
+    if (!CL.list.length && window.fire.clips) clipsRefresh();
+    actLog('app', 'Revue de partie ouverte');
+    renderRevue(); window.scrollTo(0, 0);
+  }
+  function rvStop() { RV.play = false; clearInterval(RV.timer); RV.timer = null; }
+  function rvPlay() {
+    if (RV.play) { rvStop(); rvPaint(); return; }
+    RV.play = true;
+    RV.timer = setInterval(() => { if (!RV.g || S.section !== 'revue') { rvStop(); return; } RV.t = Math.min(RV.g.duration || 0, RV.t + RV.speed * 0.25); if (RV.t >= (RV.g.duration || 0)) rvStop(); rvPaint(); }, 250);
+    rvPaint();
+  }
+  function rvSeek(t) { RV.t = Math.max(0, Math.min(RV.g.duration || 0, t)); rvPaint(); }
+  const rvTitle = (g) => { const me = (g.players || []).find((p) => p.n === g.me) || {}; return { me, when: new Date(g.start).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) }; };
+  function renderRevue() {
+    const view = $('view');
+    if (RV.g) { renderRevueGame(view); return; }
+    if (RV.list == null) { RV.list = []; rvLoadList(); }
+    if (RV.team == null && !SUB()) { RV.team = []; rvLoadTeam(); }
+    const card = (x, src) => {
+      const me = (x.players || []).find((p) => p.n === x.me) || { c: x.champ };
+      const win = /win/i.test(x.result || ''), lose = /lose/i.test(x.result || '');
+      return h('button', { class: 'card rv-card' + (win ? ' win' : lose ? ' lose' : ''), onclick: () => rvOpen(x.id, src) },
+        me.c ? champIcon(me.c, 44) : h('span', { class: 'rv-q' }, '?'),
+        h('div', { class: 'rv-ci' }, h('b', null, `${me.c ? FC.champName(me.c) : 'Partie'} · ${gameModeLabel(x)}`),
+          h('small', { class: 'muted' }, [new Date(x.start).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }), mmss(x.duration || 0), src === 'team' && x.par ? 'partagée par ' + vocalName(x.par) : null, x.notes ? `${x.notes} note${x.notes > 1 ? 's' : ''}` : null].filter(Boolean).join(' · '))),
+        h('span', { class: 'rv-res' }, win ? 'Victoire' : lose ? 'Défaite' : ''));
+    };
+    const list = RV.tab === 'team' ? (RV.team || []) : (RV.list || []);
+    view.replaceChildren(
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎞️'), h('div', null, h('h1', { class: 'title' }, 'Revue de parties'),
+        h('p', { class: 'muted' }, 'Chaque game que tu joues est enregistrée par FIRE. Revois-la : la carte avec les tours et les objectifs, le tableau à chaque instant, les kills, tes clips, et ajoute des dessins et des notes. Partage-la pour la revoir en équipe.'))),
+      h('div', { class: 'row pt-modes' },
+        h('button', { class: 'plan-tab', 'aria-pressed': String(RV.tab !== 'team'), onclick: () => { RV.tab = 'mine'; rvLoadList(); renderRevue(); } }, `🎮 Mes parties (${(RV.list || []).length})`),
+        SUB() ? null : h('button', { class: 'plan-tab', 'aria-pressed': String(RV.tab === 'team'), onclick: () => { RV.tab = 'team'; rvLoadTeam(); renderRevue(); } }, `👥 Revues de l’équipe (${(RV.team || []).length})`)),
+      RV.err ? h('p', { class: 'muted small' }, '⚠ ' + RV.err) : null,
+      list.length ? h('div', { class: 'rv-list' }, list.map((x) => card(x, RV.tab === 'team' ? 'team' : 'local')))
+        : h('div', { class: 'card' }, h('p', { class: 'muted' }, RV.tab === 'team' ? 'Aucune revue partagée pour l’instant. Ouvre une de tes parties et clique sur « Partager avec l’équipe ».' : 'Aucune partie enregistrée pour l’instant. Joue une game avec FIRE ouvert : elle apparaîtra ici à la fin de la partie.')));
+  }
+  function renderRevueGame(view) {
+    const g = RV.g; const { me, when } = rvTitle(g);
+    const win = /win/i.test(g.result || ''), lose = /lose/i.test(g.result || '');
+    const head = h('div', { class: 'rv-head' },
+      h('button', { class: 'btn-ghost', onclick: () => { rvStop(); RV.g = null; renderRevue(); } }, '← Parties'),
+      me.c ? champIcon(me.c, 34) : null,
+      h('div', null, h('b', null, `${me.c ? FC.champName(me.c) : ''} · ${gameModeLabel(g)}`), h('small', { class: 'muted' }, ` ${when} · ${mmss(g.duration || 0)}${RV.src === 'team' && g.par ? ' · partagée par ' + vocalName(g.par) : ''}`)),
+      h('span', { class: 'rv-res ' + (win ? 'win' : lose ? 'lose' : '') }, win ? 'Victoire' : lose ? 'Défaite' : ''),
+      RV.src === 'local' && !SUB() ? h('button', { class: 'btn-fire small-btn', onclick: async (e) => {
+        e.target.disabled = true; e.target.textContent = 'Partage…';
+        const r = await window.fire.revues.share(g, vocalMe()).catch((er) => ({ ok: false, error: String(er) }));
+        e.target.textContent = r && r.ok ? '✓ Partagée avec l’équipe' : '⚠ ' + ((r && r.error) || 'échec');
+        if (r && r.ok) rvLoadTeam();
+      } }, '👥 Partager avec l’équipe') : null,
+      RV.src === 'local' ? h('button', { class: 'btn-ghost', onclick: async () => { if (!confirm('Supprimer cette partie de ton PC ?')) return; await window.fire.parties.del(g.id); RV.g = null; rvLoadList(); renderRevue(); } }, '🗑') : null);
+    const map = h('div', { class: 'rv-map' }, h('img', { class: 'rv-mapimg', alt: '', src: `https://ddragon.leagueoflegends.com/cdn/${(S.champList && S.champList.version) || '14.1.1'}/img/map/map11.png` }),
+      h('div', { class: 'rv-ov' }), h('canvas', { class: 'rv-draw', width: 600, height: 600 }));
+    const tools = h('div', { class: 'row rv-tools' }, ['#ff6b3d', '#3dd8ff', '#ffe14d', '#3ddc84', '#ffffff'].map((c) => h('button', { class: 'rv-col' + (RV.col === c ? ' on' : ''), style: `background:${c}`, title: 'Couleur du crayon', onclick: (e) => { RV.col = c; e.target.parentElement.querySelectorAll('.rv-col').forEach((x) => x.classList.toggle('on', x === e.target)); } })),
+      h('button', { class: 'btn-ghost', onclick: () => { RV.strokes.pop(); RV.show = null; rvDrawPaint(); } }, '↶ Annuler'),
+      h('button', { class: 'btn-ghost', onclick: () => { RV.strokes = []; RV.show = null; rvDrawPaint(); } }, '🧽 Effacer'),
+      h('small', { class: 'muted' }, 'Dessine sur la carte, puis ajoute une note : le dessin y est joint.'));
+    const board = h('div', { class: 'rv-board' });
+    const tl = h('div', { class: 'rv-tl' });
+    const feed = h('div', { class: 'rv-feed' });
+    const noteIn = h('textarea', { class: 'inp rv-note-in', rows: 2, maxlength: 600, placeholder: 'Une remarque à ce moment de la partie (ex. « ici il fallait reset avant le dragon »)…' });
+    const notes = h('div', { class: 'rv-notes' });
+    const addNote = h('button', { class: 'btn-fire small-btn', onclick: async () => {
+      const text = noteIn.value.trim(); if (!text && !RV.strokes.length) return;
+      const n = { id: Math.random().toString(36).slice(2, 10), t: Math.round(RV.t), by: vocalMe(), text, at: Date.now(), draw: RV.strokes.slice(0, 30) };
+      g.notes = (g.notes || []).concat(n).sort((a, b) => a.t - b.t);
+      noteIn.value = ''; RV.strokes = []; rvDrawPaint();
+      if (RV.src === 'team') { const r = await window.fire.revues.note(g.id, n).catch(() => null); if (r && r.ok) g.notes = r.notes; }
+      else await window.fire.parties.save(g).catch(() => {});
+      rvPaint();
+    } }, '📝 Ajouter la note');
+    view.replaceChildren(head,
+      h('div', { class: 'rv-main' }, h('div', { class: 'rv-left' }, map, tools), h('div', { class: 'rv-right' }, board, feed)),
+      tl, h('div', { class: 'card rv-notebox' }, h('h3', null, '📝 Notes'), h('div', { class: 'row rv-addnote' }, noteIn, addNote), notes));
+    // Dessin à la souris sur la carte (coordonnées 0 à 1, pour s'afficher pareil chez tout le monde).
+    const cv = map.querySelector('.rv-draw');
+    const pos = (e) => { const r = cv.getBoundingClientRect(); return [Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))]; };
+    cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); RV.show = null; RV.cur = { c: RV.col, p: [pos(e)] }; RV.strokes.push(RV.cur); rvDrawPaint(); });
+    cv.addEventListener('pointermove', (e) => { if (!RV.cur) return; const q = pos(e); const l = RV.cur.p[RV.cur.p.length - 1]; if (Math.hypot(q[0] - l[0], q[1] - l[1]) > 0.004) { RV.cur.p.push(q); rvDrawPaint(); } });
+    const end = () => { RV.cur = null; };
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+    rvPaint();
+  }
+  function rvDrawPaint() {
+    const cv = document.querySelector('.rv-draw'); if (!cv) return;
+    const x = cv.getContext('2d'); x.clearRect(0, 0, cv.width, cv.height);
+    const all = (RV.show ? RV.show : []).concat(RV.strokes);
+    for (const st of all) {
+      x.strokeStyle = st.c; x.lineWidth = 5; x.lineCap = 'round'; x.lineJoin = 'round'; x.shadowColor = '#000'; x.shadowBlur = 4;
+      x.beginPath(); st.p.forEach(([a, b], i) => { const px = a * cv.width, py = b * cv.height; if (i) x.lineTo(px, py); else x.moveTo(px, py); });
+      if (st.p.length === 1) x.lineTo(st.p[0][0] * cv.width + 0.1, st.p[0][1] * cv.height);
+      x.stroke();
+    }
+  }
+  function rvPaint() {
+    const g = RV.g; if (!g || S.section !== 'revue') return;
+    const t = RV.t, st = rvState(g, t), f = rvFrame(g, t), { cOf, tOf } = rvTeams(g);
+    const v = (S.champList && S.champList.version) || '';
+    // Carte : tours (vivantes / détruites), inhibiteurs, fosses, événements des 20 dernières secondes.
+    const ov = document.querySelector('.rv-ov');
+    if (ov) {
+      const dot = (c, cls, title, ico) => { const [x, y] = rvXY(c); return h('span', { class: 'rv-pt ' + cls, style: `left:${x}%;top:${y}%`, title }, ico || ''); };
+      const pts = [];
+      for (const [k, c] of Object.entries(RV_TW)) pts.push(dot(c, 'tw ' + (k.startsWith('T1') ? 'blue' : 'red') + (st.towers[k] != null ? ' down' : ''), st.towers[k] != null ? `Tour détruite à ${mmss(st.towers[k])}` : 'Tour'));
+      for (const [k, c] of Object.entries(RV_IN)) pts.push(dot(c, 'inh ' + (k.startsWith('T1') ? 'blue' : 'red') + (st.inhibs[k] != null ? ' down' : ''), 'Inhibiteur'));
+      pts.push(dot(RV_PIT.drag, 'pit', `Dragons : bleus ${st.drag.ORDER.length} · rouges ${st.drag.CHAOS.length}`, '🐉'));
+      pts.push(dot(RV_PIT.baron, 'pit', 'Nashor / Héraut / Larves', '🟣'));
+      for (const e of st.recent) {
+        const c = e.x === 'DragonKill' ? RV_PIT.drag : /Baron|Herald|Horde/.test(e.x) ? RV_PIT.baron : e.x === 'AtakhanKill' ? RV_PIT.atakhan : e.x === 'TurretKilled' ? (() => { const m = String(e.tw).match(/T([12])_([LCR])_(\d\d)/); return m && RV_TW[`T${m[1]}_${m[2]}_${m[3]}`]; })() : e.x === 'InhibKilled' ? (() => { const m = String(e.tw).match(/T([12])_([LCR])/); return m && RV_IN[`T${m[1]}_${m[2]}`]; })() : null;
+        if (c) pts.push(dot(c, 'ping ' + (e.kt === 'ORDER' ? 'blue' : 'red'), ''));
+      }
+      ov.replaceChildren(...pts);
+    }
+    if (RV.show == null) rvDrawPaint();
+    // Tableau à l'instant t.
+    const board = document.querySelector('.rv-board');
+    if (board && f) {
+      const row = (p, i) => { const a = f.p[i] || []; const dead = a[5];
+        return h('div', { class: 'sp-p' + (p.n === g.me ? ' ours' : '') + (dead ? ' dead' : '') },
+          h('span', { class: 'sp-ch' }, champIcon(p.c, 30), h('b', { class: 'sp-lvl' }, a[4] || 1), dead ? h('span', { class: 'sp-dead' }, dead) : null), h('span'),
+          h('span', { class: 'sp-n' }, h('b', null, p.n.split('#')[0]), h('small', { class: 'muted' }, `${a[3] || 0} CS`)),
+          h('span', { class: 'sp-its' }, ...a.slice(6, 13).map((id) => id ? h('img', { class: 'sp-it', src: `https://ddragon.leagueoflegends.com/cdn/${v}/img/item/${id}.png`, width: 20, height: 20, alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } }) : h('span', { class: 'sp-it empty' }))),
+          h('span', { class: 'sp-k' }, `${a[0] || 0}/${a[1] || 0}/${a[2] || 0}`)); };
+      const side = (tm) => h('div', { class: 'sp-team ' + (tm === 'ORDER' ? 'blue' : 'red') }, (g.players || []).map((p, i) => [p, i]).filter(([p]) => p.team === tm).map(([p, i]) => row(p, i)));
+      const objs = (tm) => h('span', { class: 'rv-objs' }, `🏰 ${Object.keys(st.towers).filter((k) => k.startsWith(tm === 'ORDER' ? 'T2' : 'T1')).length}`, ` 🐉 ${st.drag[tm].length}`, st.grubs[tm] ? ` 🪲 ${st.grubs[tm]}` : '', st.baron[tm] ? ` 🟣 ${st.baron[tm]}` : '');
+      board.replaceChildren(h('div', { class: 'sp-score' }, objs('ORDER'), h('div', { class: 'sp-k2' }, h('b', { class: 'blue' }, st.kills.ORDER), h('span', { class: 'muted' }, mmss(t)), h('b', { class: 'red' }, st.kills.CHAOS)), objs('CHAOS')),
+        h('div', { class: 'rv-teams' }, side('ORDER'), side('CHAOS')));
+    }
+    // Fil : les événements, cliquables pour aller au moment.
+    const feed = document.querySelector('.rv-feed');
+    const fkey = RV.filter + ':' + Math.floor(t / 3) + ':' + (g.events || []).length;
+    if (feed && feed.dataset.k !== fkey) {
+      const sc = feed.querySelector('.rv-fl') ? feed.querySelector('.rv-fl').scrollTop : 0;
+      feed.dataset.k = fkey;
+      setTimeout(() => { const fl = feed.querySelector('.rv-fl'); if (fl) fl.scrollTop = sc; }, 0);
+      const keep = (e) => RV.filter === 'tout' ? /ChampionKill|DragonKill|BaronKill|HeraldKill|HordeKill|AtakhanKill|TurretKilled|InhibKilled|Multikill|Ace/.test(e.x) : RV.filter === 'kills' ? /ChampionKill|Multikill|Ace/.test(e.x) : /DragonKill|BaronKill|HeraldKill|HordeKill|AtakhanKill|TurretKilled|InhibKilled/.test(e.x);
+      const lab = (e) => ({ DragonKill: '🐉 Dragon ' + (((SP_DRAG[e.dr] || [])[1]) || e.dr || '').toLowerCase(), BaronKill: '🟣 Nashor', HeraldKill: '👁 Héraut', HordeKill: '🪲 Larve', AtakhanKill: '🔥 Atakhan', TurretKilled: '🏰 Tour', InhibKilled: '⬢ Inhibiteur', Multikill: ['', '', 'Double kill', 'Triple kill', 'Quadra kill', 'PENTAKILL'][e.ks] || 'Multikill', Ace: 'Ace' })[e.x];
+      const evs = (g.events || []).filter(keep);
+      feed.replaceChildren(h('div', { class: 'row rv-ff' }, [['tout', 'Tout'], ['kills', 'Kills'], ['obj', 'Objectifs']].map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(RV.filter === k), onclick: () => { RV.filter = k; rvPaint(); } }, l))),
+        h('div', { class: 'rv-fl' }, evs.map((e) => { const kt = tOf(e.k) || (e.x === 'ChampionKill' ? (tOf(e.v) === 'ORDER' ? 'CHAOS' : 'ORDER') : '');
+          return h('button', { class: 'sp-f ' + (kt === 'ORDER' ? 'blue' : kt === 'CHAOS' ? 'red' : '') + (Math.abs(e.t - t) < 6 ? ' now' : ''), onclick: () => rvSeek(e.t - 3) },
+            h('small', { class: 'muted sp-ft' }, mmss(e.t)),
+            e.x === 'ChampionKill' ? [cOf(e.k) ? champIcon(cOf(e.k), 20) : h('span', null, '💀'), h('span', { class: 'sp-sw' }, '⚔'), cOf(e.v) ? champIcon(cOf(e.v), 20) : h('span', null, '?'), e.a && e.a.length ? h('small', { class: 'muted' }, ` +${e.a.length}`) : null]
+              : [h('span', null, lab(e)), cOf(e.k) ? champIcon(cOf(e.k), 18) : null]); })));
+    }
+    // Timeline : curseur, lecture, marques des kills, objectifs, notes et clips.
+    const tl = document.querySelector('.rv-tl');
+    if (tl) {
+      const D = Math.max(1, g.duration || 1);
+      const marks = [];
+      for (const e of g.events || []) {
+        if (!/ChampionKill|DragonKill|BaronKill|HeraldKill|HordeKill|AtakhanKill|TurretKilled|InhibKilled/.test(e.x)) continue;
+        const kt = tOf(e.k) || (e.x === 'ChampionKill' ? (tOf(e.v) === 'ORDER' ? 'CHAOS' : 'ORDER') : '');
+        marks.push(h('i', { class: 'rv-m ' + (e.x === 'ChampionKill' ? 'k ' : 'o ') + (kt === 'ORDER' ? 'blue' : 'red'), style: `left:${e.t / D * 100}%`, title: mmss(e.t) }));
+      }
+      for (const n of g.notes || []) marks.push(h('i', { class: 'rv-m n', style: `left:${n.t / D * 100}%`, title: 'Note : ' + (n.text || 'dessin') }));
+      const clips = (CL.list || []).filter((c) => c.t >= g.start && c.t <= g.start + D * 1000 + 90000);
+      for (const c of clips) { const ct = Math.max(0, (c.t - g.start) / 1000); marks.push(h('i', { class: 'rv-m c', style: `left:${Math.min(100, ct / D * 100)}%`, title: 'Clip : ' + clipTitle(c), onclick: (e) => { e.stopPropagation(); CL.sel = c.path; go('clips'); } }, '🎬')); }
+      const bar = h('div', { class: 'rv-bar', onclick: (e) => { const r = e.currentTarget.getBoundingClientRect(); rvSeek((e.clientX - r.left) / r.width * D); } }, h('div', { class: 'rv-fill', style: `width:${t / D * 100}%` }), ...marks, h('i', { class: 'rv-head-m', style: `left:${t / D * 100}%` }));
+      tl.replaceChildren(...[h('button', { class: 'btn-fire small-btn rv-pl', onclick: rvPlay }, RV.play ? '⏸' : '▶'),
+        h('b', { class: 'rv-time' }, `${mmss(t)} / ${mmss(D)}`), bar,
+        h('select', { class: 'inp rv-sp', onchange: (e) => { RV.speed = Number(e.target.value); } }, [4, 8, 16, 32].map((x) => h('option', { value: x, selected: RV.speed === x ? true : null }, `×${x}`))),
+        clips.length ? h('small', { class: 'muted' }, `🎬 ${clips.length} clip${clips.length > 1 ? 's' : ''}`) : null].filter(Boolean));
+    }
+    // Notes.
+    const nb = document.querySelector('.rv-notes');
+    const nkey = (g.notes || []).map((n) => n.id).join() + ':' + Math.floor(t / 4);
+    if (nb && nb.dataset.k !== nkey && (nb.dataset.k = nkey)) nb.replaceChildren(...((g.notes || []).length ? g.notes.map((n) => h('div', { class: 'rv-note' + (Math.abs(n.t - t) < 4 ? ' now' : '') },
+      h('button', { class: 'chip', onclick: () => { rvStop(); RV.t = n.t; RV.show = n.draw || []; RV.strokes = []; rvPaint(); rvDrawPaint(); } }, '⏱ ' + mmss(n.t)),
+      h('div', null, h('b', null, vocalName(n.by) || 'Moi'), (n.draw || []).length ? h('small', { class: 'muted' }, ' · ✏️ dessin') : null, h('p', null, n.text)),
+      (n.by === vocalMe() || isStaff()) ? h('button', { class: 'btn-ghost', title: 'Retirer', onclick: async () => {
+        g.notes = g.notes.filter((x) => x.id !== n.id);
+        if (RV.src === 'team') { const r = await window.fire.revues.note(g.id, n, true).catch(() => null); if (r && r.ok) g.notes = r.notes; } else await window.fire.parties.save(g).catch(() => {});
+        rvPaint(); } }, '✕') : null)) : [h('p', { class: 'muted small' }, 'Aucune note. Mets la partie au bon moment, dessine sur la carte si besoin, écris ta remarque et ajoute-la.')]));
+  }
+
   // ===== Parcours : arbre de compétences (5 thèmes × 4 niveaux). Réussir les puzzles d'une étape débloque la suivante. =====
   const PC = { open: null, i: 0, ok: 0, ans: null, order: [] };
   const pcData = () => window.FIRE_PARCOURS || { THEMES: [], LEVELS: [], NODES: [] };
@@ -1296,7 +1529,7 @@
   // Chaque FIRE note ses actions (pages ouvertes, messages, vocal, planning, POOL, quiz, clips…) et les envoie toutes les
   // 3 minutes dans le fichier d'activité du joueur (chiffré avec le code d'équipe). Le contenu des messages privés n'est jamais noté.
   const PAGE_NAMES = { stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
-    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', web: 'navigateur' };
+    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', revue: 'Revue de parties', web: 'navigateur' };
   const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
   function actLog(k, d) {
     if (!vocalMe() || !window.fire.staff) return;
@@ -1666,7 +1899,7 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'carnet' || S.section === 'parcours' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'carnet' || S.section === 'parcours' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -1677,6 +1910,7 @@
     else if (S.section === 'reunion') renderReunion();
     else if (S.section === 'outils') renderOutils();
     else if (S.section === 'parcours') renderParcours();
+    else if (S.section === 'revue') renderRevue();
     else if (S.section === 'parties') renderParties();
     else if (S.section === 'pool') renderPool();
     else if (S.section === 'planning') renderPlanning();
@@ -4402,7 +4636,7 @@
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['parcours', '🗺️', 'Parcours'],
-      ['coach', '📣', 'Parole du coach', n || null], ['parties', '🔎', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
+      ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔎', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
     if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), items.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }
@@ -7071,6 +7305,7 @@
     setInterval(() => { chatLoad(); salonsLoad(); membresLoad(); pendingRetry(); subPush(); }, 2 * 60 * 1000);
     setTimeout(subPush, 20000);
     if (FV().onRemp) FV().onRemp(subRecv);
+    if (window.fire.parties && window.fire.parties.onNew) window.fire.parties.onNew(() => { RV.list = null; if (S.section === 'revue' && !RV.g) renderRevue(); vocalToast('🎞️ Partie enregistrée : revois-la dans Outils › Revue de parties', true); });
     // Statut : envoyé tout de suite, puis chaque minute ; les cartes reçues sont gardées.
     setTimeout(statusPush, 4000);
     setInterval(() => { statusPush(); profilesKeep(); chatPaint(); }, 60000);
@@ -7094,7 +7329,7 @@
   // restent chiffrés et illisibles. Les titulaires leur envoient de PC à PC un petit paquet chiffré pour eux :
   // les séances du planning d'équipe (sans les dispos des coachs ni les réponses de chacun).
   const SUB = () => !!(S.coachState && S.coachState.remplacant);
-  const SUB_OK = new Set(['stats', 'planning', 'jeux', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils', 'parties']);
+  const SUB_OK = new Set(['stats', 'planning', 'jeux', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils', 'parties', 'revue']);
   const roomOk = (r) => !SUB() || (r && r.id !== 'coaching' && !r.staff);
   const subSlugs = () => S.players.filter((p) => p.slug && isSub(p)).map((p) => p.slug);
   function subInit() {

@@ -35,11 +35,11 @@
   // Rubriques : identifiant FIRE -> libellé du dictionnaire (et donc son icône).
   const NAV = {
     stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente',
-    guides: 'Lanes et principes', coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', chat: 'Discussion', vocal: 'Vocal', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours',
+    guides: 'Lanes et principes', coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', chat: 'Discussion', vocal: 'Vocal', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', revue: 'Revue de parties',
     patch: 'Patch notes', settings: 'Paramètres',
   };
   const GROUPS = [['Équipe', ['stats', 'pool', 'planning']], ['Jeu', ['draft', 'train', 'jeux']],
-    ['Apprendre', ['parcours', 'guides', 'coach', 'worlds', 'lolpatch']], ['Outils', ['parties', 'outils', 'reunion']], ['Social', ['chat', 'vocal', 'clips']], [null, ['carnet', 'patch', 'settings']]];
+    ['Apprendre', ['parcours', 'guides', 'coach', 'worlds', 'lolpatch']], ['Outils', ['revue', 'parties', 'outils', 'reunion']], ['Social', ['chat', 'vocal', 'clips']], [null, ['carnet', 'patch', 'settings']]];
 
   // items : [{ id, label, badge, cls }] ; go(id) ouvre la rubrique.
   function nav(box, items, current, go) {

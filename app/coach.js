@@ -1143,4 +1143,47 @@ async function closeBug(id) {
   } catch (e) { return { ok: false, error: String(e.message || e) }; }
 }
 
-module.exports = { rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+// ---------- Revue de parties partagée avec l'équipe (dépôt de données, chiffré avec le code d'équipe) ----------
+const REVUES = 'revues/index.json';
+const revId = (x) => (/^\d{10,16}$/.test(String(x)) ? String(x) : null);
+function cleanNote(n) {
+  if (!n || typeof n !== 'object') return null;
+  const strokes = Array.isArray(n.draw) ? n.draw.slice(0, 30).map((st) => (Array.isArray(st.p) ? { c: String(st.c || '#ff6b3d').replace(/[^#0-9a-fA-F]/g, '').slice(0, 7), p: st.p.slice(0, 400).map((q) => [Math.max(0, Math.min(1, Number(q[0]) || 0)), Math.max(0, Math.min(1, Number(q[1]) || 0))].map((v) => Math.round(v * 1000) / 1000)) } : null)).filter(Boolean) : [];
+  return { id: String(n.id || '').replace(/[^\w-]/g, '').slice(0, 24) || crypto.randomBytes(4).toString('hex'), t: Math.max(0, Math.min(7200, Number(n.t) || 0)), by: String(n.by || '').slice(0, 80), text: String(n.text || '').slice(0, 600), at: Number(n.at) || Date.now(), draw: strokes };
+}
+async function revues() {
+  try { const d = await teamRead(REVUES); return { ok: true, list: (d && Array.isArray(d.list) ? d.list : []).slice(0, 200) }; }
+  catch (e) { return { ok: false, error: String((e && e.message) || e), list: [] }; }
+}
+async function revueGet(id) {
+  id = revId(id); if (!id) return null;
+  try { return await teamRead('revues/' + id + '.json'); } catch (e) { return null; }
+}
+async function revueShare(game, who) {
+  const id = revId(game && game.id); if (!id) return { ok: false, error: 'partie invalide' };
+  const txt = JSON.stringify(game); if (txt.length > 900000) return { ok: false, error: 'partie trop longue à partager' };
+  try {
+    const g = JSON.parse(txt); g.notes = (g.notes || []).map(cleanNote).filter(Boolean).slice(-300); g.par = String(who || '').slice(0, 80);
+    await teamWrite('revues/' + id + '.json', (cur) => ({ ...g, notes: mergeNotes((cur && cur.notes) || [], g.notes) }), 'Revue partagée');
+    const meP = (g.players || []).find((p) => p.n === g.me) || {};
+    const item = { id, par: g.par, at: Date.now(), start: g.start, mode: g.mode, queue: g.queue, me: g.me, champ: meP.c || '', duration: g.duration, result: g.result };
+    await teamWrite(REVUES, (cur) => ({ list: [item].concat(((cur && cur.list) || []).filter((x) => x.id !== id)).slice(0, 200) }), 'Liste des revues');
+    activityPush(who, [{ t: Date.now(), k: 'app', d: 'Revue de partie partagée' }]).catch(() => {});
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+function mergeNotes(a, b) { const m = new Map(); for (const n of a.concat(b)) if (n && n.id) m.set(n.id, n); return [...m.values()].sort((x, y) => x.t - y.t).slice(-300); }
+async function revueNote(id, note, del) {
+  id = revId(id); if (!id) return { ok: false, error: 'partie invalide' };
+  const n = cleanNote(note); if (!n) return { ok: false, error: 'note vide' };
+  try {
+    const d = await teamWrite('revues/' + id + '.json', (cur) => {
+      if (!cur) throw new Error('revue introuvable');
+      const notes = del ? (cur.notes || []).filter((x) => x.id !== n.id) : mergeNotes(cur.notes || [], [n]);
+      return { ...cur, notes };
+    }, del ? 'Note retirée' : 'Note de revue');
+    return { ok: true, notes: d.notes };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+
+module.exports = { revues, revueGet, revueShare, revueNote, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

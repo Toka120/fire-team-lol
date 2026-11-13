@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "1.10.117",
+   "date": "2026-11-13",
+   "titre": "Revue de parties",
+   "items": [
+    [
+     "new",
+     "Outils › Revue de parties : chaque game jouée avec FIRE ouvert est enregistrée automatiquement (API locale officielle de Riot, compatible Vanguard). À la fin de la partie, elle apparaît dans « Mes parties »."
+    ],
+    [
+     "new",
+     "Revoir une partie : la carte avec les tours et les inhibiteurs (vivants ou détruits au fil du temps), les dragons, Nashor, Héraut, larves et Atakhan, avec un repère à chaque objectif pris. À chaque instant, le tableau des 10 joueurs : niveau, KDA, sbires, objets, temps de mort."
+    ],
+    [
+     "new",
+     "Timeline avec lecture (×4 à ×32) et toutes les marques : kills, objectifs, notes, et tes clips de la partie (un clic ouvre le clip). Le fil des événements est filtrable (tout, kills, objectifs) et cliquable pour aller au moment."
+    ],
+    [
+     "new",
+     "Dessin sur la carte (5 couleurs, annuler, effacer) et notes horodatées avec le dessin joint. « Partager avec l'équipe » la met dans « Revues de l'équipe » : tout le monde la revoit et ajoute ses notes et dessins."
+    ],
+    [
+     "new",
+     "Prochaine étape : les positions des champions sur la mini-carte."
+    ]
+   ]
+  },
+  {
    "v": "1.10.116",
    "date": "2026-11-13",
    "titre": "Stats des nouveaux membres",

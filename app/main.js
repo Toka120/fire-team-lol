@@ -586,9 +586,69 @@ setInterval(async () => {
   const g = liveSummary(raw);
   if (!g && !liveLast) { LCU.queue = null; return; }
   if (g) { const q = await lcuQueue().catch(() => null); if (q) g.queue = q; if (LCU.puuid) g.puuid = LCU.puuid; g.events = liveEvents(raw); }
+  try { recStep(raw, g); } catch (e) { /* l'enregistrement ne doit jamais gêner le direct */ }
   liveLast = g;
   if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('live:update', g);
 }, 2500);
+
+// ---------- Revue de parties : FIRE enregistre chaque partie jouée (API locale officielle, rien d'autre) ----------
+// Toutes les 10 s de jeu : le tableau (KDA, sbires, niveau, objets, mort) ; tous les événements (kills, objectifs, tours).
+// À la fin de la partie, tout est rangé dans userData/parties/<début>.json pour la rubrique « Revue de parties ».
+const partiesDir = () => path.join(app.getPath('userData'), 'parties');
+let REC = null;
+function recStep(raw, g) {
+  if (g && raw) {
+    const key = g.players.map((p) => p.n).sort().join('|');
+    if (!REC || REC.key !== key) {
+      if (REC) recSave(REC);
+      REC = { key, v: 1, id: String(Date.now() - g.time * 1000), start: Date.now() - g.time * 1000, mode: g.mode, queue: g.queue || null, me: g.me,
+        players: g.players.map((p) => ({ n: p.n, c: p.c, team: p.team, pos: p.pos })), frames: [], events: {}, lastT: -99, result: '' };
+    }
+    if (g.queue && !REC.queue) REC.queue = g.queue;
+    if (g.time - REC.lastT >= 10) {
+      REC.lastT = g.time;
+      REC.frames.push({ t: g.time, p: g.players.map((p) => [p.k, p.d, p.a, p.cs, p.lvl, p.dead || 0, ...(p.it || []).slice(0, 7)]) });
+    }
+    for (const e of ((raw.events && raw.events.Events) || [])) {
+      const id = Number(e.EventID); if (!Number.isFinite(id) || REC.events[id]) continue;
+      REC.events[id] = { t: Math.round(Number(e.EventTime) || 0), x: String(e.EventName || '').slice(0, 20), k: String(e.KillerName || e.Acer || '').slice(0, 40), v: String(e.VictimName || '').slice(0, 40),
+        a: Array.isArray(e.Assisters) ? e.Assisters.map((x) => String(x).slice(0, 40)).slice(0, 5) : [], tw: String(e.TurretKilled || e.InhibKilled || '').slice(0, 30),
+        dr: String(e.DragonType || '').slice(0, 12), st: e.Stolen === 'True' || e.Stolen === true, ks: Number(e.KillStreak) || 0, r: String(e.Result || '').slice(0, 8) };
+      if (e.EventName === 'GameEnd') REC.result = String(e.Result || '');
+    }
+    REC.duration = g.time;
+  } else if (REC) { recSave(REC); REC = null; }
+}
+function recSave(r) {
+  try {
+    if (!r || r.frames.length < 6) return; // moins d'une minute : rien à revoir
+    fs.mkdirSync(partiesDir(), { recursive: true });
+    const out = { ...r, events: Object.values(r.events).sort((a, b) => a.t - b.t) }; delete out.key; delete out.lastT;
+    fs.writeFileSync(path.join(partiesDir(), r.id + '.json'), JSON.stringify(out));
+    const files = fs.readdirSync(partiesDir()).filter((f) => /^\d+\.json$/.test(f)).sort();
+    for (const f of files.slice(0, Math.max(0, files.length - 150))) fs.unlinkSync(path.join(partiesDir(), f));
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('parties:new', r.id);
+  } catch (e) { /* disque plein ou dossier protégé */ }
+}
+app.on('before-quit', () => { try { if (REC) { recSave(REC); REC = null; } } catch (e) { /* */ } });
+ipcMain.handle('parties:list', () => {
+  try {
+    if (!fs.existsSync(partiesDir())) return [];
+    return fs.readdirSync(partiesDir()).filter((f) => /^\d+\.json$/.test(f)).sort().reverse().slice(0, 150).map((f) => {
+      try { const d = JSON.parse(fs.readFileSync(path.join(partiesDir(), f), 'utf8')); return { id: d.id, start: d.start, mode: d.mode, queue: d.queue, me: d.me, duration: d.duration, result: d.result, players: d.players, notes: (d.notes || []).length }; }
+      catch (e) { return null; }
+    }).filter(Boolean);
+  } catch (e) { return []; }
+});
+ipcMain.handle('parties:get', (e, id) => { try { if (!/^\d+$/.test(String(id))) return null; return JSON.parse(fs.readFileSync(path.join(partiesDir(), id + '.json'), 'utf8')); } catch (err) { return null; } });
+ipcMain.handle('parties:save', (e, d) => {
+  try {
+    if (!d || !/^\d+$/.test(String(d.id)) || !Array.isArray(d.frames) || !Array.isArray(d.events)) return false;
+    const txt = JSON.stringify(d); if (txt.length > 4e6) return false;
+    fs.mkdirSync(partiesDir(), { recursive: true }); fs.writeFileSync(path.join(partiesDir(), d.id + '.json'), txt); return true;
+  } catch (err) { return false; }
+});
+ipcMain.handle('parties:delete', (e, id) => { try { if (!/^\d+$/.test(String(id))) return false; fs.unlinkSync(path.join(partiesDir(), id + '.json')); return true; } catch (err) { return false; } });
 
 // ---------- Clips instantanés : rangés dans Vidéos\FIRE Clips ----------
 const CLIP_MAX = 150 * 1024 * 1024;
@@ -733,6 +793,10 @@ coach.init(() => lastCfg || {});
 ipcMain.handle('unlock', (e, code) => coach.unlock(code));
 ipcMain.handle('unlocked', () => coach.isUnlocked());
 ipcMain.handle('remp:seal', (e, obj) => coach.rempSeal(obj));
+ipcMain.handle('revues', () => coach.revues());
+ipcMain.handle('revue:get', (e, id) => coach.revueGet(id));
+ipcMain.handle('revue:share', (e, g, who) => coach.revueShare(g, who));
+ipcMain.handle('revue:note', (e, id, n, del) => coach.revueNote(id, n, !!del));
 ipcMain.handle('remp:open', (e, box) => coach.rempOpen(box));
 ipcMain.handle('coach:state', () => coach.coachState());
 ipcMain.handle('coach:unlock', (e, code) => coach.coachUnlock(code));

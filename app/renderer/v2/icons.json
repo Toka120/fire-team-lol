@@ -24,7 +24,8 @@
     "Salle de réunion": "Presentation",
     "Outils": "Wrench",
     "Analyse de parties": "Focus",
-    "Parcours": "MapPinned"
+    "Parcours": "MapPinned",
+    "Revue de parties": "Play"
   },
   "roles": {
     "Top": "Shield",
