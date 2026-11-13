@@ -500,7 +500,7 @@ const cleanIds = (a) => { const seen = new Set(); return (Array.isArray(a) ? a :
 function cleanTiers(t, par) {
   t = t || {};
   const legacy = ['S', 'A', 'B', 'C'].flatMap((k) => (Array.isArray(t[k]) ? t[k] : []));
-  return { O: cleanIds(Array.isArray(t.O) ? t.O : legacy), M: cleanIds(t.M), par: par || (t.par === 'joueur' ? 'joueur' : 'coach'), maj: Number(t.maj) || Date.now() };
+  return { O: cleanIds(Array.isArray(t.O) ? t.O : legacy), M: cleanIds(t.M), T: cleanIds(t.T), par: par || (t.par === 'joueur' ? 'joueur' : 'coach'), maj: Number(t.maj) || Date.now() };
 }
 
 function cleanWeek(w) {

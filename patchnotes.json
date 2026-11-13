@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.108",
+   "date": "2026-11-13",
+   "titre": "POOL : catégorie « À travailler »",
+   "items": [
+    [
+     "new",
+     "POOL : nouvelle ligne 🛠️ « À travailler » dans chaque tierlist, pour les champions qu'un joueur est en train d'apprendre. Le coach et le joueur l'ajoutent comme les autres lignes (bouton « 🛠️ À travailler » puis clic sur les portraits)."
+    ],
+    [
+     "new",
+     "Les champions à travailler ont leurs propres cartes de stats dans « Détails », leur couleur dans la répartition des games, et des remarques (il progresse, ou on continue). Ils ne comptent pas pour l'objectif de games et ne sont plus comptés dans « autres champions »."
+    ],
+    [
+     "improve",
+     "L'analyse des pools avec Claude prend aussi en compte les champions à travailler."
+    ]
+   ]
+  },
+  {
    "v": "1.10.107",
    "date": "2026-11-13",
    "titre": "Regarder les games en direct",

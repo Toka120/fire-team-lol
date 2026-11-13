@@ -45,6 +45,7 @@
   function toRows(player, matches, start, end) {
     const pool = new Set(player.pool_ids || []);
     const maitrise = new Set(player.maitrise_ids || []);
+    const travail = new Set(player.travail_ids || []);
     return (matches || [])
       .filter((m) => m.q === 420 && m.t >= start && (!end || m.t < end))
       .sort((a, b) => a.t - b.t)
@@ -57,8 +58,8 @@
           id: 'EUW1_' + m.id, t: m.t, jour: ymd(dt), jour_label: dayLabel(dt), jour_court: dayShort(dt),
           heure: `${pad(dt.getHours())}:${pad(dt.getMinutes())}`,
           champion: champName(m.championName), champ_id: m.championName, pool: pool.has(m.championName), lane,
-          maitrise: maitrise.has(m.championName),
-          cat: pool.has(m.championName) ? 'oblig' : maitrise.has(m.championName) ? 'maitrise' : 'autre',
+          maitrise: maitrise.has(m.championName), travail: travail.has(m.championName),
+          cat: pool.has(m.championName) ? 'oblig' : maitrise.has(m.championName) ? 'maitrise' : travail.has(m.championName) ? 'travail' : 'autre',
           adversaire: m.opponentChampionName ? champName(m.opponentChampionName) : '—', adv_id: m.opponentChampionName || null,
           win: !!m.win, duree: `${Math.floor(m.d / 60)}:${pad(m.d % 60)}`,
           kills: num(m.kills) || 0, morts: num(m.deaths) || 0, assists: num(m.assists) || 0,
@@ -99,6 +100,7 @@
       hors_pool: rows.filter((r) => !r.pool).length,
       oblig: rows.filter((r) => r.cat === 'oblig').length,
       maitrise_g: rows.filter((r) => r.cat === 'maitrise').length,
+      travail_g: rows.filter((r) => r.cat === 'travail').length,
       autres: rows.filter((r) => r.cat === 'autre').length
     };
   }
@@ -159,12 +161,12 @@
 
   // ---------- Tierlists des pools (rubrique POOL) ----------
   // Ligne 1 : OBLIGATOIRE (comptée pour l'objectif de la semaine). Ligne 2 : MAÎTRISÉS. Un champion peut être dans les deux.
-  const TIERS = ['O', 'M'];
-  const TIER_INFO = { O: { label: 'OBLIGATOIRE', ico: '🎯', court: 'Obligatoire' }, M: { label: 'MAÎTRISÉS', ico: '⭐', court: 'Maîtrisé' } };
+  const TIERS = ['O', 'M', 'T'];
+  const TIER_INFO = { O: { label: 'OBLIGATOIRE', ico: '🎯', court: 'Obligatoire' }, M: { label: 'MAÎTRISÉS', ico: '⭐', court: 'Maîtrisé' }, T: { label: 'À TRAVAILLER', ico: '🛠️', court: 'À travailler' } };
   const normTiers = (t) => {
     if (!t) return null;
-    if (Array.isArray(t.O) || Array.isArray(t.M)) return { O: [...(t.O || [])], M: [...(t.M || [])], par: t.par, maj: t.maj };
-    return { O: ['S', 'A', 'B', 'C'].flatMap((k) => t[k] || []), M: [] }; // ancien format S/A/B/C
+    if (Array.isArray(t.O) || Array.isArray(t.M) || Array.isArray(t.T)) return { O: [...(t.O || [])], M: [...(t.M || [])], T: [...(t.T || [])], par: t.par, maj: t.maj };
+    return { O: ['S', 'A', 'B', 'C'].flatMap((k) => t[k] || []), M: [], T: [] }; // ancien format S/A/B/C
   };
   const poolIds = (t) => { const n = normTiers(t); return n ? n.O : []; };
   const maitriseIds = (t) => { const n = normTiers(t); return n ? n.M : []; };
@@ -179,18 +181,21 @@
 
   // Analyse d'un pool sur une période : obligatoires, maîtrisés et autres champions joués, avec des remarques (toujours vraies).
   function poolAnalysis(player, matches, champs, tiers, start, end) {
-    const t = normTiers(tiers) || { O: player.pool_ids || [], M: player.maitrise_ids || [] };
-    const rows = toRows({ ...player, pool_ids: t.O, maitrise_ids: t.M }, matches, start, end);
+    const t = normTiers(tiers) || { O: player.pool_ids || [], M: player.maitrise_ids || [], T: player.travail_ids || [] };
+    t.T = t.T || [];
+    const rows = toRows({ ...player, pool_ids: t.O, maitrise_ids: t.M, travail_ids: t.T }, matches, start, end);
     const card = (id) => {
       const st = stats(rows.filter((r) => r.champ_id === id));
       const sp = (champs || []).find((c) => c.id === id);
-      return { id, champion: champName(id), oblig: t.O.includes(id), maitrise: t.M.includes(id), ...st, verdict: verdict(st),
+      return { id, champion: champName(id), oblig: t.O.includes(id), maitrise: t.M.includes(id), travail: t.T.includes(id), ...st, verdict: verdict(st),
         split: sp && sp.games ? { games: sp.games, wins: sp.wins, wr: r1((sp.wins / sp.games) * 100), kda: sp.kda == null ? null : r1(sp.kda, 2) } : null };
     };
     const oblig = t.O.map(card);
     const maitrise = t.M.map(card);
+    // À travailler : champions en apprentissage (hors obligatoires et maîtrisés), suivis à part, sans compter pour l'objectif.
+    const travail = t.T.filter((id) => !t.O.includes(id) && !t.M.includes(id)).map(card);
     const autres = byChamp(rows.filter((r) => r.cat === 'autre')).map((c) => ({ id: c.id, champion: c.champion, ...stats(c.rows), verdict: verdict(stats(c.rows)) }));
-    const tot = { oblig: stats(rows.filter((r) => r.cat === 'oblig')), maitrise: stats(rows.filter((r) => r.cat === 'maitrise')), autres: stats(rows.filter((r) => r.cat === 'autre')), all: stats(rows) };
+    const tot = { oblig: stats(rows.filter((r) => r.cat === 'oblig')), maitrise: stats(rows.filter((r) => r.cat === 'maitrise')), travail: stats(rows.filter((r) => r.cat === 'travail')), autres: stats(rows.filter((r) => r.cat === 'autre')), all: stats(rows) };
     const notes = [];
     const pctW = (x) => `${fr(x.wr)} %`;
     for (const c of oblig) {
@@ -201,17 +206,21 @@
       if (!c.oblig && c.games >= 3 && c.wr < 40) notes.push({ kind: 'bad', ico: '⚠️', text: `${c.champion} est noté maîtrisé mais gagne ${pctW(c)} de ses ${c.games} games.` });
       if (!c.oblig && c.games >= 3 && c.wr >= 60) notes.push({ kind: 'good', ico: '⭐', text: `${c.champion} confirme sa maîtrise : ${pctW(c)} sur ${c.games} games.` });
     }
+    for (const c of travail) {
+      if (c.games >= 3 && c.wr >= 55) notes.push({ kind: 'good', ico: '🛠️', text: `${c.champion} (à travailler) progresse : ${pctW(c)} sur ${c.games} games.` });
+      else if (c.games >= 3) notes.push({ kind: 'warn', ico: '🛠️', text: `${c.champion} (à travailler) : ${c.wins} V – ${c.losses} D sur ${c.games} games, on continue.` });
+    }
     const jamais = oblig.filter((c) => !c.games).map((c) => c.champion);
     if (jamais.length && rows.length) notes.push({ kind: 'warn', ico: '💤', text: `Obligatoire${jamais.length > 1 ? 's' : ''} pas encore joué${jamais.length > 1 ? 's' : ''} : ${jamais.join(', ')}.` });
     if (tot.autres.games) {
       const part = Math.round((tot.autres.games / Math.max(1, rows.length)) * 100);
       notes.push({ kind: part >= 30 ? 'bad' : 'warn', ico: '❔', text: `${pl(tot.autres.games, 'game', 'games')} sur d'autres champions (${part} %) : ${autres.slice(0, 4).map((c) => `${c.champion} ${c.games}`).join(', ')}.` });
     }
-    if (rows.length && !tot.autres.games) notes.push({ kind: 'good', ico: '✅', text: 'Aucune game en dehors de ses champions obligatoires et maîtrisés.' });
-    const ids = [...t.O, ...t.M];
+    if (rows.length && !tot.autres.games) notes.push({ kind: 'good', ico: '✅', text: 'Aucune game en dehors de ses champions obligatoires, maîtrisés et à travailler.' });
+    const ids = [...t.O, ...t.M, ...t.T];
     const cand = (champs || []).filter((c) => !ids.includes(c.id) && c.games >= 8 && c.wins / c.games >= 0.55).sort((a, b) => b.games - a.games).slice(0, 2);
     cand.forEach((c) => notes.push({ kind: 'good', ico: '💡', text: `Candidat aux maîtrisés : ${champName(c.id)}, ${fr((c.wins / c.games) * 100)} % de victoires sur ${c.games} games ce split.` }));
-    return { oblig, maitrise, autres, tot, notes, rows: rows.length };
+    return { oblig, maitrise, travail, autres, tot, notes, rows: rows.length };
   }
 
   // Changements d'une semaine à l'autre, ligne par ligne.
@@ -220,8 +229,8 @@
     if (!a || !b) return null;
     const out = [];
     for (const k of TIERS) {
-      a[k].filter((id) => !b[k].includes(id)).forEach((id) => out.push({ type: 'add', k, id, champion: champName(id) }));
-      b[k].filter((id) => !a[k].includes(id)).forEach((id) => out.push({ type: 'del', k, id, champion: champName(id) }));
+      (a[k] || []).filter((id) => !(b[k] || []).includes(id)).forEach((id) => out.push({ type: 'add', k, id, champion: champName(id) }));
+      (b[k] || []).filter((id) => !(a[k] || []).includes(id)).forEach((id) => out.push({ type: 'del', k, id, champion: champName(id) }));
     }
     return out;
   }

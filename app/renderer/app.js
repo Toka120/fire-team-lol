@@ -2136,7 +2136,7 @@
     const b = FC.badges(p, g);
     return h('article', { class: 'match ' + (g.win ? 'win' : 'loss'), id: 'match-' + g.id },
       h('div', { class: 'mhead' }, h('span', { class: 'mchamp' }, champIcon(champIdFromName(g.champ_id), 44), h('span', { class: 'champ' }, g.champion)), h('span', { class: 'pill ' + (g.win ? 'good' : 'bad') }, g.win ? 'Victoire' : 'Défaite')),
-      h('div', null, h('span', { class: 'catpill c-' + g.cat }, g.cat === 'oblig' ? (g.maitrise ? '🎯⭐ Obligatoire et maîtrisé' : '🎯 Obligatoire') : g.cat === 'maitrise' ? '⭐ Maîtrisé' : '❔ Hors pool')),
+      h('div', null, h('span', { class: 'catpill c-' + g.cat }, g.cat === 'oblig' ? (g.maitrise ? '🎯⭐ Obligatoire et maîtrisé' : '🎯 Obligatoire') : g.cat === 'maitrise' ? '⭐ Maîtrisé' : g.cat === 'travail' ? '🛠️ À travailler' : '❔ Hors pool')),
       h('div', { class: 'muted small mvs' }, 'contre ', g.adv_id ? champIcon(champIdFromName(g.adv_id), 22) : null, ` ${g.adversaire} · ${g.heure} · ${g.duree}${g.lane && g.lane !== R.lane ? ' · en ' + g.lane : ''}`),
       h('div', { class: 'kda' }, h('span', { class: 'k' }, `${g.kills} / ${g.morts} / ${g.assists}`), h('span', { class: 'muted small' }, `KDA ${fr(g.kda, 2)}`)),
       h('div', { class: 'mstats' },
@@ -2182,7 +2182,7 @@
       later(() => objChart(chart, obj));
     }
     const grid = h('div', { class: 'champs-groups' });
-    const groups = [['oblig', '🎯 Obligatoires', 'comptent pour l\'objectif'], ['maitrise', '⭐ Maîtrisés', 'ses champions sûrs'], ['autre', '❔ Autres champions', 'ni obligatoires ni maîtrisés']];
+    const groups = [['oblig', '🎯 Obligatoires', 'comptent pour l\'objectif'], ['maitrise', '⭐ Maîtrisés', 'ses champions sûrs'], ['travail', '🛠️ À travailler', 'en apprentissage'], ['autre', '❔ Autres champions', 'hors de son pool']];
     for (const [cat, title, sub] of groups) {
       const list = champs.filter((c) => c.cat === cat);
       if (!list.length) continue;
@@ -2191,7 +2191,7 @@
       list.forEach((c) => {
       const box = h('div');
       g.append(h('div', { class: 'card cc cat-' + cat }, box, h('div', null, h('div', { class: 'n' }, c.champion), h('div', { class: 'm' },
-        h('span', null, c.cat === 'oblig' ? (c.maitrise ? '🎯⭐ Obligatoire et maîtrisé' : '🎯 Obligatoire') : c.cat === 'maitrise' ? '⭐ Maîtrisé' : '❔ Hors pool'),
+        h('span', null, c.cat === 'oblig' ? (c.maitrise ? '🎯⭐ Obligatoire et maîtrisé' : '🎯 Obligatoire') : c.cat === 'maitrise' ? '⭐ Maîtrisé' : c.cat === 'travail' ? '🛠️ À travailler' : '❔ Hors pool'),
         h('span', null, `${pl(c.games, 'game', 'games')} · ${c.wins} V – ${c.losses} D`),
         h('span', null, `KDA ${fr(c.kda, 2)} · ${fr(c.morts_moy, 1)} morts/game`),
         h('span', null, p.role_id === 'support' ? `Vision ${fr(c.vision, 1)} · golds @15 ${sg(c.gold15)}` : `${fr(c.cs_min, 1)} CS/min · golds @15 ${sg(c.gold15)}`)))));
@@ -5039,12 +5039,12 @@
   function applyWeek() {
     const w = currentWeek();
     for (const p of S.players) {
-      if (!p._cfg) p._cfg = { pool_ids: p.pool_ids || [], pool: p.pool || '', maitrise_ids: p.maitrise_ids || [] };
+      if (!p._cfg) p._cfg = { pool_ids: p.pool_ids || [], pool: p.pool || '', maitrise_ids: p.maitrise_ids || [], travail_ids: p.travail_ids || [] };
       const t = FC.normTiers(w && w.joueurs && w.joueurs[p.slug]);
-      if (t && (t.O.length || t.M.length)) {
-        p.pool_ids = t.O; p.maitrise_ids = t.M; p._tiers = t;
+      if (t && (t.O.length || t.M.length || t.T.length)) {
+        p.pool_ids = t.O; p.maitrise_ids = t.M; p.travail_ids = t.T; p._tiers = t;
         p.pool = t.O.map(FC.champName).join(' · ');
-      } else { p.pool_ids = p._cfg.pool_ids; p.maitrise_ids = p._cfg.maitrise_ids; p.pool = p._cfg.pool; p._tiers = null; }
+      } else { p.pool_ids = p._cfg.pool_ids; p.maitrise_ids = p._cfg.maitrise_ids; p.travail_ids = p._cfg.travail_ids; p.pool = p._cfg.pool; p._tiers = null; }
     }
     // L'objectif se compte chaque semaine, du lundi au dimanche, et repart à zéro le lundi.
     S.obj = weeklyObj(w && w.objectif ? { games: w.objectif, description: w.note || '' } : S.cfgObj);
@@ -6905,7 +6905,7 @@
     const nodes = [h('header', { class: 'sec-hero pool-hero' },
       h('div', { class: 'sec-ico' }, '🧙'),
       h('div', null, h('h1', { class: 'title' }, 'POOL'),
-        h('p', { class: 'muted' }, '🎯 Obligatoires : comptent pour l\'objectif · ⭐ Maîtrisés : ses champions sûrs · ❔ Autres : le reste')))];
+        h('p', { class: 'muted' }, '🎯 Obligatoires : comptent pour l\'objectif · ⭐ Maîtrisés : ses champions sûrs · 🛠️ À travailler : en apprentissage · ❔ Autres : le reste')))];
     if (S.flash) nodes.push(h('div', { class: 'flash' }, S.flash, h('button', { class: 'flash-x', onclick: () => { S.flash = ''; render(); } }, '✕')));
     if (S.poolsErr) nodes.push(h('p', { class: 'muted small' }, '⚠ ' + S.poolsErr));
 
@@ -6957,7 +6957,7 @@
   }
 
   function tierLabel(k) {
-    return h('div', { class: 'tier tl' + k }, h('span', { class: 'tier-ico' }, TI[k].ico), h('span', null, TI[k].label), k === 'O' ? h('small', null, "compte pour l'objectif") : h('small', null, 'ses champions sûrs'));
+    return h('div', { class: 'tier tl' + k }, h('span', { class: 'tier-ico' }, TI[k].ico), h('span', null, TI[k].label), h('small', null, k === 'O' ? "compte pour l'objectif" : k === 'M' ? 'ses champions sûrs' : 'en apprentissage'));
   }
 
   function wrBar(c) {
@@ -6981,12 +6981,12 @@
   }
 
   function catBar(t) {
-    const tot = t.oblig + t.maitrise + t.autres;
+    const tot = t.oblig + t.maitrise + (t.travail || 0) + t.autres;
     if (!tot) return null;
     const seg = (n, cls, lab) => n ? h('i', { class: cls, style: `flex:${n}`, title: `${lab} : ${n}` }, n) : null;
     return h('div', { class: 'catbar-wrap' },
-      h('div', { class: 'catbar' }, seg(t.oblig, 'c-o', 'Obligatoires'), seg(t.maitrise, 'c-m', 'Maîtrisés'), seg(t.autres, 'c-a', 'Autres')),
-      h('div', { class: 'catleg' }, h('span', null, h('i', { class: 'c-o' }), `🎯 ${t.oblig} obligatoire${t.oblig > 1 ? 's' : ''}`), h('span', null, h('i', { class: 'c-m' }), `⭐ ${t.maitrise} maîtrisé${t.maitrise > 1 ? 's' : ''}`), h('span', null, h('i', { class: 'c-a' }), `❔ ${t.autres} autre${t.autres > 1 ? 's' : ''}`)));
+      h('div', { class: 'catbar' }, seg(t.oblig, 'c-o', 'Obligatoires'), seg(t.maitrise, 'c-m', 'Maîtrisés'), seg(t.travail || 0, 'c-t', 'À travailler'), seg(t.autres, 'c-a', 'Autres')),
+      h('div', { class: 'catleg' }, h('span', null, h('i', { class: 'c-o' }), `🎯 ${t.oblig} obligatoire${t.oblig > 1 ? 's' : ''}`),  h('span', null, h('i', { class: 'c-m' }), `⭐ ${t.maitrise} maîtrisé${t.maitrise > 1 ? 's' : ''}`), t.travail ? h('span', null, h('i', { class: 'c-t' }), `🛠️ ${t.travail} à travailler`) : null, h('span', null, h('i', { class: 'c-a' }), `❔ ${t.autres} autre${t.autres > 1 ? 's' : ''}`)));
   }
 
   function alertPills(notes) {
@@ -6996,7 +6996,7 @@
 
   function cardTiers(p, w) {
     const raw = w ? (w.joueurs || {})[p.slug] : null;
-    const cfgT = { O: [...((p._cfg && p._cfg.pool_ids) || p.pool_ids || [])], M: [...((p._cfg && p._cfg.maitrise_ids) || [])] };
+    const cfgT = { O: [...((p._cfg && p._cfg.pool_ids) || p.pool_ids || [])], M: [...((p._cfg && p._cfg.maitrise_ids) || [])], T: [...((p._cfg && p._cfg.travail_ids) || [])] };
     return (w && FC.normTiers(raw)) || cfgT;
   }
 
@@ -7004,7 +7004,7 @@
     const p = S.players.find((x) => x.slug === S.moi);
     if (!p) return;
     const t = cardTiers(p, w);
-    S.cardEdit = { slug: p.slug, O: [...t.O], M: [...t.M] };
+    S.cardEdit = { slug: p.slug, O: [...t.O], M: [...t.M], T: [...(t.T || [])] };
     S.pickQ = ''; S.pickRow = 'O';
     render();
     later(() => { const el = document.querySelector('.pool-card.editing'); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
@@ -7021,7 +7021,7 @@
     const head = h('div', { class: 'pc-head' },
       h('div', { class: 'pc-who' }, h('span', { class: 'pc-ico' }, R.ico), h('div', null, h('div', { class: 'pname' }, p.pseudo, mine ? h('span', { class: 'me-tag' }, "C'est toi") : null), h('div', { class: 'muted small' }, p.role || R.label))),
       raw && raw.par === 'joueur' ? h('span', { class: 'tag' }, `✍️ faite par le joueur${raw.maj ? ' · ' + new Date(raw.maj).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : ''}`) : null,
-      !editing && canEdit(p.slug) ? h('button', { class: 'btn-ghost', onclick: () => { S.cardEdit = { slug: p.slug, O: [...(tiers ? tiers.O : [])], M: [...(tiers ? tiers.M : [])] }; S.pickQ = ''; S.pickRow = 'O'; render(); } }, mine && !S.coachState.coach ? '✏️ Modifier ma tierlist' : '✏️ Modifier') : null);
+      !editing && canEdit(p.slug) ? h('button', { class: 'btn-ghost', onclick: () => { S.cardEdit = { slug: p.slug, O: [...(tiers ? tiers.O : [])], M: [...(tiers ? tiers.M : [])], T: [...(tiers && tiers.T ? tiers.T : [])] }; S.pickQ = ''; S.pickRow = 'O'; render(); } }, mine && !S.coachState.coach ? '✏️ Modifier ma tierlist' : '✏️ Modifier') : null);
     if (editing) return h('article', { class: 'card pool-card editing' }, head, cardEditor(p, w));
 
     const ch = w && prev ? FC.poolChanges((prev.joueurs || {})[p.slug], raw) : null;
@@ -7030,12 +7030,12 @@
 
     const A = d ? FC.poolAnalysis(p, d.matches, d.champs, tiers, rng.start, rng.end) : null;
     const chipOf = (id, k) => {
-      const c = A ? (k === 'O' ? A.oblig : A.maitrise).find((x) => x.id === id) : null;
+      const c = A ? (k === 'O' ? A.oblig : k === 'M' ? A.maitrise : [...A.travail, ...A.oblig, ...A.maitrise]).find((x) => x.id === id) : null;
       return h('span', { class: 'pchip' + (c && c.verdict ? ' v-' + c.verdict.kind : '') }, champIcon(id, 34),
         h('span', null, h('b', null, FC.champName(id)), h('span', { class: 'muted small' }, c && c.games ? ` ${c.games} g · ${fr(c.wr)} %` : ' pas joué')));
     };
     const tierRows = h('div', { class: 'tiers' }, TIERS.map((k) => h('div', { class: 'tier-row r' + k }, tierLabel(k),
-      h('div', { class: 'tier-chips' }, (tiers[k] || []).length ? tiers[k].map((id) => chipOf(id, k)) : h('span', { class: 'muted small' }, k === 'O' ? 'aucun champion obligatoire' : 'aucun champion maîtrisé')))));
+      h('div', { class: 'tier-chips' }, (tiers[k] || []).length ? tiers[k].map((id) => chipOf(id, k)) : h('span', { class: 'muted small' }, k === 'O' ? 'aucun champion obligatoire' : k === 'M' ? 'aucun champion maîtrisé' : 'aucun champion à travailler')))));
     const o = d && obj ? FC.objectif({ ...p, pool_ids: tiers.O }, d.matches, obj) : null;
     const sup = p.role_id === 'support';
     const group = (title, list, small, empty) => h('div', { class: 'cgroup' }, h('h3', null, title), list.length ? h('div', { class: 'cgrid' + (small ? ' small' : '') }, list.map((c) => champCard(c, small))) : h('p', { class: 'muted small' }, empty));
@@ -7048,14 +7048,15 @@
     const body = A ? [
       o ? progress(o, true) : null,
       toggle,
-      ...(!open ? [] : [catBar({ oblig: A.tot.oblig.games, maitrise: A.tot.maitrise.games, autres: A.tot.autres.games }),
+      ...(!open ? [] : [catBar({ oblig: A.tot.oblig.games, maitrise: A.tot.maitrise.games, travail: A.tot.travail.games, autres: A.tot.autres.games }),
       alertPills(A.notes),
       group('🎯 Obligatoires', A.oblig, false, 'Aucun champion obligatoire.'),
       group('⭐ Maîtrisés', A.maitrise, false, 'Aucun champion maîtrisé.'),
+      A.travail.length ? group('🛠️ À travailler', A.travail, false, '') : null,
       A.autres.length ? group('❔ Autres champions joués', A.autres, true, '') : null,
       h('details', { class: 'more' }, h('summary', null, 'Tableau détaillé'), h('div', { class: 'scroll' }, h('table', { class: 't' },
         h('thead', null, h('tr', null, h('th', { class: 'l' }, 'Champion'), ['Ligne', 'Games', 'V – D', 'Win rate %', 'KDA', sup ? 'Vision' : 'CS/min', 'Golds @15', 'Ce split'].map((x) => h('th', null, x)))),
-        h('tbody', null, [...A.oblig.map((c) => ['🎯', c]), ...A.maitrise.map((c) => ['⭐', c]), ...A.autres.map((c) => ['❔', c])].map(([k, c]) => h('tr', null,
+        h('tbody', null, [...A.oblig.map((c) => ['🎯', c]), ...A.maitrise.map((c) => ['⭐', c]), ...A.travail.map((c) => ['🛠️', c]), ...A.autres.map((c) => ['❔', c])].map(([k, c]) => h('tr', null,
           h('td', { class: 'l' }, h('span', { class: 'tcell' }, champIcon(c.id, 22), c.champion)), h('td', null, k), h('td', null, c.games), h('td', null, c.games ? `${c.wins} – ${c.losses}` : '—'),
           h('td', { class: c.wr == null ? '' : c.wr >= 50 ? 'good' : 'bad' }, fr(c.wr, 1)), h('td', null, fr(c.kda, 2)), h('td', null, sup ? fr(c.vision, 1) : fr(c.cs_min, 1)),
           h('td', { class: c.gold15 > 0 ? 'good' : c.gold15 < 0 ? 'bad' : '' }, sg(c.gold15)), h('td', null, c.split ? `${c.split.games} g · ${fr(c.split.wr)} %` : '—')))))))])
@@ -7075,11 +7076,11 @@
     const changed = () => { drawRows(); drawGrid(); if (onChange && onChange !== render) onChange(); };
     function drawRows() {
       rowsBox.replaceChildren(...TIERS.map((k) => h('div', { class: 'tier-row r' + k }, tierLabel(k), h('div', { class: 'tier-chips' },
-        t[k].length ? t[k].map((id) => {
-          const other = k === 'O' ? 'M' : 'O';
-          const both = t[other].includes(id);
+        (t[k] = t[k] || []).length ? t[k].map((id) => {
+          const other = k === 'O' ? 'M' : k === 'M' ? 'O' : null;
+          const both = other && t[other].includes(id);
           return h('span', { class: 'pchip edit' }, champIcon(id, 30), h('b', null, FC.champName(id)),
-            h('button', { class: 'ibtn' + (both ? ' on' : ''), title: both ? `Retirer de ${TI[other].label}` : `Ajouter aussi en ${TI[other].label}`, onclick: () => { if (both) t[other] = t[other].filter((x) => x !== id); else t[other].push(id); changed(); } }, TI[other].ico),
+            other ? h('button', { class: 'ibtn' + (both ? ' on' : ''), title: both ? `Retirer de ${TI[other].label}` : `Ajouter aussi en ${TI[other].label}`, onclick: () => { if (both) t[other] = t[other].filter((x) => x !== id); else t[other].push(id); changed(); } }, TI[other].ico) : null,
             h('button', { class: 'ibtn', title: 'Retirer', onclick: () => { t[k] = t[k].filter((x) => x !== id); changed(); } }, '✕'));
         }) : h('span', { class: 'muted small' }, k === 'O' ? 'vide : clique sur des portraits ci-dessous' : 'vide'))))); 
     }
@@ -7088,10 +7089,10 @@
       const row = S.pickRow || 'O';
       const shown = list.filter((c) => !q || norm(c.name).includes(q) || norm(c.id).includes(q));
       grid.replaceChildren(...(shown.length ? shown.map((c) => {
-        const inO = t.O.includes(c.id), inM = t.M.includes(c.id);
-        return h('button', { class: 'pk' + (inO ? ' inO' : '') + (inM ? ' inM' : '') + ((row === 'O' ? inO : inM) ? ' sel' : ''), title: c.name,
-          onclick: () => { const arr = t[row]; if (arr.includes(c.id)) t[row] = arr.filter((x) => x !== c.id); else arr.push(c.id); changed(); } },
-          champIcon(c.id, 48), h('span', { class: 'pk-n' }, c.name), inO || inM ? h('span', { class: 'pk-b' }, (inO ? '🎯' : '') + (inM ? '⭐' : '')) : null);
+        const inO = t.O.includes(c.id), inM = t.M.includes(c.id), inT = (t.T || []).includes(c.id);
+        return h('button', { class: 'pk' + (inO ? ' inO' : '') + (inM ? ' inM' : '') + (inT ? ' inT' : '') + ((row === 'O' ? inO : row === 'M' ? inM : inT) ? ' sel' : ''), title: c.name,
+          onclick: () => { const arr = (t[row] = t[row] || []); if (arr.includes(c.id)) t[row] = arr.filter((x) => x !== c.id); else { arr.push(c.id); if (row === 'T') { t.O = t.O.filter((x) => x !== c.id); t.M = t.M.filter((x) => x !== c.id); } else if (t.T) t.T = t.T.filter((x) => x !== c.id); } changed(); } },
+          champIcon(c.id, 48), h('span', { class: 'pk-n' }, c.name), inO || inM || inT ? h('span', { class: 'pk-b' }, (inO ? '🎯' : '') + (inM ? '⭐' : '') + (inT ? '🛠️' : '')) : null);
       }) : [h('p', { class: 'muted small' }, list.length ? 'Aucun champion trouvé.' : 'Chargement des champions…')]));
     }
     const modeBtn = (k, label) => h('button', { class: 'pk-mode m' + k, 'aria-pressed': String((S.pickRow || 'O') === k), onclick: (ev) => {
@@ -7103,8 +7104,8 @@
     search.addEventListener('input', () => { S.pickQ = search.value; drawGrid(); });
     drawRows(); drawGrid();
     return h('div', { class: 'tier-editor' }, rowsBox,
-      h('div', { class: 'pk-bar' }, h('span', { class: 'muted small' }, 'Je clique pour ajouter en :'), modeBtn('O', '🎯 Obligatoires'), modeBtn('M', '⭐ Maîtrisés'), search),
-      h('p', { class: 'muted small' }, 'Un clic ajoute le champion dans la ligne choisie, un 2e clic l’enlève. Un champion peut être dans les deux lignes.'),
+      h('div', { class: 'pk-bar' }, h('span', { class: 'muted small' }, 'Je clique pour ajouter en :'), modeBtn('O', '🎯 Obligatoires'), modeBtn('M', '⭐ Maîtrisés'), modeBtn('T', '🛠️ À travailler'), search),
+      h('p', { class: 'muted small' }, 'Un clic ajoute le champion dans la ligne choisie, un 2e clic l’enlève. Un champion peut être à la fois 🎯 et ⭐ ; un champion 🛠️ à travailler est à part (il ne compte pas pour l’objectif).'),
       grid);
   }
 
@@ -7118,7 +7119,7 @@
         h('button', { class: 'btn-fire small-btn', disabled: e.busy ? true : null, onclick: async () => {
           e.busy = true; e.err = ''; render();
           actLog('pool', S.moi === p.slug ? 'Tierlist POOL modifiée' : `Tierlist POOL de ${vocalName(p.slug)} modifiée`);
-          const r = await window.fire.coach.savePools({ type: 'joueur', slug: p.slug, debut, objectif: (w && w.objectif) || (S.cfgObj && S.cfgObj.games) || 20, tiers: { O: e.O, M: e.M }, par: S.coachState.coach && S.moi !== p.slug ? 'coach' : 'joueur' });
+          const r = await window.fire.coach.savePools({ type: 'joueur', slug: p.slug, debut, objectif: (w && w.objectif) || (S.cfgObj && S.cfgObj.games) || 20, tiers: { O: e.O, M: e.M, T: e.T || [] }, par: S.coachState.coach && S.moi !== p.slug ? 'coach' : 'joueur' });
           e.busy = false;
           if (r.ok) { S.pools = r.semaines; S.cardEdit = null; const nw = r.semaines.find((x) => x.debut === debut); if (nw) S.poolWeek = nw.id; S.flash = `Tierlist de ${p.pseudo} enregistrée ✓ Toute l'équipe la verra à sa prochaine ouverture.`; applyWeek(); }
           else e.err = r.error;
@@ -7134,7 +7135,7 @@
     const joueurs = {};
     for (const p of S.players.filter((x) => x.slug)) {
       const t = FC.normTiers(base && base.joueurs && base.joueurs[p.slug]);
-      joueurs[p.slug] = t ? { O: [...t.O], M: [...t.M], par: (base.joueurs[p.slug] || {}).par, maj: (base.joueurs[p.slug] || {}).maj } : { O: [...((p._cfg && p._cfg.pool_ids) || p.pool_ids || [])], M: [...((p._cfg && p._cfg.maitrise_ids) || [])] };
+      joueurs[p.slug] = t ? { O: [...t.O], M: [...t.M], T: [...(t.T || [])], par: (base.joueurs[p.slug] || {}).par, maj: (base.joueurs[p.slug] || {}).maj } : { O: [...((p._cfg && p._cfg.pool_ids) || p.pool_ids || [])], M: [...((p._cfg && p._cfg.maitrise_ids) || [])], T: [...((p._cfg && p._cfg.travail_ids) || [])] };
     }
     const debut = w ? w.debut : (base ? addDays(base.debut, 7) : todayYmd());
     S.poolEdit = { id: w ? w.id : null, debut, objectif: (w || base || {}).objectif || (S.cfgObj && S.cfgObj.games) || 20, note: w ? (w.note || '') : '', joueurs, err: '', busy: false };
@@ -7168,7 +7169,7 @@
     } }, e.busy ? 'Publication…' : "📣 Publier pour l'équipe");
     view.replaceChildren(
       h('header', { class: 'sec-hero pool-hero' }, h('div', { class: 'sec-ico' }, e.id ? '✏️' : '➕'), h('div', null, h('h1', { class: 'title' }, e.id ? 'Modifier la semaine' : 'Nouvelle semaine'),
-        h('p', { class: 'muted' }, "🎯 La ligne OBLIGATOIRE compte pour l'objectif. ⭐ MAÎTRISÉS : les champions sûrs du joueur. Un champion peut être dans les deux."))),
+        h('p', { class: 'muted' }, "🎯 La ligne OBLIGATOIRE compte pour l'objectif. ⭐ MAÎTRISÉS : les champions sûrs du joueur. 🛠️ À TRAVAILLER : ceux qu'il apprend. Un champion peut être 🎯 et ⭐ à la fois."))),
       h('div', { class: 'card composer' },
         h('div', { class: 'row' }, h('label', { class: 'fld-inline' }, 'Début ', debut), h('label', { class: 'fld-inline' }, 'Objectif ', obj, ' games obligatoires')),
         note),
@@ -7186,7 +7187,7 @@
       const t = w ? FC.normTiers((w.joueurs || {})[p.slug]) : null;
       const A = FC.poolAnalysis(p, d.matches, d.champs, t, rng.start, rng.end);
       const fmt = (c) => `${c.champion} ${c.games} games${c.games ? ' ' + fr(c.wr) + ' % WR, KDA ' + fr(c.kda, 2) : ''}`;
-      lines.push(`${p.role} ${p.pseudo} : obligatoires [${A.oblig.map(fmt).join(' ; ')}] ; maîtrisés [${A.maitrise.map(fmt).join(' ; ')}]` + (A.autres.length ? ` ; autres [${A.autres.map(fmt).join(' ; ')}]` : ''));
+      lines.push(`${p.role} ${p.pseudo} : obligatoires [${A.oblig.map(fmt).join(' ; ')}] ; maîtrisés [${A.maitrise.map(fmt).join(' ; ')}]` + (A.travail.length ? ` ; à travailler [${A.travail.map(fmt).join(' ; ')}]` : '') + (A.autres.length ? ` ; autres [${A.autres.map(fmt).join(' ; ')}]` : ''));
     }
     const d = ensureDraft();
     d.mode = 'fiche';
