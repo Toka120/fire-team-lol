@@ -1,0 +1,59 @@
+/* FIRE LoL sur téléphone : une colonne, menu en tiroir, barre d'onglets en bas. */
+html.mobile { --v2-pad: 12px; -webkit-text-size-adjust: 100%; }
+html.mobile body { overscroll-behavior-y: contain; }
+html.mobile.v2 .shell { display: block; min-height: 100vh; }
+html.mobile.v2 .v2-side { position: fixed; inset: 0 auto 0 0; width: min(300px, 84vw); height: 100vh; z-index: 1200; transform: translateX(-102%); transition: transform .22s ease; padding: calc(16px + env(safe-area-inset-top)) 14px calc(90px + env(safe-area-inset-bottom)); box-shadow: 8px 0 30px #0009; }
+html.mobile.nav-open .v2-side { transform: none; }
+html.mobile .mob-scrim { position: fixed; inset: 0; background: #0008; z-index: 1100; opacity: 0; pointer-events: none; transition: opacity .2s; }
+html.mobile.nav-open .mob-scrim { opacity: 1; pointer-events: auto; }
+html.mobile.v2 .topbar { padding: calc(6px + env(safe-area-inset-top)) 10px 6px; gap: 8px; flex-wrap: wrap; min-height: 0; }
+html.mobile .mob-menu { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line, #ffffff22); background: var(--panel, #161a22); color: inherit; font-size: 20px; flex: 0 0 auto; }
+html.mobile.v2 .topbar .statusbar { order: 9; flex-basis: 100%; font-size: 11px; }
+html.mobile .period { font-size: 0; } html.mobile .period select { font-size: 13px; max-width: 46vw; }
+html.mobile.v2 .view { padding: 12px 12px calc(88px + env(safe-area-inset-bottom)); gap: 16px; max-width: 100vw; overflow-x: hidden; }
+html.mobile #chat { display: none !important; }
+html.mobile .mob-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 850; display: flex; justify-content: space-around; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); background: var(--panel, #12151c); border-top: 1px solid var(--line, #ffffff1a); }
+html.mobile .mob-tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: 0; color: var(--muted, #9aa); font: 600 10.5px/1.2 inherit; padding: 4px 0; position: relative; }
+html.mobile .mob-tabs button .i { font-size: 20px; line-height: 24px; }
+html.mobile .mob-tabs button.on { color: var(--accent, #ffb44d); }
+html.mobile .mob-tabs button b { position: absolute; top: 0; left: 55%; min-width: 16px; height: 16px; border-radius: 8px; background: #ff4d5e; color: #fff; font-size: 10px; line-height: 16px; padding: 0 4px; }
+/* Mises en page en plusieurs colonnes → une seule colonne. */
+html.mobile .team-cards, html.mobile .hub-grid, html.mobile .rv-main, html.mobile .gp-body, html.mobile .meet-grid, html.mobile .rv-list, html.mobile .sc-sides, html.mobile .lv-teams, html.mobile .w-sides, html.mobile .w-ana, html.mobile .lp-wrap, html.mobile .dr-teams, html.mobile .clips-body, html.mobile .lens-body, html.mobile .vs-split, html.mobile .qz-levels, html.mobile .vc-rooms, html.mobile .gp-list { grid-template-columns: 1fr !important; }
+html.mobile .sec-hero { padding: 14px !important; gap: 12px; }
+html.mobile .sec-hero .title { font-size: 24px !important; line-height: 30px !important; }
+html.mobile .sec-hero .sec-ico { display: none; }
+html.mobile .card { max-width: 100%; }
+html.mobile table { display: block; overflow-x: auto; }
+html.mobile .row { flex-wrap: wrap; }
+html.mobile input, html.mobile select, html.mobile textarea { font-size: 16px; } /* iOS : pas de zoom automatique */
+html.mobile .pc-grid { overflow-x: auto; display: grid; }
+html.mobile .live-sec .sp-feed { max-height: 260px; }
+html.mobile .mob-pc { font-size: 12px; opacity: .75; margin: 4px 0 0; }
+/* Discussion : salons en bandeau défilant au-dessus des messages. */
+html.mobile .cp { display: flex !important; flex-direction: column; grid-template-columns: none !important; height: auto !important; min-height: calc(100vh - 170px); }
+html.mobile .cp-side { flex-direction: row !important; overflow-x: auto; overflow-y: hidden; border-right: 0 !important; border-bottom: 1px solid var(--line); padding: 6px !important; gap: 4px !important; flex: 0 0 auto; }
+html.mobile .cp-side .cp-gt { display: none; }
+html.mobile .cp-cv { flex: 0 0 auto; white-space: nowrap; }
+html.mobile .cp-cv .chat-cv-l { overflow: visible; }
+html.mobile .cp-main { min-height: 60vh; }
+/* Paramètres et fenêtres : plein écran, menu en bandeau. */
+html.mobile .vs-modal { padding: 0 !important; }
+html.mobile .vs-modal .vs-drawer { width: 100% !important; height: 100% !important; border-radius: 0 !important; }
+html.mobile .vs-split { display: flex !important; flex-direction: column; }
+html.mobile .vs-nav { flex-direction: row !important; overflow-x: auto; border-right: 0 !important; border-bottom: 1px solid var(--line); padding: 8px !important; flex: 0 0 auto; }
+html.mobile .vs-nav-t { display: none; }
+html.mobile .vs-nav-b { flex: 0 0 auto; white-space: nowrap; }
+html.mobile .set-wrap { grid-template-columns: 1fr !important; }
+html.mobile .set-nav { position: static !important; flex-direction: row !important; overflow-x: auto; }
+html.mobile .gp-daily { flex-direction: column; align-items: stretch; }
+html.mobile .plan-tabs { flex-wrap: nowrap; overflow-x: auto; }
+html.mobile .plan-tab { flex: 0 0 auto; }
+html.mobile .set-ovl { flex-direction: column; padding-top: env(safe-area-inset-top); }
+html.mobile .set-left { flex: 0 0 auto; justify-content: flex-start; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; overflow-y: hidden; }
+html.mobile .set-side { width: auto; flex-direction: row; align-items: center; padding: 8px 56px 8px 8px; gap: 4px; }
+html.mobile .set-side .set-gt, html.mobile .set-side .set-sep, html.mobile .set-side .set-search { display: none; }
+html.mobile .set-ovl .set-tab { flex: 0 0 auto; white-space: nowrap; font-size: 14px; }
+html.mobile .set-content { flex: 1 1 auto; }
+html.mobile .set-page { padding: 18px 14px calc(40px + env(safe-area-inset-bottom)); max-width: 100%; }
+html.mobile .set-subs { overflow-x: auto; gap: 16px; }
+html.mobile .set-ovl .set-close, html.mobile .set-ovl [class*=close] { position: fixed; top: calc(6px + env(safe-area-inset-top)); right: 8px; z-index: 5; }

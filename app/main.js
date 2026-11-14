@@ -646,8 +646,8 @@ setInterval(async () => {
 // Toutes les 10 s de jeu : le tableau (KDA, sbires, niveau, objets, mort) ; tous les événements (kills, objectifs, tours).
 // À la fin de la partie, tout est rangé dans userData/parties/<début>.json pour la rubrique « Revue de parties ».
 const partiesDir = () => path.join(app.getPath('userData'), 'parties');
-// Seules les parties qui comptent pour l'équipe : Solo/Duo (420), Flex (440) et Clash 5c5 (700). Pas d'ARAM ni de personnalisées.
-const REVUE_QUEUES = new Set([420, 440, 700]);
+// Seules les parties qui comptent pour l'équipe : Solo/Duo (420), Flex (440), 5c5 du week-end (710) et Clash (700). Pas d'ARAM ni de personnalisées.
+const REVUE_QUEUES = new Set([420, 440, 700, 710]);
 const revueOk = (q) => !!(q && !q.custom && REVUE_QUEUES.has(Number(q.id)));
 let REC = null;
 function recStep(raw, g) {
@@ -899,6 +899,8 @@ ipcMain.handle('revue:get', (e, id) => coach.revueGet(id));
 ipcMain.handle('revue:share', (e, g, who, shots) => coach.revueShare(g, who, shots));
 ipcMain.handle('revue:ia', (e, req, who) => coach.revueIa(req || {}, who));
 ipcMain.handle('scrims', () => coach.scrims());
+ipcMain.handle('stats:push', (e, payload, who) => coach.statsPush(payload || {}, who));
+ipcMain.handle('stats:get', () => coach.statsGet());
 ipcMain.handle('scrim:save', (e, op, who) => coach.scrimSave(op || {}, who));
 ipcMain.handle('revue:note', (e, id, n, del) => coach.revueNote(id, n, !!del));
 ipcMain.handle('remp:open', (e, box) => coach.rempOpen(box));

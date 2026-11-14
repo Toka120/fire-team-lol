@@ -1049,6 +1049,7 @@
     return { x: r.left * z, y: r.top * z, width: r.width * z, height: r.height * z };
   }
   function webOpen(url) {
+    if (window.FIRE_MOBILE && window.fire.openUrl) { if (/^https?:\/\//i.test(String(url || ''))) window.fire.openUrl(url); return; }
     if (!window.fire.web || !/^https?:\/\//i.test(String(url || ''))) return;
     if (!WEB.open) WEB.from = S.section === 'web' ? WEB.from : S.section;
     WEB.open = true; WEB.url = url; WEB.title = ''; WEB.error = ''; WEB.loading = true;
@@ -1389,7 +1390,7 @@
 
   // ----- Analyse IA automatique : chaque game est partagée toute seule, et le PC d'un coach l'analyse tout seul -----
   // Revue : seulement Solo/Duo, Flex et Clash (5c5). Pas d'ARAM, de normales ni de personnalisées.
-  const RV_QUEUES = new Set([420, 440, 700]);
+  const RV_QUEUES = new Set([420, 440, 700, 710]);
   const rvQueueOk = (g) => !!(g && g.queue && !g.queue.custom && RV_QUEUES.has(Number(g.queue.id)));
   const rvAutoOk = (g) => rvQueueOk(g) && (g.duration || 0) >= 600;
   const RVA = { busy: false, iaBusy: false };
@@ -1634,6 +1635,7 @@
   const rvTitle = (g) => { const me = (g.players || []).find((p) => p.n === g.me) || {}; return { me, when: new Date(g.start).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) }; };
   function renderRevue() {
     const view = $('view');
+    if (MOBILE) RV.tab = 'team';
     if (RV.g) { renderRevueGame(view); return; }
     if (RV.list == null) { RV.list = []; rvLoadList(); }
     if (RV.team == null && !SUB()) { RV.team = []; rvLoadTeam(); }
@@ -1651,7 +1653,7 @@
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎞️'), h('div', null, h('h1', { class: 'title' }, 'Revue de parties'),
         h('p', { class: 'muted' }, 'Chaque game Solo/Duo, Flex ou Clash que tu joues est enregistrée par FIRE. Revois-la : la carte avec les tours et les objectifs, le tableau à chaque instant, les kills, tes clips, et ajoute des dessins et des notes. Partage-la pour la revoir en équipe.'))),
       h('div', { class: 'row pt-modes' },
-        h('button', { class: 'plan-tab', 'aria-pressed': String(RV.tab !== 'team'), onclick: () => { RV.tab = 'mine'; rvLoadList(); renderRevue(); } }, `🎮 Mes parties (${(RV.list || []).length})`),
+        MOBILE ? null : h('button', { class: 'plan-tab', 'aria-pressed': String(RV.tab !== 'team'), onclick: () => { RV.tab = 'mine'; rvLoadList(); renderRevue(); } }, `🎮 Mes parties (${(RV.list || []).length})`),
         SUB() ? null : h('button', { class: 'plan-tab', 'aria-pressed': String(RV.tab === 'team'), onclick: () => { RV.tab = 'team'; rvLoadTeam(); renderRevue(); } }, `👥 Revues de l’équipe (${(RV.team || []).length})`)),
       RV.err ? h('p', { class: 'muted small' }, '⚠ ' + RV.err) : null,
       RV.tab !== 'team' ? mmCard() : null,
@@ -1876,6 +1878,17 @@
   // ===== Stream Twitch de Toks : la chaîne s'ouvre dans FIRE (avec le bloqueur de pubs), badge « EN DIRECT » dans le menu =====
   const TWITCH = { name: 'Toks42o', ch: 'toks42o', url: 'https://www.twitch.tv/toks42o', chat: 'https://www.twitch.tv/popout/toks42o/chat?popout=', live: false, uptime: '', was: null };
   function renderStream() {
+    if (window.FIRE_MOBILE) {
+      // Téléphone : lecteur Twitch officiel intégré dans la page (et son chat), ou l'app Twitch.
+      const host = location.hostname || 'localhost';
+      $('view').replaceChildren(
+        h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🟣'), h('div', null, h('h1', { class: 'title' }, 'Stream de ' + TWITCH.name),
+          h('p', { class: 'muted' }, TWITCH.live ? `🔴 En direct${TWITCH.uptime ? ' depuis ' + TWITCH.uptime : ''}` : 'Hors ligne pour l’instant : la notification arrive dès que le live commence.'))),
+        h('div', { class: 'card tw-mob' }, h('iframe', { class: 'tw-player', src: `https://player.twitch.tv/?channel=${TWITCH.ch}&parent=${host}&autoplay=true`, allowfullscreen: '', allow: 'autoplay; fullscreen' })),
+        h('div', { class: 'row tw-mob-b' }, h('button', { class: 'btn-fire small-btn', onclick: () => window.fire.openUrl(TWITCH.url) }, '📱 Ouvrir dans l’app Twitch'),
+          h('button', { class: 'btn-ghost', onclick: (e) => { const box = document.querySelector('.tw-chatbox'); if (box) { box.remove(); e.currentTarget.textContent = '💬 Afficher le chat'; return; } e.currentTarget.textContent = '💬 Masquer le chat'; document.querySelector('.tw-mob').after(h('div', { class: 'card tw-chatbox' }, h('iframe', { class: 'tw-chat', src: `https://www.twitch.tv/embed/${TWITCH.ch}/chat?parent=${host}&darkpopout` }))); } }, '💬 Afficher le chat')));
+      return;
+    }
     const back = S.prevSection && S.prevSection !== 'stream' && S.prevSection !== 'web' ? S.prevSection : (WEB.streamBack || 'stats');
     webOpen(TWITCH.url);
     WEB.from = 'stream'; WEB.streamBack = back;
@@ -2691,6 +2704,7 @@
     if (S.refreshing) return;
     const list = S.players.filter((p) => p.slug);
     if (!list.length) return;
+    if (window.FIRE_MOBILE) return refreshFromShared(list);
     S.refreshing = true;
     $('refresh').disabled = true;
     list.forEach((p) => { S.status[p.slug] = { state: 'wait' }; });
@@ -2734,6 +2748,7 @@
     const busy = st.filter((x) => x.state === 'loading' || x.state === 'wait').length;
     const errs = list.filter((p) => (S.status[p.slug] || {}).state === 'error');
     let t;
+    if (window.FIRE_MOBILE) { $('status').textContent = busy ? 'Chargement des stats de l’équipe…' : S.sharedAt ? `Stats partagées par les PC de l’équipe · ${hm(S.sharedAt)}${S.sharedBy ? ' (' + vocalName(S.sharedBy) + ')' : ''}` : 'Stats : en attente d’un PC de l’équipe'; return; }
     if (busy) t = `Mise à jour depuis dpm.lol… ${list.length - busy}/${list.length} joueurs`;
     else if (S.lastRefresh) t = `Stats à jour depuis dpm.lol à ${hm(S.lastRefresh)} · prochaine mise à jour automatique dans 10 min`;
     else t = 'Stats de la dernière session (mise à jour en cours)';
@@ -2866,7 +2881,7 @@
   }
   const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
   // Mode exact de la partie : file d'attente lue dans le client League (Solo/Duo, Flex, Normale, ARAM…), sinon le mode du jeu.
-  const QUEUES = { 420: 'Classée Solo/Duo', 440: 'Classée Flex', 400: 'Normale (draft)', 430: 'Normale (aveugle)', 480: 'Partie rapide', 490: 'Partie rapide', 450: 'ARAM', 2400: 'ARAM : Mayhem',
+  const QUEUES = { 420: 'Classée Solo/Duo', 440: 'Classée Flex', 710: '5c5 du week-end', 400: 'Normale (draft)', 430: 'Normale (aveugle)', 480: 'Partie rapide', 490: 'Partie rapide', 450: 'ARAM', 2400: 'ARAM : Mayhem',
     1700: 'Arena', 1710: 'Arena', 900: 'URF', 1900: 'URF', 1010: 'URF', 700: 'Clash', 720: 'Clash ARAM', 0: 'Partie personnalisée', 3100: 'Partie personnalisée', 1020: 'Un pour tous', 1300: 'Nexus Blitz', 1810: 'Swarm', 1820: 'Swarm', 1830: 'Swarm', 1840: 'Swarm',
     830: 'Contre l’IA', 840: 'Contre l’IA', 850: 'Contre l’IA', 870: 'Contre l’IA', 880: 'Contre l’IA', 890: 'Contre l’IA' };
   const GMODES = { CLASSIC: 'Faille (normale ou classée)', ARAM: 'ARAM', KIWI: 'ARAM : Mayhem', CHERRY: 'Arena', URF: 'URF', ARURF: 'ARURF', PRACTICETOOL: 'Outil d’entraînement', ONEFORALL: 'Un pour tous', NEXUSBLITZ: 'Nexus Blitz', ULTBOOK: 'Grimoire ultime', TUTORIAL: 'Tutoriel', STRAWBERRY: 'Swarm', SWIFTPLAY: 'Partie rapide' };
@@ -3050,7 +3065,7 @@
 
   // Repère les flex communes dans l'historique déjà lu, puis demande à dpm.lol le détail de celles qu'on n'a pas encore.
   async function loadTeam() {
-    if (S.teamState === 'loading') return;
+    if (S.teamState === 'loading' || window.FIRE_MOBILE) return;
     const roster = teamRoster();
     const cands = FT.candidates(roster, S.data).slice(0, 80);
     const reqs = cands.filter((g) => !S.teamGames[g.id]).map((g) => ({ id: g.id, puuid: g.who[0] }));
@@ -3067,6 +3082,35 @@
       S.teamErr = String(e);
     }
     if (S.section === 'stats' && S.view !== 'player' && !typing()) render();
+    statsShare(cands);
+  }
+  // Téléphone : les stats viennent de l'instantané partagé par les PC de l'équipe.
+  async function refreshFromShared(list) {
+    S.refreshing = true; $('refresh').disabled = true;
+    list.forEach((p) => { S.status[p.slug] = { state: 'loading' }; });
+    renderStatus(); if (S.section === 'stats') render();
+    const r = window.fire.stats ? await window.fire.stats.get().catch((e) => ({ ok: false, error: String(e) })) : { ok: false, error: 'indisponible' };
+    if (r && r.ok && r.data) {
+      for (const p of list) {
+        const d = r.data[p.slug];
+        if (d) { S.data[p.slug] = d; S.status[p.slug] = { state: 'ok', at: (r.status && r.status[p.slug] && r.status[p.slug].at) || d.at || r.at }; }
+        else S.status[p.slug] = S.data[p.slug] ? { state: 'ok', at: S.data[p.slug].at } : { state: 'error', error: 'pas encore de stats partagées pour ce joueur' };
+      }
+      if (r.team) S.teamGames = r.team;
+      S.teamState = 'ok'; S.teamAt = r.at;
+      S.sharedAt = r.at; S.sharedBy = r.by || '';
+      save('fire.data', S.data);
+    } else list.forEach((p) => { S.status[p.slug] = S.data[p.slug] ? { state: 'ok', at: S.data[p.slug].at } : { state: 'error', error: (r && r.error) || 'stats indisponibles' }; });
+    S.refreshing = false; S.lastRefresh = Date.now(); $('refresh').disabled = false;
+    renderStatus(); if (S.section === 'stats' && !typing()) render();
+  }
+  // Version téléphone : les PC de l'équipe partagent leurs stats (chiffrées), le téléphone ne peut pas lire dpm.lol lui-même.
+  async function statsShare(cands) {
+    if (window.FIRE_MOBILE || SUB() || !window.fire.stats || !Object.keys(S.data || {}).length) return;
+    const ids = new Set((cands || []).map((g) => g.id));
+    const team = {}; for (const [k, v] of Object.entries(S.teamGames || {})) if (ids.has(k) || ids.has(Number(k))) team[k] = v;
+    const status = {}; for (const [k, v] of Object.entries(S.status || {})) if (v && v.state === 'ok') status[k] = { state: 'ok', at: v.at };
+    window.fire.stats.push({ data: S.data, team, status }, vocalMe()).catch(() => {});
   }
 
   // q : 440 = Flex, 710 = 5c5 du week-end (classé 5v5 en équipe). Jamais les deux ensemble.
@@ -3673,6 +3717,7 @@
 
   function go(sec) {
     if (SUB() && !SUB_OK.has(sec)) sec = 'stats';
+    if (MOBILE && MOBILE_OFF.has(sec)) sec = 'stats';
     if (sec !== S.section && S.section !== 'settings') S.prevSection = S.section;
     if (sec !== 'settings') setClose(true);
     if (sec !== 'web' && WEB.open) webClose(true);
@@ -4978,6 +5023,7 @@
   }
   // Onglets de la rubrique Draft : la draft en direct et les puzzles « Contrez la composition adverse ».
   function renderDraft() {
+    if (MOBILE && (!S.drTab || S.drTab === 'live')) S.drTab = 'tier';
     if (S.drTab === 'puzzle') return renderPuzzles();
     if (S.drTab === 'tier') return renderTierList();
     if (S.drTab === 'matchup') return renderMatchups();
@@ -4987,10 +5033,10 @@
     if (hero) hero.after(draftTabs());
   }
   function draftTabs() {
-    const t = S.drTab || 'live';
+    const t = S.drTab || (MOBILE ? 'tier' : 'live');
     const tab = (k, label, extra) => h('button', { class: 'plan-tab', 'aria-pressed': String(t === k), onclick: () => { S.drTab = k; if (k === 'live') DR.sig = null; renderDraft(); } }, label, extra || null);
     return h('div', { class: 'row plan-tabs' },
-      tab('live', '⚡ Draft en direct'),
+      MOBILE ? null : tab('live', '⚡ Draft en direct'),
       tab('tier', '📊 Tier list'),
       tab('matchup', '⚔️ Matchups'),
       tab('otp', '🎖️ One-tricks', newsFresh('draft').includes('f:otp') ? h('span', { class: 'plan-tab-n' }, 'new') : null),
@@ -5070,7 +5116,7 @@
           h('button', { class: 'mu-link', onclick: () => window.fire.lcu.stats(ll) }, h('b', null, '📊 Stats et runes du matchup'), h('small', { class: 'muted' }, 'LoLalytics · taux de victoire, runes et objets contre ' + B))),
         h('p', { class: 'muted small' }, 'Les vidéos s’ouvrent dans FIRE, gratuitement. Rien n’est téléchargé.'));
     }
-    view.replaceChildren(hero, draftTabs(), pick, res);
+    view.replaceChildren(...[hero, draftTabs(), pick, res].filter(Boolean));
   }
 
 
@@ -5157,7 +5203,7 @@
         h('p', { class: 'muted small' }, 'Clique sur un joueur pour ouvrir son profil op.gg dans ton navigateur : ses dernières parties, ses runes et ses objets. ',
           D && D.maj ? `Données : LoLalytics (Diamant IV et plus, au moins 50 parties et plus de 50 % de victoires sur 90 jours), relevées le ${dateFr(D.maj)}.` : ''));
     } else res = h('p', { class: 'muted ot-hint' }, '👆 Choisis un champion pour voir ses one-tricks.');
-    view.replaceChildren(hero, draftTabs(), res && OT.champ ? res : pick, res && OT.champ ? pick : res);
+    view.replaceChildren(...[hero, draftTabs(), res && OT.champ ? res : pick, res && OT.champ ? pick : res].filter(Boolean));
   }
 
   // ----- Tier list méta : Corée et Europe, par lane et par elo (LoLalytics, relevé chaque jour : tools/tierlist.py) -----
@@ -5225,7 +5271,7 @@
     const pt = (D && D.patches) || {};
     const ptTxt = pt.kr && pt.euw && pt.kr !== pt.euw ? `patch ${pt.kr} en Corée, ${pt.euw} en Europe` : `patch ${(pt[P.region]) || (D && D.patch) || '?'}`;
     const foot = D && D.maj ? h('p', { class: 'muted small' }, `Données : ${D.source || 'LoLalytics'} · ${ptTxt} · relevées le ${dateFr(D.maj)}, mises à jour chaque jour.`) : null;
-    view.replaceChildren(hero, draftTabs(), filters, trend, body, foot);
+    view.replaceChildren(...[hero, draftTabs(), filters, trend, body, foot].filter(Boolean));
   }
 
   // ----- Puzzles de draft : la compo adverse est connue, 3 alliés aussi ; choisis le meilleur duo pour les 2 rôles restants. -----
@@ -5513,6 +5559,7 @@
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
       ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
+    if (MOBILE) { const keep = items.filter(([id]) => !MOBILE_OFF.has(id)); items.length = 0; items.push(...keep); }
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
     if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), items.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }
     $('nav').replaceChildren(...items.map(([id, ico, label, badge, cls]) => b(id, ico + ' ' + label, badge, cls)));
@@ -8220,6 +8267,9 @@
   // restent chiffrés et illisibles. Les titulaires leur envoient de PC à PC un petit paquet chiffré pour eux :
   // les séances du planning d'équipe (sans les dispos des coachs ni les réponses de chacun).
   const SUB = () => !!(S.coachState && S.coachState.remplacant);
+  // Version téléphone : pas ce qui lit le jeu, le client LoL ou l'écran du PC.
+  const MOBILE = !!window.FIRE_MOBILE;
+  const MOBILE_OFF = new Set(['train', 'clips', 'parties', 'reunion', 'lolpatch', 'web']);
   const SUB_OK = new Set(['stats', 'planning', 'jeux', 'puzzle', 'stream', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);
   const roomOk = (r) => !SUB() || (r && r.id !== 'coaching' && !r.staff);
   const subSlugs = () => S.players.filter((p) => p.slug && isSub(p)).map((p) => p.slug);

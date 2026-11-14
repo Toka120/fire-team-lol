@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.130",
+   "date": "2026-11-14",
+   "titre": "FIRE sur téléphone (iPhone et Android)",
+   "items": [
+    [
+     "new",
+     "FIRE LoL existe maintenant sur téléphone : ouvre toka120.github.io/fire-team-lol/m/ puis « Sur l’écran d’accueil » (iPhone, Safari) ou « Installer l’application » (Android, Chrome). Même code d’équipe, même équipe : stats, POOL, planning, discussion, revues et analyses IA, scrims, puzzle du jour, parcours, guides, parole du coach, Détente, stream, vocal. Elle se met à jour toute seule."
+    ],
+    [
+     "new",
+     "Sur téléphone, un menu en bas (Stats, Planning, Discussion, Revues) et le reste dans « Plus »."
+    ],
+    [
+     "info",
+     "Le téléphone ne peut pas lire dpm.lol : ce sont les PC de l’équipe (avec cette version) qui partagent les stats, chiffrées avec le code d’équipe, au plus une fois toutes les 45 min. Ce qui lit le jeu ou le client LoL (games en direct de ton PC, enregistrement, clips, spectateur, Draft en direct) reste sur PC."
+    ],
+    [
+     "fix",
+     "Revue de parties : les games du « 5c5 du week-end » sont bien gardées, comme Solo/Duo, Flex et Clash."
+    ]
+   ]
+  },
+  {
    "v": "1.10.129",
    "date": "2026-11-14",
    "titre": "Le stream de Toks dans FIRE",

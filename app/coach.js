@@ -502,17 +502,18 @@ function saveCache(id, box) {
 }
 function loadCache(id) { try { return JSON.parse(fs.readFileSync(cachePath(id), 'utf8')); } catch (e) { return null; } }
 
-async function readPublic(p, repo, token) {
+async function readPublic(p, repo, token, ref) {
   // API GitHub (toujours à jour), puis copie « raw » si la limite de l'API est atteinte.
+  ref = ref || 'main';
   try {
     const headers = { Accept: 'application/vnd.github.raw+json', 'User-Agent': 'FIRE-LoL' };
     if (token) headers.Authorization = 'Bearer ' + token;
-    const r = await http(apiOf(repo) + p + '?ref=main', { headers });
+    const r = await http(apiOf(repo) + p + '?ref=' + ref, { headers });
     if (r.status === 404 && !token) return null;
     if (r.ok) return JSON.parse(await r.text());
     if (r.status === 404) return null;
   } catch (e) { /* on tente la copie raw */ }
-  const r = await http('https://raw.githubusercontent.com/' + (repo || REPO) + '/main/' + p + '?t=' + Date.now());
+  const r = await http('https://raw.githubusercontent.com/' + (repo || REPO) + '/' + ref + '/' + p + '?t=' + Date.now());
   if (r.status === 404) return null;
   if (!r.ok) throw new Error('fiches du coach injoignables (' + r.status + ')');
   return JSON.parse(await r.text());
@@ -1271,6 +1272,66 @@ async function scrimSave(op, who) {
     return { ok: true, list: d.list };
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
+// ---------- Stats de l'équipe partagées (pour la version téléphone, qui ne peut pas lire dpm.lol) ----------
+// Les PC de l'équipe publient un instantané compressé et chiffré sur la branche « stats » du dépôt de données.
+// Un seul commit sans historique (remplacé à chaque fois) : le dépôt ne grossit pas.
+const zlib = require('zlib');
+function sealGz(obj, id) {
+  const key = teamKey();
+  if (!key) throw new Error("code d'équipe manquant");
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv('aes-256-gcm', key, iv);
+  c.setAAD(Buffer.from(id));
+  const data = Buffer.concat([c.update(zlib.gzipSync(Buffer.from(JSON.stringify(obj), 'utf8'))), c.final()]);
+  return { v: 2, gz: 1, id, iv: iv.toString('base64'), tag: c.getAuthTag().toString('base64'), data: data.toString('base64') };
+}
+function openGz(box) {
+  const key = teamKey();
+  if (!key) throw new Error("code d'équipe manquant");
+  const d = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(box.iv, 'base64'));
+  d.setAAD(Buffer.from(box.id));
+  d.setAuthTag(Buffer.from(box.tag, 'base64'));
+  const raw = Buffer.concat([d.update(Buffer.from(box.data, 'base64')), d.final()]);
+  return JSON.parse((box.gz ? zlib.gunzipSync(raw) : raw).toString('utf8'));
+}
+const gitApi = (repo) => 'https://api.github.com/repos/' + repo + '/git/';
+async function statsAge() {
+  const dr = getConfig().data_repo; const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return null;
+  const r = await http(gitApi(dr) + 'ref/heads/stats', { headers: ghHeaders(tok) }, 15000);
+  if (r.status === 404) return Infinity;
+  if (!r.ok) return null;
+  const c = await http(gitApi(dr) + 'commits/' + (await r.json()).object.sha, { headers: ghHeaders(tok) }, 15000);
+  if (!c.ok) return null;
+  return Date.now() - new Date((await c.json()).committer.date).getTime();
+}
+async function statsPush(payload, who, minAgeMs) {
+  if (!teamKey() || coachState().remplacant) return { ok: false, error: 'réservé à l’équipe principale' };
+  const dr = getConfig().data_repo; const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, error: 'jeton d’équipe absent' };
+  try {
+    const age = await statsAge();
+    if (age != null && age < (Number(minAgeMs) || 45 * 60000)) return { ok: true, skipped: true };
+    const box = sealGz({ ...payload, at: Date.now(), by: String(who || '').slice(0, 80) }, 'stats');
+    const H = { ...ghHeaders(tok), 'content-type': 'application/json' };
+    const post = async (what, body) => { const r = await http(gitApi(dr) + what, { method: 'POST', headers: H, body: JSON.stringify(body) }, 60000); if (!r.ok) throw new Error('GitHub a refusé (' + what + ' ' + r.status + ')'); return r.json(); };
+    const blob = await post('blobs', { content: Buffer.from(JSON.stringify(box), 'utf8').toString('base64'), encoding: 'base64' });
+    const tree = await post('trees', { tree: [{ path: 'stats.json', mode: '100644', type: 'blob', sha: blob.sha }] });
+    const commit = await post('commits', { message: 'Stats de l’équipe (instantané)', tree: tree.sha, parents: [] });
+    const up = await http(gitApi(dr) + 'refs/heads/stats', { method: 'PATCH', headers: H, body: JSON.stringify({ sha: commit.sha, force: true }) }, 20000);
+    if (!up.ok) await post('refs', { ref: 'refs/heads/stats', sha: commit.sha });
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+async function statsGet() {
+  const dr = getConfig().data_repo; const tok = dr ? await teamToken() : null;
+  if (!dr || !teamKey()) return { ok: false, error: "code d'équipe manquant" };
+  try {
+    const box = await readPublic('stats.json', dr, tok, 'stats');
+    if (!box) return { ok: false, error: 'aucune stat partagée pour l’instant : un PC de l’équipe doit ouvrir FIRE' };
+    return { ok: true, ...openGz(box) };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
 function mergeNotes(a, b) { const m = new Map(); for (const n of a.concat(b)) if (n && n.id) m.set(n.id, n); return [...m.values()].sort((x, y) => x.t - y.t).slice(-300); }
 async function revueNote(id, note, del) {
   id = revId(id); if (!id) return { ok: false, error: 'partie invalide' };
@@ -1285,4 +1346,4 @@ async function revueNote(id, note, del) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 
-module.exports = { revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
