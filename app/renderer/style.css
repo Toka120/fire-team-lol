@@ -2542,3 +2542,19 @@ html.sub-mode #chat { display: none !important; }
 .mm-card .row { gap: 10px; align-items: center; }
 .mm-card input[type=range] { flex: 1; }
 .rv-nopos { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: #ffc24b1a; border: 1px solid #ffc24b55; }
+/* Revue : vidéo de la partie + combats */
+.rv-vcard { padding: 10px; margin-bottom: 14px; }
+.rv-video { width: 100%; max-height: 62vh; border-radius: 10px; background: #000; display: block; }
+.rv-vnote { display: block; margin-top: 6px; }
+.rv-fights { margin-top: 12px; background: #0005; border-radius: 10px; padding: 8px; }
+.rv-fh { justify-content: space-between; margin-bottom: 6px; }
+.rv-fgl { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow: auto; }
+.rv-fg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 7px; border-left: 3px solid #ffffff33; background: #ffffff06; }
+.rv-fg.won { border-left-color: #3ddc84; } .rv-fg.lost { border-left-color: #ff4d5e; }
+.rv-fg.now { box-shadow: inset 0 0 0 1px var(--accent, #ff6b3d); }
+.rv-fgb { flex: 1; display: flex; align-items: center; gap: 8px; background: none; border: 0; color: inherit; font: inherit; font-size: 12.5px; cursor: pointer; text-align: left; padding: 2px 0; }
+.rv-fme { padding: 1px 6px; border-radius: 6px; background: #ffd23d22; color: #ffd23d; font-size: 11px; }
+.rv-fq { font-size: 11.5px; } .rv-fq.done { color: #3ddc84; }
+.rv-ftags { width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 6px 2px 4px; }
+.rv-ftags .row { flex-wrap: wrap; gap: 5px; }
+.rv-ftags .btn-fire { align-self: flex-start; }

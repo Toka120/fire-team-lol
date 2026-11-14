@@ -648,6 +648,40 @@ ipcMain.handle('parties:save', (e, d) => {
     fs.mkdirSync(partiesDir(), { recursive: true }); fs.writeFileSync(path.join(partiesDir(), d.id + '.json'), txt); return true;
   } catch (err) { return false; }
 });
+// Vidéo de la partie entière (Revue de parties) : écrite au fur et à mesure dans Vidéos\FIRE Clips\Parties.
+const vodDir = () => path.join(clipDir(), 'Parties');
+const VOD = { fd: null, file: '' };
+ipcMain.handle('vod:open', () => {
+  try {
+    if (VOD.fd != null) { try { fs.closeSync(VOD.fd); } catch (e) { /* */ } VOD.fd = null; }
+    fs.mkdirSync(vodDir(), { recursive: true });
+    const d = new Date(); const z = (n) => String(n).padStart(2, '0');
+    VOD.file = path.join(vodDir(), `Partie ${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}h${z(d.getMinutes())}.mp4`);
+    VOD.fd = fs.openSync(VOD.file, 'w');
+    // On ne garde que les 12 dernières parties filmées (une partie de 30 min pèse environ 1 à 2 Go).
+    const old = fs.readdirSync(vodDir()).filter((f) => /\.mp4$/i.test(f)).map((f) => ({ f, t: fs.statSync(path.join(vodDir(), f)).mtimeMs })).sort((a, b) => b.t - a.t).slice(12);
+    for (const o of old) { try { fs.unlinkSync(path.join(vodDir(), o.f)); } catch (e) { /* */ } }
+    return { ok: true };
+  } catch (e) { VOD.fd = null; return { ok: false, error: String(e && e.message || e) }; }
+});
+ipcMain.on('vod:write', (e, pos, data) => { if (VOD.fd == null || !data) return; try { const b = Buffer.from(data); fs.writeSync(VOD.fd, b, 0, b.length, Number(pos) || 0); } catch (err) { /* disque plein */ } });
+ipcMain.handle('vod:close', (e, info) => {
+  if (VOD.fd == null) return null;
+  try { fs.closeSync(VOD.fd); } catch (err) { /* */ }
+  VOD.fd = null;
+  const url = require('url').pathToFileURL(VOD.file).href;
+  // Rattachée à la partie en cours (ou à la dernière enregistrée).
+  const vod = { file: VOD.file, url, gt0: Number(info && info.gt0) || 0, seconds: Number(info && info.seconds) || 0 };
+  if (REC) REC.vod = vod;
+  else {
+    try {
+      const files = fs.readdirSync(partiesDir()).filter((f) => /^\d+\.json$/.test(f)).sort();
+      const last = files[files.length - 1];
+      if (last) { const p = path.join(partiesDir(), last); const d = JSON.parse(fs.readFileSync(p, 'utf8')); if (!d.vod) { d.vod = vod; fs.writeFileSync(p, JSON.stringify(d)); } }
+    } catch (err) { /* */ }
+  }
+  return vod;
+});
 // Positions lues sur la mini-carte (rubrique Revue) : ajoutées à la partie en cours d'enregistrement.
 ipcMain.on('parties:pos', (e, t, pts) => {
   if (!REC || !Array.isArray(pts) || pts.length > 12) return;

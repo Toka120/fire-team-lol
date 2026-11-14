@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('fire', {
   live: { on: (cb) => ipcRenderer.on('live:update', (e, g) => cb(g)), spectate: call('live:spectate') },
   revues: { list: call('revues'), get: call('revue:get'), share: call('revue:share'), note: call('revue:note') },
   ddImage: call('dd:image'),
+  vod: { open: call('vod:open'), write: (pos, data) => ipcRenderer.send('vod:write', pos, data), close: call('vod:close') },
   parties: { pos: (t, pts) => ipcRenderer.send('parties:pos', t, pts), list: call('parties:list'), get: call('parties:get'), save: call('parties:save'), del: call('parties:delete'), onNew: (cb) => ipcRenderer.on('parties:new', (e, id) => cb(id)) },
   clips: { save: call('clips:save'), list: call('clips:list'), read: call('clips:read'), show: call('clips:show'), del: call('clips:delete') },
   chat: { list: call('chat'), send: call('chat:send') },

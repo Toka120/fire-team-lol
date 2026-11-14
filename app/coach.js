@@ -1149,7 +1149,7 @@ const revId = (x) => (/^\d{10,16}$/.test(String(x)) ? String(x) : null);
 function cleanNote(n) {
   if (!n || typeof n !== 'object') return null;
   const strokes = Array.isArray(n.draw) ? n.draw.slice(0, 30).map((st) => (Array.isArray(st.p) ? { c: String(st.c || '#ff6b3d').replace(/[^#0-9a-fA-F]/g, '').slice(0, 7), p: st.p.slice(0, 400).map((q) => [Math.max(0, Math.min(1, Number(q[0]) || 0)), Math.max(0, Math.min(1, Number(q[1]) || 0))].map((v) => Math.round(v * 1000) / 1000)) } : null)).filter(Boolean) : [];
-  return { id: String(n.id || '').replace(/[^\w-]/g, '').slice(0, 24) || crypto.randomBytes(4).toString('hex'), t: Math.max(0, Math.min(7200, Number(n.t) || 0)), by: String(n.by || '').slice(0, 80), text: String(n.text || '').slice(0, 600), at: Number(n.at) || Date.now(), draw: strokes };
+  return { id: String(n.id || '').replace(/[^\w-]/g, '').slice(0, 24) || crypto.randomBytes(4).toString('hex'), t: Math.max(0, Math.min(7200, Number(n.t) || 0)), by: String(n.by || '').slice(0, 80), text: String(n.text || '').slice(0, 600), at: Number(n.at) || Date.now(), draw: strokes, ...(Number(n.fight) >= 0 && n.fight != null ? { fight: Math.round(Number(n.fight)) } : {}) };
 }
 async function revues() {
   try { const d = await teamRead(REVUES); return { ok: true, list: (d && Array.isArray(d.list) ? d.list : []).slice(0, 200) }; }
@@ -1163,7 +1163,7 @@ async function revueShare(game, who) {
   const id = revId(game && game.id); if (!id) return { ok: false, error: 'partie invalide' };
   const txt = JSON.stringify(game); if (txt.length > 900000) return { ok: false, error: 'partie trop longue à partager' };
   try {
-    const g = JSON.parse(txt); g.notes = (g.notes || []).map(cleanNote).filter(Boolean).slice(-300); g.par = String(who || '').slice(0, 80);
+    const g = JSON.parse(txt); delete g.vod; g.notes = (g.notes || []).map(cleanNote).filter(Boolean).slice(-300); g.par = String(who || '').slice(0, 80);
     await teamWrite('revues/' + id + '.json', (cur) => ({ ...g, notes: mergeNotes((cur && cur.notes) || [], g.notes) }), 'Revue partagée');
     const meP = (g.players || []).find((p) => p.n === g.me) || {};
     const item = { id, par: g.par, at: Date.now(), start: g.start, mode: g.mode, queue: g.queue, me: g.me, champ: meP.c || '', duration: g.duration, result: g.result };

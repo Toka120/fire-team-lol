@@ -1174,6 +1174,80 @@
         h('button', { class: 'btn-ghost', onclick: () => mmCalibrate(0) }, 'Régler maintenant')));
   }
 
+
+  // ----- Partie entière en vidéo, synchronisée avec la Revue -----
+  const vodCfg = () => ({ on: false, ...load('fire.vod', {}) });
+  const VODS = { on: false, auto: false, busy: false };
+  const liveTime = () => { const L = LIVE.mine; return L ? L.time + (Date.now() - (L.at || Date.now())) / 1000 : 0; };
+  async function vodLive(g) {
+    if (!window.FireClips || !window.fire.vod || SUB() || VODS.busy) return;
+    const want = !!(g && vodCfg().on);
+    if (want && !VODS.on) {
+      VODS.busy = true;
+      try {
+        if (!FireClips.state().on) { await clipsApplyForce(); VODS.auto = true; }
+        if (!FireClips.state().on) return;
+        const r = await window.fire.vod.open(); if (!r || !r.ok) return;
+        FireClips.recStart((data, pos) => window.fire.vod.write(pos, data));
+        VODS.on = true; VODS.t = Date.now(); VODS.gt = liveTime();
+      } finally { VODS.busy = false; }
+    } else if (!want && VODS.on) {
+      VODS.busy = true;
+      try {
+        const out = await FireClips.recStop();
+        const st = out && out.started ? out.started : VODS.t;
+        // Heure de jeu de la 1re image : celle du début de l'enregistrement, décalée du temps d'attente de la 1re image clé.
+        const gt0 = Math.max(0, VODS.gt + (st - VODS.t) / 1000);
+        await window.fire.vod.close({ gt0, seconds: out ? out.seconds : 0 });
+        VODS.on = false;
+        if (VODS.auto && !clipCfg().on) { FireClips.stop(); VODS.auto = false; }
+      } finally { VODS.busy = false; }
+    }
+  }
+  // Démarre l'encodeur des clips pour filmer la partie, même si les clips instantanés sont désactivés.
+  async function clipsApplyForce() {
+    const c = clipCfg();
+    let src = c.src;
+    if (!src && window.fire.screen) { const l = await window.fire.screen.sources().catch(() => []); const sc = (l || []).find((x) => x.screen); src = sc && sc.id; }
+    if (!src) return;
+    await FireClips.start({ sourceId: src, seconds: c.seconds, quality: c.quality, mic: () => FV().micStream() });
+  }
+  // Combats : les kills à moins de 20 s d'intervalle forment un combat ; on le relie à l'objectif pris juste après.
+  function rvFights(g) {
+    const { tOf } = rvTeams(g);
+    const myTeam = ((g.players || []).find((p) => p.n === g.me) || {}).team || 'ORDER';
+    const meN = String(g.me || '').split('#')[0];
+    const isMe = (n) => n && (n === g.me || String(n).split('#')[0] === meN);
+    const out = [];
+    let cur = null;
+    for (const e of g.events || []) {
+      if (e.x !== 'ChampionKill') continue;
+      if (!cur || e.t - cur.end > 20) { cur = { start: e.t, end: e.t, ev: [] }; out.push(cur); }
+      cur.end = e.t; cur.ev.push(e);
+    }
+    return out.map((f) => {
+      let mine = 0, theirs = 0, me = '';
+      for (const e of f.ev) {
+        const vt = tOf(e.v), kt = tOf(e.k) || (vt === 'ORDER' ? 'CHAOS' : vt === 'CHAOS' ? 'ORDER' : '');
+        if (kt === myTeam) mine++; else theirs++;
+        if (isMe(e.k)) me = me || 'kill'; else if ((e.a || []).some(isMe)) me = me || 'assist'; if (isMe(e.v)) me = 'mort';
+      }
+      const obj = (g.events || []).find((e) => /DragonKill|BaronKill|HeraldKill|HordeKill|AtakhanKill/.test(e.x) && e.t >= f.start - 25 && e.t <= f.end + 30);
+      const objLab = obj ? { DragonKill: 'Dragon', BaronKill: 'Nashor', HeraldKill: 'Héraut', HordeKill: 'Larves', AtakhanKill: 'Atakhan' }[obj.x] : '';
+      const n = f.ev.length;
+      const kind = n === 1 ? (me === 'kill' ? 'Kill' : me === 'assist' ? 'Assist' : me === 'mort' ? 'Mort' : (mine ? 'Kill de l’équipe' : 'Mort d’un allié')) : (mine > theirs ? 'Combat gagné' : mine < theirs ? 'Combat perdu' : 'Combat égal');
+      return { ...f, mine, theirs, me, won: mine > theirs, lost: theirs > mine, n, obj: objLab, label: `${kind}${n > 1 ? ` ${mine}–${theirs}` : ''}${objLab ? ' · ' + objLab : ''}` };
+    });
+  }
+  const RV_TAGS = ['Surextension', 'Mauvais engage', 'Mauvais placement', 'Mauvais focus', 'Trop tard', 'Pas groupés', 'En infériorité', 'Pas de vision', 'Sorts en recharge', 'Mauvaise lecture du jungler'];
+  function vodCard() {
+    const c = vodCfg();
+    return h('div', { class: 'card mm-set' },
+      h('div', { class: 'row' }, h('b', null, '🎥 Filmer mes games en entier'),
+        h('label', { class: 'vs-sw mm-sw' }, h('span', null, h('small', null, c.on ? 'Activé' : 'Désactivé')), h('input', { type: 'checkbox', class: 'vs-tog', checked: c.on ? true : null, onchange: (e) => { save('fire.vod', { ...vodCfg(), on: e.target.checked }); renderRevue(); } }))),
+      h('p', { class: 'muted small' }, 'Pendant tes games, FIRE filme ton écran (avec le son du jeu et du vocal) et range la vidéo dans Vidéos › FIRE Clips › Parties. Dans la Revue, la vidéo suit la timeline : clique sur un combat ou un événement pour y aller. Une partie de 30 min pèse 1 à 2 Go ; FIRE garde les 12 dernières.'));
+  }
+
   // ===== Revue de parties : chaque game jouée est enregistrée par FIRE (API locale officielle de Riot) et se revoit ici =====
   // Carte avec tours, inhibiteurs et objectifs dans le temps, tableau à chaque instant, timeline des kills et objectifs,
   // clips de la partie, dessins et notes horodatées. Une partie peut être partagée avec l'équipe pour la revoir ensemble.
@@ -1242,14 +1316,23 @@
     actLog('app', 'Revue de partie ouverte');
     renderRevue(); window.scrollTo(0, 0);
   }
-  function rvStop() { RV.play = false; clearInterval(RV.timer); RV.timer = null; }
+  const rvVid = () => (RV.video && RV.video.isConnected && RV.g && RV.g.vod ? RV.video : null);
+  function rvStop() { RV.play = false; clearInterval(RV.timer); RV.timer = null; const v = rvVid(); if (v && !v.paused) v.pause(); }
+  const rvPaintTl = () => rvPaint();
   function rvPlay() {
     if (RV.play) { rvStop(); rvPaint(); return; }
+    const v = rvVid();
+    // Avec la vidéo : c'est elle qui avance (jusqu'à ×16, au-delà le navigateur coupe le son et saccade).
+    if (v && !v.error) { v.playbackRate = Math.min(16, RV.speed || 1); v.play().catch(() => {}); return; }
     RV.play = true;
     RV.timer = setInterval(() => { if (!RV.g || S.section !== 'revue') { rvStop(); return; } RV.t = Math.min(RV.g.duration || 0, RV.t + RV.speed * 0.25); if (RV.t >= (RV.g.duration || 0)) rvStop(); rvPaint(); }, 250);
     rvPaint();
   }
-  function rvSeek(t) { RV.t = Math.max(0, Math.min(RV.g.duration || 0, t)); rvPaint(); }
+  function rvSeek(t) {
+    RV.t = Math.max(0, Math.min(RV.g.duration || 0, t));
+    const v = rvVid(); if (v && !v.error) { try { v.currentTime = Math.max(0, RV.t - (RV.g.vod.gt0 || 0)); } catch {} }
+    rvPaint();
+  }
   const rvTitle = (g) => { const me = (g.players || []).find((p) => p.n === g.me) || {}; return { me, when: new Date(g.start).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) }; };
   function renderRevue() {
     const view = $('view');
@@ -1266,7 +1349,7 @@
         h('span', { class: 'rv-res' }, win ? 'Victoire' : lose ? 'Défaite' : ''));
     };
     const list = RV.tab === 'team' ? (RV.team || []) : (RV.list || []);
-    view.replaceChildren(
+    view.replaceChildren(...[
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎞️'), h('div', null, h('h1', { class: 'title' }, 'Revue de parties'),
         h('p', { class: 'muted' }, 'Chaque game que tu joues est enregistrée par FIRE. Revois-la : la carte avec les tours et les objectifs, le tableau à chaque instant, les kills, tes clips, et ajoute des dessins et des notes. Partage-la pour la revoir en équipe.'))),
       h('div', { class: 'row pt-modes' },
@@ -1274,8 +1357,9 @@
         SUB() ? null : h('button', { class: 'plan-tab', 'aria-pressed': String(RV.tab === 'team'), onclick: () => { RV.tab = 'team'; rvLoadTeam(); renderRevue(); } }, `👥 Revues de l’équipe (${(RV.team || []).length})`)),
       RV.err ? h('p', { class: 'muted small' }, '⚠ ' + RV.err) : null,
       RV.tab !== 'team' ? mmCard() : null,
+      RV.tab !== 'team' ? vodCard() : null,
       list.length ? h('div', { class: 'rv-list' }, list.map((x) => card(x, RV.tab === 'team' ? 'team' : 'local')))
-        : h('div', { class: 'card' }, h('p', { class: 'muted' }, RV.tab === 'team' ? 'Aucune revue partagée pour l’instant. Ouvre une de tes parties et clique sur « Partager avec l’équipe ».' : 'Aucune partie enregistrée pour l’instant. Joue une game avec FIRE ouvert : elle apparaîtra ici à la fin de la partie.')));
+        : h('div', { class: 'card' }, h('p', { class: 'muted' }, RV.tab === 'team' ? 'Aucune revue partagée pour l’instant. Ouvre une de tes parties et clique sur « Partager avec l’équipe ».' : 'Aucune partie enregistrée pour l’instant. Joue une game avec FIRE ouvert : elle apparaîtra ici à la fin de la partie.'))].filter(Boolean));
   }
   function renderRevueGame(view) {
     const g = RV.g; const { me, when } = rvTitle(g);
@@ -1313,9 +1397,20 @@
       else await window.fire.parties.save(g).catch(() => {});
       rvPaint();
     } }, '📝 Ajouter la note');
-    view.replaceChildren(head,
-      h('div', { class: 'rv-main' }, h('div', { class: 'rv-left' }, map, tools), h('div', { class: 'rv-right' }, board, feed)),
-      tl, h('div', { class: 'card rv-notebox' }, h('h3', null, '📝 Notes'), h('div', { class: 'row rv-addnote' }, noteIn, addNote), notes));
+    // Vidéo de la partie (si elle a été filmée sur ce PC) : c'est elle qui donne le temps pendant la lecture.
+    const video = g.vod && g.vod.url && RV.src === 'local' ? h('video', { class: 'rv-video', src: g.vod.url, preload: 'auto', controls: '' }) : null;
+    RV.video = video;
+    if (video) {
+      video.addEventListener('timeupdate', () => { if (RV.g !== g || video.paused) return; RV.t = Math.min(g.duration || 0, (g.vod.gt0 || 0) + video.currentTime); rvPaint(); });
+      video.addEventListener('play', () => { RV.play = true; rvPaintTl(); });
+      video.addEventListener('pause', () => { RV.play = false; rvPaintTl(); });
+      video.addEventListener('error', () => { const n = document.querySelector('.rv-vnote'); if (n) n.textContent = 'Vidéo introuvable (déplacée ou supprimée de Vidéos › FIRE Clips › Parties).'; });
+    }
+    const fights = h('div', { class: 'rv-fights' });
+    view.replaceChildren(...[head,
+      video ? h('div', { class: 'card rv-vcard' }, video, h('small', { class: 'muted rv-vnote' }, 'La vidéo suit la timeline : clique sur un combat, un événement ou une note pour y aller.')) : null,
+      h('div', { class: 'rv-main' }, h('div', { class: 'rv-left' }, map, tools, fights), h('div', { class: 'rv-right' }, board, feed)),
+      tl, h('div', { class: 'card rv-notebox' }, h('h3', null, '📝 Notes'), h('div', { class: 'row rv-addnote' }, noteIn, addNote), notes)].filter(Boolean));
     // Dessin à la souris sur la carte (coordonnées 0 à 1, pour s'afficher pareil chez tout le monde).
     const cv = map.querySelector('.rv-draw');
     const pos = (e) => { const r = cv.getBoundingClientRect(); return [Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))]; };
@@ -1411,14 +1506,47 @@
       const bar = h('div', { class: 'rv-bar', onclick: (e) => { const r = e.currentTarget.getBoundingClientRect(); rvSeek((e.clientX - r.left) / r.width * D); } }, h('div', { class: 'rv-fill', style: `width:${t / D * 100}%` }), ...marks, h('i', { class: 'rv-head-m', style: `left:${t / D * 100}%` }));
       tl.replaceChildren(...[h('button', { class: 'btn-fire small-btn rv-pl', onclick: rvPlay }, RV.play ? '⏸' : '▶'),
         h('b', { class: 'rv-time' }, `${mmss(t)} / ${mmss(D)}`), bar,
-        h('select', { class: 'inp rv-sp', onchange: (e) => { RV.speed = Number(e.target.value); } }, [4, 8, 16, 32].map((x) => h('option', { value: x, selected: RV.speed === x ? true : null }, `×${x}`))),
+        h('select', { class: 'inp rv-sp', onchange: (e) => { RV.speed = Number(e.target.value); const v = rvVid(); if (v) v.playbackRate = Math.min(16, RV.speed); } }, (rvVid() ? [1, 2, 4, 8, 16] : [4, 8, 16, 32]).map((x) => h('option', { value: x, selected: RV.speed === x ? true : null }, `×${x}`))),
         clips.length ? h('small', { class: 'muted' }, `🎬 ${clips.length} clip${clips.length > 1 ? 's' : ''}`) : null].filter(Boolean));
+    }
+    // Combats : gagnés / perdus, cliquables ; sur un combat perdu, on coche ce qui n'a pas marché (ça devient une note).
+    const fb = document.querySelector('.rv-fights');
+    if (fb) {
+      if (!RV.fights || RV.fights.g !== g) RV.fights = { g, list: rvFights(g).filter((x) => x.n >= 2 || x.me) };
+      const cur = RV.fights.list.find((x) => t >= x.start - 8 && t <= x.end + 6);
+      const fk = (cur ? cur.start : '-') + ':' + (RV.ftag ? RV.ftag.start + RV.ftag.tags.join() : '') + ':' + (g.notes || []).length;
+      if (fb.dataset.k !== fk) {
+        fb.dataset.k = fk;
+        const sc = fb.querySelector('.rv-fgl') ? fb.querySelector('.rv-fgl').scrollTop : 0;
+        setTimeout(() => { const l = fb.querySelector('.rv-fgl'); if (l) l.scrollTop = sc; }, 0);
+        const tagged = (f) => (g.notes || []).some((n) => n.fight === f.start);
+        const L = RV.fights.list;
+        const won = L.filter((x) => x.won).length, lost = L.filter((x) => x.lost).length;
+        fb.replaceChildren(
+          h('div', { class: 'row rv-fh' }, h('b', null, '⚔ Combats'), L.length ? h('small', { class: 'muted' }, `${won} gagné${won > 1 ? 's' : ''} · ${lost} perdu${lost > 1 ? 's' : ''}`) : null),
+          L.length ? h('div', { class: 'rv-fgl' }, L.map((f) => {
+            const open = RV.ftag && RV.ftag.start === f.start;
+            return h('div', { class: 'rv-fg' + (f.won ? ' won' : f.lost ? ' lost' : '') + (cur === f ? ' now' : '') },
+              h('button', { class: 'rv-fgb', onclick: () => rvSeek(f.start - 8) },
+                h('small', { class: 'muted sp-ft' }, mmss(f.start)), h('span', null, f.label),
+                f.me ? h('small', { class: 'rv-fme' }, { kill: 'tu tues', assist: 'tu assistes', mort: 'tu meurs' }[f.me]) : null),
+              f.lost || f.me === 'mort' ? h('button', { class: 'chip rv-fq' + (tagged(f) ? ' done' : ''), title: 'Qu’est-ce qui n’a pas marché ?', onclick: () => { RV.ftag = open ? null : { start: f.start, tags: [] }; rvPaint(); } }, tagged(f) ? '✓ analysé' : '❓ Pourquoi ?') : null,
+              open ? h('div', { class: 'rv-ftags' }, h('small', { class: 'muted' }, 'Qu’est-ce qui n’a pas marché ? (plusieurs choix possibles)'),
+                h('div', { class: 'row' }, RV_TAGS.map((tg) => h('button', { class: 'chip', 'aria-pressed': String(RV.ftag.tags.includes(tg)), onclick: () => { const a = RV.ftag.tags; const i = a.indexOf(tg); if (i >= 0) a.splice(i, 1); else a.push(tg); rvPaint(); } }, tg))),
+                h('button', { class: 'btn-fire small-btn', disabled: RV.ftag.tags.length ? null : '', onclick: async () => {
+                  const n = { id: Math.random().toString(36).slice(2, 10), t: Math.round(f.start), by: vocalMe(), fight: f.start, text: `Combat perdu ${f.mine}–${f.theirs}${f.obj ? ' (' + f.obj + ')' : ''} : ${RV.ftag.tags.join(', ')}`, at: Date.now(), draw: [] };
+                  g.notes = (g.notes || []).concat(n).sort((a, b) => a.t - b.t); RV.ftag = null;
+                  if (RV.src === 'team') { const r = await window.fire.revues.note(g.id, n).catch(() => null); if (r && r.ok) g.notes = r.notes; } else await window.fire.parties.save(g).catch(() => {});
+                  rvPaint();
+                } }, 'Enregistrer en note')) : null);
+          })) : h('small', { class: 'muted' }, 'Aucun combat dans cette partie.'));
+      }
     }
     // Notes.
     const nb = document.querySelector('.rv-notes');
     const nkey = (g.notes || []).map((n) => n.id).join() + ':' + Math.floor(t / 4);
     if (nb && nb.dataset.k !== nkey && (nb.dataset.k = nkey)) nb.replaceChildren(...((g.notes || []).length ? g.notes.map((n) => h('div', { class: 'rv-note' + (Math.abs(n.t - t) < 4 ? ' now' : '') },
-      h('button', { class: 'chip', onclick: () => { rvStop(); RV.t = n.t; RV.show = n.draw || []; RV.strokes = []; rvPaint(); rvDrawPaint(); } }, '⏱ ' + mmss(n.t)),
+      h('button', { class: 'chip', onclick: () => { rvStop(); RV.show = n.draw || []; RV.strokes = []; rvSeek(n.t); rvDrawPaint(); } }, '⏱ ' + mmss(n.t)),
       h('div', null, h('b', null, vocalName(n.by) || 'Moi'), (n.draw || []).length ? h('small', { class: 'muted' }, ' · ✏️ dessin') : null, h('p', null, n.text)),
       (n.by === vocalMe() || isStaff()) ? h('button', { class: 'btn-ghost', title: 'Retirer', onclick: async () => {
         g.notes = g.notes.filter((x) => x.id !== n.id);
@@ -2164,6 +2292,7 @@
       const now = Date.now();
       if (g) autoClipCheck(g);
       mmLive(g);
+      vodLive(g);
       if (g && g.events) { g = { ...g }; delete g.events; LIVE.mine = g; }
       if (!g || now - LIVE.lastSend > 5000) { LIVE.lastSend = now; try { FV().liveSend(UX.hideLive ? null : g); } catch (e) { /* hors ligne */ } }
       if (!!g !== !!LIVE.wasIn) { LIVE.wasIn = !!g; statusPush(); }

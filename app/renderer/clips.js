@@ -93,6 +93,7 @@
                 if (meta && meta.decoderConfig) C.vmeta = meta;
                 C.v.push({ d, ts: chunk.timestamp, dur: chunk.duration || Math.round(1e6 / Q.fps), key: chunk.type === 'key' });
                 prune();
+                recVideo(d, chunk.timestamp, chunk.type === 'key');
               },
               error: () => { C.err = 'erreur de l’encodeur vidéo'; changed(); },
             });
@@ -124,6 +125,7 @@
         const d = new Uint8Array(chunk.byteLength); chunk.copyTo(d);
         if (meta && meta.decoderConfig) C.ameta = meta;
         C.a.push({ d, ts: chunk.timestamp, dur: chunk.duration || 0 });
+        recAudio(d, chunk.timestamp, chunk.duration || 0);
       },
       error: () => { C.err = 'erreur de l’encodeur audio'; },
     });
@@ -166,6 +168,8 @@
     return C.starting;
   }
   function stop() {
+    // L'encodeur s'arrête : on clôt proprement la vidéo de partie en cours (sinon le fichier serait illisible).
+    if (typeof R !== 'undefined' && R.on) recStop(true);
     C.stopRead.forEach((f) => f()); C.stopRead = [];
     if (C.st && !(C.opts && C.opts.stream)) C.st.getTracks().forEach((t) => t.stop());
     C.st = null;
@@ -211,11 +215,56 @@
     return { buf: target.buffer, seconds: Math.round((end - t0) / 1e6), w: C.w, h: C.h };
   }
 
+  // ----- Partie entière en vidéo (Revue de parties) : les mêmes images compressées, écrites au fur et à mesure sur le disque -----
+  // Aucun encodage en plus : on range dans un 2e fichier MP4 ce que l'encodeur des clips produit déjà.
+  const R = { on: false, mux: null, t0: null, lastV: null, onData: null, onEnd: null, wantKey: true };
+  function recVideo(d, ts, key) {
+    if (!R.on) return;
+    if (R.wantKey) { if (!key || !C.vmeta) return; R.wantKey = false; R.t0 = ts; R.started = Date.now(); recMux(); }
+    if (!R.mux) return;
+    if (R.lastV) R.mux.addVideoChunkRaw(R.lastV.d, R.lastV.key ? 'key' : 'delta', R.lastV.ts - R.t0, Math.max(1, ts - R.lastV.ts), R.lastV.first ? C.vmeta : undefined);
+    R.lastV = { d, ts, key, first: !R.lastV };
+  }
+  function recAudio(d, ts, dur) {
+    if (!R.on || !R.mux || !R.audio || R.t0 == null || ts < R.t0) return;
+    R.mux.addAudioChunkRaw(d, 'key', ts - R.t0, dur, R.firstA ? undefined : C.ameta);
+    R.firstA = true;
+  }
+  function recMux() {
+    const M = window.Mp4Muxer;
+    R.audio = !!(C.ameta && C.acodec);
+    R.mux = new M.Muxer({
+      target: new M.StreamTarget({ onData: (data, pos) => R.onData && R.onData(data, pos), chunked: true, chunkSize: 4 * 1024 * 1024 }),
+      video: { codec: C.vcodec, width: C.w, height: C.h },
+      audio: R.audio ? { codec: C.acodec, sampleRate: 48000, numberOfChannels: 2 } : undefined,
+      fastStart: false, firstTimestampBehavior: 'cross-track-offset',
+    });
+  }
+  // onData(data, position) : écrire ces octets à cette position du fichier. Renvoie l'heure (ms) de la 1re image.
+  function recStart(onData) {
+    recStop(true);
+    Object.assign(R, { on: true, mux: null, t0: null, lastV: null, onData, wantKey: true, firstA: false, started: null });
+    return true;
+  }
+  async function recStop(silent) {
+    if (!R.on) return null;
+    R.on = false;
+    const out = { started: R.started, seconds: R.t0 != null && R.lastV ? (R.lastV.ts - R.t0) / 1e6 : 0, w: C.w, h: C.h };
+    try {
+      if (R.mux) {
+        if (R.lastV) R.mux.addVideoChunkRaw(R.lastV.d, R.lastV.key ? 'key' : 'delta', R.lastV.ts - R.t0, 33333, R.lastV.first ? C.vmeta : undefined);
+        R.mux.finalize();
+      }
+    } catch (e) { out.err = String(e); }
+    R.mux = null; R.lastV = null;
+    return silent ? null : out;
+  }
+
   let onChange = null;
   function changed() { if (onChange) try { onChange(); } catch (e) { /* */ } }
 
   window.FireClips = {
-    start, stop, save, setMic,
+    start, stop, save, setMic, recStart, recStop, recording: () => R.on,
     state: () => ({ on: C.on, starting: !!C.starting, err: C.err, buffered: C.v.length ? Math.round((C.v[C.v.length - 1].ts - C.v[0].ts) / 1e6) : 0, w: C.w, h: C.h, vcodec: C.vcodec, acodec: C.acodec }),
     onChange: (f) => { onChange = f; },
     supported: () => !!(window.VideoEncoder && window.AudioEncoder && window.MediaStreamTrackProcessor && window.Mp4Muxer),

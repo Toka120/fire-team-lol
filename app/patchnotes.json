@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.121",
+   "date": "2026-11-14",
+   "titre": "Revue de parties : la vidéo de la game",
+   "items": [
+    [
+     "new",
+     "Revue de parties › « Filmer mes games en entier » : active-le et FIRE filme toute ta partie (jeu + vocal). Dans la Revue, la vidéo est synchronisée avec la carte, le tableau et la timeline : clique sur un kill, un objectif ou une note et la vidéo y saute. Lecture jusqu’à ×16."
+    ],
+    [
+     "new",
+     "Liste des combats de chaque partie : gagnés en vert, perdus en rouge, avec le score du combat, l’objectif pris derrière et ce que tu as fait (kill, assist, mort). Un clic t’emmène 8 s avant le début du combat."
+    ],
+    [
+     "new",
+     "Sur un combat perdu, « ❓ Pourquoi ? » : coche ce qui n’a pas marché (surextension, mauvais engage, pas groupés, pas de vision…) et c’est enregistré en note à ce moment de la partie, visible par l’équipe si tu la partages."
+    ],
+    [
+     "info",
+     "Les vidéos sont rangées dans Vidéos › FIRE Clips › Parties (1 à 2 Go pour 30 min) ; FIRE garde les 12 dernières. Elles restent sur ton PC : une revue partagée avec l’équipe envoie la partie, pas la vidéo."
+    ]
+   ]
+  },
+  {
    "v": "1.10.120",
    "date": "2026-11-14",
    "titre": "Stats des nouveaux membres (suite)",
