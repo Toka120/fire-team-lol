@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.126",
+   "date": "2026-11-14",
+   "titre": "Revue de parties : seulement les games qui comptent",
+   "items": [
+    [
+     "improve",
+     "La Revue de parties ne garde plus que les games Solo/Duo, Flex et Clash (5c5). Les ARAM, normales et parties personnalisées ne sont plus enregistrées, ni filmées, ni partagées, ni analysées par l’IA. Les anciennes ne s’affichent plus non plus."
+    ],
+    [
+     "info",
+     "Les Scrims se notent à la main après la séance (« Nouveau scrim ») : adversaire, côté et résultat de chaque game, notes."
+    ]
+   ]
+  },
+  {
    "v": "1.10.125",
    "date": "2026-11-14",
    "titre": "Scrims et revue en direct (à la place d’Invade)",

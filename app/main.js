@@ -595,6 +595,9 @@ setInterval(async () => {
 // Toutes les 10 s de jeu : le tableau (KDA, sbires, niveau, objets, mort) ; tous les événements (kills, objectifs, tours).
 // À la fin de la partie, tout est rangé dans userData/parties/<début>.json pour la rubrique « Revue de parties ».
 const partiesDir = () => path.join(app.getPath('userData'), 'parties');
+// Seules les parties qui comptent pour l'équipe : Solo/Duo (420), Flex (440) et Clash 5c5 (700). Pas d'ARAM ni de personnalisées.
+const REVUE_QUEUES = new Set([420, 440, 700]);
+const revueOk = (q) => !!(q && !q.custom && REVUE_QUEUES.has(Number(q.id)));
 let REC = null;
 function recStep(raw, g) {
   if (g && raw) {
@@ -622,6 +625,7 @@ function recStep(raw, g) {
 function recSave(r) {
   try {
     if (!r || r.frames.length < 6) return; // moins d'une minute : rien à revoir
+    if (!revueOk(r.queue)) return; // ARAM, normales, personnalisées… : pas gardées
     fs.mkdirSync(partiesDir(), { recursive: true });
     const out = { ...r, events: Object.values(r.events).sort((a, b) => a.t - b.t) }; delete out.key; delete out.lastT;
     fs.writeFileSync(path.join(partiesDir(), r.id + '.json'), JSON.stringify(out));
@@ -635,7 +639,7 @@ ipcMain.handle('parties:list', () => {
   try {
     if (!fs.existsSync(partiesDir())) return [];
     return fs.readdirSync(partiesDir()).filter((f) => /^\d+\.json$/.test(f)).sort().reverse().slice(0, 150).map((f) => {
-      try { const d = JSON.parse(fs.readFileSync(path.join(partiesDir(), f), 'utf8')); return { id: d.id, start: d.start, mode: d.mode, queue: d.queue, me: d.me, duration: d.duration, result: d.result, players: d.players, notes: (d.notes || []).length }; }
+      try { const d = JSON.parse(fs.readFileSync(path.join(partiesDir(), f), 'utf8')); if (!revueOk(d.queue)) return null; return { id: d.id, start: d.start, mode: d.mode, queue: d.queue, me: d.me, duration: d.duration, result: d.result, players: d.players, notes: (d.notes || []).length }; }
       catch (e) { return null; }
     }).filter(Boolean);
   } catch (e) { return []; }

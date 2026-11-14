@@ -1181,7 +1181,7 @@
   const liveTime = () => { const L = LIVE.mine; return L ? L.time + (Date.now() - (L.at || Date.now())) / 1000 : 0; };
   async function vodLive(g) {
     if (!window.FireClips || !window.fire.vod || SUB() || VODS.busy) return;
-    const want = !!(g && vodCfg().on);
+    const want = !!(g && vodCfg().on && rvQueueOk(g));
     if (want && !VODS.on) {
       VODS.busy = true;
       try {
@@ -1354,7 +1354,10 @@
   }
 
   // ----- Analyse IA automatique : chaque game est partagée toute seule, et le PC d'un coach l'analyse tout seul -----
-  const rvAutoOk = (g) => g && g.mode === 'CLASSIC' && (g.duration || 0) >= 600;
+  // Revue : seulement Solo/Duo, Flex et Clash (5c5). Pas d'ARAM, de normales ni de personnalisées.
+  const RV_QUEUES = new Set([420, 440, 700]);
+  const rvQueueOk = (g) => !!(g && g.queue && !g.queue.custom && RV_QUEUES.has(Number(g.queue.id)));
+  const rvAutoOk = (g) => rvQueueOk(g) && (g.duration || 0) >= 600;
   const RVA = { busy: false, iaBusy: false };
   async function rvAutoShare(onlyId) {
     if (RVA.busy || SUB() || !window.fire.revues || !window.fire.parties) return;
@@ -1556,12 +1559,12 @@
   }
   const rvFrame = (g, t) => { let f = null; for (const x of g.frames || []) { if (x.t <= t) f = x; else break; } return f || (g.frames || [])[0]; };
   async function rvLoadList() {
-    RV.list = window.fire.parties ? await window.fire.parties.list().catch(() => []) : [];
+    RV.list = (window.fire.parties ? await window.fire.parties.list().catch(() => []) : []).filter(rvQueueOk);
     if (S.section === 'revue' && !RV.g) renderRevue();
   }
   async function rvLoadTeam() {
     const r = window.fire.revues ? await window.fire.revues.list().catch((e) => ({ ok: false, error: String(e) })) : { ok: false, list: [] };
-    RV.team = (r && r.list) || []; RV.err = r && !r.ok ? r.error || '' : '';
+    RV.team = ((r && r.list) || []).filter(rvQueueOk); RV.err = r && !r.ok ? r.error || '' : '';
     if (S.section === 'revue' && !RV.g) renderRevue();
   }
   async function rvOpen(id, src) {
@@ -1612,7 +1615,7 @@
     const list = RV.tab === 'team' ? (RV.team || []) : (RV.list || []);
     view.replaceChildren(...[
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎞️'), h('div', null, h('h1', { class: 'title' }, 'Revue de parties'),
-        h('p', { class: 'muted' }, 'Chaque game que tu joues est enregistrée par FIRE. Revois-la : la carte avec les tours et les objectifs, le tableau à chaque instant, les kills, tes clips, et ajoute des dessins et des notes. Partage-la pour la revoir en équipe.'))),
+        h('p', { class: 'muted' }, 'Chaque game Solo/Duo, Flex ou Clash que tu joues est enregistrée par FIRE. Revois-la : la carte avec les tours et les objectifs, le tableau à chaque instant, les kills, tes clips, et ajoute des dessins et des notes. Partage-la pour la revoir en équipe.'))),
       h('div', { class: 'row pt-modes' },
         h('button', { class: 'plan-tab', 'aria-pressed': String(RV.tab !== 'team'), onclick: () => { RV.tab = 'mine'; rvLoadList(); renderRevue(); } }, `🎮 Mes parties (${(RV.list || []).length})`),
         SUB() ? null : h('button', { class: 'plan-tab', 'aria-pressed': String(RV.tab === 'team'), onclick: () => { RV.tab = 'team'; rvLoadTeam(); renderRevue(); } }, `👥 Revues de l’équipe (${(RV.team || []).length})`)),
@@ -1907,7 +1910,7 @@
     const det = scGames().filter((g) => !g.ids.some((id) => linked.has(id)));
     const days = {}; for (const g of det) (days[scDay(g.start)] = days[scDay(g.start)] || []).push(g);
     const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🤝'), h('div', null, h('h1', { class: 'title' }, 'Scrims'),
-      h('p', { class: 'muted' }, 'Vos séances contre d’autres équipes. Les parties personnalisées que vous jouez sont repérées toutes seules (elles sont partagées et analysées par l’IA comme les autres) : range-les par scrim, note l’adversaire, le côté et ce qu’il faut retenir. Chaque game se revoit dans la Revue, aussi en direct avec toute l’équipe.')));
+      h('p', { class: 'muted' }, 'Vos séances contre d’autres équipes : l’adversaire, le format, le côté et le résultat de chaque game, et ce qu’il faut retenir. Le bilan se fait tout seul, par côté et par adversaire.')));
     view.replaceChildren(...[hero,
       SC.err ? h('p', { class: 'bad small' }, '⚠ ' + SC.err) : null,
       L.length ? h('div', { class: 'card sc-stats' },
@@ -1936,7 +1939,7 @@
             g.notes ? h('small', { class: 'muted sc-gnote' }, g.notes) : h('span', { class: 'sc-gnote' }),
             g.rid ? h('button', { class: 'btn-ghost', onclick: () => scOpenRevue(g.rid) }, '🎞️ Revoir') : null))),
           x.notes ? h('p', { class: 'sc-n' }, x.notes) : null);
-      })) : (!Object.keys(days).length ? h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Aucun scrim pour l’instant. Jouez une partie personnalisée avec FIRE ouvert : elle apparaîtra ici, prête à être rangée. Tu peux aussi en ajouter un à la main.')) : null)].filter(Boolean));
+      })) : (!Object.keys(days).length ? h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Aucun scrim pour l’instant. Clique sur « Nouveau scrim » après votre séance.')) : null)].filter(Boolean));
   }
 
   // ===== Puzzle du jour : une situation de partie, plusieurs bonnes réponses selon le style, au moins une mauvaise =====
@@ -2114,7 +2117,7 @@
   const TOOL_CATS = [
     ['🎞️ Revoir ses parties', [
       { k: 'n-revue', ico: '🎞️', name: 'Revue de parties', native: 'revue', desc: 'Intégré à FIRE (à la place de Replays.lol) : chaque game filmée, revue sur la carte avec les combats, et analysée par l’IA toute seule.' },
-      { k: 'n-scrims', ico: '🤝', name: 'Scrims', native: 'scrims', desc: 'Intégré à FIRE (à la place d’Invade) : scrims repérés tout seuls, bilan par adversaire et par côté, revue en direct avec toute l’équipe.' }]],
+      { k: 'n-scrims', ico: '🤝', name: 'Scrims', native: 'scrims', desc: 'Intégré à FIRE (à la place d’Invade) : bilan des scrims par adversaire et par côté, notes de chaque game ; et dans la Revue, revue en direct avec toute l’équipe.' }]],
     ['🗺️ Carte et stratégie', [
       { k: 'riftkit', ico: '🗺️', name: 'RiftKit', url: 'https://kdx.gg/riftkit', desc: 'Carte de la Faille : champions, objectifs, timeline, graphiques d’or et de dégâts, annotations.' },
       { k: 'll', ico: '🧭', name: 'Level Legendary · Map Planner', url: 'https://levellegendary.com/tools/lol-map/', desc: 'La Faille en 3D avec les vraies portées des sorts et des tours, wards et zones de freeze.' },
