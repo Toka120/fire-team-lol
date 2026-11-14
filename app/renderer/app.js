@@ -1066,10 +1066,10 @@
     // Outils : pas de barre de navigateur, l'outil s'affiche comme une page de FIRE (onglets des outils + retour).
     if (inMeet) {
       const list = WEB.from === 'outils' ? ALL_TOOLS() : MEET_TOOLS;
-      const cur = list.find((t) => webHost(WEB.url) === webHost(t.url)) || {};
+      const cur = list.find((t) => t.url && webHost(WEB.url) === webHost(t.url)) || {};
       const nbar = h('div', { class: 'web-bar native' },
         h('button', { class: 'btn-ghost web-home', onclick: () => webClose() }, WEB.from === 'reunion' ? '← Salle de réunion' : '← Outils'),
-        h('div', { class: 'tool-tabs' }, list.map((t) => h('button', { class: 'tool-tab' + (cur.k === t.k ? ' on' : ''), onclick: () => webOpen(t.url) }, h('span', null, t.ico), t.name.split(' · ')[0]))),
+        h('div', { class: 'tool-tabs' }, list.map((t) => h('button', { class: 'tool-tab' + (cur.k === t.k ? ' on' : ''), onclick: () => { if (t.native) { webClose(); go(t.native); } else webOpen(t.url); } }, h('span', null, t.ico), t.name.split(' · ')[0]))),
         h('button', { class: 'web-b', title: WEB.back ? 'Revenir' : '', disabled: WEB.back ? null : true, onclick: () => nav('back') }, '‹'),
         h('button', { class: 'web-b', title: 'Actualiser', onclick: () => nav(WEB.loading ? 'stop' : 'reload') }, WEB.loading ? h('i', { class: 'web-spin' }) : '⟳'));
       view.replaceChildren(nbar, slot);
@@ -1396,6 +1396,105 @@
     setTimeout(() => { rvAutoShare(); rvAutoIa(); }, 60000);
     setInterval(() => { rvAutoShare(); rvAutoIa(); }, 4 * 60000);
   }
+
+  // ----- Revue en direct : une revue partagée regardée ensemble. Celui qui la lance mène (temps, lecture, vitesse) ;
+  // tout le monde peut dessiner sur la carte, les dessins apparaissent chez tous. Passe par les liens P2P de l'équipe.
+  const RVL = { hosting: false, id: null, viewers: {}, host: null, hostId: null, offers: {}, last: { k: '', at: 0 }, timer: null, beat: null };
+  const rvlName = (slug) => vocalName(slug) || String(slug || '').split('%20')[0] || 'Un coéquipier';
+  function rvlSend(slug, m) { try { FV().hallSend(slug, { t: 'rv', ...m }); } catch (e) { /* */ } }
+  function rvlStart() {
+    const g = RV.g; if (!g || RV.src !== 'team' || SUB() || !FV().rvBroadcast) return;
+    RVL.hosting = true; RVL.id = String(g.id); RVL.viewers = {}; RVL.last = { k: '', at: 0 };
+    const meP = (g.players || []).find((p) => p.n === g.me) || {};
+    const offer = () => {
+      if (!RVL.hosting) return;
+      if (!RV.g || String(RV.g.id) !== RVL.id) { rvlStop(); return; }
+      FV().rvBroadcast({ t: 'rv', a: 'open', id: RVL.id, title: `${meP.c ? FC.champName(meP.c) + ' · ' : ''}${gameModeLabel(g)} · ${mmss(g.duration || 0)}` }).catch(() => {});
+      for (const [k, exp] of Object.entries(RVL.viewers)) if (exp < Date.now()) delete RVL.viewers[k];
+      rvlCount();
+    };
+    offer(); clearInterval(RVL.timer); RVL.timer = setInterval(offer, 8000);
+    actLog('app', 'Revue en direct lancée');
+    renderRevue();
+  }
+  function rvlStop() {
+    if (!RVL.hosting) return;
+    for (const v of Object.keys(RVL.viewers)) rvlSend(v, { a: 'close', id: RVL.id });
+    FV().rvBroadcast && FV().rvBroadcast({ t: 'rv', a: 'close', id: RVL.id }).catch(() => {});
+    RVL.hosting = false; RVL.viewers = {}; clearInterval(RVL.timer); RVL.timer = null;
+    if (S.section === 'revue') renderRevue();
+  }
+  function rvlCount() { const n = Object.keys(RVL.viewers).length; const el = document.querySelector('.rvl-n'); if (el) el.textContent = n ? (n > 1 ? `${n} coéquipiers suivent` : '1 coéquipier suit') : 'personne ne suit encore'; }
+  const rvlStrokes = () => RV.strokes.slice(-40).map((st) => ({ c: st.c, p: st.p.slice(0, 300).map((q) => [Math.round(q[0] * 1000) / 1000, Math.round(q[1] * 1000) / 1000]) }));
+  // Appelé à chaque dessin de la Revue : l'hôte envoie l'état aux spectateurs (au plus 2 fois par seconde, ou dès qu'il change).
+  function rvlTick() {
+    if (!RVL.hosting || !RV.g || String(RV.g.id) !== RVL.id) return;
+    const sk = RV.strokes.length + ':' + RV.strokes.reduce((n, st) => n + st.p.length, 0);
+    const k = `${Math.round(RV.t)}|${RV.play}|${RV.speed}|${sk}`;
+    const now = Date.now();
+    if ((k === RVL.last.k && now - RVL.last.at < 3000) || now - RVL.last.at < 450) return;
+    const withStrokes = !RVL.last.k || RVL.last.k.split('|')[3] !== sk || now - RVL.last.at > 6000;
+    RVL.last = { k, at: now };
+    const msg = { a: 'st', id: RVL.id, tt: RV.t, play: !!RV.play, speed: RV.speed, ...(withStrokes ? { strokes: rvlStrokes() } : {}) };
+    for (const v of Object.keys(RVL.viewers)) rvlSend(v, msg);
+  }
+  async function rvlJoin(host) {
+    const o = RVL.offers[host]; if (!o) return;
+    RVL.host = host; RVL.hostId = o.id; delete RVL.offers[host]; rvlOfferBar();
+    rvlSend(host, { a: 'join', id: o.id });
+    clearInterval(RVL.beat); RVL.beat = setInterval(() => { if (RVL.host) rvlSend(RVL.host, { a: 'join', id: RVL.hostId }); else clearInterval(RVL.beat); }, 8000);
+    go('revue');
+    if (!RV.g || String(RV.g.id) !== String(o.id)) await rvOpen(o.id, 'team'); else renderRevue();
+  }
+  function rvlLeave(silent) {
+    if (!RVL.host) return;
+    if (!silent) rvlSend(RVL.host, { a: 'leave', id: RVL.hostId });
+    RVL.host = null; RVL.hostId = null; clearInterval(RVL.beat); RV.show = null; rvStop();
+    if (S.section === 'revue') renderRevue();
+  }
+  function rvlFollow(m) {
+    if (!RV.g || String(RV.g.id) !== String(m.id)) return;
+    const tt = Math.max(0, Math.min(RV.g.duration || 0, Number(m.tt) || 0));
+    if (Math.abs(tt - RV.t) > 1.2 || !m.play) RV.t = tt;
+    RV.speed = Math.max(1, Math.min(32, Number(m.speed) || 8));
+    if (m.play && !RV.play) { RV.play = true; clearInterval(RV.timer); RV.timer = setInterval(() => { if (!RV.g || !RVL.host) { rvStop(); return; } RV.t = Math.min(RV.g.duration || 0, RV.t + RV.speed * 0.25); rvPaint(); }, 250); }
+    else if (!m.play && RV.play) rvStop();
+    if (Array.isArray(m.strokes)) { RV.show = m.strokes.slice(0, 60).filter((st) => st && Array.isArray(st.p)); RV.strokes = []; rvDrawPaint(); }
+    rvPaint();
+  }
+  function rvlOfferBar() {
+    let bar = document.getElementById('rvl-offer');
+    const L = Object.entries(RVL.offers).filter(([, o]) => o.exp > Date.now() && !(RVL.host)); 
+    if (!L.length) { if (bar) bar.remove(); return; }
+    if (!bar) { bar = h('div', { id: 'rvl-offer', class: 'rvl-offer' }); document.body.append(bar); }
+    bar.replaceChildren(...L.map(([from, o]) => h('div', { class: 'rvl-o' }, h('span', null, '📡'), h('div', null, h('b', null, `${rvlName(from)} lance une revue en direct`), h('small', { class: 'muted' }, o.title || '')),
+      h('button', { class: 'btn-fire small-btn', onclick: () => rvlJoin(from) }, 'Rejoindre'),
+      h('button', { class: 'btn-ghost', title: 'Ignorer', onclick: () => { RVL.offers[from].exp = Date.now() + 0; RVL.offers[from].ign = o.id; rvlOfferBar(); } }, '✕'))));
+  }
+  function rvlInit() {
+    if (!FV().onRv) return;
+    FV().onRv((from, m) => {
+      if (SUB()) return;
+      const id = String(m.id || '').replace(/\D/g, '').slice(0, 16); if (!id) return;
+      if (m.a === 'open') {
+        if (RVL.host === from) return;
+        const old = RVL.offers[from];
+        const ign = old && old.ign === id;
+        RVL.offers[from] = { id, title: String(m.title || '').slice(0, 80), exp: ign ? 0 : Date.now() + 20000, ign: ign ? id : null };
+        if (!old && !ign) vocalToast(`📡 ${rvlName(from)} lance une revue de partie en direct`, true);
+        rvlOfferBar(); return;
+      }
+      if (m.a === 'close') { delete RVL.offers[from]; rvlOfferBar(); if (RVL.host === from) { rvlLeave(true); vocalToast('📡 La revue en direct est terminée', true); } return; }
+      if (m.a === 'join' && RVL.hosting && id === RVL.id) { const isNew = !RVL.viewers[from]; RVL.viewers[from] = Date.now() + 25000; if (isNew) RVL.last = { k: '', at: 0 }; if (isNew) vocalToast(`📡 ${rvlName(from)} suit ta revue`, true); rvlCount(); rvlTick(); return; }
+      if (m.a === 'leave' && RVL.hosting) { delete RVL.viewers[from]; rvlCount(); return; }
+      if (m.a === 'draw' && RVL.hosting && id === RVL.id && m.st && Array.isArray(m.st.p)) {
+        RV.strokes.push({ c: String(m.st.c || '#3dd8ff').replace(/[^#0-9a-fA-F]/g, '').slice(0, 7), p: m.st.p.slice(0, 300).map((q) => [Math.max(0, Math.min(1, Number(q[0]) || 0)), Math.max(0, Math.min(1, Number(q[1]) || 0))]) });
+        rvDrawPaint(); rvlTick(); return;
+      }
+      if (m.a === 'st' && RVL.host === from && id === String(RVL.hostId)) rvlFollow(m);
+    });
+    setInterval(rvlOfferBar, 5000);
+  }
   const RV_TAGS = ['Surextension', 'Mauvais engage', 'Mauvais placement', 'Mauvais focus', 'Trop tard', 'Pas groupés', 'En infériorité', 'Pas de vision', 'Sorts en recharge', 'Mauvaise lecture du jungler'];
   function vodCard() {
     const c = vodCfg();
@@ -1527,7 +1626,7 @@
     const g = RV.g; const { me, when } = rvTitle(g);
     const win = /win/i.test(g.result || ''), lose = /lose/i.test(g.result || '');
     const head = h('div', { class: 'rv-head' },
-      h('button', { class: 'btn-ghost', onclick: () => { rvStop(); RV.g = null; renderRevue(); } }, '← Parties'),
+      h('button', { class: 'btn-ghost', onclick: () => { rvStop(); rvlStop(); rvlLeave(); RV.g = null; renderRevue(); } }, '← Parties'),
       me.c ? champIcon(me.c, 34) : null,
       h('div', null, h('b', null, `${me.c ? FC.champName(me.c) : ''} · ${gameModeLabel(g)}`), h('small', { class: 'muted' }, ` ${when} · ${mmss(g.duration || 0)}${RV.src === 'team' && g.par ? ' · partagée par ' + vocalName(g.par) : ''}`)),
       h('span', { class: 'rv-res ' + (win ? 'win' : lose ? 'lose' : '') }, win ? 'Victoire' : lose ? 'Défaite' : ''),
@@ -1542,6 +1641,12 @@
         if (r && r.ok) rvLoadTeam();
       } }, '👥 Partager avec l’équipe') : null,
       RV.src === 'local' ? h('button', { class: 'btn-ghost', onclick: async () => { if (!confirm('Supprimer cette partie de ton PC ?')) return; await window.fire.parties.del(g.id); RV.g = null; rvLoadList(); renderRevue(); } }, '🗑') : null);
+    // Revue en direct : bandeau de l'hôte ou du spectateur.
+    const live = RVL.host && String(RVL.hostId) === String(g.id)
+      ? h('div', { class: 'card rvl-bar follow' }, h('span', null, '📡'), h('div', null, h('b', null, `Tu suis la revue de ${rvlName(RVL.host)}`), h('small', { class: 'muted' }, 'Le temps, la lecture et les dessins suivent les siens. Tes dessins sur la carte apparaissent chez tout le monde. Parlez-en dans le vocal.')), h('button', { class: 'btn-ghost', onclick: () => rvlLeave() }, 'Quitter'))
+      : RVL.hosting && RVL.id === String(g.id)
+        ? h('div', { class: 'card rvl-bar host' }, h('span', { class: 'rvl-dot' }), h('div', null, h('b', null, 'Revue en direct'), h('small', { class: 'muted rvl-n' }, '')), h('small', { class: 'muted' }, 'Tu mènes : ce que tu fais (temps, lecture, dessins) s’affiche chez ceux qui suivent.'), h('button', { class: 'btn-ghost', onclick: rvlStop }, '⏹ Arrêter'))
+        : RV.src === 'team' && !SUB() && FV().rvBroadcast ? h('div', { class: 'row rvl-start' }, h('button', { class: 'btn-fire small-btn', onclick: rvlStart }, '📡 Revoir en direct avec l’équipe'), h('small', { class: 'muted' }, 'Tous ceux qui ont FIRE ouvert reçoivent une invitation ; ils suivent ta lecture et voient tes dessins en direct.')) : null;
     const map = h('div', { class: 'rv-map' }, h('img', { class: 'rv-mapimg', alt: '', src: `https://ddragon.leagueoflegends.com/cdn/${(S.champList && S.champList.version) || '14.1.1'}/img/map/map11.png` }),
       h('div', { class: 'rv-ov' }), h('canvas', { class: 'rv-draw', width: 600, height: 600 }));
     const tools = h('div', { class: 'row rv-tools' }, ['#ff6b3d', '#3dd8ff', '#ffe14d', '#3ddc84', '#ffffff'].map((c) => h('button', { class: 'rv-col' + (RV.col === c ? ' on' : ''), style: `background:${c}`, title: 'Couleur du crayon', onclick: (e) => { RV.col = c; e.target.parentElement.querySelectorAll('.rv-col').forEach((x) => x.classList.toggle('on', x === e.target)); } })),
@@ -1573,7 +1678,7 @@
       video.addEventListener('error', () => { const n = document.querySelector('.rv-vnote'); if (n) n.textContent = 'Vidéo introuvable (déplacée ou supprimée de Vidéos › FIRE Clips › Parties).'; });
     }
     const fights = h('div', { class: 'rv-fights' });
-    view.replaceChildren(...[head,
+    view.replaceChildren(...[head, live,
       video ? h('div', { class: 'card rv-vcard' }, video, h('small', { class: 'muted rv-vnote' }, 'La vidéo suit la timeline : clique sur un combat, un événement ou une note pour y aller.')) : null,
       h('div', { class: 'rv-main' }, h('div', { class: 'rv-left' }, map, tools, fights), h('div', { class: 'rv-right' }, board, feed)),
       tl, h('div', { class: 'card rv-notebox' }, h('h3', null, '📝 Notes'), h('div', { class: 'row rv-addnote' }, noteIn, addNote), notes),
@@ -1583,9 +1688,14 @@
     const pos = (e) => { const r = cv.getBoundingClientRect(); return [Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))]; };
     cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); RV.show = null; RV.cur = { c: RV.col, p: [pos(e)] }; RV.strokes.push(RV.cur); rvDrawPaint(); });
     cv.addEventListener('pointermove', (e) => { if (!RV.cur) return; const q = pos(e); const l = RV.cur.p[RV.cur.p.length - 1]; if (Math.hypot(q[0] - l[0], q[1] - l[1]) > 0.004) { RV.cur.p.push(q); rvDrawPaint(); } });
-    const end = () => { RV.cur = null; };
+    const end = () => {
+      const st = RV.cur; RV.cur = null;
+      // Spectateur d'une revue en direct : le dessin part chez l'hôte, qui le renvoie à tout le monde.
+      if (st && RVL.host && String(RVL.hostId) === String(g.id)) { rvlSend(RVL.host, { a: 'draw', id: RVL.hostId, st: { c: st.c, p: st.p.slice(0, 300) } }); RV.show = (RV.show || []).concat(st); RV.strokes = RV.strokes.filter((x) => x !== st); rvDrawPaint(); }
+      else if (st && RVL.hosting) rvlTick();
+    };
     cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
-    rvPaint(); rvPaintIa(g);
+    rvPaint(); rvPaintIa(g); rvlCount();
   }
   function rvDrawPaint() {
     const cv = document.querySelector('.rv-draw'); if (!cv) return;
@@ -1597,9 +1707,11 @@
       if (st.p.length === 1) x.lineTo(st.p[0][0] * cv.width + 0.1, st.p[0][1] * cv.height);
       x.stroke();
     }
+    rvlTick();
   }
   function rvPaint() {
     const g = RV.g; if (!g || S.section !== 'revue') return;
+    rvlTick();
     const t = RV.t, st = rvState(g, t), f = rvFrame(g, t), { cOf, tOf } = rvTeams(g);
     const v = (S.champList && S.champList.version) || '';
     // Carte : tours (vivantes / détruites), inhibiteurs, fosses, événements des 20 dernières secondes.
@@ -1721,6 +1833,111 @@
         rvPaint(); } }, '✕') : null)) : [h('p', { class: 'muted small' }, 'Aucune note. Mets la partie au bon moment, dessine sur la carte si besoin, écris ta remarque et ajoute-la.')]));
   }
 
+
+
+  // ===== Scrims : les séances contre d'autres équipes. Les parties personnalisées partagées sont détectées toutes seules,
+  // on les range par scrim (adversaire, côté, résultat, notes) et on suit le bilan. Données chiffrées avec le code d'équipe.
+  const SC = { list: null, rv: null, err: '', edit: null, busy: false };
+  const scIsScrim = (x) => x && x.mode === 'CLASSIC' && x.queue && (x.queue.custom || Number(x.queue.id) <= 0);
+  const scDay = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const scDateFr = (ymd) => new Date(ymd + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+  async function scLoad() {
+    if (!window.fire.scrims) return;
+    const [a, b] = await Promise.all([window.fire.scrims.list().catch((e) => ({ ok: false, error: String(e), list: [] })), window.fire.revues.list().catch(() => ({ list: [] }))]);
+    SC.list = (a && a.list) || []; SC.err = a && !a.ok ? a.error || '' : '';
+    SC.rv = ((b && b.list) || []).filter(scIsScrim);
+    if (S.section === 'scrims') renderScrims();
+  }
+  // Une même game est partagée par chaque joueur : on regroupe les copies (même début à 90 s près, même durée).
+  function scGames() {
+    const out = [];
+    for (const x of (SC.rv || []).slice().sort((a, b) => a.start - b.start)) {
+      const g = out.find((o) => Math.abs(o.start - x.start) < 90000 && Math.abs((o.duration || 0) - (x.duration || 0)) < 8);
+      if (g) g.ids.push(String(x.id)); else out.push({ ...x, ids: [String(x.id)] });
+    }
+    return out;
+  }
+  const scSide = (x) => { const me = (x.players || []).find((p) => p.n === x.me); return me ? (me.team === 'ORDER' ? 'bleu' : 'rouge') : ''; };
+  const scRes = (x) => (/win/i.test(x.result || '') ? 'win' : /lose/i.test(x.result || '') ? 'lose' : '');
+  async function scSave(op) {
+    SC.busy = true; renderScrims();
+    const r = await window.fire.scrims.save(op, vocalMe()).catch((e) => ({ ok: false, error: String(e) }));
+    SC.busy = false;
+    if (r && r.ok) { SC.list = r.list; SC.edit = null; SC.err = ''; actLog('app', op.del ? 'Scrim supprimé' : 'Scrim enregistré'); }
+    else SC.err = (r && r.error) || 'échec';
+    renderScrims();
+  }
+  function scOpenRevue(rid) { go('revue'); rvOpen(rid, 'team'); }
+  function scForm(sc) {
+    const f = JSON.parse(JSON.stringify(sc));
+    const box = h('div', { class: 'card sc-form' });
+    const paint = () => {
+      box.replaceChildren(h('h3', null, sc.id ? '✏️ Modifier le scrim' : '➕ Nouveau scrim'),
+        h('div', { class: 'row sc-fr' },
+          h('label', null, h('small', { class: 'muted' }, 'Date'), h('input', { class: 'inp', type: 'date', value: f.date, onchange: (e) => { f.date = e.target.value; } })),
+          h('label', { class: 'sc-adv' }, h('small', { class: 'muted' }, 'Équipe adverse'), h('input', { class: 'inp', value: f.adv || '', maxlength: 60, placeholder: 'ex. Team Nova', oninput: (e) => { f.adv = e.target.value; } })),
+          h('label', null, h('small', { class: 'muted' }, 'Format'), h('select', { class: 'inp', onchange: (e) => { f.format = e.target.value; } }, ['', 'BO1', 'BO3', 'BO5', 'Blocs de games', 'Libre'].map((x) => h('option', { value: x, selected: f.format === x ? true : null }, x || '—'))))),
+        h('div', { class: 'sc-fg' }, (f.games || []).map((g, i) => h('div', { class: 'row sc-fgr' },
+          h('b', null, `Game ${i + 1}`),
+          h('select', { class: 'inp', onchange: (e) => { g.side = e.target.value; } }, [['', 'Côté ?'], ['bleu', '🔵 Bleu'], ['rouge', '🔴 Rouge']].map(([v, l]) => h('option', { value: v, selected: g.side === v ? true : null }, l))),
+          h('select', { class: 'inp', onchange: (e) => { g.res = e.target.value; } }, [['', 'Résultat ?'], ['win', '✅ Victoire'], ['lose', '❌ Défaite']].map(([v, l]) => h('option', { value: v, selected: g.res === v ? true : null }, l))),
+          h('input', { class: 'inp sc-gn', value: g.notes || '', maxlength: 600, placeholder: 'Ce qui a marché, ce qui n’a pas marché…', oninput: (e) => { g.notes = e.target.value; } }),
+          g.rid ? h('small', { class: 'muted' }, '🎞️ revue liée') : null,
+          h('button', { class: 'btn-ghost', title: 'Retirer cette game', onclick: () => { f.games.splice(i, 1); paint(); } }, '✕')))),
+        h('button', { class: 'btn-ghost', onclick: () => { f.games = (f.games || []).concat({ rid: null, res: '', side: '', notes: '' }); paint(); } }, '➕ Ajouter une game'),
+        h('textarea', { class: 'inp sc-notes', rows: 3, maxlength: 2000, placeholder: 'Notes du scrim : leur style, leurs picks, ce qu’on doit travailler…', oninput: (e) => { f.notes = e.target.value; } }, f.notes || ''),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', disabled: SC.busy ? '' : null, onclick: () => { if (!String(f.adv || '').trim()) { alert('Indique l’équipe adverse.'); return; } scSave({ scrim: f }); } }, SC.busy ? 'Enregistrement…' : '💾 Enregistrer'),
+          h('button', { class: 'btn-ghost', onclick: () => { SC.edit = null; renderScrims(); } }, 'Annuler')));
+    };
+    paint();
+    return box;
+  }
+  function renderScrims() {
+    const view = $('view');
+    if (SUB()) { view.replaceChildren(h('div', { class: 'card' }, h('p', null, 'Les scrims sont réservés à l’équipe principale.'))); return; }
+    if (SC.list == null) { SC.list = []; SC.rv = []; scLoad(); }
+    const L = SC.list || [];
+    const games = L.flatMap((x) => x.games.map((g) => ({ ...g, adv: x.adv })));
+    const W = games.filter((g) => g.res === 'win').length, D = games.filter((g) => g.res === 'lose').length;
+    const pct = (w, d) => (w + d ? Math.round(w / (w + d) * 100) + ' %' : '—');
+    const side = (sd) => { const g = games.filter((x) => x.side === sd); const w = g.filter((x) => x.res === 'win').length, d = g.filter((x) => x.res === 'lose').length; return `${w} V – ${d} D (${pct(w, d)})`; };
+    const byAdv = {};
+    for (const g of games) { const k = g.adv || '?'; byAdv[k] = byAdv[k] || { w: 0, d: 0, n: 0 }; byAdv[k].n++; if (g.res === 'win') byAdv[k].w++; if (g.res === 'lose') byAdv[k].d++; }
+    const linked = new Set(L.flatMap((x) => x.games.map((g) => g.rid).filter(Boolean)));
+    const det = scGames().filter((g) => !g.ids.some((id) => linked.has(id)));
+    const days = {}; for (const g of det) (days[scDay(g.start)] = days[scDay(g.start)] || []).push(g);
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🤝'), h('div', null, h('h1', { class: 'title' }, 'Scrims'),
+      h('p', { class: 'muted' }, 'Vos séances contre d’autres équipes. Les parties personnalisées que vous jouez sont repérées toutes seules (elles sont partagées et analysées par l’IA comme les autres) : range-les par scrim, note l’adversaire, le côté et ce qu’il faut retenir. Chaque game se revoit dans la Revue, aussi en direct avec toute l’équipe.')));
+    view.replaceChildren(...[hero,
+      SC.err ? h('p', { class: 'bad small' }, '⚠ ' + SC.err) : null,
+      L.length ? h('div', { class: 'card sc-stats' },
+        h('div', { class: 'sc-big' }, h('b', null, `${W} – ${D}`), h('small', { class: 'muted' }, `${games.length} games · ${L.length} scrim${L.length > 1 ? 's' : ''} · ${pct(W, D)} de victoires`)),
+        h('div', { class: 'sc-sides' }, h('span', null, '🔵 Côté bleu : ' + side('bleu')), h('span', null, '🔴 Côté rouge : ' + side('rouge'))),
+        h('div', { class: 'sc-advs' }, Object.entries(byAdv).sort((a, b) => b[1].n - a[1].n).map(([k, v]) => h('span', { class: 'chip' }, `${k} · ${v.w}–${v.d}`)))) : null,
+      Object.keys(days).length ? h('div', { class: 'card sc-det' }, h('h3', null, '🔎 Games de scrim repérées'),
+        Object.entries(days).sort((a, b) => b[0].localeCompare(a[0])).map(([day, gs]) => {
+          const same = L.find((x) => x.date === day);
+          const fromDet = () => gs.map((g) => ({ rid: g.ids[0], res: scRes(g), side: scSide(g), notes: '' }));
+          return h('div', { class: 'row sc-dr' },
+            h('div', { class: 'sc-dd' }, h('b', null, scDateFr(day)), h('small', { class: 'muted' }, `${gs.length} game${gs.length > 1 ? 's' : ''} · ${gs.filter((g) => scRes(g) === 'win').length} V – ${gs.filter((g) => scRes(g) === 'lose').length} D`)),
+            h('div', { class: 'row sc-dg' }, gs.map((g) => { const meP = (g.players || []).find((p) => p.n === g.me) || {}; return h('button', { class: 'chip', title: 'Revoir', onclick: () => scOpenRevue(g.ids[0]) }, meP.c ? champIcon(meP.c, 18) : null, ` ${scSide(g) === 'bleu' ? '🔵' : '🔴'} ${scRes(g) === 'win' ? 'V' : scRes(g) === 'lose' ? 'D' : '?'} · ${mmss(g.duration || 0)}`); })),
+            same ? h('button', { class: 'btn-ghost', onclick: () => scSave({ scrim: { ...same, games: same.games.concat(fromDet()) } }) }, `➕ Ajouter au scrim contre ${same.adv}`) : null,
+            h('button', { class: 'btn-fire small-btn', onclick: () => { SC.edit = { date: day, adv: '', format: '', notes: '', games: fromDet() }; renderScrims(); window.scrollTo(0, 0); } }, '🤝 Créer le scrim'));
+        })) : null,
+      SC.edit ? scForm(SC.edit) : h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => { SC.edit = { date: scDay(Date.now()), adv: '', format: 'BO3', notes: '', games: [{ rid: null, res: '', side: '', notes: '' }] }; renderScrims(); } }, '➕ Nouveau scrim'), h('button', { class: 'btn-ghost', onclick: () => { SC.list = null; renderScrims(); } }, '⟳ Actualiser')),
+      L.length ? h('div', { class: 'sc-list' }, L.map((x) => {
+        const w = x.games.filter((g) => g.res === 'win').length, d = x.games.filter((g) => g.res === 'lose').length;
+        return h('div', { class: 'card sc-card ' + (w > d ? 'win' : d > w ? 'lose' : '') },
+          h('div', { class: 'row sc-ch' }, h('b', { class: 'sc-score' }, `${w} – ${d}`), h('div', null, h('h3', null, 'vs ' + x.adv), h('small', { class: 'muted' }, [scDateFr(x.date), x.format, x.by ? 'noté par ' + rvlName(x.by) : ''].filter(Boolean).join(' · '))),
+            h('button', { class: 'btn-ghost', onclick: () => { SC.edit = x; renderScrims(); window.scrollTo(0, 0); } }, '✏️'),
+            h('button', { class: 'btn-ghost', onclick: () => { if (confirm(`Supprimer le scrim contre ${x.adv} du ${scDateFr(x.date)} ?`)) scSave({ del: x.id }); } }, '🗑')),
+          h('div', { class: 'sc-games' }, x.games.map((g, i) => h('div', { class: 'row sc-g ' + (g.res || '') },
+            h('b', null, `Game ${i + 1}`), h('span', null, g.side === 'bleu' ? '🔵 Bleu' : g.side === 'rouge' ? '🔴 Rouge' : '—'), h('span', { class: g.res === 'win' ? 'good' : g.res === 'lose' ? 'bad' : 'muted' }, g.res === 'win' ? 'Victoire' : g.res === 'lose' ? 'Défaite' : '?'),
+            g.notes ? h('small', { class: 'muted sc-gnote' }, g.notes) : h('span', { class: 'sc-gnote' }),
+            g.rid ? h('button', { class: 'btn-ghost', onclick: () => scOpenRevue(g.rid) }, '🎞️ Revoir') : null))),
+          x.notes ? h('p', { class: 'sc-n' }, x.notes) : null);
+      })) : (!Object.keys(days).length ? h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Aucun scrim pour l’instant. Jouez une partie personnalisée avec FIRE ouvert : elle apparaîtra ici, prête à être rangée. Tu peux aussi en ajouter un à la main.')) : null)].filter(Boolean));
+  }
 
   // ===== Puzzle du jour : une situation de partie, plusieurs bonnes réponses selon le style, au moins une mauvaise =====
   const GP = { cur: null, pick: null, order: [], role: null, th: 'all', mode: 'jour' };
@@ -1896,8 +2113,8 @@
   // ===== Outils : tous les sites utiles, rangés par thème, ouverts dans FIRE =====
   const TOOL_CATS = [
     ['🎞️ Revoir ses parties', [
-      { k: 'invade', ico: '🛡️', name: 'Invade', url: 'https://ward.invade.lol/', desc: 'Revue de replays et de scrims : reprendre une partie de l’équipe et l’analyser ensemble.' },
-      { k: 'replays', ico: '🎬', name: 'Replays.lol (bêta)', url: 'https://beta.replays.lol/', desc: 'Enregistre les games et sort une revue vidéo par IA juste après la partie.' }]],
+      { k: 'n-revue', ico: '🎞️', name: 'Revue de parties', native: 'revue', desc: 'Intégré à FIRE (à la place de Replays.lol) : chaque game filmée, revue sur la carte avec les combats, et analysée par l’IA toute seule.' },
+      { k: 'n-scrims', ico: '🤝', name: 'Scrims', native: 'scrims', desc: 'Intégré à FIRE (à la place d’Invade) : scrims repérés tout seuls, bilan par adversaire et par côté, revue en direct avec toute l’équipe.' }]],
     ['🗺️ Carte et stratégie', [
       { k: 'riftkit', ico: '🗺️', name: 'RiftKit', url: 'https://kdx.gg/riftkit', desc: 'Carte de la Faille : champions, objectifs, timeline, graphiques d’or et de dégâts, annotations.' },
       { k: 'll', ico: '🧭', name: 'Level Legendary · Map Planner', url: 'https://levellegendary.com/tools/lol-map/', desc: 'La Faille en 3D avec les vraies portées des sorts et des tours, wards et zones de freeze.' },
@@ -1920,8 +2137,8 @@
         meetOk() ? h('button', { class: 'btn-ghost', onclick: () => go('reunion') }, '🧑‍🏫 Salle de réunion (coachs)') : null,
         h('button', { class: 'btn-ghost', onclick: () => go('draft') }, '⚡ Draft, matchups et tier list')),
       ...TOOL_CATS.flatMap(([title, list]) => [h('h2', { class: 'hub-sec' }, h('span', null, title)),
-        h('div', { class: 'meet-grid' }, list.map((t) => h('button', { class: 'card meet-card', onclick: () => webOpen(t.url) },
-          h('span', { class: 'meet-ico' }, t.ico), h('b', null, t.name), h('small', { class: 'muted' }, t.desc), h('span', { class: 'meet-go' }, 'Ouvrir →'))))]));
+        h('div', { class: 'meet-grid' }, list.filter((t) => !(t.native && SUB() && !SUB_OK.has(t.native))).map((t) => h('button', { class: 'card meet-card' + (t.native ? ' native' : ''), onclick: () => (t.native ? go(t.native) : webOpen(t.url)) },
+          h('span', { class: 'meet-ico' }, t.ico), h('b', null, t.name), h('small', { class: 'muted' }, t.desc), h('span', { class: 'meet-go' }, t.native ? 'Ouvrir dans FIRE →' : 'Ouvrir →'))))]));
   }
 
   // ===== Analyse de parties (titulaires) : les 20 dernières games d'un joueur, chacune décortiquée =====
@@ -2093,7 +2310,8 @@
   const MEET_TOOLS = [
     { k: 'riftkit', ico: '🗺️', name: 'RiftKit', url: 'https://kdx.gg/riftkit', desc: 'Carte de la Faille : charge un match ou monte une situation avec les champions, les objectifs, le tableau des scores, la timeline, les graphiques d’or et de dégâts, et des annotations.' },
     { k: 'll', ico: '🧭', name: 'Level Legendary · Map Planner', url: 'https://levellegendary.com/tools/lol-map/', desc: 'La Faille en 3D : place les 10 champions, dessine les actions, pose wards et camps, et vérifie les vraies portées des sorts et des tours et les zones de freeze, à n’importe quel niveau et build.' },
-    { k: 'replays', ico: '🎬', name: 'Replays.lol (bêta)', url: 'https://beta.replays.lol/', desc: 'Enregistre les games automatiquement et sort une revue vidéo par IA dès la fin de la partie, avec ce qu’il faut améliorer. Son client s’installe sur le PC du joueur.' },
+    { k: 'n-revue', ico: '🎞️', name: 'Revue de parties', native: 'revue', desc: 'Intégrée à FIRE : ouvre une revue de l’équipe et lance « Revoir en direct » : tout le monde suit ta lecture et voit tes dessins sur la carte, avec l’analyse IA de la partie.' },
+    { k: 'n-scrims', ico: '🤝', name: 'Scrims', native: 'scrims', desc: 'Intégré à FIRE : bilan des scrims par adversaire et par côté, notes, et chaque game à revoir.' },
     { k: 'lolvalue', ico: '💎', name: 'LoLValue', url: 'https://lolvalue.com/', desc: 'Temps passé sur LoL, valeur du compte et des skins d’un joueur.' },
   ];
   const meetOk = () => !SUB() && !!(S.coachState && (S.coachState.coach || S.coachState.admin));
@@ -2103,7 +2321,7 @@
     view.replaceChildren(
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🧑‍🏫'), h('div', null, h('h1', { class: 'title' }, 'Salle de réunion'),
         h('p', { class: 'muted' }, 'Les outils pour enseigner. Partage ton écran dans le salon vocal pour les montrer aux joueurs.'))),
-      h('div', { class: 'meet-grid' }, MEET_TOOLS.map((t) => h('button', { class: 'card meet-card', onclick: () => webOpen(t.url) },
+      h('div', { class: 'meet-grid' }, MEET_TOOLS.map((t) => h('button', { class: 'card meet-card' + (t.native ? ' native' : ''), onclick: () => (t.native ? go(t.native) : webOpen(t.url)) },
         h('span', { class: 'meet-ico' }, t.ico), h('b', null, t.name), h('small', { class: 'muted' }, t.desc), h('span', { class: 'meet-go' }, 'Ouvrir →')))),
       h('div', { class: 'card meet-tips' }, h('h3', null, '🎙️ Pour une séance'),
         h('div', { class: 'row' },
@@ -2118,7 +2336,7 @@
   // Chaque FIRE note ses actions (pages ouvertes, messages, vocal, planning, POOL, quiz, clips…) et les envoie toutes les
   // 3 minutes dans le fichier d'activité du joueur (chiffré avec le code d'équipe). Le contenu des messages privés n'est jamais noté.
   const PAGE_NAMES = { stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
-    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', puzzle: 'Puzzle du jour', revue: 'Revue de parties', web: 'navigateur' };
+    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', puzzle: 'Puzzle du jour', scrims: 'Scrims', revue: 'Revue de parties', web: 'navigateur' };
   const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
   function actLog(k, d) {
     if (!vocalMe() || !window.fire.staff) return;
@@ -2488,7 +2706,7 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'carnet' || S.section === 'parcours' || S.section === 'puzzle' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'carnet' || S.section === 'parcours' || S.section === 'puzzle' || S.section === 'scrims' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -2500,6 +2718,7 @@
     else if (S.section === 'outils') renderOutils();
     else if (S.section === 'parcours') renderParcours();
     else if (S.section === 'puzzle') renderGamePuzzle();
+    else if (S.section === 'scrims') renderScrims();
     else if (S.section === 'revue') renderRevue();
     else if (S.section === 'parties') renderParties();
     else if (S.section === 'pool') renderPool();
@@ -2589,7 +2808,7 @@
     1700: 'Arena', 1710: 'Arena', 900: 'URF', 1900: 'URF', 1010: 'URF', 700: 'Clash', 720: 'Clash ARAM', 0: 'Partie personnalisée', 3100: 'Partie personnalisée', 1020: 'Un pour tous', 1300: 'Nexus Blitz', 1810: 'Swarm', 1820: 'Swarm', 1830: 'Swarm', 1840: 'Swarm',
     830: 'Contre l’IA', 840: 'Contre l’IA', 850: 'Contre l’IA', 870: 'Contre l’IA', 880: 'Contre l’IA', 890: 'Contre l’IA' };
   const GMODES = { CLASSIC: 'Faille (normale ou classée)', ARAM: 'ARAM', KIWI: 'ARAM : Mayhem', CHERRY: 'Arena', URF: 'URF', ARURF: 'ARURF', PRACTICETOOL: 'Outil d’entraînement', ONEFORALL: 'Un pour tous', NEXUSBLITZ: 'Nexus Blitz', ULTBOOK: 'Grimoire ultime', TUTORIAL: 'Tutoriel', STRAWBERRY: 'Swarm', SWIFTPLAY: 'Partie rapide' };
-  const gameModeLabel = (g) => (g.queue && g.queue.id != null && QUEUES[g.queue.id]) || (g.queue && g.queue.name) || GMODES[g.mode] || g.mode || 'Partie';
+  const gameModeLabel = (g) => (g.queue && g.queue.custom && 'Partie personnalisée') || (g.queue && g.queue.id != null && QUEUES[g.queue.id]) || (g.queue && g.queue.name) || GMODES[g.mode] || g.mode || 'Partie';
   const gameModeKind = (g) => { const id = g.queue && g.queue.id; return id === 420 || id === 440 ? 'ranked' : (g.mode === 'ARAM' || g.mode === 'KIWI' || id === 450 || id === 2400) ? 'aram' : g.mode === 'CLASSIC' ? 'normal' : 'fun'; };
   // ----- Vue spectateur FIRE : comme le tableau (Tab) en jeu, avec objets, sorts, objectifs et le fil de la partie -----
   const SP_DRAG = { Fire: ['#ff6a3d', 'Infernal'], Earth: ['#b98a4a', 'Montagne'], Water: ['#3dc8d8', 'Océan'], Air: ['#cfe3ff', 'Nuages'], Hextech: ['#3d8bff', 'Hextech'], Chemtech: ['#9be03d', 'Chemtech'], Elder: ['#e8d9ff', 'Ancestral'] };
@@ -3885,6 +4104,7 @@
     FV().onSoundRequest(soundAsk);
     liveInit();
     rvAutoInit();
+    rvlInit();
     // Clips : enregistrement continu si activé sur ce PC ; ta voix y entre quand tu es en appel.
     if (window.FireClips) { FireClips.onChange(() => { if (S.section === 'vocal' && VX.drawer) renderVocal(); }); setTimeout(() => clipsApply().catch(() => {}), 4000); }
     // Tableau tactique : messages du salon et état envoyé à chaque personne qui arrive.
@@ -5228,7 +5448,7 @@
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
-      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['parcours', '🗺️', 'Parcours'], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
+      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
       ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.

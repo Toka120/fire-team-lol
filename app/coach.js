@@ -1240,6 +1240,37 @@ async function revueIa(req, who) {
     return { ok: true, ia };
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
+// ---------- Scrims : séances d'entraînement contre d'autres équipes (chiffré avec le code d'équipe) ----------
+const SCRIMS = 'scrims.json';
+function cleanScrim(x) {
+  if (!x || typeof x !== 'object') return null;
+  const t = (v, n) => String(v || '').trim().slice(0, n);
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(x.date)) ? String(x.date) : new Date().toISOString().slice(0, 10);
+  const games = (Array.isArray(x.games) ? x.games : []).slice(0, 12).map((g) => ({
+    rid: /^\d{10,16}$/.test(String(g && g.rid)) ? String(g.rid) : null,
+    res: g && (g.res === 'win' || g.res === 'lose') ? g.res : '',
+    side: g && (g.side === 'bleu' || g.side === 'rouge') ? g.side : '',
+    notes: t(g && g.notes, 600),
+  }));
+  return { id: String(x.id || '').replace(/[^\w-]/g, '').slice(0, 24) || crypto.randomBytes(5).toString('hex'), date, adv: t(x.adv, 60) || 'Adversaire', format: t(x.format, 20), games, notes: t(x.notes, 2000), by: t(x.by, 80), at: Number(x.at) || Date.now() };
+}
+async function scrims() {
+  try { const d = await teamRead(SCRIMS); return { ok: true, list: (d && Array.isArray(d.list) ? d.list : []).map(cleanScrim).filter(Boolean) }; }
+  catch (e) { return { ok: false, error: String((e && e.message) || e), list: [] }; }
+}
+async function scrimSave(op, who) {
+  if (coachState().remplacant) return { ok: false, error: 'réservé à l’équipe principale' };
+  try {
+    const d = await teamWrite(SCRIMS, (cur) => {
+      let list = (cur && Array.isArray(cur.list) ? cur.list : []).map(cleanScrim).filter(Boolean);
+      if (op && op.del) list = list.filter((x) => x.id !== String(op.del));
+      else { const sc = cleanScrim({ ...(op && op.scrim), by: (op && op.scrim && op.scrim.by) || who, at: Date.now() }); if (!sc) throw new Error('scrim invalide'); list = [sc].concat(list.filter((x) => x.id !== sc.id)); }
+      list.sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.at - a.at);
+      return { list: list.slice(0, 400) };
+    }, op && op.del ? 'Scrim supprimé' : 'Scrim enregistré');
+    return { ok: true, list: d.list };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
 function mergeNotes(a, b) { const m = new Map(); for (const n of a.concat(b)) if (n && n.id) m.set(n.id, n); return [...m.values()].sort((x, y) => x.t - y.t).slice(-300); }
 async function revueNote(id, note, del) {
   id = revId(id); if (!id) return { ok: false, error: 'partie invalide' };
@@ -1254,4 +1285,4 @@ async function revueNote(id, note, del) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 
-module.exports = { revues, revueGet, revueShare, revueNote, revueShots, revueIa, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

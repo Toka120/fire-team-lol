@@ -819,6 +819,8 @@
     if (m.t === 'invite' && L.onInvite) L.onInvite(from, String(m.room || 'equipe').slice(0, 20));
     if (m.t === 'chat' && m.msg && L.onChat && m.msg.from === from) L.onChat(m.msg);
     if (m.t === 'remp' && m.box && L.onRemp) { L.onRemp(from, m.box); return; }
+    // Revue en direct (une partie revue ensemble, synchronisée) : jamais vers ni depuis les remplaçants.
+    if (m.t === 'rv' && L.onRv && !(L.noChat && L.noChat.has(from))) { L.onRv(from, m); return; }
     // Commande de modération (déplacer, rendre muet, déconnecter, exclure…) : FIRE vérifie qui l'envoie avant d'obéir.
     if (m.t === 'mod' && m.a && L.onMod) { L.onMod(from, { a: String(m.a).slice(0, 12), room: String(m.room || '').slice(0, 20), on: !!m.on, min: Math.max(0, Math.min(10080, Number(m.min) || 0)) }); return; }
     if (m.t === 'status') { const st = cleanStatus(m.s); if (st) L.status[from] = { ...st, t: Date.now() + 150000 }; else delete L.status[from]; emit(); return; }
@@ -996,6 +998,9 @@
     onSoundRequest: (f) => { V.onSndReq = f; }, appSend, liveSend, statusSend, modSend, onMod: (f) => { L.onMod = f; }, onApp: (f) => { V.onApp = f; }, onPeer: (f) => { V.onPeer = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
     clearErr: () => { V.err = ''; emit(); },
     onRemp: (f) => { L.onRemp = f; },
+    onRv: (f) => { L.onRv = f; },
+    // Envoi à toute l'équipe titulaire dont FIRE est ouvert (pas aux remplaçants).
+    rvBroadcast: async (msg) => { const others = L.ids.filter((x) => x !== L.me && !(L.noChat && L.noChat.has(x))); await Promise.all(others.map(async (x) => { const dc = await link(x); if (dc) { try { dc.send(msg); } catch (e) { /* */ } } })); },
     hallSend: async (slug, msg) => { const dc = await link(slug); if (!dc) return false; try { dc.send(msg); return true; } catch (e) { return false; } },
     isOn: () => !!V.on,
     // Définition et images/s de chaque écran partagé que je reçois (affichées sur la vidéo).

@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.125",
+   "date": "2026-11-14",
+   "titre": "Scrims et revue en direct (à la place d’Invade)",
+   "items": [
+    [
+     "new",
+     "Outils › « Scrims » : les parties personnalisées que vous jouez sont repérées toutes seules (une seule fois même si les 5 l’ont partagée). Un clic pour en faire un scrim : équipe adverse, format, côté et résultat de chaque game, notes. Bilan global, par côté (bleu / rouge) et par adversaire, et chaque game se revoit dans la Revue."
+    ],
+    [
+     "new",
+     "Revue de parties › « 📡 Revoir en direct avec l’équipe » : tous ceux qui ont FIRE ouvert reçoivent une invitation. Ceux qui rejoignent suivent ta lecture (temps, pause, vitesse) et tout le monde peut dessiner sur la carte : les dessins s’affichent chez tous, en direct."
+    ],
+    [
+     "improve",
+     "Outils et Salle de réunion : Invade et Replays.lol (qui demandaient d’installer un logiciel) sont remplacés par leurs versions intégrées à FIRE : Revue de parties (vidéo, combats, analyse IA automatique) et Scrims."
+    ]
+   ]
+  },
+  {
    "v": "1.10.124",
    "date": "2026-11-14",
    "titre": "Analyse IA automatique des parties",

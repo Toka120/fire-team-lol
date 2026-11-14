@@ -518,7 +518,7 @@ async function lcuQueue() {
   let s = await lcuGet('/lol-gameflow/v1/session');
   if (!s && Date.now() - LCU.at > 60000) { LCU.at = Date.now(); const f = lcuFind() || await lcuFromProcess(); if (f) { LCU.port = f.port; LCU.pass = f.pass; s = await lcuGet('/lol-gameflow/v1/session'); } }
   const q = s && s.gameData && s.gameData.queue;
-  LCU.queue = q ? { id: Number(q.id) || 0, name: String(q.description || q.shortName || '').slice(0, 40), ranked: !!q.isRanked } : null;
+  LCU.queue = q ? { id: Number(q.id) || 0, name: String(q.description || q.shortName || '').slice(0, 40), ranked: !!q.isRanked, custom: !!(s.gameData.isCustomGame || Number(q.id) <= 0) } : null;
   LCU.gameId = s && s.gameData ? Number(s.gameData.gameId) || 0 : 0;
   if (LCU.queue && !LCU.puuid) { const me = await lcuGet('/lol-summoner/v1/current-summoner'); if (me && me.puuid) LCU.puuid = String(me.puuid); }
   return LCU.queue;
@@ -843,6 +843,8 @@ ipcMain.handle('revues', () => coach.revues());
 ipcMain.handle('revue:get', (e, id) => coach.revueGet(id));
 ipcMain.handle('revue:share', (e, g, who, shots) => coach.revueShare(g, who, shots));
 ipcMain.handle('revue:ia', (e, req, who) => coach.revueIa(req || {}, who));
+ipcMain.handle('scrims', () => coach.scrims());
+ipcMain.handle('scrim:save', (e, op, who) => coach.scrimSave(op || {}, who));
 ipcMain.handle('revue:note', (e, id, n, del) => coach.revueNote(id, n, !!del));
 ipcMain.handle('remp:open', (e, box) => coach.rempOpen(box));
 ipcMain.handle('coach:state', () => coach.coachState());
