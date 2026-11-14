@@ -481,6 +481,47 @@ function lcuReq(method, p, body) {
   });
 }
 async function lcuGet(p) { const r = await lcuReq('GET', p); return r.status === 200 ? r.data : null; }
+// Fichier brut servi par le client (sons, images du jeu) : /lol-game-data/assets/…
+function lcuRaw(p) {
+  return new Promise((ok) => {
+    if (!LCU.port) return ok(null);
+    const req = require('https').request({ method: 'GET', host: '127.0.0.1', port: LCU.port, path: p, rejectUnauthorized: false, timeout: 6000,
+      headers: { Authorization: 'Basic ' + Buffer.from('riot:' + LCU.pass).toString('base64') } }, (res) => {
+      const parts = []; let n = 0;
+      res.on('data', (c) => { parts.push(c); n += c.length; if (n > 8e6) req.destroy(); });
+      res.on('end', () => ok(res.statusCode === 200 ? Buffer.concat(parts) : null));
+    });
+    req.on('timeout', () => req.destroy()); req.on('error', () => ok(null));
+    req.end();
+  });
+}
+// Voix et bruitages des champions (Détente : « Qui a dit ça ? », League of Listen). Gardés sur le PC une fois lus ;
+// sinon CommunityDragon, et s'il est en panne, le client LoL lui-même (s'il est ouvert, et en français pour les voix).
+const voDir = () => path.join(app.getPath('userData'), 'voix');
+let VO_CD_DOWN = 0;
+ipcMain.handle('vo:get', async (e, kind, key) => {
+  kind = String(kind || ''); key = String(key || '');
+  if (!/^(choose-vo|ban-vo|sfx-audios)$/.test(kind) || !/^\d{1,5}$/.test(key)) return null;
+  const f = path.join(voDir(), `${kind}-${key}.ogg`);
+  try { const b = fs.readFileSync(f); if (b.length > 1000) return b; } catch (err) { /* pas encore en cache */ }
+  const keep = (b) => { try { fs.mkdirSync(voDir(), { recursive: true }); fs.writeFileSync(f, b); } catch (err) { /* */ } return b; };
+  const loc = kind === 'sfx-audios' ? 'default' : 'fr_fr';
+  if (Date.now() > VO_CD_DOWN) {
+    try {
+      const r = await fetch(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${loc}/v1/champion-${kind}/${key}.ogg`, { signal: AbortSignal.timeout(6000) });
+      if (r.ok) { const b = Buffer.from(await r.arrayBuffer()); if (b.length > 1000) return keep(b); }
+      if (r.status >= 500) VO_CD_DOWN = Date.now() + 10 * 60000;
+    } catch (err) { VO_CD_DOWN = Date.now() + 10 * 60000; } // en panne : on ne réessaie pas avant 10 min
+  }
+  try {
+    if (!LCU.port || !(await lcuGet('/riotclient/region-locale'))) await lcuConnect();
+    if (!LCU.port) return null;
+    if (kind !== 'sfx-audios') { const rl = await lcuGet('/riotclient/region-locale'); if (!rl || !/^fr/i.test(String(rl.locale || ''))) return null; }
+    const b = await lcuRaw(`/lol-game-data/assets/v1/champion-${kind}/${key}.ogg`);
+    if (b && b.length > 1000) return keep(b);
+  } catch (err) { /* client fermé */ }
+  return null;
+});
 async function lcuConnect() {
   if (LCU.port) { const r = await lcuReq('GET', '/lol-summoner/v1/current-summoner'); if (r.status === 200) return r.data; }
   const f = lcuFind() || await lcuFromProcess();

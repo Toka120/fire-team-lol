@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.127",
+   "date": "2026-11-14",
+   "titre": "Voix des champions réparées",
+   "items": [
+    [
+     "fix",
+     "Détente › Phrase et League of Listen : les voix et les bruitages des champions ne se lançaient plus (le serveur CommunityDragon qui les fournit est en panne). FIRE les lit maintenant lui-même : depuis CommunityDragon quand il marche, sinon directement depuis ton client LoL s’il est ouvert (en français). Chaque son écouté est gardé sur ton PC et marche ensuite même sans connexion."
+    ]
+   ]
+  },
+  {
    "v": "1.10.126",
    "date": "2026-11-14",
    "titre": "Revue de parties : seulement les games qui comptent",

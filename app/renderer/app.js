@@ -6705,6 +6705,16 @@
     return t;
   }
 
+  // Sons des champions : lus par FIRE (cache sur le PC, CommunityDragon, ou le client LoL si CommunityDragon est en panne).
+  const VO_URL = {};
+  async function voUrl(kind, key) {
+    const k = kind + '-' + key;
+    if (VO_URL[k]) return VO_URL[k];
+    if (!window.fire.voice) return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${kind === 'sfx-audios' ? 'default' : 'fr_fr'}/v1/champion-${kind}/${key}.ogg`;
+    const b = await window.fire.voice(kind, String(key)).catch(() => null);
+    if (!b) return null;
+    return (VO_URL[k] = URL.createObjectURL(new Blob([b], { type: 'audio/ogg' })));
+  }
   async function jNew(mode) {
     const cs = mode === 'emoji' ? J.data.champs.filter((x) => x.emo) : J.data.champs;
     const prev = J.r[mode] && J.r[mode].target;
@@ -6715,9 +6725,11 @@
     if (mode === 'sort') { r.spell = pick(c.spells); r.rot = pick([90, 180, 270]); }
     // League of Listen : les bruitages du champion (sorts, attaques) joués à la sélection.
     if (mode === 'listen') {
-      r.sfx = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-sfx-audios/${c.key}.ogg`;
-      r.vo = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/fr_fr/v1/champion-choose-vo/${c.key}.ogg`;
       r.cut = Math.random(); // en difficile : où commence l'extrait d'un seul sort
+      r.wait = true; J.r[mode] = r; render();
+      [r.sfx, r.vo] = await Promise.all([voUrl('sfx-audios', c.key), voUrl('choose-vo', c.key)]);
+      r.wait = false;
+      if (J.r[mode] !== r) return;
     }
     if (mode === 'emoji') r.emo = [...new Intl.Segmenter('fr', { granularity: 'grapheme' }).segment(c.emo)].map((x) => x.segment);
     if (mode === 'ombre') { const sk = c.skins.filter((x) => x.num > 0); r.skin = Math.random() < 0.5 || !sk.length ? (c.skins[0] || { num: 0 }) : pick(sk); }
@@ -6736,8 +6748,10 @@
       // La phrase affichée est exactement la réplique audio (sélection ou bannissement, en français).
       const line = (c.vo || []).length ? pick(c.vo) : null;
       if (line) {
-        r.vo = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/fr_fr/v1/champion-${line.kind}-vo/${c.key}.ogg`;
         r.quote = jMask(line.text, c); r.fromBio = false;
+        r.vo = await voUrl(line.kind + '-vo', c.key);
+        if (!r.vo) r.noVo = true;
+        if (J.r[mode] !== r) return;
       } else {
         // Pas de réplique fiable pour ce champion : citation du lore, sans audio.
         r.vo = null;
@@ -7096,6 +7110,7 @@
       // Joue le son ; en difficile, seulement un court extrait (≈ un seul sort), toujours le même pour la manche.
       const play = (src, btn, label, clip) => {
         if (J.audio) { try { J.audio.pause(); } catch (e) { /* rien */ } }
+        if (!src) { btn.querySelector('.ll-l').textContent = r.wait ? 'Chargement du son…' : '⚠ Son indisponible : ouvre le client LoL et réessaie'; return; }
         clearTimeout(J.audioStop);
         if (!J.audio || J.audio.dataset.src !== src) { J.audio = new Audio(src); J.audio.dataset.src = src; J.audio.volume = 0.8; }
         const a = J.audio;
@@ -7159,6 +7174,7 @@
           J.audio.play().then(() => { b.textContent = '🔊 Réécouter sa voix'; }).catch(() => { r.noVo = true; render(); });
         } }, '🔊 Écouter sa voix'),
         h('span', { class: 'muted small' }, 'La voix du champion dit cette phrase.')) : null,
+      r.noVo && !r.fromBio && (wrong >= 3 || r.done) ? h('p', { class: 'muted small' }, '🔇 Voix indisponible pour l’instant (le serveur des sons est en panne) : ouvre le client LoL et FIRE la lira depuis le jeu.') : null,
       // Plus d'indice écrit (titre, région) : la voix débloquée après 3 essais suffit. Le titre s'affiche une fois trouvé.
       r.done ? h('p', { class: 'muted small' }, `« ${t.title} » · ${t.region || 'région inconnue'}`) : null);
     if (mode === 'splash') {
