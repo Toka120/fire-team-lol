@@ -1239,6 +1239,119 @@
       return { ...f, mine, theirs, me, won: mine > theirs, lost: theirs > mine, n, obj: objLab, label: `${kind}${n > 1 ? ` ${mine}–${theirs}` : ''}${objLab ? ' · ' + objLab : ''}` };
     });
   }
+
+  // ----- Analyse IA de la partie (clé Claude du coach) : texte de la Revue + images de la vidéo -----
+  function rvKeyMoments(g) {
+    const fs = rvFights(g);
+    const score = (f) => (f.lost ? 4 : 0) + (f.me === 'mort' ? 3 : f.me ? 1 : 0) + (f.obj ? 2 : 0) + Math.min(3, f.n / 2);
+    const pick = fs.slice().sort((a, b) => score(b) - score(a)).slice(0, 8).map((f) => ({ t: Math.max(0, f.start - 2), why: f.label + (f.me ? ` (${({ kill: 'je tue', assist: 'j’assiste', mort: 'je meurs' })[f.me]})` : '') }));
+    for (const e of g.events || []) {
+      if (pick.length >= 8) break;
+      if (!/DragonKill|BaronKill|HeraldKill|AtakhanKill/.test(e.x) || pick.some((p) => Math.abs(p.t - e.t) < 30)) continue;
+      pick.push({ t: Math.max(0, e.t - 10), why: { DragonKill: 'Dragon', BaronKill: 'Nashor', HeraldKill: 'Héraut', AtakhanKill: 'Atakhan' }[e.x] + ' (avant la prise)' });
+    }
+    return pick.sort((a, b) => a.t - b.t);
+  }
+  // Images de la vidéo aux moments clés (640 px, JPEG) : lues dans un lecteur caché.
+  async function rvShots(g, onStep) {
+    if (!g.vod || !g.vod.url) return [];
+    const v = document.createElement('video'); v.muted = true; v.preload = 'auto'; v.src = g.vod.url;
+    const ok = await new Promise((res) => { v.onloadedmetadata = () => res(true); v.onerror = () => res(false); setTimeout(() => res(false), 15000); });
+    if (!ok || !v.videoWidth) return [];
+    const W = 640, H = Math.round(W * v.videoHeight / v.videoWidth);
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const cx = cv.getContext('2d');
+    const out = [];
+    const ms = rvKeyMoments(g);
+    for (let i = 0; i < ms.length; i++) {
+      const m = ms[i]; const vt = m.t - (g.vod.gt0 || 0);
+      if (vt < 0 || vt > v.duration - 0.5) continue;
+      if (onStep) onStep(i + 1, ms.length);
+      const seeked = new Promise((res) => { v.onseeked = () => res(true); setTimeout(() => res(false), 8000); });
+      v.currentTime = vt;
+      if (!(await seeked)) continue;
+      cx.drawImage(v, 0, 0, W, H);
+      let q = 0.62, img = cv.toDataURL('image/jpeg', q);
+      while (img.length > 110000 && q > 0.3) { q -= 0.1; img = cv.toDataURL('image/jpeg', q); }
+      out.push({ t: m.t, why: m.why, img });
+    }
+    v.removeAttribute('src'); v.load();
+    return out;
+  }
+  // Déroulé de la partie en texte, pour l'IA.
+  function rvCtx(g) {
+    const { tOf, cOf } = rvTeams(g);
+    const nm = (n) => { const c = cOf(n); const tm = tOf(n); return c ? `${FC.champName(c)} (${tm === 'ORDER' ? 'bleu' : tm === 'CHAOS' ? 'rouge' : '?'})` : (n ? 'sbire/tour/monstre' : '?'); };
+    const meP = (g.players || []).find((p) => p.n === g.me) || {};
+    const last = (g.frames || [])[(g.frames || []).length - 1];
+    const L = [];
+    L.push(`Partie : ${gameModeLabel(g)} · durée ${mmss(g.duration || 0)} · résultat pour moi : ${/win/i.test(g.result || '') ? 'victoire' : /lose/i.test(g.result || '') ? 'défaite' : 'inconnu'}.`);
+    L.push(`Moi : ${FC.champName(meP.c || '')} dans l'équipe ${meP.team === 'ORDER' ? 'bleue (en bas à gauche de la carte)' : 'rouge (en haut à droite)'}.`);
+    L.push('', 'Joueurs (fin de partie : K/D/A, CS, niveau) :');
+    (g.players || []).forEach((p, i) => { const a = (last && last.p[i]) || []; L.push(`- ${p.team === 'ORDER' ? 'Bleu' : 'Rouge'} · ${FC.champName(p.c)}${p.n === g.me ? ' (MOI)' : ''} : ${a[0] || 0}/${a[1] || 0}/${a[2] || 0}, ${a[3] || 0} CS, niv. ${a[4] || 1}`); });
+    L.push('', 'Événements (t = secondes de jeu) :');
+    for (const e of g.events || []) {
+      const ts = `${mmss(e.t)} (t=${Math.round(e.t)})`;
+      if (e.x === 'ChampionKill') L.push(`${ts} kill : ${nm(e.k)} tue ${nm(e.v)}${(e.a || []).length ? ', assists ' + e.a.map(nm).join(', ') : ''}`);
+      else if (e.x === 'DragonKill') L.push(`${ts} dragon ${e.dr || ''} pris par ${tOf(e.k) === 'ORDER' ? 'les bleus' : 'les rouges'}${e.st ? ' (volé)' : ''}`);
+      else if (/BaronKill|HeraldKill|HordeKill|AtakhanKill/.test(e.x)) L.push(`${ts} ${({ BaronKill: 'Nashor', HeraldKill: 'Héraut', HordeKill: 'larve', AtakhanKill: 'Atakhan' })[e.x]} pris par ${tOf(e.k) === 'ORDER' ? 'les bleus' : 'les rouges'}`);
+      else if (e.x === 'TurretKilled' || e.x === 'InhibKilled') {
+        const key = rvBuilding(e.tw, e.x === 'InhibKilled'); const m = key && key.split('_');
+        const tier = m && m[2] ? (m[1] === 'C' ? { '05': 'extérieure', '04': 'intérieure', '03': 'd’inhibiteur', '01': 'du nexus', '02': 'du nexus' } : { '03': 'extérieure', '02': 'intérieure', '01': 'd’inhibiteur' })[m[2]] : '';
+        const where = m ? `de l'équipe ${m[0] === 'T1' ? 'bleue' : 'rouge'}, ${({ L: 'top', C: 'mid', R: 'bot' })[m[1]]}${tier ? ' (' + tier + ')' : ''}` : (e.tw || '');
+        L.push(`${ts} ${e.x === 'TurretKilled' ? 'tour détruite' : 'inhibiteur détruit'} ${where}`);
+      }
+    }
+    L.push('', 'Combats repérés :');
+    for (const f of rvFights(g)) L.push(`${mmss(f.start)}–${mmss(f.end)} (t=${Math.round(f.start)}) ${f.label}${f.me ? ' · moi : ' + f.me : ''}`);
+    L.push('', 'Situation aux moments clés (tableau, et positions lues sur la mini-carte : x de 0 à gauche à 1000 à droite, y de 0 en haut à 1000 en bas ; base bleue en bas à gauche) :');
+    for (const m of rvKeyMoments(g)) {
+      const f = rvFrame(g, m.t);
+      L.push(`— ${mmss(m.t)} (t=${Math.round(m.t)}) ${m.why}`);
+      if (f) (g.players || []).forEach((p, i) => { const a = f.p[i] || []; L.push(`  ${FC.champName(p.c)}${p.n === g.me ? ' (MOI)' : ''} : niv. ${a[4] || 1}, ${a[0] || 0}/${a[1] || 0}/${a[2] || 0}, ${a[3] || 0} CS${a[5] ? ', mort (' + a[5] + ' s)' : ''}`); });
+      if (Array.isArray(g.pos) && g.pos.length) {
+        let k = g.pos.length - 1; while (k > 0 && g.pos[k].t > m.t) k--;
+        const P = g.pos[k]; if (P && m.t - P.t <= 6) L.push('  positions : ' + (P.p || []).map((q, i) => q ? `${FC.champName((g.players[i] || {}).c || '')} ${q[0]},${q[1]}` : null).filter(Boolean).join(' · '));
+      }
+    }
+    if ((g.notes || []).length) { L.push('', 'Notes déjà écrites par l\'équipe :'); for (const n of g.notes) L.push(`${mmss(n.t)} : ${n.text}`); }
+    return L.join('\n');
+  }
+  async function rvRunIa(g) {
+    if (RV.ia) return;
+    RV.ia = 'Préparation…'; rvPaintIa(g);
+    try {
+      const shots = RV.src === 'local' && g.vod ? await rvShots(g, (i, n) => { RV.ia = `Images de la vidéo ${i}/${n}…`; rvPaintIa(g); }) : [];
+      RV.ia = 'Claude regarde la partie (30 s à 2 min)…'; rvPaintIa(g);
+      const r = await window.fire.revues.ia({ id: g.id, src: RV.src, ctx: rvCtx(g), shots }, vocalMe()).catch((e) => ({ ok: false, error: String(e) }));
+      if (r && r.ok) { g.ia = r.ia; if (RV.src === 'local') await window.fire.parties.save(g).catch(() => {}); RV.iaErr = ''; actLog('app', 'Analyse IA de partie'); }
+      else RV.iaErr = (r && r.error) || 'échec';
+    } finally { RV.ia = null; rvPaintIa(g); }
+  }
+  function rvPaintIa(g) {
+    const box = document.querySelector('.rv-ia'); if (!box || RV.g !== g) return;
+    const canRun = S.coachState && S.coachState.claude && !SUB();
+    const ia = g.ia;
+    const tchip = (t) => h('button', { class: 'chip', onclick: () => { rvSeek(Math.max(0, t - 5)); window.scrollTo({ top: 0, behavior: 'smooth' }); } }, '⏱ ' + mmss(t));
+    const headRow = h('div', { class: 'row rv-iah' }, h('h3', null, '🤖 Analyse IA de la partie'),
+      ia ? h('small', { class: 'muted' }, `par ${vocalName(ia.par) || 'le coach'} · ${new Date(ia.at).toLocaleDateString('fr-FR')} · ${ia.images ? ia.images + ' images de la vidéo' : 'sans vidéo'}`) : null,
+      canRun ? h('button', { class: ia ? 'btn-ghost' : 'btn-fire small-btn', disabled: RV.ia ? '' : null, onclick: () => rvRunIa(g) }, RV.ia ? RV.ia : ia ? '↻ Refaire l’analyse' : '🤖 Lancer l’analyse') : null);
+    const kids = [headRow];
+    if (RV.iaErr) kids.push(h('p', { class: 'bad small' }, '⚠ ' + RV.iaErr));
+    if (!ia) {
+      kids.push(h('p', { class: 'muted small' }, canRun
+        ? `Claude revoit la partie comme en revue VOD : déroulé, combats, positions${g.vod || g.shots ? ' et images de la vidéo aux moments clés' : ''}. Il pointe les erreurs et les bonnes décisions, minute par minute, avec quoi faire à la place.`
+        : RV.src === 'local' ? 'Partage la partie avec l’équipe : un coach pourra lancer l’analyse IA (avec des images de ta vidéo si tu l’as filmée). Le résultat s’affichera ici.' : 'Un coach peut lancer l’analyse IA de cette partie ; elle s’affichera ici pour toute l’équipe.'));
+    } else {
+      kids.push(h('p', { class: 'rv-iares' }, ia.resume));
+      if ((ia.points_forts || []).length) kids.push(h('div', { class: 'rv-iapf' }, h('b', null, '✅ Points forts'), h('ul', null, ia.points_forts.map((x) => h('li', null, x)))));
+      if ((ia.moments || []).length) kids.push(h('div', { class: 'rv-iams' }, ia.moments.map((m) => h('div', { class: 'rv-iam ' + m.type },
+        h('div', { class: 'row' }, tchip(m.t), h('b', null, (m.type === 'erreur' ? '❌ ' : m.type === 'bien' ? '✅ ' : '🧭 ') + m.titre)),
+        m.analyse ? h('p', null, m.analyse) : null, m.conseil ? h('p', { class: 'rv-iac' }, '👉 ' + m.conseil) : null))));
+      if ((ia.combats || []).length) kids.push(h('details', { class: 'rv-iacb' }, h('summary', null, `⚔ Les combats (${ia.combats.length})`), ia.combats.map((c) => h('div', { class: 'row rv-iacr' }, tchip(c.t), h('b', { class: /gagn/.test(c.verdict) ? 'good' : /perdu/.test(c.verdict) ? 'bad' : 'muted' }, c.verdict), h('span', null, c.pourquoi)))));
+      if ((ia.a_travailler || []).length) kids.push(h('div', { class: 'rv-iaw' }, h('b', null, '🎯 À travailler'), ia.a_travailler.map((x) => h('div', { class: 'rv-iawi' }, h('b', null, x.titre), h('p', { class: 'muted' }, x.exercice)))));
+    }
+    box.replaceChildren(...kids.filter(Boolean));
+  }
   const RV_TAGS = ['Surextension', 'Mauvais engage', 'Mauvais placement', 'Mauvais focus', 'Trop tard', 'Pas groupés', 'En infériorité', 'Pas de vision', 'Sorts en recharge', 'Mauvaise lecture du jungler'];
   function vodCard() {
     const c = vodCfg();
@@ -1311,7 +1424,7 @@
   async function rvOpen(id, src) {
     const g = src === 'team' ? await window.fire.revues.get(id).catch(() => null) : await window.fire.parties.get(id).catch(() => null);
     if (!g) { RV.err = 'Partie introuvable.'; renderRevue(); return; }
-    rvStop(); RV.g = g; RV.src = src; RV.t = 0; RV.strokes = []; RV.show = null;
+    rvStop(); RV.g = g; RV.src = src; RV.t = 0; RV.strokes = []; RV.show = null; RV.iaErr = ''; RV.fights = null; RV.ftag = null;
     if (!CL.list.length && window.fire.clips) clipsRefresh();
     actLog('app', 'Revue de partie ouverte');
     renderRevue(); window.scrollTo(0, 0);
@@ -1370,8 +1483,12 @@
       h('div', null, h('b', null, `${me.c ? FC.champName(me.c) : ''} · ${gameModeLabel(g)}`), h('small', { class: 'muted' }, ` ${when} · ${mmss(g.duration || 0)}${RV.src === 'team' && g.par ? ' · partagée par ' + vocalName(g.par) : ''}`)),
       h('span', { class: 'rv-res ' + (win ? 'win' : lose ? 'lose' : '') }, win ? 'Victoire' : lose ? 'Défaite' : ''),
       RV.src === 'local' && !SUB() ? h('button', { class: 'btn-fire small-btn', onclick: async (e) => {
-        e.target.disabled = true; e.target.textContent = 'Partage…';
-        const r = await window.fire.revues.share(g, vocalMe()).catch((er) => ({ ok: false, error: String(er) }));
+        const btn = e.currentTarget; btn.disabled = true; btn.textContent = 'Partage…';
+        // Avec la vidéo : on joint quelques images des moments clés (pour l'analyse IA du coach). La vidéo reste ici.
+        const shots = g.vod ? await rvShots(g, (i, n) => { btn.textContent = `Images de la vidéo ${i}/${n}…`; }).catch(() => []) : [];
+        btn.textContent = 'Partage…';
+        const r = await window.fire.revues.share(g, vocalMe(), shots).catch((er) => ({ ok: false, error: String(er) }));
+        e = { target: btn };
         e.target.textContent = r && r.ok ? '✓ Partagée avec l’équipe' : '⚠ ' + ((r && r.error) || 'échec');
         if (r && r.ok) rvLoadTeam();
       } }, '👥 Partager avec l’équipe') : null,
@@ -1410,7 +1527,8 @@
     view.replaceChildren(...[head,
       video ? h('div', { class: 'card rv-vcard' }, video, h('small', { class: 'muted rv-vnote' }, 'La vidéo suit la timeline : clique sur un combat, un événement ou une note pour y aller.')) : null,
       h('div', { class: 'rv-main' }, h('div', { class: 'rv-left' }, map, tools, fights), h('div', { class: 'rv-right' }, board, feed)),
-      tl, h('div', { class: 'card rv-notebox' }, h('h3', null, '📝 Notes'), h('div', { class: 'row rv-addnote' }, noteIn, addNote), notes)].filter(Boolean));
+      tl, h('div', { class: 'card rv-notebox' }, h('h3', null, '📝 Notes'), h('div', { class: 'row rv-addnote' }, noteIn, addNote), notes),
+      h('div', { class: 'card rv-ia' })].filter(Boolean));
     // Dessin à la souris sur la carte (coordonnées 0 à 1, pour s'afficher pareil chez tout le monde).
     const cv = map.querySelector('.rv-draw');
     const pos = (e) => { const r = cv.getBoundingClientRect(); return [Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))]; };
@@ -1418,7 +1536,7 @@
     cv.addEventListener('pointermove', (e) => { if (!RV.cur) return; const q = pos(e); const l = RV.cur.p[RV.cur.p.length - 1]; if (Math.hypot(q[0] - l[0], q[1] - l[1]) > 0.004) { RV.cur.p.push(q); rvDrawPaint(); } });
     const end = () => { RV.cur = null; };
     cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
-    rvPaint();
+    rvPaint(); rvPaintIa(g);
   }
   function rvDrawPaint() {
     const cv = document.querySelector('.rv-draw'); if (!cv) return;

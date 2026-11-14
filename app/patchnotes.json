@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.122",
+   "date": "2026-11-14",
+   "titre": "Analyse IA des parties (VOD)",
+   "items": [
+    [
+     "new",
+     "Revue de parties › « 🤖 Analyse IA de la partie » : Claude revoit la game comme en revue VOD (déroulé, combats, positions sur la carte et images de la vidéo aux moments clés). Il rend un résumé, les points forts, 5 à 10 moments commentés (erreur / bonne décision, pourquoi, quoi faire à la place), son avis sur chaque combat et 2 à 4 axes à travailler avec un exercice. Clique sur un instant : la Revue et la vidéo y vont."
+    ],
+    [
+     "new",
+     "Quand tu partages une partie filmée avec l’équipe, FIRE joint quelques images de ta vidéo aux moments clés (combats, objectifs) pour que l’analyse IA puisse « voir » la game. La vidéo elle-même reste sur ton PC."
+    ],
+    [
+     "info",
+     "L’analyse se lance depuis le PC d’un coach (elle utilise sa clé Claude). Une fois faite, elle est visible par toute l’équipe dans la revue partagée."
+    ]
+   ]
+  },
+  {
    "v": "1.10.121",
    "date": "2026-11-14",
    "titre": "Revue de parties : la vidéo de la game",

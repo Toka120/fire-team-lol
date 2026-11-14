@@ -1159,17 +1159,80 @@ async function revueGet(id) {
   id = revId(id); if (!id) return null;
   try { return await teamRead('revues/' + id + '.json'); } catch (e) { return null; }
 }
-async function revueShare(game, who) {
+async function revueShare(game, who, shots) {
   const id = revId(game && game.id); if (!id) return { ok: false, error: 'partie invalide' };
   const txt = JSON.stringify(game); if (txt.length > 900000) return { ok: false, error: 'partie trop longue à partager' };
   try {
     const g = JSON.parse(txt); delete g.vod; g.notes = (g.notes || []).map(cleanNote).filter(Boolean).slice(-300); g.par = String(who || '').slice(0, 80);
-    await teamWrite('revues/' + id + '.json', (cur) => ({ ...g, notes: mergeNotes((cur && cur.notes) || [], g.notes) }), 'Revue partagée');
+    // Images de la vidéo aux moments clés (pour l'analyse IA du coach) : fichier à part, la vidéo reste sur le PC du joueur.
+    const sh = cleanShots(shots);
+    if (sh.length) { await teamWrite('revues/' + id + '-img.json', () => ({ shots: sh }), 'Images de revue'); g.shots = sh.length; }
+    await teamWrite('revues/' + id + '.json', (cur) => ({ ...g, ia: (cur && cur.ia) || g.ia || null, notes: mergeNotes((cur && cur.notes) || [], g.notes) }), 'Revue partagée');
     const meP = (g.players || []).find((p) => p.n === g.me) || {};
     const item = { id, par: g.par, at: Date.now(), start: g.start, mode: g.mode, queue: g.queue, me: g.me, champ: meP.c || '', duration: g.duration, result: g.result };
     await teamWrite(REVUES, (cur) => ({ list: [item].concat(((cur && cur.list) || []).filter((x) => x.id !== id)).slice(0, 200) }), 'Liste des revues');
     activityPush(who, [{ t: Date.now(), k: 'app', d: 'Revue de partie partagée' }]).catch(() => {});
     return { ok: true };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+function cleanShots(a) {
+  if (!Array.isArray(a)) return [];
+  let total = 0;
+  const out = [];
+  for (const x of a.slice(0, 10)) {
+    const img = typeof (x && x.img) === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x.img) ? x.img : '';
+    if (!img || img.length > 120000 || total + img.length > 650000) continue;
+    total += img.length;
+    out.push({ t: Math.max(0, Math.min(7200, Math.round(Number(x.t) || 0))), why: String(x.why || '').slice(0, 120), img });
+  }
+  return out;
+}
+async function revueShots(id) {
+  id = revId(id); if (!id) return [];
+  try { const d = await teamRead('revues/' + id + '-img.json'); return cleanShots(d && d.shots); } catch (e) { return []; }
+}
+// Analyse IA d'une partie (coach uniquement : c'est sa clé Claude). Le contexte texte vient de la Revue,
+// les images de la vidéo de la game. Le résultat est rangé avec la revue, visible par toute l'équipe.
+const IA_SYS = `Tu es l'analyste vidéo d'une équipe amateur de League of Legends (niveau visé : progresser vite). On te donne le déroulé d'une partie (joueurs, kills, objectifs, combats, positions, tableau aux moments clés) et des images de la vidéo de la partie à ces moments.
+Analyse comme un coach pro qui fait une revue VOD avec le joueur indiqué (« moi ») : décisions, placement, timing des objectifs, vision, combats, macro. Sois concret, cite les instants (en secondes de jeu), explique le POURQUOI et ce qu'il fallait faire à la place. Ne juge que ce que les données et les images montrent ; si une image est floue ou ne montre pas la scène, dis-le plutôt que d'inventer. Pas de classement entre joueurs, ton bienveillant mais franc. Écris en français.
+Réponds UNIQUEMENT avec un objet JSON :
+{"resume":"3 à 5 phrases sur la partie et ce qui l'a décidée",
+ "points_forts":["…", "…"],
+ "moments":[{"t":secondes,"type":"erreur|bien|decision","titre":"court","analyse":"ce qui se passe et pourquoi","conseil":"ce qu'il fallait faire"}],
+ "combats":[{"t":secondes,"verdict":"gagné|perdu|égal","pourquoi":"…"}],
+ "a_travailler":[{"titre":"…","exercice":"exercice concret à faire en game ou en training"}]}
+Entre 5 et 10 moments, 2 à 4 axes à travailler.`;
+function cleanIa(j) {
+  const s = (x, n) => (typeof x === 'string' ? x.trim().slice(0, n) : '');
+  const t = (x) => Math.max(0, Math.min(7200, Math.round(Number(x) || 0)));
+  return {
+    resume: s(j.resume, 1500),
+    points_forts: (Array.isArray(j.points_forts) ? j.points_forts : []).map((x) => s(x, 300)).filter(Boolean).slice(0, 6),
+    moments: (Array.isArray(j.moments) ? j.moments : []).map((m) => ({ t: t(m && m.t), type: ['erreur', 'bien', 'decision'].includes(m && m.type) ? m.type : 'decision', titre: s(m && m.titre, 120), analyse: s(m && m.analyse, 900), conseil: s(m && m.conseil, 600) })).filter((m) => m.titre || m.analyse).sort((a, b) => a.t - b.t).slice(0, 14),
+    combats: (Array.isArray(j.combats) ? j.combats : []).map((c) => ({ t: t(c && c.t), verdict: s(c && c.verdict, 12), pourquoi: s(c && c.pourquoi, 600) })).filter((c) => c.pourquoi).slice(0, 14),
+    a_travailler: (Array.isArray(j.a_travailler) ? j.a_travailler : []).map((x) => ({ titre: s(x && x.titre, 120), exercice: s(x && x.exercice, 600) })).filter((x) => x.titre).slice(0, 5),
+  };
+}
+async function revueIa(req, who) {
+  const c = readSecret('coach.bin') || {};
+  if (!coachState().coach) return { ok: false, error: 'réservé au coach' };
+  if (!c.anthropic) return { ok: false, error: "ajoute d'abord la clé de l'API Claude dans les réglages coach" };
+  const ctx = str(req && req.ctx, 60000);
+  if (!ctx) return { ok: false, error: 'partie vide' };
+  let shots = cleanShots(req.shots);
+  if (!shots.length && req.src === 'team') shots = await revueShots(req.id);
+  const content = [{ type: 'text', text: ctx }];
+  for (const x of shots) {
+    content.push({ type: 'text', text: `Image de la vidéo à ${Math.floor(x.t / 60)}:${String(x.t % 60).padStart(2, '0')} (${x.t} s)${x.why ? ' — ' + x.why : ''} :` });
+    content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: x.img.split(',')[1] } });
+  }
+  if (!shots.length) content.push({ type: 'text', text: '(Pas d\'images de la vidéo pour cette partie : analyse à partir des données seulement.)' });
+  try {
+    const j = await claude(c.anthropic, { model: MODEL, max_tokens: 8000, system: IA_SYS, messages: [{ role: 'user', content }] });
+    const text = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+    const ia = { ...cleanIa(pickJson(text)), at: Date.now(), par: String(who || '').slice(0, 80), images: shots.length };
+    if (req.src === 'team' && revId(req.id)) await teamWrite('revues/' + revId(req.id) + '.json', (cur) => { if (!cur) throw new Error('revue introuvable'); return { ...cur, ia }; }, 'Analyse IA de revue');
+    return { ok: true, ia };
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 function mergeNotes(a, b) { const m = new Map(); for (const n of a.concat(b)) if (n && n.id) m.set(n.id, n); return [...m.values()].sort((x, y) => x.t - y.t).slice(-300); }
@@ -1186,4 +1249,4 @@ async function revueNote(id, note, del) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 
-module.exports = { revues, revueGet, revueShare, revueNote, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { revues, revueGet, revueShare, revueNote, revueShots, revueIa, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
