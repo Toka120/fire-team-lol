@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.134",
+   "date": "2026-11-14",
+   "titre": "Paramètres : on reste où on est",
+   "items": [
+    [
+     "fix",
+     "Paramètres : changer de thème, de police, de taille de texte (ou n’importe quel réglage) ne remonte plus tout en haut de la page. Tu peux essayer plusieurs apparences à la suite sans rechercher ta place."
+    ]
+   ]
+  },
+  {
    "v": "1.10.133",
    "date": "2026-11-14",
    "titre": "Annonces",

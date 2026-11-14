@@ -1192,11 +1192,19 @@
     const cur = SET_TABS.find(([k]) => k === tab);
     const subBar = SET_SUB[tab] ? h('div', { class: 'set-subs' }, SET_SUB[tab].map(([k, l]) => h('button', { class: 'set-sub' + (k === sub ? ' on' : ''), onclick: () => { S.setSub = k; renderSettings(); } }, l))) : null;
     const box = setOverlay();
+    // Chaque réglage redessine la page : on garde l'endroit où tu étais (plus de retour tout en haut).
+    const oldC = box.querySelector('.set-content'), oldL = box.querySelector('.set-left');
+    const keep = { c: oldC ? oldC.scrollTop : 0, l: oldL ? oldL.scrollTop : 0, page: S.setTab + '|' + (S.setSub || '') };
+    const samePage = S.setScrollPage === keep.page;
+    S.setScrollPage = keep.page;
     box.replaceChildren(
       h('div', { class: 'set-left' }, side),
       h('div', { class: 'set-content' },
         h('div', { class: 'set-page' }, h('h1', { class: 'set-title' }, cur[2]), subBar, ...(pages[tab]() || []).filter(Boolean)),
         h('div', { class: 'set-close' }, h('button', { class: 'set-x', title: 'Fermer (Échap)', onclick: () => setClose() }, '✕'), h('small', null, 'ÉCHAP'))));
+    const newC = box.querySelector('.set-content'), newL = box.querySelector('.set-left');
+    if (newL) newL.scrollTop = keep.l;
+    if (newC && samePage) { newC.scrollTop = keep.c; requestAnimationFrame(() => { if (newC.isConnected && Math.abs(newC.scrollTop - keep.c) > 2) newC.scrollTop = keep.c; }); }
   }
 
   // ----- Navigateur intégré : les liens (op.gg, YouTube, mid.gg, dpm.lol, LoLalytics…) s'ouvrent dans FIRE -----
