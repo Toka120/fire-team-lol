@@ -1065,7 +1065,7 @@
     document.documentElement.classList.remove('web-open');
     if (WEB.ro) { WEB.ro.disconnect(); WEB.ro = null; }
     try { window.fire.web.close(); } catch (e) { /* */ }
-    if (!silent) go(WEB.from && WEB.from !== 'web' ? WEB.from : 'stats');
+    if (!silent) go(WEB.from === 'stream' ? (WEB.streamBack || 'stats') : WEB.from && WEB.from !== 'web' ? WEB.from : 'stats');
   }
   const webHost = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } };
   function renderWeb() {
@@ -1081,6 +1081,21 @@
       h('div', { class: 'web-addr' }, h('span', { class: 'web-lock' }, '🔒'), h('b', null, webHost(WEB.url)), h('span', { class: 'muted' }, WEB.title ? ' · ' + WEB.title : ''),
         WEB.loading ? h('i', { class: 'web-spin' }) : null));
     const slot = h('div', { id: 'web-slot', class: 'web-slot' }, WEB.error ? h('div', { class: 'web-err' }, h('b', null, 'Page indisponible'), h('p', { class: 'muted' }, WEB.error)) : null);
+    if (WEB.from === 'stream') {
+      const tab = (url, lab) => h('button', { class: 'tool-tab' + (WEB.url === url ? ' on' : ''), onclick: () => { WEB.url = url; window.fire.web.load(url, webRect()); renderWeb(); } }, lab);
+      const nbar = h('div', { class: 'web-bar native' },
+        h('button', { class: 'btn-ghost web-home', onclick: () => webClose() }, '← FIRE'),
+        h('b', { class: 'tw-name' }, '🟣 ' + TWITCH.name, TWITCH.live ? h('span', { class: 'tw-live' }, 'EN DIRECT' + (TWITCH.uptime ? ' · ' + TWITCH.uptime : '')) : h('small', { class: 'muted' }, ' · hors ligne')),
+        h('div', { class: 'tool-tabs' }, tab(TWITCH.url, '📺 Stream'), tab(TWITCH.chat, '💬 Chat seul')),
+        h('button', { class: 'web-b', title: 'Actualiser', onclick: () => nav(WEB.loading ? 'stop' : 'reload') }, WEB.loading ? h('i', { class: 'web-spin' }) : '⟳'));
+      view.replaceChildren(nbar, slot);
+      requestAnimationFrame(() => {
+        const r = webRect(); if (r) window.fire.web.bounds(r);
+        if (!WEB.ro && window.ResizeObserver) { WEB.ro = new ResizeObserver(() => { const rr = webRect(); if (rr && WEB.open) window.fire.web.bounds(rr); }); WEB.ro.observe(document.getElementById('web-slot')); }
+        else if (WEB.ro) { WEB.ro.disconnect(); WEB.ro.observe(document.getElementById('web-slot')); }
+      });
+      return;
+    }
     // Salle de réunion : on passe d'un outil à l'autre sans revenir en arrière.
     // Outils : pas de barre de navigateur, l'outil s'affiche comme une page de FIRE (onglets des outils + retour).
     if (inMeet) {
@@ -1857,6 +1872,30 @@
 
 
 
+
+  // ===== Stream Twitch de Toks : la chaîne s'ouvre dans FIRE (avec le bloqueur de pubs), badge « EN DIRECT » dans le menu =====
+  const TWITCH = { name: 'Toks42o', ch: 'toks42o', url: 'https://www.twitch.tv/toks42o', chat: 'https://www.twitch.tv/popout/toks42o/chat?popout=', live: false, uptime: '', was: null };
+  function renderStream() {
+    const back = S.prevSection && S.prevSection !== 'stream' && S.prevSection !== 'web' ? S.prevSection : (WEB.streamBack || 'stats');
+    webOpen(TWITCH.url);
+    WEB.from = 'stream'; WEB.streamBack = back;
+    renderWeb();
+  }
+  async function twitchCheck() {
+    if (!window.fire.twitchLive) return;
+    const r = await window.fire.twitchLive(TWITCH.ch).catch(() => null);
+    if (!r) return;
+    const changed = r.live !== TWITCH.live;
+    TWITCH.live = r.live; TWITCH.uptime = String(r.uptime || '').replace(/(\d+) days?/, '$1 j').replace(/(\d+) hours?/, '$1 h').replace(/(\d+) minutes?/, '$1 min').replace(/(\d+) seconds?/, '$1 s').replace(/,/g, '');
+    if (changed) {
+      renderNav();
+      if (r.live && TWITCH.was === false) vocalToast(`🟣 ${TWITCH.name} est en live sur Twitch : Social › Stream`, true);
+      if (S.section === 'web' && WEB.from === 'stream') renderWeb();
+    }
+    TWITCH.was = r.live;
+  }
+  setTimeout(twitchCheck, 8000); setInterval(twitchCheck, 3 * 60000);
+
   // ===== Scrims : les séances contre d'autres équipes. Les parties personnalisées partagées sont détectées toutes seules,
   // on les range par scrim (adversaire, côté, résultat, notes) et on suit le bilan. Données chiffrées avec le code d'équipe.
   const SC = { list: null, rv: null, err: '', edit: null, busy: false };
@@ -2358,7 +2397,7 @@
   // Chaque FIRE note ses actions (pages ouvertes, messages, vocal, planning, POOL, quiz, clips…) et les envoie toutes les
   // 3 minutes dans le fichier d'activité du joueur (chiffré avec le code d'équipe). Le contenu des messages privés n'est jamais noté.
   const PAGE_NAMES = { stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
-    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', puzzle: 'Puzzle du jour', scrims: 'Scrims', revue: 'Revue de parties', web: 'navigateur' };
+    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', puzzle: 'Puzzle du jour', scrims: 'Scrims', stream: 'Stream Twitch', revue: 'Revue de parties', web: 'navigateur' };
   const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
   function actLog(k, d) {
     if (!vocalMe() || !window.fire.staff) return;
@@ -2741,6 +2780,7 @@
     else if (S.section === 'parcours') renderParcours();
     else if (S.section === 'puzzle') renderGamePuzzle();
     else if (S.section === 'scrims') renderScrims();
+    else if (S.section === 'stream') renderStream();
     else if (S.section === 'revue') renderRevue();
     else if (S.section === 'parties') renderParties();
     else if (S.section === 'pool') renderPool();
@@ -5470,7 +5510,7 @@
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
-      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
+      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
       ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
@@ -8180,7 +8220,7 @@
   // restent chiffrés et illisibles. Les titulaires leur envoient de PC à PC un petit paquet chiffré pour eux :
   // les séances du planning d'équipe (sans les dispos des coachs ni les réponses de chacun).
   const SUB = () => !!(S.coachState && S.coachState.remplacant);
-  const SUB_OK = new Set(['stats', 'planning', 'jeux', 'puzzle', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);
+  const SUB_OK = new Set(['stats', 'planning', 'jeux', 'puzzle', 'stream', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);
   const roomOk = (r) => !SUB() || (r && r.id !== 'coaching' && !r.staff);
   const subSlugs = () => S.players.filter((p) => p.slug && isSub(p)).map((p) => p.slug);
   function subInit() {

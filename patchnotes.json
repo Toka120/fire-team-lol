@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.129",
+   "date": "2026-11-14",
+   "titre": "Le stream de Toks dans FIRE",
+   "items": [
+    [
+     "new",
+     "Social › « Stream » : la chaîne Twitch de Toks42o s’ouvre directement dans FIRE, avec le bloqueur de pubs, et un onglet « Chat seul ». Retour à FIRE en un clic."
+    ],
+    [
+     "new",
+     "Quand Toks42o est en live, le menu affiche « LIVE » à côté de Stream (avec la durée du live) et une notification prévient toute l’équipe."
+    ]
+   ]
+  },
+  {
    "v": "1.10.128",
    "date": "2026-11-14",
    "titre": "Games en direct sans clignotement",

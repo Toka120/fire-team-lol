@@ -497,6 +497,16 @@ function lcuRaw(p) {
 }
 // Voix et bruitages des champions (Détente : « Qui a dit ça ? », League of Listen). Gardés sur le PC une fois lus ;
 // sinon CommunityDragon, et s'il est en panne, le client LoL lui-même (s'il est ouvert, et en français pour les voix).
+// Stream Twitch de l'équipe : en direct ou pas (decapi.me répond « … is offline » ou la durée du live).
+ipcMain.handle('twitch:live', async (e, ch) => {
+  ch = String(ch || '').toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 25); if (!ch) return null;
+  try {
+    const r = await fetch('https://decapi.me/twitch/uptime/' + ch, { signal: AbortSignal.timeout(8000) });
+    const t = (await r.text()).trim().slice(0, 120);
+    if (!r.ok || /error|not found/i.test(t)) return null;
+    return { live: !/offline/i.test(t), uptime: /offline/i.test(t) ? '' : t };
+  } catch (err) { return null; }
+});
 const voDir = () => path.join(app.getPath('userData'), 'voix');
 let VO_CD_DOWN = 0;
 ipcMain.handle('vo:get', async (e, kind, key) => {
