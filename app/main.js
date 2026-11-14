@@ -921,7 +921,18 @@ async function grab(puuid, cutoff, maxPages, full) {
   return { matches, champs, rank: m ? m[1].trim() : '', record: m ? m[2].trim() : '', ...(full ? { games } : {}) };
 }
 
+// Si le lien enregistré ne mène à aucun profil, on réessaie avec le Riot ID (« Pseudo#TAG » → Pseudo-TAG, au bon format).
 async function fetchPlayer(player, days) {
+  const r = await fetchPlayerOnce(player, days);
+  if (r.ok || !player.pseudo || !/introuvable/.test(r.error || '')) return r;
+  const i = String(player.pseudo).lastIndexOf('#');
+  if (i < 1) return r;
+  const alt = encodeURIComponent(player.pseudo.slice(0, i).trim()) + '-' + encodeURIComponent(player.pseudo.slice(i + 1).trim());
+  if (alt === player.slug) return r;
+  const r2 = await fetchPlayerOnce({ ...player, slug: alt }, days);
+  return r2.ok ? { ...r2, altSlug: alt } : r;
+}
+async function fetchPlayerOnce(player, days) {
   const win = new BrowserWindow({
     show: false,
     width: 1280,

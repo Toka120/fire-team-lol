@@ -1543,7 +1543,8 @@
   const ptRank = (r) => (r === 1 ? '1er' : r ? r + 'e' : '—');
   async function ptLoad(slug, puuid) {
     PT.busy = true; PT.err = ''; renderParties();
-    let r; try { r = await window.fire.fetchPlayer({ slug, puuid: puuid || null, pages: 2, full: true }, 31); } catch (e) { r = { ok: false, error: String(e) }; }
+    const pl = S.players.find((x) => x.slug === slug) || PT.who || {};
+    let r; try { r = await window.fire.fetchPlayer({ slug, pseudo: pl.pseudo, puuid: puuid || ((S.cfg && S.cfg.puuids) || {})[String(pl.pseudo || '').toLowerCase()] || null, pages: 2, full: true }, 31); } catch (e) { r = { ok: false, error: String(e) }; }
     PT.busy = false;
     if (!r || !r.ok || !Array.isArray(r.games)) { PT.err = `Lecture impossible sur dpm.lol (${(r && r.error) || 'erreur'}).`; renderParties(); return false; }
     PT.G[slug] = { at: Date.now(), games: r.games, rank: r.rank, record: r.record };
@@ -2029,7 +2030,7 @@
         if (S.section === 'stats' && S.view === 'hub') render();
         let res;
         if (Array.isArray(p.comptes) && p.comptes.length) res = await fetchAccounts(p);
-        else { try { res = await window.fire.fetchPlayer({ slug: p.slug, puuid: p.puuid || (load('fire.puuids', {}) || {})[p.slug] || null, pages: p.stats_depuis ? 70 : 14 }, fetchDays(p)); } catch (e) { res = { ok: false, error: String(e) }; } }
+        else { try { res = await window.fire.fetchPlayer({ slug: p.slug, pseudo: p.pseudo, puuid: p.puuid || (load('fire.puuids', {}) || {})[p.slug] || ((S.cfg && S.cfg.puuids) || {})[String(p.pseudo || '').toLowerCase()] || null, pages: p.stats_depuis ? 70 : 14 }, fetchDays(p)); } catch (e) { res = { ok: false, error: String(e) }; } }
         // Identifiant Riot gardé : la prochaine lecture marche même si dpm.lol tarde à répondre (membres ajoutés par l'accueil).
         if (res && res.ok && res.puuid && !p.puuid) { const m = load('fire.puuids', {}) || {}; if (m[p.slug] !== res.puuid) { m[p.slug] = res.puuid; save('fire.puuids', m); } }
         if (res && res.ok) {

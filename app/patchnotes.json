@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.120",
+   "date": "2026-11-14",
+   "titre": "Stats des nouveaux membres (suite)",
+   "items": [
+    [
+     "fix",
+     "« Profil introuvable sur dpm.lol » pour un nouveau membre (Mortarius) : si son lien enregistré ne mène à aucun profil, FIRE réessaie tout seul avec son Riot ID au bon format. Son identifiant Riot est aussi connu de FIRE, donc ses stats se chargent même si dpm.lol tarde."
+    ]
+   ]
+  },
+  {
    "v": "1.10.119",
    "date": "2026-11-14",
    "titre": "Revue : tours et mini-carte",
