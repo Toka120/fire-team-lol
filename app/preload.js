@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('fire', {
   revues: { list: call('revues'), get: call('revue:get'), share: call('revue:share'), note: call('revue:note'), ia: call('revue:ia') },
   scrims: { list: call('scrims'), save: call('scrim:save') },
   stats: { push: call('stats:push'), get: call('stats:get') },
+  gpuz: { bank: call('puz:bank'), request: call('puz:request'), generate: call('puz:generate') },
   voice: call('vo:get'),
   twitchLive: call('twitch:live'),
   ddImage: call('dd:image'),

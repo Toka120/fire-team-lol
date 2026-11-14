@@ -200,6 +200,15 @@ function createMainWindow(forceShow) {
     if (!trayHintShown) { trayHintShown = true; notify('FIRE LoL reste ouvert', "Tu recevras les notifications ici. Clic droit sur l'icône FIRE près de l'horloge pour quitter."); }
   });
   hideAdSlots(mainWin.webContents);
+  // League of Listen (Détente) : interface traduite en français dans le cadre du jeu.
+  mainWin.webContents.on('did-frame-finish-load', (e, isMain, pid, rid) => {
+    if (isMain) return;
+    try {
+      const { webFrameMain } = require('electron');
+      const f = webFrameMain.fromId(pid, rid);
+      if (f && /^https:\/\/(www\.)?lynge\.tv\/listen/.test(f.url)) f.executeJavaScript(require('./listen-fr.js')).catch(() => {});
+    } catch (err) { /* cadre fermé entre-temps */ }
+  });
   mainWin.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   // Les liens (op.gg, YouTube, dpm.lol, mid.gg…) s'ouvrent DANS FIRE, dans le navigateur intégré : on reste sur l'application.
   // Seuls les téléchargements d'installeur passent par le navigateur de Windows.
@@ -901,6 +910,9 @@ ipcMain.handle('revue:ia', (e, req, who) => coach.revueIa(req || {}, who));
 ipcMain.handle('scrims', () => coach.scrims());
 ipcMain.handle('stats:push', (e, payload, who) => coach.statsPush(payload || {}, who));
 ipcMain.handle('stats:get', () => coach.statsGet());
+ipcMain.handle('puz:bank', () => coach.puzzleBank());
+ipcMain.handle('puz:request', (e, slug, level, have) => coach.puzzleRequest(slug, level, have));
+ipcMain.handle('puz:generate', (e, who) => coach.puzzleGenerate(who));
 ipcMain.handle('scrim:save', (e, op, who) => coach.scrimSave(op || {}, who));
 ipcMain.handle('revue:note', (e, id, n, del) => coach.revueNote(id, n, !!del));
 ipcMain.handle('remp:open', (e, box) => coach.rempOpen(box));

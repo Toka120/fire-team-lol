@@ -1332,6 +1332,81 @@ async function statsGet() {
     return { ok: true, ...openGz(box) };
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
+// ---------- Puzzle du jour : nouvelles situations créées par l'IA (PC d'un coach), partagées avec l'équipe ----------
+// Les joueurs qui ont (presque) tout fait envoient une demande ; le PC d'un coach crée un lot de situations inédites,
+// de plus en plus difficiles jusqu'au niveau 5 (Pro), puis continue au niveau 5.
+const PUZ_BANK = 'puzzles/banque.json', PUZ_REQ = 'puzzles/demandes.json';
+const PUZ_TH = ['macro', 'obj', 'jungle', 'lane', 'vision', 'fight', 'wave', 'mental'];
+const PUZ_ROLES = ['all', 'top', 'jungle', 'mid', 'adc', 'support'];
+const PUZ_STYLES = ['agressif', 'prudent', 'macro', 'equipe', 'tempo', 'scaling'];
+const PUZ_SPOTS = ['baseB', 'baseR', 'topB1', 'topR1', 'topMid', 'topB2', 'topR2', 'midB1', 'midR1', 'mid', 'midB2', 'midR2', 'botB1', 'botR1', 'botMid', 'botB2', 'botR2', 'drag', 'baron',
+  'bBlue', 'bRed', 'bRapt', 'bKrug', 'bGromp', 'bWolf', 'rBlue', 'rRed', 'rRapt', 'rKrug', 'rGromp', 'rWolf', 'rivTop', 'rivBot', 'tribB', 'tribR', 'pixTop', 'pixBot', 'scuttleTop', 'scuttleBot', 'bushBotRiv', 'bushTopRiv'];
+function cleanPuzzle(x, champs) {
+  if (!x || typeof x !== 'object') return null;
+  const s = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+  const pos = (v) => (typeof v === 'string' && PUZ_SPOTS.includes(v) ? v : Array.isArray(v) && v.length === 2 ? [Math.max(0, Math.min(1000, Math.round(Number(v[0]) || 0))), Math.max(0, Math.min(1000, Math.round(Number(v[1]) || 0)))] : null);
+  const ch = (c) => { const id = String(c || '').replace(/[^A-Za-z]/g, ''); return !champs || champs.has(id) ? id : null; };
+  const a = (Array.isArray(x.a) ? x.a : []).slice(0, 5).map((r) => ({ txt: s(r && r.txt, 220), v: ['P', 'O', 'X'].includes(r && r.v) ? r.v : '', s: PUZ_STYLES.includes(r && r.s) ? r.s : 'macro', e: s(r && r.e, 700) })).filter((r) => r.txt && r.v && r.e);
+  if (a.length < 3 || !a.some((r) => r.v === 'P') || !a.some((r) => r.v === 'X')) return null;
+  let map = null;
+  if (x.map && typeof x.map === 'object') {
+    const side = (l) => (Array.isArray(l) ? l : []).slice(0, 5).map((e) => (Array.isArray(e) ? [ch(e[0]), pos(e[1]), e[2] ? 1 : 0] : null)).filter((e) => e && e[0] && e[1]).map((e) => (e[2] ? e : e.slice(0, 2)));
+    map = { b: side(x.map.b), r: side(x.map.r), w: (Array.isArray(x.map.w) ? x.map.w : []).slice(0, 8).map((e) => (Array.isArray(e) ? [pos(e[0]), e[1] === 'r' ? 'r' : 'b'] : null)).filter((e) => e && e[0]) };
+    if (!map.b.length && !map.r.length) map = null;
+  }
+  const out = { id: 'g' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'), gen: 1, th: PUZ_TH.includes(x.th) ? x.th : 'macro', role: PUZ_ROLES.includes(x.role) ? x.role : 'all',
+    d: Math.max(1, Math.min(5, Math.round(Number(x.d) || 3))), t: s(x.t, 8), titre: s(x.titre, 80), sit: s(x.sit, 900), map, q: s(x.q, 160) || 'Que fais-tu ?', a };
+  return out.titre && out.sit ? out : null;
+}
+async function puzzleBank() {
+  try { const d = await teamRead(PUZ_BANK); return { ok: true, list: (d && Array.isArray(d.list) ? d.list : []).slice(-2000) }; }
+  catch (e) { return { ok: false, error: String((e && e.message) || e), list: [] }; }
+}
+async function puzzleRequest(slug, level, have) {
+  if (coachState().remplacant) return { ok: false };
+  try {
+    await teamWrite(PUZ_REQ, (cur) => {
+      const list = ((cur && cur.list) || []).filter((r) => Date.now() - (r.at || 0) < 7 * 864e5);
+      if (list.some((r) => !r.done && r.slug === slug && r.level >= level)) return { list };
+      return { list: list.concat({ slug: String(slug || '').slice(0, 80), level: Math.max(1, Math.min(5, Number(level) || 3)), have: Number(have) || 0, at: Date.now(), done: 0 }).slice(-100) };
+    }, 'Demande de puzzles');
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+const PUZ_SYS = `Tu crées des puzzles de décision League of Legends (Faille de l'invocateur) pour une équipe amateur qui veut progresser vite. Chaque puzzle : une situation de partie réaliste et précise, une question, 4 réponses.
+Règles :
+- Situations INÉDITES : jamais une reformulation des titres déjà existants qu'on te donne.
+- Plusieurs réponses peuvent être « ce qu'un pro ferait » (verdict P) selon le style et la lecture de la partie (agressif, prudent, macro, jeu d'équipe, tempo, scaling) ; au moins UNE réponse mauvaise (verdict X) obligatoire ; « O » = jouable mais pas optimal.
+- Chaque réponse a une explication « lecture pro » (e) : pourquoi, et quand ce choix est bon ou mauvais. Concret, 2 à 4 phrases, en français, tutoiement.
+- Pas de chiffres de patch précis (dégâts, temps de réapparition exacts) : raisonne en principes (prio, tempo, vision, état des vagues, timers, nombre).
+- Ne cite aucun joueur professionnel réel.
+- Niveau de difficulté d (1 à 5) : 1 facile, 2 moyen, 3 difficile, 4 expert (nuances fines, plusieurs infos à croiser), 5 pro (lecture de niveau compétitif : tempo croisé, états de vagues sur plusieurs lanes, lignes de vision, timers d'objectifs et de sorts, gestion du nombre). Respecte le niveau demandé.
+- Varie les rôles (top, jungle, mid, adc, support, all) et les thèmes (macro, obj, jungle, lane, vision, fight, wave, mental).
+- Carte (facultative mais conseillée) : positions par nom de lieu (liste fournie) ou [x, y] de 0 à 1000 (x vers la droite, y vers le bas ; base bleue en bas à gauche). Champions par identifiant Data Dragon (ex. LeeSin, MonkeyKing, KSante). 3e valeur 1 = dernière position connue (pas vue). Balises w : [lieu, "b" ou "r"].
+Réponds UNIQUEMENT avec un objet JSON : {"puzzles":[{"th":"macro","role":"jungle","d":4,"t":"14:20","titre":"court","sit":"situation détaillée (qui, où, PV, sorts, vagues, objectifs, timers)","q":"Que fais-tu ?","map":{"b":[["LeeSin","bRapt"]],"r":[["Viego","rRed",1]],"w":[["pixBot","b"]]},"a":[{"txt":"réponse","v":"P","s":"tempo","e":"lecture pro"}, ...]}]}`;
+async function puzzleGenerate(who) {
+  const c = readSecret('coach.bin') || {};
+  if (!coachState().coach || !c.anthropic) return { ok: false, error: 'réservé au PC d’un coach avec la clé Claude' };
+  try {
+    const req = await teamRead(PUZ_REQ);
+    const pending = ((req && req.list) || []).filter((r) => !r.done && Date.now() - (r.at || 0) < 7 * 864e5);
+    if (!pending.length) return { ok: true, none: true };
+    const level = Math.max(...pending.map((r) => r.level || 3));
+    const bank = (await teamRead(PUZ_BANK)) || { list: [] };
+    const titles = (Array.isArray(bank.list) ? bank.list : []).map((p) => p.titre).concat((Array.isArray(req.titres) ? req.titres : [])).slice(-400);
+    const champs = await champions().catch(() => null);
+    const set = champs && champs.list && champs.list.length ? new Set(champs.list.map((x) => x.id)) : null;
+    const ask = `Crée 8 nouveaux puzzles de niveau ${level} sur 5 (au moins 6 de niveau exactement ${level}).\nLieux possibles sur la carte : ${PUZ_SPOTS.join(', ')}.\nTitres déjà utilisés (à ne pas refaire, même reformulés) :\n${titles.map((t) => '- ' + t).join('\n') || '—'}`;
+    const j = await claude(c.anthropic, { model: MODEL, max_tokens: 16000, system: PUZ_SYS, messages: [{ role: 'user', content: ask }] });
+    const text = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+    const got = ((pickJson(text) || {}).puzzles || []).map((x) => cleanPuzzle(x, set)).filter(Boolean)
+      .filter((p) => !titles.some((t) => String(t).toLowerCase() === p.titre.toLowerCase()));
+    if (!got.length) return { ok: false, error: 'aucun puzzle valide dans la réponse de Claude' };
+    await teamWrite(PUZ_BANK, (cur) => ({ list: ((cur && cur.list) || []).concat(got.map((p) => ({ ...p, par: String(who || '').slice(0, 80), at: Date.now() }))).slice(-2000) }), 'Nouveaux puzzles');
+    await teamWrite(PUZ_REQ, (cur) => ({ ...(cur || {}), list: ((cur && cur.list) || []).map((r) => (!r.done && r.level <= level ? { ...r, done: Date.now() } : r)) }), 'Demandes de puzzles traitées');
+    return { ok: true, added: got.length, level };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
 function mergeNotes(a, b) { const m = new Map(); for (const n of a.concat(b)) if (n && n.id) m.set(n.id, n); return [...m.values()].sort((x, y) => x.t - y.t).slice(-300); }
 async function revueNote(id, note, del) {
   id = revId(id); if (!id) return { ok: false, error: 'partie invalide' };
@@ -1346,4 +1421,4 @@ async function revueNote(id, note, del) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 
-module.exports = { statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

@@ -23,7 +23,8 @@
     const by = {};
     for (const p of players) {
       if (!p.slug || !p.puuid) continue;
-      for (const m of (data[p.slug] && data[p.slug].matches) || []) {
+      const dk = p.dataKey || p.slug;
+      for (const m of (data[dk] && data[dk].matches) || []) {
         if (!QUEUES.includes(m.q) || !m.id) continue;
         const g = (by[m.id] = by[m.id] || { id: String(m.id), t: m.t, q: m.q, who: [] });
         // m.pu : le compte qui a joué cette game (joueur qui a changé de compte).

@@ -48,6 +48,7 @@ window.fire = {
   fetchPlayer: no,
   team: async () => ({ ok: true, games: {} }),
   stats: { get: () => coach.statsGet(), push: no },
+  gpuz: { bank: () => coach.puzzleBank(), request: (slug, level, have) => coach.puzzleRequest(slug, level, have), generate: no },
   unlock: (code) => coach.unlock(code),
   unlocked: async () => coach.isUnlocked(),
   fiches: () => coach.list(),

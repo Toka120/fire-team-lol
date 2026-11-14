@@ -1,7 +1,7 @@
 // FIRE LoL sur téléphone : bouton menu (tiroir) et barre d'onglets en bas.
 (function () {
   const H = document.documentElement;
-  const TABS = [['Stats des joueurs', '📊', 'Stats'], ['Planning', '📅', 'Planning'], ['Discussion', '💬', 'Discussion'], ['Revue de parties', '🎞️', 'Revues'], ['__menu', '☰', 'Plus']];
+  const TABS = [['Accueil', '🏠', 'Accueil'], ['Stats des joueurs', '📊', 'Stats'], ['Planning', '📅', 'Planning'], ['Discussion', '💬', 'Discussion'], ['__menu', '☰', 'Plus']];
   const navBtn = (t) => [...document.querySelectorAll('#nav .navbtn')].find((b) => (b.getAttribute('title') || '').trim() === t);
   function setup() {
     const top = document.querySelector('.topbar'); const side = document.querySelector('.v2-side');

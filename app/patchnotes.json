@@ -1,6 +1,85 @@
 {
  "versions": [
   {
+   "v": "1.10.131",
+   "date": "2026-11-14",
+   "titre": "Grosse mise à jour : accueil, apprendre, jeux, draft",
+   "items": [
+    [
+     "new",
+     "Nouvelle page « Accueil » : toutes les rubriques rangées par catégorie (Équipe, Jeu, Apprendre, Outils, Social), avec une phrase pour chacune, les alertes (planning, messages, games en direct, live Twitch) et le planning du jour. C’est la page d’ouverture (réglable dans Paramètres)."
+    ],
+    [
+     "new",
+     "Stats des joueurs : le planning d’aujourd’hui en haut (qui est présent, incertain, absent ; clic → planning de la semaine) et un bouton bien visible « Prendre un créneau de coaching individuel »."
+    ],
+    [
+     "new",
+     "Puzzle du jour : quand tu as presque tout fait, de nouvelles situations inédites sont créées toutes seules par l’IA (PC d’un coach), de plus en plus dures jusqu’au niveau 5 (Pro), puis de nouveaux lots au niveau 5. Les puzzles s’enchaînent du plus facile au plus dur ; quand tout est fait, tu peux réviser les anciens (ratés d’abord)."
+    ],
+    [
+     "improve",
+     "Apprendre : « Apprendre en jouant » (Lis la wave, Le jungler, Bot lane, Trade ou pas, Vrai ou faux, Que fais-tu) et les « Puzzles de draft » ont maintenant leur rubrique dans Apprendre."
+    ],
+    [
+     "improve",
+     "Stats de l’équipe : titulaires et remplaçants ne sont plus mélangés (deux onglets). Si les titulaires n’ont presque pas de games ensemble, seules les games avec les remplaçants s’affichent."
+    ],
+    [
+     "improve",
+     "lebrésilien : ses Flex et 5c5 sont lues sur son compte Seuf93 (le Solo/Duo reste sur lebrésilien)."
+    ],
+    [
+     "improve",
+     "POOL : les remplaçants ont leur propre section, à part de l’équipe principale."
+    ],
+    [
+     "new",
+     "Tier list : clique sur un en-tête (Champion, Tier, Victoires, Pick, Ban, Parties) pour trier, une fois croissant, une fois décroissant ; nouveau filtre « Tous les rôles » (classement global) ; « Synergies d’un champion » ouvre son tableau de synergies LoLalytics dans FIRE."
+    ],
+    [
+     "new",
+     "Matchups : l’ordre des compétences niveau par niveau (1 à 18) et les meilleurs 4e, 5e et 6e objets selon la partie, avec leur % de victoires (« Plus de choix » pour tout voir)."
+    ],
+    [
+     "improve",
+     "Micro : un exercice ouvert prend toute la fenêtre, sans la liste au-dessus ni la molette (« ← Tous les exercices » pour revenir, ou changer d’exercice dans la liste)."
+    ],
+    [
+     "improve",
+     "League of Listen : traduit en français et à la taille de la fenêtre, sans double défilement."
+    ],
+    [
+     "improve",
+     "Détente › Compétence (Sort et Passif réunis) : l’icône d’un passif ou d’un sort, avec des indices par paliers (3 essais : à l’endroit, 6 : net, 9 : son nom, 12 : les couleurs). Une fois le champion trouvé : Passif, Q (A), W (Z), E ou R ?"
+    ],
+    [
+     "improve",
+     "Détente › Ombre : l’image s’éclaire beaucoup plus lentement (un palier tous les 2 essais, en partant de presque noir)."
+    ],
+    [
+     "improve",
+     "Détente › Emoji : 1 seul emoji au départ, puis 1 de plus tous les 2 essais ; tous les emojis ont été refaits (du plus subtil au plus évident, liés au jeu ou au lore, parfois en rébus)."
+    ],
+    [
+     "improve",
+     "Détente › Splash : image nette dès le début, zoom sur un détail du champion, dézoom très lent avec un zoom minimum gardé jusqu’à la bonne réponse, 3 niveaux (Simple, Moyen, Compliqué) et image à l’envers au choix."
+    ],
+    [
+     "improve",
+     "Détente › Classique : nouvelles colonnes Genre et Espèce (humain, yordle, vastaya, darkin…), et la Lane est maintenant la lane principale du champion (2 seulement pour les vrais champions flex)."
+    ],
+    [
+     "improve",
+     "Quiz : un chrono visible ; ton temps de réponse est enregistré et le délai s’allonge tout seul si trop de réponses arrivent trop tard (les résultats remontent au staff). Temps de recharge : tous les rangs des sorts, pas seulement le rang 1. Stats des champions : au niveau 1, 6, 9, 11, 13, 16 ou 18, sans objets. Recettes : des mauvaises réponses cohérentes (mêmes stats, prix proche)."
+    ],
+    [
+     "new",
+     "Nouveau quiz « Tous les composants » : un objet complet, retrouve tous ses composants."
+    ]
+   ]
+  },
+  {
    "v": "1.10.130",
    "date": "2026-11-14",
    "titre": "FIRE sur téléphone (iPhone et Android)",

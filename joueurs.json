@@ -44,6 +44,14 @@
       "role_id": "top",
       "pseudo": "lebrésilien#931",
       "slug": "lebr%C3%A9silien%20-931",
+      "comptes_flex": [
+        {
+          "pseudo": "Seuf93#EUW",
+          "slug": "Seuf93-EUW",
+          "dpm": "https://dpm.lol/Seuf93-EUW",
+          "note": "compte de lebrésilien pour la Flex et le 5c5"
+        }
+      ],
       "pool_ids": [
         "Renekton",
         "Zaahen",

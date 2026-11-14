@@ -1,0 +1,682 @@
+{
+"Aatrox": [
+"Homme",
+"Darkin"
+],
+"Ahri": [
+"Femme",
+"Vastaya"
+],
+"Akali": [
+"Femme",
+"Humain"
+],
+"Akshan": [
+"Homme",
+"Humain"
+],
+"Alistar": [
+"Homme",
+"Minotaure"
+],
+"Ambessa": [
+"Femme",
+"Humain"
+],
+"Amumu": [
+"Homme",
+"Mort-vivant"
+],
+"Anivia": [
+"Femme",
+"Dieu-esprit"
+],
+"Annie": [
+"Femme",
+"Humain"
+],
+"Aphelios": [
+"Homme",
+"Humain"
+],
+"Ashe": [
+"Femme",
+"Humain"
+],
+"AurelionSol": [
+"Homme",
+"Céleste"
+],
+"Aurora": [
+"Femme",
+"Vastaya"
+],
+"Azir": [
+"Homme",
+"Transfiguré"
+],
+"Bard": [
+"Homme",
+"Céleste"
+],
+"Belveth": [
+"Femme",
+"Néant"
+],
+"Blitzcrank": [
+"Autre",
+"Golem"
+],
+"Brand": [
+"Homme",
+"Humain"
+],
+"Braum": [
+"Homme",
+"Humain"
+],
+"Briar": [
+"Femme",
+"Humain"
+],
+"Caitlyn": [
+"Femme",
+"Humain"
+],
+"Camille": [
+"Femme",
+"Humain"
+],
+"Cassiopeia": [
+"Femme",
+"Humain"
+],
+"Chogath": [
+"Homme",
+"Néant"
+],
+"Corki": [
+"Homme",
+"Yordle"
+],
+"Darius": [
+"Homme",
+"Humain"
+],
+"Diana": [
+"Femme",
+"Aspect"
+],
+"DrMundo": [
+"Homme",
+"Humain"
+],
+"Draven": [
+"Homme",
+"Humain"
+],
+"Ekko": [
+"Homme",
+"Humain"
+],
+"Elise": [
+"Femme",
+"Humain"
+],
+"Evelynn": [
+"Femme",
+"Démon"
+],
+"Ezreal": [
+"Homme",
+"Humain"
+],
+"Fiddlesticks": [
+"Autre",
+"Démon"
+],
+"Fiora": [
+"Femme",
+"Humain"
+],
+"Fizz": [
+"Homme",
+"Yordle"
+],
+"Galio": [
+"Homme",
+"Golem"
+],
+"Gangplank": [
+"Homme",
+"Humain"
+],
+"Garen": [
+"Homme",
+"Humain"
+],
+"Gnar": [
+"Homme",
+"Yordle"
+],
+"Gragas": [
+"Homme",
+"Humain"
+],
+"Graves": [
+"Homme",
+"Humain"
+],
+"Gwen": [
+"Femme",
+"Poupée magique"
+],
+"Hecarim": [
+"Homme",
+"Mort-vivant"
+],
+"Heimerdinger": [
+"Homme",
+"Yordle"
+],
+"Hwei": [
+"Homme",
+"Humain"
+],
+"Illaoi": [
+"Femme",
+"Humain"
+],
+"Irelia": [
+"Femme",
+"Humain"
+],
+"Ivern": [
+"Homme",
+"Humain"
+],
+"Janna": [
+"Femme",
+"Dieu-esprit"
+],
+"JarvanIV": [
+"Homme",
+"Humain"
+],
+"Jax": [
+"Homme",
+"Inconnue"
+],
+"Jayce": [
+"Homme",
+"Humain"
+],
+"Jhin": [
+"Homme",
+"Humain"
+],
+"Jinx": [
+"Femme",
+"Humain"
+],
+"KSante": [
+"Homme",
+"Humain"
+],
+"Kaisa": [
+"Femme",
+"Humain"
+],
+"Kalista": [
+"Femme",
+"Mort-vivant"
+],
+"Karma": [
+"Femme",
+"Humain"
+],
+"Karthus": [
+"Homme",
+"Mort-vivant"
+],
+"Kassadin": [
+"Homme",
+"Humain"
+],
+"Katarina": [
+"Femme",
+"Humain"
+],
+"Kayle": [
+"Femme",
+"Aspect"
+],
+"Kayn": [
+"Homme",
+"Humain"
+],
+"Kennen": [
+"Homme",
+"Yordle"
+],
+"Khazix": [
+"Homme",
+"Néant"
+],
+"Kindred": [
+"Autre",
+"Dieu-esprit"
+],
+"Kled": [
+"Homme",
+"Yordle"
+],
+"KogMaw": [
+"Homme",
+"Néant"
+],
+"Leblanc": [
+"Femme",
+"Humain"
+],
+"LeeSin": [
+"Homme",
+"Humain"
+],
+"Leona": [
+"Femme",
+"Aspect"
+],
+"Lillia": [
+"Femme",
+"Dieu-esprit"
+],
+"Lissandra": [
+"Femme",
+"Glacenée"
+],
+"Lucian": [
+"Homme",
+"Humain"
+],
+"Lulu": [
+"Femme",
+"Yordle"
+],
+"Lux": [
+"Femme",
+"Humain"
+],
+"Malphite": [
+"Homme",
+"Golem"
+],
+"Malzahar": [
+"Homme",
+"Humain"
+],
+"Maokai": [
+"Homme",
+"Esprit de la nature"
+],
+"MasterYi": [
+"Homme",
+"Humain"
+],
+"Mel": [
+"Femme",
+"Humain"
+],
+"Milio": [
+"Homme",
+"Humain"
+],
+"MissFortune": [
+"Femme",
+"Humain"
+],
+"MonkeyKing": [
+"Homme",
+"Vastaya"
+],
+"Mordekaiser": [
+"Homme",
+"Mort-vivant"
+],
+"Morgana": [
+"Femme",
+"Aspect"
+],
+"Naafiri": [
+"Femme",
+"Darkin"
+],
+"Nami": [
+"Femme",
+"Vastaya"
+],
+"Nasus": [
+"Homme",
+"Transfiguré"
+],
+"Nautilus": [
+"Homme",
+"Mort-vivant"
+],
+"Neeko": [
+"Femme",
+"Vastaya"
+],
+"Nidalee": [
+"Femme",
+"Humain"
+],
+"Nilah": [
+"Femme",
+"Humain"
+],
+"Nocturne": [
+"Autre",
+"Démon"
+],
+"Nunu": [
+"Homme",
+"Humain"
+],
+"Olaf": [
+"Homme",
+"Humain"
+],
+"Orianna": [
+"Femme",
+"Golem"
+],
+"Ornn": [
+"Homme",
+"Dieu-esprit"
+],
+"Pantheon": [
+"Homme",
+"Aspect"
+],
+"Poppy": [
+"Femme",
+"Yordle"
+],
+"Pyke": [
+"Homme",
+"Mort-vivant"
+],
+"Qiyana": [
+"Femme",
+"Humain"
+],
+"Quinn": [
+"Femme",
+"Humain"
+],
+"Rakan": [
+"Homme",
+"Vastaya"
+],
+"Rammus": [
+"Homme",
+"Inconnue"
+],
+"RekSai": [
+"Femme",
+"Néant"
+],
+"Rell": [
+"Femme",
+"Humain"
+],
+"Renata": [
+"Femme",
+"Humain"
+],
+"Renekton": [
+"Homme",
+"Transfiguré"
+],
+"Rengar": [
+"Homme",
+"Vastaya"
+],
+"Riven": [
+"Femme",
+"Humain"
+],
+"Rumble": [
+"Homme",
+"Yordle"
+],
+"Ryze": [
+"Homme",
+"Humain"
+],
+"Samira": [
+"Femme",
+"Humain"
+],
+"Sejuani": [
+"Femme",
+"Humain"
+],
+"Senna": [
+"Femme",
+"Humain"
+],
+"Seraphine": [
+"Femme",
+"Humain"
+],
+"Sett": [
+"Homme",
+"Vastaya"
+],
+"Shaco": [
+"Homme",
+"Inconnue"
+],
+"Shen": [
+"Homme",
+"Humain"
+],
+"Shyvana": [
+"Femme",
+"Dragon"
+],
+"Singed": [
+"Homme",
+"Humain"
+],
+"Sion": [
+"Homme",
+"Mort-vivant"
+],
+"Sivir": [
+"Femme",
+"Humain"
+],
+"Skarner": [
+"Homme",
+"Brackern"
+],
+"Smolder": [
+"Homme",
+"Dragon"
+],
+"Sona": [
+"Femme",
+"Humain"
+],
+"Soraka": [
+"Femme",
+"Céleste"
+],
+"Swain": [
+"Homme",
+"Humain"
+],
+"Sylas": [
+"Homme",
+"Humain"
+],
+"Syndra": [
+"Femme",
+"Humain"
+],
+"TahmKench": [
+"Homme",
+"Démon"
+],
+"Taliyah": [
+"Femme",
+"Humain"
+],
+"Talon": [
+"Homme",
+"Humain"
+],
+"Taric": [
+"Homme",
+"Aspect"
+],
+"Teemo": [
+"Homme",
+"Yordle"
+],
+"Thresh": [
+"Homme",
+"Mort-vivant"
+],
+"Tristana": [
+"Femme",
+"Yordle"
+],
+"Trundle": [
+"Homme",
+"Troll"
+],
+"Tryndamere": [
+"Homme",
+"Humain"
+],
+"TwistedFate": [
+"Homme",
+"Humain"
+],
+"Twitch": [
+"Homme",
+"Rat"
+],
+"Udyr": [
+"Homme",
+"Humain"
+],
+"Urgot": [
+"Homme",
+"Humain"
+],
+"Varus": [
+"Homme",
+"Darkin"
+],
+"Vayne": [
+"Femme",
+"Humain"
+],
+"Veigar": [
+"Homme",
+"Yordle"
+],
+"Velkoz": [
+"Autre",
+"Néant"
+],
+"Vex": [
+"Femme",
+"Yordle"
+],
+"Vi": [
+"Femme",
+"Humain"
+],
+"Viego": [
+"Homme",
+"Mort-vivant"
+],
+"Viktor": [
+"Homme",
+"Humain"
+],
+"Vladimir": [
+"Homme",
+"Humain"
+],
+"Volibear": [
+"Homme",
+"Dieu-esprit"
+],
+"Warwick": [
+"Homme",
+"Chimère"
+],
+"Xayah": [
+"Femme",
+"Vastaya"
+],
+"Xerath": [
+"Homme",
+"Transfiguré"
+],
+"XinZhao": [
+"Homme",
+"Humain"
+],
+"Yasuo": [
+"Homme",
+"Humain"
+],
+"Yone": [
+"Homme",
+"Humain"
+],
+"Yorick": [
+"Homme",
+"Humain"
+],
+"Yuumi": [
+"Femme",
+"Chat magique"
+],
+"Zac": [
+"Homme",
+"Chimère"
+],
+"Zed": [
+"Homme",
+"Humain"
+],
+"Zeri": [
+"Femme",
+"Humain"
+],
+"Ziggs": [
+"Homme",
+"Yordle"
+],
+"Zilean": [
+"Homme",
+"Humain"
+],
+"Zoe": [
+"Femme",
+"Aspect"
+],
+"Zyra": [
+"Femme",
+"Plante"
+]
+}

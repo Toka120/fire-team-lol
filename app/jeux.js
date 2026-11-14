@@ -39,6 +39,9 @@ let EMOJI = {};
 try { EMOJI = require('./emojis.json'); } catch (e) { /* facultatif */ }
 let SPLASH = {};
 try { SPLASH = require('./splash.json').skins || {}; } catch (e) { /* facultatif */ }
+// Genre et espèce de chaque champion (lore officiel) pour le mode Classique : { Ahri: ["Femme", "Vastaya"] }.
+let TRAITS = {};
+try { TRAITS = require('./traits.json'); } catch (e) { /* facultatif */ }
 
 // Région associée pour les champions que Riot classe « sans région » (origine ou histoire).
 const ASSOC = {
@@ -92,7 +95,7 @@ async function data() {
   let version = null;
   try { version = (await get(`${DD}/api/versions.json`, 15000))[0]; } catch (e) { /* hors ligne */ }
   const cache = mem || readJson('jeux.json');
-  if (cache && cache.fmt === 8 && (!version || cache.version === version)) { mem = cache; return { ok: true, ...cache, offline: !version }; }
+  if (cache && cache.fmt === 9 && (!version || cache.version === version)) { mem = cache; return { ok: true, ...cache, offline: !version }; }
   if (!version) return cache ? { ok: true, ...cache, offline: true } : { ok: false, error: 'hors ligne : données des champions indisponibles' };
   try {
     const full = await get(`${DD}/cdn/${version}/data/fr_FR/championFull.json`, 60000);
@@ -113,10 +116,11 @@ async function data() {
         range: (c.stats && c.stats.attackrange) >= 300 ? 'Distance' : 'Mêlée',
         passive: { name: c.passive.name, img: c.passive.image.full, desc: strip(c.passive.description) },
         spells: (c.spells || []).map((s, i) => ({ key: 'QWER'[i], name: s.name, img: s.image.full, cd: (s.cooldown || []).map(Number) })),
-        st: c.stats ? { hp: c.stats.hp, hpl: c.stats.hpperlevel, ms: c.stats.movespeed, ar: c.stats.armor, mr: c.stats.spellblock, ad: c.stats.attackdamage, as: c.stats.attackspeed, rg: c.stats.attackrange } : null,
+        st: c.stats ? { hp: c.stats.hp, hpl: c.stats.hpperlevel, ms: c.stats.movespeed, ar: c.stats.armor, arl: c.stats.armorperlevel, mr: c.stats.spellblock, mrl: c.stats.spellblockperlevel, ad: c.stats.attackdamage, adl: c.stats.attackdamageperlevel, as: c.stats.attackspeed, asl: c.stats.attackspeedperlevel, rg: c.stats.attackrange } : null,
         skins: skinList(c),
         vo: voiceList(c.key),
         emo: EMOJI[c.id] || null,
+        gender: (TRAITS[c.id] || [])[0] || null, species: (TRAITS[c.id] || [])[1] || null,
         lanes: LANES[c.id] || [],
         lore: c.lore, slug: u ? u.slug : c.id.toLowerCase(),
         region: reg && reg !== 'unaffiliated' ? (fac[reg] || FAC_FR[reg] || reg) : null,
@@ -127,7 +131,7 @@ async function data() {
     const factions = (uni.factions || []).map((f) => ({ slug: f.slug, name: f.name, desc: strip(f.description), img: f.image && f.image.uri ? f.image.uri : null }));
     let items = [];
     try { items = itemList(await get(`${DD}/cdn/${version}/data/fr_FR/item.json`, 60000)); } catch (e) { /* les quiz d'objets attendront */ }
-    mem = { fmt: 8, version, champs, factions, items, at: Date.now() };
+    mem = { fmt: 9, version, champs, factions, items, at: Date.now() };
     writeJson('jeux.json', mem);
     return { ok: true, ...mem };
   } catch (e) {
