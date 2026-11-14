@@ -65,7 +65,11 @@ function trayMenu() {
     { label: 'Quitter FIRE LoL', click: () => { quitting = true; app.quit(); } }
   ]);
 }
-function notify(title, body, section, silent) {
+function notify(title, body, section, silent, flash) {
+  // Rappel de rendez-vous : l'icône de FIRE clignote dans la barre des tâches jusqu'à ce qu'on revienne sur FIRE.
+  if (flash && mainWin && !mainWin.isDestroyed() && !mainWin.isFocused()) {
+    try { mainWin.flashFrame(true); mainWin.once('focus', () => { try { mainWin.flashFrame(false); } catch (e) { /* */ } }); } catch (e) { /* */ }
+  }
   if (!Notification.isSupported()) return false;
   const n = new Notification({ title, body, icon: path.join(__dirname, 'assets', 'fire.png'), silent: !!silent });
   n.on('click', () => {
@@ -1202,7 +1206,7 @@ async function latestTag() {
   } catch (e) { return null; }
 }
 ipcMain.handle('update:state', async () => ({ ...updateState, auto: canAutoUpdate(), portable, store, latest: store ? null : await latestTag() }));
-ipcMain.handle('notify', (e, m) => notify(String((m && m.title) || 'FIRE LoL').slice(0, 120), String((m && m.body) || '').slice(0, 300), m && m.section, m && m.silent));
+ipcMain.handle('notify', (e, m) => notify(String((m && m.title) || 'FIRE LoL').slice(0, 120), String((m && m.body) || '').slice(0, 300), m && m.section, m && m.silent, !!(m && m.flash)));
 
 // ---------- Avancé : accélération matérielle, cache, son de Windows ----------
 // L'accélération matérielle se règle avant le démarrage : on lit le choix au lancement (redémarrage nécessaire).

@@ -2718,3 +2718,44 @@ html.sub-mode #chat { display: none !important; }
 .acc-badge { position: absolute; top: 10px; right: 12px; min-width: 20px; padding: 1px 7px; border-radius: 10px; background: #ff4d5e; color: #fff; font-size: 11px; font-weight: 800; text-align: center; }
 .acc-go { color: var(--muted); font-size: 18px; transition: transform .16s ease, color .16s ease; } .acc-card:hover .acc-go { transform: translateX(3px); color: var(--fire1, #ff6b3d); }
 html.mobile .acc-hero { padding: 20px 16px; } html.mobile .acc-hero h1 { font-size: 26px; }
+
+/* ===== Rappels de rendez-vous ===== */
+.rdv-pill{display:inline-flex;align-items:center;gap:6px;flex:none;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:color-mix(in srgb,var(--panel2) 80%,transparent);color:var(--muted);font:600 12px/1 inherit;cursor:pointer;white-space:nowrap;transition:background .2s,border-color .2s,color .2s}
+.rdv-pill:hover{color:var(--fg);border-color:var(--fire2)}
+.rdv-pill[hidden]{display:none}
+.rdv-pill .rdv-t{color:var(--fg);font-weight:600}
+.rdv-pill .rdv-in{opacity:.85;font-weight:500}
+.rdv-pill.near{border-color:color-mix(in srgb,var(--fire2) 55%,var(--line))}
+.rdv-pill.near .rdv-in{color:var(--fire1)}
+.rdv-pill.soon{border-color:var(--fire2);background:color-mix(in srgb,var(--fire2) 16%,var(--panel2));color:var(--fg);animation:rdv-glow 2.4s ease-in-out infinite}
+.rdv-pill.soon .rdv-in{color:var(--fire1);font-weight:700}
+.rdv-pill.live{border-color:#3ecf8e;background:color-mix(in srgb,#3ecf8e 14%,var(--panel2))}
+.rdv-pill.live .rdv-in{color:#3ecf8e;font-weight:700}
+@keyframes rdv-glow{0%,100%{box-shadow:0 0 0 0 rgba(255,94,58,0)}50%{box-shadow:0 0 0 4px rgba(255,94,58,.18)}}
+#rdv-zone{position:fixed;right:18px;bottom:18px;z-index:9998;display:flex;flex-direction:column;gap:10px;width:min(380px,calc(100vw - 32px));pointer-events:none}
+html.mobile #rdv-zone{right:12px;left:12px;width:auto;bottom:calc(74px + env(safe-area-inset-bottom,0px))}
+.rdv-card{pointer-events:auto;position:relative;display:flex;gap:12px;align-items:flex-start;padding:14px 44px 14px 14px;border-radius:14px;background:var(--panel2);border:1px solid color-mix(in srgb,var(--fire2) 60%,var(--line));box-shadow:0 14px 36px rgba(0,0,0,.5);animation:rdv-in .45s cubic-bezier(.2,.9,.3,1.15)}
+.rdv-card.coach{border-color:color-mix(in srgb,#8b7bff 65%,var(--line))}
+.rdv-card::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:0 4px 4px 0;background:var(--fire2)}
+.rdv-card.coach::before{background:#8b7bff}
+.rdv-card.live{border-color:#3ecf8e}
+.rdv-card.live::before{background:#3ecf8e}
+.rdv-card.out{animation:rdv-out .3s ease forwards}
+.rdv-card .popup-x{position:absolute;top:10px;right:10px;width:26px;height:26px;font-size:12px}
+.rdv-c-ico{flex:none;width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:color-mix(in srgb,var(--fire2) 18%,transparent);font-size:20px}
+.rdv-card.coach .rdv-c-ico{background:color-mix(in srgb,#8b7bff 20%,transparent)}
+.rdv-c-body{flex:1;min-width:0}
+.rdv-c-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.rdv-c-title{font-weight:700;font-size:14px}
+.rdv-cd{font-size:13px;color:var(--fire1)}
+.rdv-card.coach .rdv-cd{color:#a99cff}
+.rdv-card.live .rdv-cd{color:#3ecf8e}
+.rdv-c-what{margin-top:3px;font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.rdv-c-warn{margin-top:6px;font-size:12px;color:#f2c14e}
+.rdv-c-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.rdv-sel{width:auto;margin:0 6px;padding:2px 6px}
+@keyframes rdv-in{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes rdv-out{to{opacity:0;transform:translateY(12px)}}
+@media (prefers-reduced-motion:reduce){.rdv-pill.soon,.rdv-card{animation:none}}
+html[data-calm] .rdv-pill.soon,html[data-calm] .rdv-card{animation:none}
+#rdv-zone .rdv-c-btns button{padding:5px 12px;min-height:30px;height:auto;font-size:13px}

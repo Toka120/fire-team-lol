@@ -1,6 +1,37 @@
 {
  "versions": [
   {
+   "v": "1.10.132",
+   "date": "2026-11-14",
+   "titre": "Rappels de rendez-vous",
+   "items": [
+    [
+     "new",
+     "Rappels de rendez-vous pour les entraînements d’équipe et tes créneaux de coaching individuel validés (côté joueur comme côté coach)."
+    ],
+    [
+     "new",
+     "En haut de FIRE, une petite pastille montre ton prochain rendez-vous des 24 h (« Entraînement 20h · dans 2 h 10 »). Elle se colore à l’approche et passe au vert quand ça commence. Clic : le planning s’ouvre au bon endroit."
+    ],
+    [
+     "new",
+     "15 min avant le début : un rappel en bas à droite, avec un compte à rebours, qui reste jusqu’à ce que tu le fermes (« OK », « Dans 5 min » ou « Voir le planning »). Avec un petit son doux, une notification Windows et l’icône de FIRE qui clignote dans la barre des tâches."
+    ],
+    [
+     "improve",
+     "Si tu n’as pas encore répondu pour la séance, le rappel te le dit (bouton « Répondre »). Pas de rappel les jours où tu as mis « Absent »."
+    ],
+    [
+     "improve",
+     "Paramètres › Notifications › Rappels de rendez-vous : choisis 5, 10, 15, 20 ou 30 min avant, un rappel en plus 1 h avant, le son, et teste avec « Voir un exemple de rappel »."
+    ],
+    [
+     "fix",
+     "Accueil et Stats : la carte « Aujourd’hui » se met à jour dès que le planning est chargé (avant, elle pouvait dire « pas de session » à tort)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.131",
    "date": "2026-11-14",
    "titre": "Grosse mise à jour : accueil, apprendre, jeux, draft",

@@ -370,6 +370,7 @@
       if (waiting || S.coachState.coach) loadPlanning();
     }, 60 * 1000);
     if (!S.moi && !load('fire.moi.demande', false)) later(askWho);
+    rdvStart();
   }
 
   function wire() {
@@ -566,6 +567,153 @@
     if (ok.length) notifyDesk('resa', '✅ Créneau accepté', `${vocalName(ok[0].c)} a accepté ton créneau du ${day(ok[0])}.` + more(ok), 'planning');
     if (ko.length) notifyDesk('resa', '❌ Créneau refusé', `${vocalName(ko[0].c)} a refusé ton créneau du ${day(ko[0])}.` + more(ko), 'planning');
   }
+  // ===== Rappels de rendez-vous : entraînements d'équipe et créneaux de coaching validés =====
+  // Discret : une pastille en haut de FIRE avec le prochain rendez-vous des 24 h (elle se colore à l'approche).
+  // Visible : X min avant (15 par défaut), une carte en bas à droite qui reste jusqu'à ce qu'on la ferme,
+  // un petit son doux, une notification Windows et l'icône de FIRE qui clignote dans la barre des tâches.
+  const RDV_DEF = { team: true, coach: true, avant: 15, heure: false, son: true };
+  const rdvPrefs = () => ({ ...RDV_DEF, ...load('fire.rdv', {}) });
+  const RDV = { cards: new Map(), snooze: {}, timer: null };
+  const rdvAt = (d, hr) => { const [y, m, j] = d.split('-').map(Number); return new Date(y, m - 1, j, hr, 0, 0, 0).getTime(); };
+  const rdvH = (x) => (x % 24) + 'h';
+  function rdvList() {
+    if (!S.plan) return [];
+    const p = rdvPrefs(), t = todayYmd(), from = addDays(t, -1), lim = addDays(t, 2), out = [];
+    if (p.team) for (const [d, j] of Object.entries(S.plan.jours || {})) {
+      if (d < from || d > lim) continue;
+      const mine = S.moi ? ((S.plan.reponses || {})[d] || {})[S.moi] : null;
+      if (mine && mine.statut === 'absent') continue;
+      const type = PLAN_TYPES.find((x) => x[0] === j.type);
+      const blocks = [];
+      for (const x of (j.heures || []).slice().sort((a, b) => a - b)) { const l = blocks[blocks.length - 1]; if (l && l[1] === x) l[1] = x + 1; else blocks.push([x, x + 1]); }
+      for (const [a, b] of blocks) out.push({ key: `t|${d}|${a}`, kind: 'team', d, at: rdvAt(d, a), end: rdvAt(d, b), ico: '🗓️', title: 'Entraînement d’équipe', short: 'Entraînement',
+        what: `${rdvH(a)} – ${rdvH(b)}` + (type ? ' · ' + type[1] : '') + (j.note ? ' · ' + j.note : ''), unsure: !SUB() && !!S.moi && !isCoachUser() && !mine, tab: 'equipe' });
+    }
+    if (p.coach && S.moi) for (const x of resaList()) {
+      if (x.st !== 'ok' || (x.s !== S.moi && x.c !== S.moi)) continue;
+      out.push({ key: `c|${x.d}|${x.c}|${x.hr}|${x.s}`, kind: 'coach', d: x.d, at: rdvAt(x.d, x.hr), end: rdvAt(x.d, x.hr + 1), ico: '🎓', title: 'Coaching individuel', short: 'Coaching',
+        what: `${rdvH(x.hr)} – ${rdvH(x.hr + 1)} · avec ${vocalName(x.c === S.moi ? x.s : x.c)}`, tab: 'coachs' });
+    }
+    return out.sort((a, b) => a.at - b.at);
+  }
+  const rdvIn = (ms) => {
+    const m = Math.ceil(ms / 60000);
+    if (m <= 0) return 'maintenant';
+    if (m < 60) return `dans ${m} min`;
+    const hrs = Math.floor(m / 60), r = m % 60;
+    return `dans ${hrs} h` + (r ? ' ' + String(r).padStart(2, '0') : '');
+  };
+  const rdvDay = (x) => (x.d === todayYmd() ? '' : x.d === addDays(todayYmd(), 1) ? 'demain ' : dayFr(x.d, { weekday: 'long' }) + ' ');
+  const rdvOpen = (x) => { S.planTab = x.tab; S.planWeek = mondayOf(x.d); S.planEdit = null; go('planning'); };
+  function rdvPill() {
+    let el = $('rdv-pill');
+    if (!el) {
+      const ref = $('period-box');
+      if (!ref || !ref.parentNode) return;
+      el = h('button', { id: 'rdv-pill', class: 'rdv-pill' });
+      el.hidden = true;
+      ref.parentNode.insertBefore(el, ref);
+    }
+    const now = Date.now();
+    const next = rdvList().find((x) => x.end > now && x.at - now < 24 * 3600000);
+    if (!next) { el.hidden = true; return; }
+    const left = next.at - now, live = left <= 0;
+    el.hidden = false;
+    el.className = 'rdv-pill' + (live ? ' live' : left <= rdvPrefs().avant * 60000 ? ' soon' : left <= 3600000 ? ' near' : '');
+    el.title = `${next.title} ${rdvDay(next)}: ${next.what}. Clique pour ouvrir le planning.`;
+    el.onclick = () => rdvOpen(next);
+    el.replaceChildren(h('span', { class: 'rdv-ico' }, next.ico), h('span', { class: 'rdv-t' }, `${next.short} ${rdvDay(next)}${rdvH(new Date(next.at).getHours())}`),
+      h('span', { class: 'rdv-in' }, live ? 'en cours' : rdvIn(left)));
+  }
+  function rdvChime() {
+    if (!rdvPrefs().son) return;
+    try {
+      const c = new (window.AudioContext || window.webkitAudioContext)();
+      [[0, 659], [0.18, 880]].forEach(([d, f]) => {
+        const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + d;
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.08, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.75);
+      });
+      setTimeout(() => c.close(), 1500);
+    } catch (e) { /* pas de son */ }
+  }
+  function rdvCard(x) {
+    let zone = $('rdv-zone');
+    if (!zone) { zone = h('div', { id: 'rdv-zone', 'aria-live': 'assertive' }); document.body.append(zone); }
+    const old = RDV.cards.get(x.key);
+    if (old) old.remove();
+    const close = () => { RDV.cards.delete(x.key); el.classList.add('out'); setTimeout(() => el.remove(), 300); };
+    const cd = h('b', { class: 'rdv-cd' });
+    const el = h('div', { class: 'rdv-card ' + x.kind, role: 'alert' },
+      h('div', { class: 'rdv-c-ico' }, x.ico),
+      h('div', { class: 'rdv-c-body' },
+        h('div', { class: 'rdv-c-top' }, h('span', { class: 'rdv-c-title' }, x.title), cd),
+        h('div', { class: 'rdv-c-what' }, x.what),
+        x.unsure ? h('div', { class: 'rdv-c-warn' }, '❔ Tu n’as pas encore dit si tu viens.') : null,
+        h('div', { class: 'rdv-c-btns' },
+          h('button', { class: 'btn-fire small-btn', onclick: () => { close(); if (!x.demo) rdvOpen(x); } }, x.unsure ? 'Répondre' : 'Voir le planning'),
+          x.at - Date.now() > 6 * 60000 ? h('button', { class: 'btn-ghost small-btn', title: 'Le rappel revient dans 5 minutes', onclick: () => { if (!x.demo) RDV.snooze[x.key] = Date.now() + 5 * 60000; close(); } }, '⏱ Dans 5 min') : null,
+          h('button', { class: 'btn-ghost small-btn', onclick: close }, 'OK'))),
+      h('button', { class: 'popup-x', title: 'Fermer', 'aria-label': 'Fermer', onclick: close }, '✕'));
+    el.__rdv = x; el.__cd = cd;
+    RDV.cards.set(x.key, el);
+    zone.append(el);
+    while (zone.children.length > 3) zone.firstChild.remove();
+    rdvPaint();
+  }
+  // Compte à rebours des cartes ; une carte part toute seule 20 min après le début (ou si le rendez-vous est annulé).
+  function rdvPaint() {
+    const now = Date.now(), keys = new Set(rdvList().map((x) => x.key));
+    for (const [k, el] of RDV.cards) {
+      const x = el.__rdv, left = x.at - now;
+      if (now > x.at + 20 * 60000 || (!x.demo && !keys.has(k))) { RDV.cards.delete(k); el.classList.add('out'); setTimeout(() => el.remove(), 300); continue; }
+      el.classList.toggle('live', left <= 0);
+      el.__cd.textContent = left <= 0 ? 'C’est l’heure !' : rdvIn(left);
+    }
+  }
+  function rdvDesk(x, title) {
+    const p = notifPrefs();
+    if (!p.on || !window.fire.notify) return;
+    const inGame = UX.dnd && typeof LIVE !== 'undefined' && LIVE.mine;
+    // Un rendez-vous passe avant les heures calmes et le statut « Occupé » ; pas pendant une partie (la carte attend dans FIRE).
+    deskNotify({ title, body: x.what, section: 'planning', silent: true, flash: true, force: !inGame }).catch(() => {});
+  }
+  function rdvTick() {
+    try {
+      rdvPill();
+      const p = rdvPrefs(), now = Date.now(), done = load('fire.rdv.done', {});
+      let changed = false;
+      for (const x of rdvList()) {
+        const left = x.at - now;
+        if (left < -5 * 60000) continue;
+        if (p.heure && left <= 3600000 && left > (p.avant + 5) * 60000 && !done[x.key + '|h']) {
+          done[x.key + '|h'] = now; changed = true;
+          popup(`${x.ico} ${x.title} ${rdvIn(left)}`, x.what, 'planning');
+          rdvDesk(x, `${x.ico} ${x.title} ${rdvIn(left)}`);
+        }
+        if (left <= p.avant * 60000 && !done[x.key + '|a']) {
+          done[x.key + '|a'] = now; changed = true;
+          if (x.tab) S.planTab = x.tab;
+          rdvCard(x); rdvChime();
+          rdvDesk(x, left > 0 ? `⏰ ${x.title} ${rdvIn(left)}` : `⏰ ${x.title} : c’est l’heure !`);
+          actLog('plan', `Rappel affiché : ${x.title} ${x.what}`);
+        }
+        const sz = RDV.snooze[x.key];
+        if (sz && now >= sz) { delete RDV.snooze[x.key]; rdvCard(x); rdvChime(); }
+      }
+      if (changed) {
+        for (const k of Object.keys(done)) if (now - done[k] > 4 * 86400000) delete done[k];
+        save('fire.rdv.done', done);
+      }
+      rdvPaint();
+    } catch (e) { /* le rappel ne doit jamais casser FIRE */ }
+  }
+  function rdvStart() {
+    if (RDV.timer) return;
+    RDV.timer = setInterval(rdvTick, 15000);
+    setTimeout(rdvTick, 2500);
+  }
   function notifFiches() {
     const ids = (S.fiches || []).map((f) => f.id);
     const known = load('fire.notif.fiches', null);
@@ -624,6 +772,8 @@
 
   // Carte « Notifications sur le bureau » des Paramètres.
   function notifCard() {
+    const rp = rdvPrefs();
+    const setR = (k, v) => { save('fire.rdv', { ...rdvPrefs(), [k]: v }); renderSettings(); rdvTick(); };
     const p = notifPrefs();
     const b = S.bg || {};
     const set = (k, v) => { save('fire.notif', { ...notifPrefs(), [k]: v }); renderSettings(); };
@@ -644,6 +794,20 @@
         box(p.resa, '🎓 Créneau avec un coach : ta demande est acceptée ou refusée (coachs : un joueur demande un créneau)', (v) => set('resa', v), !p.on && !p.app),
         box(p.coach, '📣 Nouvelle fiche ou note dans « Parole du coach »', (v) => set('coach', v), !p.on && !p.app),
         box(p.vocal, '🎙️ Un coéquipier arrive dans le salon vocal (notification Windows, une fois par personne toutes les 10 min)', (v) => set('vocal', v), !p.on)),
+      h('h3', { class: 'nh' }, '⏰ Rappels de rendez-vous'),
+      h('p', { class: 'muted small' }, 'Une pastille en haut de FIRE montre ton prochain rendez-vous. Avant le début, un rappel apparaît en bas à droite et reste jusqu’à ce que tu le fermes, avec un son doux, une notification Windows et l’icône de FIRE qui clignote dans la barre des tâches. Pas de notification Windows pendant une partie : le rappel t’attend dans FIRE.'),
+      h('div', { class: 'nsub' },
+        box(rp.team, '🗓️ Entraînements d’équipe (sauf les jours où tu as répondu « Absent »)', (v) => setR('team', v)),
+        box(rp.coach, '🎓 Mes créneaux de coaching individuel validés', (v) => setR('coach', v)),
+        h('label', { class: 'nrow' + (rp.team || rp.coach ? '' : ' off') }, h('span', null, 'Me prévenir '),
+          h('select', { class: 'inp rdv-sel', onchange: (e) => setR('avant', Number(e.target.value)) }, [5, 10, 15, 20, 30].map((n) => h('option', { value: String(n), selected: n === rp.avant ? true : null }, n + ' min'))),
+          h('span', null, ' avant le début')),
+        box(rp.heure, 'Aussi un petit rappel 1 h avant', (v) => setR('heure', v), !rp.team && !rp.coach),
+        box(rp.son, 'Son doux avec le rappel', (v) => setR('son', v), !rp.team && !rp.coach)),
+      h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => {
+        rdvCard({ key: 'demo', demo: true, kind: 'team', d: todayYmd(), at: Date.now() + rp.avant * 60000, end: Date.now() + (rp.avant + 120) * 60000, ico: '🗓️', title: 'Entraînement d’équipe', what: 'Exemple · 20h – 23h · 🔁 Flex', tab: 'equipe' });
+        rdvChime();
+      } }, '⏰ Voir un exemple de rappel')),
       h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: (p.on || p.app) ? null : true, onclick: () => {
         if (p.app) popup('🔥 FIRE LoL', 'Les notifications fonctionnent ✓', null);
         if (p.on && window.fire.notify) deskNotify({ title: '🔥 FIRE LoL', body: 'Les notifications fonctionnent ✓', section: 'settings', force: true });
@@ -7828,11 +7992,13 @@
   async function loadPlanning() {
     if (SUB()) { const b = load('fire.remp', null); S.plan = planFrom((b && b.planning) || {}); renderNav(); if (S.section === 'planning' && !typing()) render(); return; }
     let r;
+    const before = S.plan ? JSON.stringify([S.plan.jours, S.plan.reponses]) : '';
     try { r = await window.fire.planning(); } catch (e) { r = { ok: false, error: String(e) }; }
-    if (r && r.ok) { S.plan = planFrom(r); S.planErr = r.offline ? 'Hors ligne : dernier planning enregistré.' : ''; if (!r.offline) { notifPlanning(false); notifResas(false); } }
+    if (r && r.ok) { S.plan = planFrom(r); if (before !== JSON.stringify([S.plan.jours, S.plan.reponses]) && (S.section === 'accueil' || S.section === 'stats') && !typing()) setTimeout(() => { if ((S.section === 'accueil' || S.section === 'stats') && !typing()) render(); }, 0); S.planErr = r.offline ? 'Hors ligne : dernier planning enregistré.' : ''; if (!r.offline) { notifPlanning(false); notifResas(false); } }
     else { S.plan = S.plan || planFrom({}); S.planErr = (r && r.error) || 'planning indisponible'; }
     S.planWrite = !!(r && r.peutEcrire);
     renderNav();
+    rdvTick();
     if (typing() || S.planEdit) return;
     if (S.section === 'planning') render();
   }
