@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.123",
+   "date": "2026-11-14",
+   "titre": "Puzzle du jour",
+   "items": [
+    [
+     "new",
+     "Apprendre › « Puzzle du jour » : une situation de partie (carte avec les champions, les balises et la dernière position connue du jungler adverse), une question, 4 réponses. 43 situations pour l’instant : jungle, top, mid, ADC, support et tous rôles ; objectifs, vagues, vision, teamfights, macro, mental."
+    ],
+    [
+     "new",
+     "Comme chez les pros, il y a souvent plusieurs bonnes réponses selon ton style (🔥 agressif, 🛡️ prudent, 🧠 macro, 🤝 jeu d’équipe, ⏱ tempo) et toujours au moins un piège. Après ta réponse, chaque choix est expliqué : « ce qu’un pro ferait », « jouable » ou « mauvaise réponse », avec la lecture pro."
+    ],
+    [
+     "new",
+     "Le puzzle du jour est le même pour toute l’équipe, avec ta série de jours. En plus, un entraînement libre filtré par rôle et par thème. Ta progression reste perso, sans classement."
+    ]
+   ]
+  },
+  {
    "v": "1.10.122",
    "date": "2026-11-14",
    "titre": "Analyse IA des parties (VOD)",

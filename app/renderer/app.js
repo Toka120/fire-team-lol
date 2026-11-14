@@ -1672,6 +1672,107 @@
         rvPaint(); } }, '✕') : null)) : [h('p', { class: 'muted small' }, 'Aucune note. Mets la partie au bon moment, dessine sur la carte si besoin, écris ta remarque et ajoute-la.')]));
   }
 
+
+  // ===== Puzzle du jour : une situation de partie, plusieurs bonnes réponses selon le style, au moins une mauvaise =====
+  const GP = { cur: null, pick: null, order: [], role: null, th: 'all', mode: 'jour' };
+  const gpData = () => window.FIRE_PUZZLES || { P: [], SP: {}, THEMES: {}, ROLES: {}, STYLES: {} };
+  const gpSave = () => load('fire.puzzle', { days: {}, seen: {} });
+  const gpToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  // Même puzzle du jour pour toute l'équipe (tiré de la date).
+  function gpDaily() {
+    const L = gpData().P; if (!L.length) return null;
+    let x = 0; for (const c of gpToday()) x = (x * 31 + c.charCodeAt(0)) >>> 0;
+    return L[x % L.length];
+  }
+  function gpStreak() {
+    const days = gpSave().days || {};
+    let n = 0; const d = new Date();
+    if (!days[gpToday()]) d.setDate(d.getDate() - 1);
+    for (;;) { const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; if (!days[k]) break; n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+  const GP_V = { P: ['✅', 'Ce qu’un pro ferait', 'pro'], O: ['🟡', 'Jouable, pas optimal', 'ok'], X: ['❌', 'Mauvaise réponse', 'bad'] };
+  function gpOpen(p) { GP.cur = p; GP.pick = null; GP.order = p.a.map((_, i) => i).sort(() => Math.random() - 0.5); renderGamePuzzle(); window.scrollTo(0, 0); }
+  function gpNext() {
+    const D = gpData(); const seen = gpSave().seen || {};
+    const ok = (p) => (GP.th === 'all' || p.th === GP.th) && (!GP.role || GP.role === 'all' || p.role === GP.role || p.role === 'all');
+    const pool = D.P.filter(ok);
+    const fresh = pool.filter((p) => !seen[p.id] && p !== GP.cur);
+    const L = fresh.length ? fresh : pool.filter((p) => p !== GP.cur);
+    if (!L.length) return;
+    gpOpen(L[Math.floor(Math.random() * L.length)]);
+  }
+  function gpAnswer(i) {
+    const p = GP.cur; if (!p || GP.pick != null) return;
+    GP.pick = i;
+    const v = p.a[i].v;
+    const sv = gpSave(); sv.seen = sv.seen || {}; sv.days = sv.days || {};
+    if (!sv.seen[p.id] || v === 'P') sv.seen[p.id] = v;
+    const daily = gpDaily();
+    if (daily && daily.id === p.id && !sv.days[gpToday()]) sv.days[gpToday()] = { id: p.id, v };
+    save('fire.puzzle', sv); renderNav();
+    actLog('app', v === 'P' ? 'Puzzle réussi' : 'Puzzle tenté');
+    renderGamePuzzle();
+  }
+  function gpMap(p) {
+    const D = gpData(); const m = p.map; if (!m) return null;
+    const at = (x) => (typeof x === 'string' ? D.SP[x] : x) || [500, 500];
+    const v = (S.champList && S.champList.version) || '14.1.1';
+    const pts = [];
+    for (const [pos, tm] of m.w || []) { const [x, y] = at(pos); pts.push(h('span', { class: 'gp-ward ' + (tm === 'r' ? 'red' : 'blue'), style: `left:${x / 10}%;top:${y / 10}%`, title: 'Balise' })); }
+    for (const [side, cls] of [['b', 'blue'], ['r', 'red']]) for (const [c, pos, guess] of m[side] || []) {
+      const [x, y] = at(pos);
+      pts.push(h('span', { class: `rv-champ ${cls}${guess ? ' gp-guess' : ''}`, style: `left:${x / 10}%;top:${y / 10}%`, title: FC.champName(c) + (guess ? ' (dernière position connue)' : '') }, champIcon(c, 30)));
+    }
+    return h('div', { class: 'rv-map gp-map' }, h('img', { class: 'rv-mapimg', alt: '', src: `https://ddragon.leagueoflegends.com/cdn/${v}/img/map/map11.png` }), h('div', { class: 'rv-ov' }, ...pts),
+      h('div', { class: 'gp-leg' }, h('span', null, h('i', { class: 'blue' }), 'Ton équipe'), h('span', null, h('i', { class: 'red' }), 'Adversaires'), h('span', null, h('i', { class: 'red guess' }), 'Dernière position connue')));
+  }
+  function gpCard(p) {
+    const D = gpData();
+    const done = GP.pick != null;
+    const chosen = done ? p.a[GP.pick] : null;
+    const pros = p.a.filter((a) => a.v === 'P');
+    const ans = GP.order.map((i) => {
+      const a = p.a[i]; const [ico, lab, cls] = GP_V[a.v];
+      return h('button', { class: 'gp-a' + (done ? ' ' + cls : '') + (GP.pick === i ? ' picked' : ''), disabled: done ? '' : null, onclick: () => gpAnswer(i) },
+        h('div', { class: 'gp-at' }, done ? h('span', { class: 'gp-v' }, ico) : null, h('b', null, a.txt)),
+        done ? h('div', { class: 'gp-ae' }, h('div', { class: 'row gp-tags' }, h('span', { class: 'gp-vl ' + cls }, lab), h('span', { class: 'chip gp-st' }, D.STYLES[a.s] || a.s), GP.pick === i ? h('span', { class: 'gp-you' }, 'ta réponse') : null),
+          h('p', null, h('b', null, '🎙 Lecture pro : '), a.e)) : null);
+    });
+    return h('div', { class: 'card gp-card' },
+      h('div', { class: 'row gp-meta' }, h('span', { class: 'chip' }, D.THEMES[p.th] || p.th), h('span', { class: 'chip' }, D.ROLES[p.role] || p.role), h('span', { class: 'chip' }, '⏱ ' + p.t), h('span', { class: 'gp-diff' }, '★'.repeat(p.d) + '☆'.repeat(3 - p.d))),
+      h('h2', { class: 'gp-title' }, p.titre),
+      h('div', { class: 'gp-body' + (p.map ? '' : ' nomap') }, p.map ? gpMap(p) : null,
+        h('div', { class: 'gp-right' }, h('p', { class: 'gp-sit' }, p.sit), h('h3', { class: 'gp-q' }, p.q), h('div', { class: 'gp-ans' }, ...ans))),
+      done ? h('div', { class: 'gp-res ' + GP_V[chosen.v][2] },
+        h('b', null, chosen.v === 'P' ? '🔥 Bien joué, c’est une réponse de pro.' : chosen.v === 'O' ? '🟡 Jouable, mais il y avait mieux.' : '❌ Pas cette fois.'),
+        h('p', { class: 'muted' }, pros.length > 1 ? `${pros.length} réponses sont « pro » ici : ${pros.map((a) => D.STYLES[a.s] || a.s).join(' et ')}. Elles dépendent de ton style et de ce que ton équipe veut jouer.` : 'Une seule réponse « pro » ici : relis la lecture pro pour comprendre ce qui la rend meilleure.'),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: gpNext }, 'Puzzle suivant →'), h('button', { class: 'btn-ghost', onclick: () => { GP.cur = null; renderGamePuzzle(); } }, '← Retour'))) : null);
+  }
+  function renderGamePuzzle() {
+    const view = $('view'); const D = gpData();
+    if (GP.role == null) GP.role = myRole() || 'all';
+    const sv = gpSave(); const seen = sv.seen || {};
+    const total = D.P.length, found = D.P.filter((p) => seen[p.id] === 'P').length;
+    const daily = gpDaily(); const dDone = (sv.days || {})[gpToday()];
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🧩'), h('div', null, h('h1', { class: 'title' }, 'Puzzle du jour'),
+      h('p', { class: 'muted' }, 'Une situation de partie, à toi de décider. Souvent plusieurs réponses sont « pro » selon ton style (agressif, prudent, macro…), et il y a toujours au moins un piège. Après ta réponse, la lecture pro explique chaque choix.'),
+      h('div', { class: 'row gp-stats' }, h('span', { class: 'chip' }, `🔥 Série : ${gpStreak()} jour${gpStreak() > 1 ? 's' : ''}`), h('span', { class: 'chip' }, `✅ ${found} / ${total} puzzles réussis`))));
+    if (GP.cur) { view.replaceChildren(hero, gpCard(GP.cur)); return; }
+    const chips = (obj, cur, set) => h('div', { class: 'row gp-filt' }, Object.entries(obj).map(([k, l]) => h('button', { class: 'chip', 'aria-pressed': String(cur === k), onclick: () => { set(k); renderGamePuzzle(); } }, l)));
+    const ths = { all: 'Tous les thèmes', ...D.THEMES };
+    const list = D.P.filter((p) => (GP.th === 'all' || p.th === GP.th) && (GP.role === 'all' || p.role === GP.role || p.role === 'all'));
+    view.replaceChildren(hero,
+      daily ? h('div', { class: 'card gp-daily' + (dDone ? ' done' : '') },
+        h('div', null, h('small', { class: 'muted' }, 'Puzzle du jour · le même pour toute l’équipe'), h('h2', null, daily.titre), h('p', { class: 'muted' }, `${D.THEMES[daily.th]} · ${D.ROLES[daily.role]} · ${'★'.repeat(daily.d)}`)),
+        h('button', { class: 'btn-fire', onclick: () => gpOpen(daily) }, dDone ? `${GP_V[dDone.v][0]} Revoir` : '🧩 Jouer')) : null,
+      h('div', { class: 'card' }, h('h3', null, '🎯 Entraînement libre'),
+        chips(D.ROLES, GP.role, (k) => { GP.role = k; }), chips(ths, GP.th, (k) => { GP.th = k; }),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', disabled: list.length ? null : '', onclick: gpNext }, '🎲 Un puzzle au hasard'), h('small', { class: 'muted' }, `${list.length} puzzle${list.length > 1 ? 's' : ''} dans cette sélection`)),
+        h('div', { class: 'gp-list' }, list.map((p) => h('button', { class: 'gp-li ' + (seen[p.id] ? GP_V[seen[p.id]][2] : ''), onclick: () => gpOpen(p) },
+          h('span', null, seen[p.id] ? GP_V[seen[p.id]][0] : '·'), h('b', null, p.titre), h('small', { class: 'muted' }, `${D.THEMES[p.th]} · ${'★'.repeat(p.d)}`))))));
+  }
+
   // ===== Parcours : arbre de compétences (5 thèmes × 4 niveaux). Réussir les puzzles d'une étape débloque la suivante. =====
   const PC = { open: null, i: 0, ok: 0, ans: null, order: [] };
   const pcData = () => window.FIRE_PARCOURS || { THEMES: [], LEVELS: [], NODES: [] };
@@ -1968,7 +2069,7 @@
   // Chaque FIRE note ses actions (pages ouvertes, messages, vocal, planning, POOL, quiz, clips…) et les envoie toutes les
   // 3 minutes dans le fichier d'activité du joueur (chiffré avec le code d'équipe). Le contenu des messages privés n'est jamais noté.
   const PAGE_NAMES = { stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
-    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', revue: 'Revue de parties', web: 'navigateur' };
+    coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', puzzle: 'Puzzle du jour', revue: 'Revue de parties', web: 'navigateur' };
   const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
   function actLog(k, d) {
     if (!vocalMe() || !window.fire.staff) return;
@@ -2338,7 +2439,7 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'carnet' || S.section === 'parcours' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'carnet' || S.section === 'parcours' || S.section === 'puzzle' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -2349,6 +2450,7 @@
     else if (S.section === 'reunion') renderReunion();
     else if (S.section === 'outils') renderOutils();
     else if (S.section === 'parcours') renderParcours();
+    else if (S.section === 'puzzle') renderGamePuzzle();
     else if (S.section === 'revue') renderRevue();
     else if (S.section === 'parties') renderParties();
     else if (S.section === 'pool') renderPool();
@@ -5076,7 +5178,7 @@
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
-      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['parcours', '🗺️', 'Parcours'],
+      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['parcours', '🗺️', 'Parcours'], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
       ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
@@ -7770,7 +7872,7 @@
   // restent chiffrés et illisibles. Les titulaires leur envoient de PC à PC un petit paquet chiffré pour eux :
   // les séances du planning d'équipe (sans les dispos des coachs ni les réponses de chacun).
   const SUB = () => !!(S.coachState && S.coachState.remplacant);
-  const SUB_OK = new Set(['stats', 'planning', 'jeux', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);
+  const SUB_OK = new Set(['stats', 'planning', 'jeux', 'puzzle', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);
   const roomOk = (r) => !SUB() || (r && r.id !== 'coaching' && !r.staff);
   const subSlugs = () => S.players.filter((p) => p.slug && isSub(p)).map((p) => p.slug);
   function subInit() {
