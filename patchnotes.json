@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.124",
+   "date": "2026-11-14",
+   "titre": "Analyse IA automatique des parties",
+   "items": [
+    [
+     "new",
+     "Plus rien à demander : à la fin de chaque game sur la Faille (plus de 10 min), FIRE partage tout seul la partie avec l’équipe, avec des images de ta vidéo si elle est filmée. Le PC d’un coach l’analyse ensuite tout seul avec l’IA, et l’analyse apparaît dans ta Revue de parties."
+    ],
+    [
+     "info",
+     "L’analyse tourne sur le PC d’un coach (sa clé Claude ne quitte pas son PC) : elle se fait dès que FIRE y est ouvert, pour toutes les parties en attente des 14 derniers jours. Maximum 40 analyses par jour pour maîtriser le coût. Les remplaçants ne sont pas concernés."
+    ]
+   ]
+  },
+  {
    "v": "1.10.123",
    "date": "2026-11-14",
    "titre": "Puzzle du jour",

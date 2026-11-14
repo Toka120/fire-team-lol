@@ -1169,8 +1169,8 @@ async function revueShare(game, who, shots) {
     if (sh.length) { await teamWrite('revues/' + id + '-img.json', () => ({ shots: sh }), 'Images de revue'); g.shots = sh.length; }
     await teamWrite('revues/' + id + '.json', (cur) => ({ ...g, ia: (cur && cur.ia) || g.ia || null, notes: mergeNotes((cur && cur.notes) || [], g.notes) }), 'Revue partagée');
     const meP = (g.players || []).find((p) => p.n === g.me) || {};
-    const item = { id, par: g.par, at: Date.now(), start: g.start, mode: g.mode, queue: g.queue, me: g.me, champ: meP.c || '', duration: g.duration, result: g.result };
-    await teamWrite(REVUES, (cur) => ({ list: [item].concat(((cur && cur.list) || []).filter((x) => x.id !== id)).slice(0, 200) }), 'Liste des revues');
+    const item = { id, par: g.par, at: Date.now(), start: g.start, mode: g.mode, queue: g.queue, me: g.me, champ: meP.c || '', duration: g.duration, result: g.result, shots: g.shots || 0 };
+    await teamWrite(REVUES, (cur) => { const old = ((cur && cur.list) || []).find((x) => x.id === id); return { list: [{ ...item, ...(old && old.ia ? { ia: old.ia } : {}) }].concat(((cur && cur.list) || []).filter((x) => x.id !== id)).slice(0, 200) }; }, 'Liste des revues');
     activityPush(who, [{ t: Date.now(), k: 'app', d: 'Revue de partie partagée' }]).catch(() => {});
     return { ok: true };
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
@@ -1231,7 +1231,12 @@ async function revueIa(req, who) {
     const j = await claude(c.anthropic, { model: MODEL, max_tokens: 8000, system: IA_SYS, messages: [{ role: 'user', content }] });
     const text = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
     const ia = { ...cleanIa(pickJson(text)), at: Date.now(), par: String(who || '').slice(0, 80), images: shots.length };
-    if (req.src === 'team' && revId(req.id)) await teamWrite('revues/' + revId(req.id) + '.json', (cur) => { if (!cur) throw new Error('revue introuvable'); return { ...cur, ia }; }, 'Analyse IA de revue');
+    if (req.src === 'team' && revId(req.id)) {
+      const id = revId(req.id);
+      await teamWrite('revues/' + id + '.json', (cur) => { if (!cur) throw new Error('revue introuvable'); return { ...cur, ia }; }, 'Analyse IA de revue');
+      // Marquée « analysée » dans la liste : les PC des coachs savent ce qui reste à faire.
+      await teamWrite(REVUES, (cur) => ({ list: ((cur && cur.list) || []).map((x) => (x.id === id ? { ...x, ia: ia.at } : x)) }), 'Liste des revues').catch(() => {});
+    }
     return { ok: true, ia };
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }

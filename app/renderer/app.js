@@ -1340,7 +1340,7 @@
     if (!ia) {
       kids.push(h('p', { class: 'muted small' }, canRun
         ? `Claude revoit la partie comme en revue VOD : déroulé, combats, positions${g.vod || g.shots ? ' et images de la vidéo aux moments clés' : ''}. Il pointe les erreurs et les bonnes décisions, minute par minute, avec quoi faire à la place.`
-        : RV.src === 'local' ? 'Partage la partie avec l’équipe : un coach pourra lancer l’analyse IA (avec des images de ta vidéo si tu l’as filmée). Le résultat s’affichera ici.' : 'Un coach peut lancer l’analyse IA de cette partie ; elle s’affichera ici pour toute l’équipe.'));
+        : rvAutoOk(g) ? 'L’analyse se fait toute seule : FIRE partage la partie avec l’équipe à la fin de la game (avec des images de ta vidéo si elle est filmée), puis le PC d’un coach l’analyse dès que FIRE y est ouvert. Elle s’affichera ici.' : 'L’analyse automatique est faite pour les parties sur la Faille de l’invocateur de plus de 10 minutes.'));
     } else {
       kids.push(h('p', { class: 'rv-iares' }, ia.resume));
       if ((ia.points_forts || []).length) kids.push(h('div', { class: 'rv-iapf' }, h('b', null, '✅ Points forts'), h('ul', null, ia.points_forts.map((x) => h('li', null, x)))));
@@ -1351,6 +1351,50 @@
       if ((ia.a_travailler || []).length) kids.push(h('div', { class: 'rv-iaw' }, h('b', null, '🎯 À travailler'), ia.a_travailler.map((x) => h('div', { class: 'rv-iawi' }, h('b', null, x.titre), h('p', { class: 'muted' }, x.exercice)))));
     }
     box.replaceChildren(...kids.filter(Boolean));
+  }
+
+  // ----- Analyse IA automatique : chaque game est partagée toute seule, et le PC d'un coach l'analyse tout seul -----
+  const rvAutoOk = (g) => g && g.mode === 'CLASSIC' && (g.duration || 0) >= 600;
+  const RVA = { busy: false, iaBusy: false };
+  async function rvAutoShare(onlyId) {
+    if (RVA.busy || SUB() || !window.fire.revues || !window.fire.parties) return;
+    RVA.busy = true;
+    try {
+      const done = load('fire.rvShared', {});
+      const list = await window.fire.parties.list().catch(() => []);
+      const todo = (list || []).filter((x) => (!onlyId || String(x.id) === String(onlyId)) && !done[x.id] && Date.now() - x.start < 3 * 864e5 && rvAutoOk(x)).slice(0, 5);
+      for (const x of todo) {
+        const g = await window.fire.parties.get(x.id).catch(() => null); if (!g) continue;
+        const shots = g.vod ? await rvShots(g).catch(() => []) : [];
+        const r = await window.fire.revues.share(g, vocalMe(), shots).catch(() => null);
+        if (!r || !r.ok) break; // pas de code d'équipe ou pas de réseau : on réessaiera plus tard
+        done[x.id] = Date.now(); save('fire.rvShared', done);
+      }
+    } finally { RVA.busy = false; }
+  }
+  async function rvAutoIa() {
+    if (RVA.iaBusy || SUB() || !(S.coachState && S.coachState.claude) || !window.fire.revues || !window.fire.revues.ia) return;
+    RVA.iaBusy = true;
+    try {
+      const st = load('fire.iaAuto', { day: '', n: 0, tried: {} });
+      const day = new Date().toDateString(); if (st.day !== day) { st.day = day; st.n = 0; }
+      const r = await window.fire.revues.list().catch(() => null);
+      const todo = ((r && r.list) || []).filter((x) => !x.ia && rvAutoOk(x) && Date.now() - (x.at || 0) < 14 * 864e5 && !(st.tried[x.id] && Date.now() - st.tried[x.id] < 6 * 36e5)).sort((a, b) => a.at - b.at);
+      for (const x of todo.slice(0, 3)) {
+        if (st.n >= 40) break; // garde-fou sur le coût de la clé Claude
+        st.tried[x.id] = Date.now(); save('fire.iaAuto', st);
+        const g = await window.fire.revues.get(x.id).catch(() => null);
+        if (!g || g.ia) continue;
+        const res = await window.fire.revues.ia({ id: x.id, src: 'team', ctx: rvCtx(g) }, vocalMe()).catch(() => null);
+        if (res && res.ok) { st.n++; save('fire.iaAuto', st); if (RV.g && String(RV.g.id) === String(x.id)) { RV.g.ia = res.ia; rvPaintIa(RV.g); } }
+      }
+      for (const k of Object.keys(st.tried)) if (Date.now() - st.tried[k] > 7 * 864e5) delete st.tried[k];
+      save('fire.iaAuto', st);
+    } finally { RVA.iaBusy = false; }
+  }
+  function rvAutoInit() {
+    setTimeout(() => { rvAutoShare(); rvAutoIa(); }, 60000);
+    setInterval(() => { rvAutoShare(); rvAutoIa(); }, 4 * 60000);
   }
   const RV_TAGS = ['Surextension', 'Mauvais engage', 'Mauvais placement', 'Mauvais focus', 'Trop tard', 'Pas groupés', 'En infériorité', 'Pas de vision', 'Sorts en recharge', 'Mauvaise lecture du jungler'];
   function vodCard() {
@@ -1428,6 +1472,11 @@
     if (!CL.list.length && window.fire.clips) clipsRefresh();
     actLog('app', 'Revue de partie ouverte');
     renderRevue(); window.scrollTo(0, 0);
+    // Ma partie a été partagée : on récupère l'analyse IA faite par le PC d'un coach.
+    if (src === 'local' && !g.ia && !SUB() && window.fire.revues) {
+      const t = await window.fire.revues.get(id).catch(() => null);
+      if (t && t.ia && RV.g === g) { g.ia = t.ia; window.fire.parties.save(g).catch(() => {}); rvPaintIa(g); }
+    }
   }
   const rvVid = () => (RV.video && RV.video.isConnected && RV.g && RV.g.vod ? RV.video : null);
   function rvStop() { RV.play = false; clearInterval(RV.timer); RV.timer = null; const v = rvVid(); if (v && !v.paused) v.pause(); }
@@ -3835,6 +3884,7 @@
     if (window.fire.keys) { window.fire.keys.on(keyAction); setTimeout(() => syncKeys(true), 1500); }
     FV().onSoundRequest(soundAsk);
     liveInit();
+    rvAutoInit();
     // Clips : enregistrement continu si activé sur ce PC ; ta voix y entre quand tu es en appel.
     if (window.FireClips) { FireClips.onChange(() => { if (S.section === 'vocal' && VX.drawer) renderVocal(); }); setTimeout(() => clipsApply().catch(() => {}), 4000); }
     // Tableau tactique : messages du salon et état envoyé à chaque personne qui arrive.
@@ -7848,7 +7898,7 @@
     setInterval(() => { chatLoad(); salonsLoad(); membresLoad(); pendingRetry(); subPush(); }, 2 * 60 * 1000);
     setTimeout(subPush, 20000);
     if (FV().onRemp) FV().onRemp(subRecv);
-    if (window.fire.parties && window.fire.parties.onNew) window.fire.parties.onNew(() => { RV.list = null; if (S.section === 'revue' && !RV.g) renderRevue(); vocalToast('🎞️ Partie enregistrée : revois-la dans Outils › Revue de parties', true); });
+    if (window.fire.parties && window.fire.parties.onNew) window.fire.parties.onNew((id) => { setTimeout(() => rvAutoShare(id), 25000); RV.list = null; if (S.section === 'revue' && !RV.g) renderRevue(); vocalToast('🎞️ Partie enregistrée : revois-la dans Outils › Revue de parties', true); });
     // Statut : envoyé tout de suite, puis chaque minute ; les cartes reçues sont gardées.
     setTimeout(statusPush, 4000);
     setInterval(() => { statusPush(); profilesKeep(); chatPaint(); }, 60000);
