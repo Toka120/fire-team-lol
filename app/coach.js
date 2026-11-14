@@ -913,6 +913,91 @@ async function teamWrite(p, fn, label) {
   }
   throw new Error("le fichier a changé pendant l'enregistrement, réessaie");
 }
+// ---------- Annonces du créateur : un message qui bloque tous les FIRE jusqu'à « Accepter et continuer » ----------
+// Le fichier est dans le dépôt de données, chiffré deux fois : avec la clé de l'équipe (titulaires, coachs) et
+// avec celle des remplaçants. Il est signé par la clé du créateur (gardée sur SON PC) : personne d'autre ne peut
+// en publier une, même avec le code d'équipe. Chacun dit qu'il l'a lue dans son petit fichier (pas de conflit).
+const ANN = 'annonces/annonce.json';
+const annLuPath = (slug) => 'annonces/lu/' + crypto.createHash('sha256').update(String(slug)).digest('hex').slice(0, 24) + '.json';
+const annCanon = (a) => 'FIRE-annonce:' + JSON.stringify([String(a.id), Number(a.at), String(a.by || ''), String(a.texte || ''), Number(a.min) || 5]);
+function annVerify(a) {
+  if (!a || !a.sig) return false;
+  for (const k of (getConfig().admins || [])) {
+    try {
+      if (k && k.pub && crypto.verify('sha256', Buffer.from(annCanon(a)), crypto.createPublicKey({ key: Buffer.from(String(k.pub), 'base64'), format: 'der', type: 'spki' }), Buffer.from(String(a.sig), 'base64'))) return true;
+    } catch (e) { /* clé suivante */ }
+  }
+  return false;
+}
+const annClean = (a) => ({ id: String(a.id), at: Number(a.at), by: String(a.by || ''), texte: String(a.texte || ''), min: Number(a.min) || 5 });
+// Lit l'annonce (fichier reçu de PC à PC, sinon le dépôt) ; null si elle n'est pas signée par le créateur.
+async function annonceGet(f) {
+  try {
+    if (!f) {
+      const dr = getConfig().data_repo || null;
+      if (!dr) return { ok: true, annonce: null };
+      const tok = teamKey() ? await teamToken().catch(() => null) : null;
+      try { f = await readPublic(ANN, dr, tok); if (f) saveCache('annonce', f); } catch (e) { f = loadCache('annonce'); }
+    }
+    if (!f || typeof f !== 'object') return { ok: true, annonce: null };
+    let cur = null, hist = [];
+    if (teamKey() && f.team) {
+      try { const d = open(f.team); cur = d && d.cur; hist = (d && Array.isArray(d.hist) ? d.hist : []).map(annClean); } catch (e) { cur = null; }
+    } else if (f.remp) cur = rempOpen(f.remp);
+    const ok = cur && annVerify(cur);
+    return { ok: true, annonce: ok ? annClean(cur) : null, hist: adminOn() || isStaffHere() ? hist : [], file: f };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e), annonce: null }; }
+}
+async function annoncePost(texte, who, retirer) {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  const k = adminKey();
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, error: "le coach n'a pas encore activé le jeton d'équipe" };
+  let a = null;
+  if (!retirer) {
+    texte = str(texte, 2000);
+    if (!texte) return { ok: false, error: 'le message est vide' };
+    a = { id: Date.now().toString(36) + crypto.randomBytes(3).toString('hex'), at: Date.now(), by: String(who || '').slice(0, 80), texte, min: 5 };
+    a.sig = crypto.sign('sha256', Buffer.from(annCanon(a)), crypto.createPrivateKey(k.priv)).toString('base64');
+  }
+  try {
+    for (let i = 0; i < 4; i++) {
+      const cur = await ghGet(tok, ANN, dr);
+      let old = null;
+      try { old = cur && cur.json && cur.json.team ? open(cur.json.team) : null; } catch (e) { old = null; }
+      const hist = (old && Array.isArray(old.hist) ? old.hist : []);
+      if (a) hist.unshift(annClean(a));
+      const file = { v: 1, id: a ? a.id : null, at: Date.now(), team: seal({ cur: a, hist: hist.slice(0, 30) }, ANN), remp: a ? rempSeal(a) : null };
+      const r = await ghPut(tok, ANN, file, cur && cur.sha, a ? 'Annonce' : 'Annonce retirée', dr);
+      if (r.ok) { saveCache('annonce', file); return { ok: true, annonce: a ? annClean(a) : null, hist: hist.slice(0, 30), file }; }
+    }
+    throw new Error("l'annonce a changé pendant l'envoi, réessaie");
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+// « J'ai lu » : chacun écrit son fichier ; un titulaire l'écrit aussi pour un remplaçant (reçu de PC à PC).
+async function annonceLu(id, slug, at) {
+  id = String(id || '').replace(/[^\w-]/g, '').slice(0, 30); slug = String(slug || '').slice(0, 80);
+  const when = Math.min(Date.now(), Number(at) || Date.now());
+  if (!id || !slug) return { ok: false, error: 'annonce ou pseudo manquant' };
+  if (!teamKey()) return { ok: false, error: 'remplaçant : passe par un titulaire' };
+  try {
+    await teamWrite(annLuPath(slug), (d) => {
+      const lus = (d && d.lus && typeof d.lus === 'object') ? d.lus : {};
+      if (!lus[id]) lus[id] = when;
+      const keep = Object.entries(lus).sort((x, y) => y[1] - x[1]).slice(0, 60);
+      return { slug, lus: Object.fromEntries(keep) };
+    }, 'Annonce lue');
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+async function annonceLus(slugs) {
+  if (!adminOn() && !isStaffHere()) return { ok: false, error: 'réservé au staff' };
+  const list = (Array.isArray(slugs) ? slugs : []).map(String).slice(0, 60);
+  const out = {};
+  await Promise.all(list.map(async (sl) => { try { const d = await teamRead(annLuPath(sl)); if (d && d.lus) out[sl] = d.lus; } catch (e) { /* illisible */ } }));
+  return { ok: true, lus: out };
+}
 const isStaffHere = () => { const st = coachState(); return st.coach || st.chef || st.admin; };
 async function roles() {
   try { const d = await teamRead(ROLES); return { ok: true, modos: (d && Array.isArray(d.modos) ? d.modos : []).map(String).slice(0, 20) }; }
@@ -1421,4 +1506,4 @@ async function revueNote(id, note, del) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 
-module.exports = { puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

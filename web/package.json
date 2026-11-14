@@ -3,9 +3,12 @@
   "private": true,
   "type": "module",
   "description": "Version téléphone de FIRE LoL (web app)",
-  "scripts": { "build": "node build.mjs" },
+  "scripts": {
+    "build": "node build.mjs"
+  },
   "dependencies": {
     "@noble/ciphers": "^2.4.0",
+    "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.4.0",
     "buffer": "^6.0.3",
     "esbuild": "^0.25.0",

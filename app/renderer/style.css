@@ -2759,3 +2759,42 @@ html.mobile #rdv-zone{right:12px;left:12px;width:auto;bottom:calc(74px + env(saf
 @media (prefers-reduced-motion:reduce){.rdv-pill.soon,.rdv-card{animation:none}}
 html[data-calm] .rdv-pill.soon,html[data-calm] .rdv-card{animation:none}
 #rdv-zone .rdv-c-btns button{padding:5px 12px;min-height:30px;height:auto;font-size:13px}
+
+/* ===== Annonces du créateur ===== */
+.ann-ov{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:24px;background:rgba(6,8,12,.72);backdrop-filter:blur(6px);animation:ann-fade .25s ease}
+.ann-ov.out{animation:ann-fade-out .25s ease forwards}
+.ann-box{width:min(560px,100%);max-height:calc(100vh - 48px);display:flex;flex-direction:column;gap:10px;padding:26px 26px 22px;border-radius:18px;background:var(--panel2);border:1px solid color-mix(in srgb,var(--fire2) 55%,var(--line));box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,94,58,.12);animation:ann-pop .35s cubic-bezier(.2,.9,.3,1.15)}
+.ann-kicker{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--fire1)}
+.ann-title{margin:0;font-size:22px;line-height:1.25}
+.ann-date{font-size:12px;color:var(--muted)}
+.ann-txt{margin:6px 0 4px;padding:14px 16px;border-radius:12px;background:color-mix(in srgb,var(--bg) 60%,transparent);border:1px solid var(--line);font-size:16px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;min-height:60px}
+.ann-bar{height:4px;border-radius:4px;background:var(--line);overflow:hidden}
+.ann-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--fire2),var(--fire1));transition:width .2s linear}
+.ann-ok{align-self:stretch;justify-content:center;padding:12px 18px;font-size:15px;font-weight:700}
+.ann-ok:disabled{opacity:.55;cursor:not-allowed;filter:grayscale(.4)}
+.ann-demo{margin:0;text-align:center;font-size:12px;color:var(--muted)}
+html.mobile .ann-ov{padding:14px}
+html.mobile .ann-box{padding:20px 18px 18px}
+@keyframes ann-fade{from{opacity:0}to{opacity:1}}
+@keyframes ann-fade-out{to{opacity:0}}
+@keyframes ann-pop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+html[data-calm] .ann-ov,html[data-calm] .ann-box{animation:none}
+.ann-in{width:100%;min-height:120px;resize:vertical;font:inherit;line-height:1.5}
+.ann-actions{align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.ann-actions .spacer{flex:1}
+.ann-confirm{margin-top:12px;padding:12px 14px;border-radius:12px;border:1px solid var(--fire2);background:color-mix(in srgb,var(--fire2) 10%,transparent);display:flex;flex-direction:column;gap:8px}
+.ann-count{font-weight:700;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--fire2) 14%,transparent);color:var(--fire1)}
+.ann-count.all{background:color-mix(in srgb,#3ecf8e 16%,transparent);color:#3ecf8e}
+.ann-quote{margin:10px 0;padding:12px 14px;border-left:3px solid var(--fire2);border-radius:0 10px 10px 0;background:color-mix(in srgb,var(--bg) 50%,transparent);white-space:pre-wrap;overflow-wrap:anywhere}
+.ann-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px}
+.ann-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);font-size:13px}
+.ann-row.ok{border-color:color-mix(in srgb,#3ecf8e 40%,var(--line))}
+.ann-who{display:flex;align-items:center;gap:6px;font-weight:600;min-width:0}
+.ann-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:var(--line);color:var(--muted)}
+.ann-old summary{cursor:pointer;padding:8px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline}
+.ann-sum{flex-basis:100%;color:var(--muted);font-size:13px}
+.ann-actions{flex-wrap:nowrap}
+.ann-actions>button,.ann-actions .btn-fire{flex:none;width:auto}
+.ann-list{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.ann-st{white-space:nowrap;flex:none}
+.ann-who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

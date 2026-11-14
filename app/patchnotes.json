@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.133",
+   "date": "2026-11-14",
+   "titre": "Annonces",
+   "items": [
+    [
+     "new",
+     "Annonces : un message de Toks s’affiche en plein milieu de FIRE, chez tout le monde (titulaires, remplaçants, coachs, version téléphone) : tout de suite si FIRE est ouvert, sinon à l’ouverture."
+    ],
+    [
+     "new",
+     "L’annonce bloque l’écran 5 secondes (le temps ne compte que quand FIRE est devant toi, pas pendant une partie), puis il faut cliquer « Accepter et continuer »."
+    ],
+    [
+     "new",
+     "Le créateur voit qui l’a lue et à quelle heure (rubrique 📢 Annonces, avec aperçu avant d’envoyer, retrait possible et anciennes annonces)."
+    ],
+    [
+     "improve",
+     "Sécurité : chaque annonce est signée par la clé du créateur, gardée sur son PC. Personne d’autre ne peut en envoyer une, même avec le code d’équipe."
+    ]
+   ]
+  },
+  {
    "v": "1.10.132",
    "date": "2026-11-14",
    "titre": "Rappels de rendez-vous",

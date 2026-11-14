@@ -2637,7 +2637,7 @@
   // ===== Carnet de bord (staff) : ce que fait chaque membre dans FIRE, notes du staff, modération, rôles =====
   // Chaque FIRE note ses actions (pages ouvertes, messages, vocal, planning, POOL, quiz, clips…) et les envoie toutes les
   // 3 minutes dans le fichier d'activité du joueur (chiffré avec le code d'équipe). Le contenu des messages privés n'est jamais noté.
-  const PAGE_NAMES = { accueil: 'Accueil', apprendre: 'Apprendre en jouant', puzdraft: 'Puzzles de draft', puzzle: 'Puzzle du jour', stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
+  const PAGE_NAMES = { annonces: 'Annonces', accueil: 'Accueil', apprendre: 'Apprendre en jouant', puzdraft: 'Puzzles de draft', puzzle: 'Puzzle du jour', stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
     coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', puzzle: 'Puzzle du jour', apprendre: 'Apprendre en jouant', puzdraft: 'Puzzles de draft', scrims: 'Scrims', stream: 'Stream Twitch', revue: 'Revue de parties', web: 'navigateur' };
   const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
   function actLog(k, d) {
@@ -3011,13 +3011,14 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'carnet' || S.section === 'parcours' || S.section === 'puzzle' || S.section === 'apprendre' || S.section === 'puzdraft' || S.section === 'accueil' || S.section === 'scrims' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'carnet' || S.section === 'annonces' || S.section === 'parcours' || S.section === 'puzzle' || S.section === 'apprendre' || S.section === 'puzdraft' || S.section === 'accueil' || S.section === 'scrims' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
     else if (S.section === 'web') renderWeb();
     else if (S.section === 'chat') renderChatPage();
     else if (S.section === 'carnet') renderCarnet();
+    else if (S.section === 'annonces') renderAnnonces();
     else if (S.section === 'clips') renderClipsPage();
     else if (S.section === 'reunion') renderReunion();
     else if (S.section === 'outils') renderOutils();
@@ -3079,7 +3080,7 @@
   const ACC_CATS = [['Équipe', '👥', 'Vos stats, vos pools et votre planning', ['stats', 'pool', 'planning', 'scrims']],
     ['Jeu', '🎮', 'Avant, pendant et entre les games', ['draft', 'train', 'jeux']],
     ['Apprendre', '🎓', 'Progresser en jouant, à ton rythme', ['parcours', 'apprendre', 'puzzle', 'puzdraft', 'guides', 'coach', 'worlds', 'lolpatch']],
-    ['Outils', '🧰', 'Revoir et analyser vos parties', ['revue', 'parties', 'outils', 'reunion', 'carnet']],
+    ['Outils', '🧰', 'Revoir et analyser vos parties', ['revue', 'parties', 'outils', 'reunion', 'annonces', 'carnet']],
     ['Social', '💬', 'Parler, jouer et regarder ensemble', ['chat', 'vocal', 'clips', 'stream']],
     ['FIRE', '⚙️', 'Nouveautés et réglages', ['patch', 'settings']]];
   const ACC_DESC = {
@@ -3089,7 +3090,7 @@
     puzzle: 'Une situation par jour, plusieurs bonnes réponses selon ton style.', puzdraft: 'Trouve le meilleur duo contre la compo adverse.', guides: 'Les principes de chaque lane.',
     coach: 'Les fiches et messages des coachs.', worlds: 'Les compétitions pro, les résultats, les équipes.', lolpatch: 'Les notes de patch officielles, en français.',
     revue: 'Chaque game revue sur la carte, en vidéo, avec l’analyse IA.', parties: 'Les 20 dernières games d’un joueur, décortiquées.', outils: 'Les meilleurs sites pour progresser.',
-    reunion: 'Les outils des coachs pour enseigner.', carnet: 'Le suivi et les notes du staff.', chat: 'La discussion de l’équipe et les messages privés.', vocal: 'Les salons vocaux, le partage d’écran.',
+    reunion: 'Les outils des coachs pour enseigner.', carnet: 'Le suivi et les notes du staff.', annonces: 'Un message à toute l’équipe, avec qui l’a lu.', chat: 'La discussion de l’équipe et les messages privés.', vocal: 'Les salons vocaux, le partage d’écran.',
     clips: 'Tes meilleurs moments, enregistrés tout seuls.', stream: 'Le live Twitch de Toks42o.', patch: 'Les nouveautés de FIRE.', settings: 'Ton compte, l’apparence, la voix, les notifications.',
   };
   function accBadges() {
@@ -5958,7 +5959,7 @@
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['accueil', '🏠', 'Accueil'], ['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['apprendre', '🎓', 'Apprendre en jouant'], ['puzdraft', '🧩', 'Puzzles de draft', pzDue() ? '!' : null], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
-      ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
+      ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(annMine() ? [['annonces', '📢', 'Annonces']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     if (MOBILE) { const keep = items.filter(([id]) => !MOBILE_OFF.has(id)); items.length = 0; items.push(...keep); }
     S.navItems = items;
@@ -8755,6 +8756,203 @@
     }
   });
 
+  // ===== Annonces du créateur =====
+  // Toks écrit un message : il apparaît au milieu de tous les FIRE (tout de suite pour ceux qui sont ouverts, à
+  // l'ouverture pour les autres), bloque l'écran 5 s, puis « Accepter et continuer ». Il voit qui l'a lu.
+  const ANN = { cur: null, hist: [], file: null, lus: null, busy: false, shown: null, draft: '', err: '', confirm: null, timer: null };
+  const annOk = () => load('fire.ann.ok', []);
+  const annMine = () => !!(S.coachState && S.coachState.admin);
+  async function annCheck(file) {
+    if (!window.fire.annonce) return;
+    let r;
+    try { r = await window.fire.annonce.get(file || null); } catch (e) { return; }
+    if (!r || !r.ok) return;
+    if (file && !r.annonce) return; // paquet reçu illisible ou pas signé par le créateur : on l'ignore
+    ANN.cur = r.annonce;
+    if (r.hist && r.hist.length) ANN.hist = r.hist;
+    annMaybeShow();
+    if (S.section === 'annonces' && !typing()) render();
+  }
+  function annMaybeShow() {
+    const a = ANN.cur;
+    if (!a || annOk().includes(a.id) || ANN.shown === a.id || $('ann-modal')) return;
+    if (Date.now() - a.at > 14 * 86400000) return;
+    if (annMine()) { save('fire.ann.ok', annOk().concat(a.id).slice(-50)); return; } // l'auteur
+    ANN.shown = a.id;
+    annModal(a, false);
+    const p = notifPrefs();
+    if (p.on && window.fire.notify) deskNotify({ title: '📢 Annonce de ' + vocalName(a.by), body: 'Ouvre FIRE pour la lire.', section: 'accueil', force: true }).catch(() => {});
+  }
+  // La fenêtre bloquante : les 5 s ne comptent que quand FIRE est vraiment devant toi (pas pendant une partie).
+  function annModal(a, demo) {
+    const old = $('ann-modal');
+    if (old) old.remove();
+    const need = Math.max(1, Number(a.min) || 5) * 1000;
+    let seen = 0, last = Date.now();
+    const btn = h('button', { class: 'btn-fire ann-ok', disabled: true });
+    const fill = h('i');
+    const paint = () => {
+      const left = Math.ceil((need - seen) / 1000);
+      btn.disabled = left > 0;
+      btn.textContent = left > 0 ? `Lis l’annonce… ${left} s` : '✓ Accepter et continuer';
+      fill.style.width = Math.min(100, (seen / need) * 100) + '%';
+    };
+    const keys = (e) => {
+      if (!document.getElementById('ann-modal')) return;
+      if (e.key === 'Tab') { e.preventDefault(); btn.focus(); }
+      if (e.key === 'Escape') e.preventDefault();
+      if (!((e.key === 'Enter' || e.key === ' ') && e.target === btn)) e.stopPropagation();
+    };
+    const tick = setInterval(() => {
+      const now = Date.now();
+      if (document.visibilityState === 'visible' && document.hasFocus()) seen = Math.min(need, seen + (now - last));
+      last = now; paint();
+      if (seen >= need) clearInterval(tick);
+    }, 200);
+    const done = () => {
+      if (seen < need) return;
+      clearInterval(tick);
+      window.removeEventListener('keydown', keys, true);
+      el.classList.add('out'); setTimeout(() => el.remove(), 250);
+      if (!demo) annAccept(a);
+    };
+    btn.onclick = done;
+    const el = h('div', { id: 'ann-modal', class: 'ann-ov', role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'ann-t', 'aria-describedby': 'ann-x' },
+      h('div', { class: 'ann-box' },
+        h('div', { class: 'ann-kicker' }, '📢 Annonce'),
+        h('h2', { id: 'ann-t', class: 'ann-title' }, 'Message de ' + vocalName(a.by)),
+        h('div', { class: 'ann-date' }, cap(dayFrT(a.at)) + ' à ' + hm(a.at)),
+        h('div', { id: 'ann-x', class: 'ann-txt' }, a.texte),
+        h('div', { class: 'ann-bar' }, fill),
+        btn,
+        demo ? h('p', { class: 'ann-demo' }, '👁 Aperçu : personne d’autre ne voit ce message.') : null));
+    el.addEventListener('mousedown', (e) => { if (e.target === el) e.preventDefault(); });
+    window.addEventListener('keydown', keys, true);
+    document.body.append(el);
+    paint();
+    setTimeout(() => { try { btn.focus(); } catch (e) { /* */ } }, 50);
+  }
+  function annAccept(a) {
+    save('fire.ann.ok', annOk().concat(a.id).slice(-50));
+    save('fire.ann.pend', load('fire.ann.pend', []).filter((x) => x.id !== a.id).concat({ id: a.id, at: Date.now() }).slice(-20));
+    actLog('annonce', 'Annonce lue');
+    annFlush();
+  }
+  // « Lu » envoyé dès que possible (gardé sur ce PC tant que ce n'est pas fait) ; un remplaçant passe par un titulaire.
+  async function annFlush() {
+    const pend = load('fire.ann.pend', []);
+    if (!pend.length || !S.moi || !window.fire.annonce) return;
+    if (SUB()) {
+      const to = S.players.filter((p) => p.slug && !isSub(p)).map((p) => p.slug).concat((S.coachs || []).map((c) => c.slug), 'coach');
+      for (const x of pend) for (const t of new Set(to)) { try { FV().hallSend(t, { t: 'annack', id: x.id, at: x.at }).catch(() => {}); } catch (e) { /* */ } }
+      return;
+    }
+    const left = [];
+    for (const x of pend) { const r = await window.fire.annonce.lu(x.id, S.moi, x.at).catch(() => null); if (!r || !r.ok) left.push(x); }
+    save('fire.ann.pend', left);
+  }
+  function annHall(from, m) {
+    if (m.t === 'ann' && m.f && typeof m.f === 'object') { annCheck(m.f); return; }
+    if (m.t === 'annack' && !SUB() && window.fire.annonce) {
+      const p = S.players.find((x) => x.slug === from);
+      if (!p || !isSub(p)) return;
+      const id = String(m.id || '').slice(0, 30);
+      window.fire.annonce.lu(id, from, Number(m.at) || 0).then((r) => { if (r && r.ok) FV().hallSend(from, { t: 'annok', id }).catch(() => {}); }).catch(() => {});
+      return;
+    }
+    if (m.t === 'annok' && SUB()) save('fire.ann.pend', load('fire.ann.pend', []).filter((x) => x.id !== String(m.id || '')));
+  }
+  function annStart() {
+    if (ANN.timer || !window.fire.annonce) return;
+    try { if (FV() && FV().onAnn) FV().onAnn(annHall); } catch (e) { /* */ }
+    setTimeout(() => { annCheck(); annFlush(); }, 5000);
+    ANN.timer = setInterval(() => { annCheck(); annFlush(); }, 4 * 60000);
+  }
+  // ----- Page « Annonces » (créateur) -----
+  const annRoster = () => {
+    const out = [], seen = new Set();
+    for (const p of S.players) if (p.slug && !seen.has(p.slug)) { seen.add(p.slug); out.push({ slug: p.slug, name: shortName(p.pseudo), tag: isSub(p) ? 'Remplaçant' : '' }); }
+    for (const c of (S.coachs || [])) if (c.slug && !seen.has(c.slug)) { seen.add(c.slug); out.push({ slug: c.slug, name: c.pseudo, tag: 'Coach' }); }
+    return out;
+  };
+  async function annLoadLus() {
+    if (!window.fire.annonce) return;
+    const r = await window.fire.annonce.lus(annRoster().map((x) => x.slug)).catch(() => null);
+    if (r && r.ok) { ANN.lus = r.lus || {}; ANN.lusAt = Date.now(); }
+    if (S.section === 'annonces' && !typing()) render();
+  }
+  function annBroadcast(f) {
+    const me = vocalMe();
+    const to = new Set(S.players.map((p) => p.slug).filter(Boolean).concat((S.coachs || []).map((c) => c.slug), 'coach'));
+    to.delete(me);
+    for (const x of to) { try { FV().hallSend(x, { t: 'ann', f }).catch(() => {}); } catch (e) { /* */ } }
+  }
+  async function annPublish(retirer) {
+    if (ANN.busy) return;
+    ANN.busy = true; ANN.err = ''; ANN.confirm = null; render();
+    let r;
+    try { r = await window.fire.annonce.post(retirer ? '' : ANN.draft, vocalMe() || S.moi || '', !!retirer); } catch (e) { r = { ok: false, error: String(e) }; }
+    ANN.busy = false;
+    if (r && r.ok) {
+      ANN.cur = r.annonce; ANN.hist = r.hist || ANN.hist;
+      if (r.annonce) { save('fire.ann.ok', annOk().concat(r.annonce.id).slice(-50)); ANN.draft = ''; annBroadcast(r.file); S.flash = '📢 Annonce envoyée : elle s’affiche sur tous les FIRE ouverts, et à l’ouverture pour les autres.'; actLog('annonce', 'Annonce publiée'); }
+      else S.flash = 'Annonce retirée : ceux qui ne l’ont pas encore vue ne la verront pas.';
+      annLoadLus();
+    } else ANN.err = 'Non envoyée : ' + ((r && r.error) || 'erreur');
+    render();
+  }
+  function renderAnnonces() {
+    const view = $('view');
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📢'), h('div', null, h('h1', { class: 'title' }, 'Annonces'),
+      h('p', { class: 'muted' }, 'Ton message s’affiche en plein milieu de tous les FIRE : tout de suite pour ceux qui sont ouverts, à l’ouverture pour les autres. Il bloque l’écran 5 secondes, puis chacun clique « Accepter et continuer ». Tu vois ici qui l’a lu.')));
+    if (!annMine()) { view.replaceChildren(hero, h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Les annonces sont réservées au créateur, sur son PC.'))); return; }
+    if (ANN.lus === null && !ANN.loading) { ANN.loading = true; annLoadLus().finally(() => { ANN.loading = false; }); if (!ANN.cur) annCheck(); }
+    const ta = h('textarea', { class: 'inp ann-in', rows: '6', maxlength: '2000', placeholder: 'Écris ton annonce… (ex. : Séance obligatoire ce soir 20h, vocal « Équipe ».)', oninput: (e) => { ANN.draft = e.target.value; cnt.textContent = `${ANN.draft.length} / 2000`; pub.disabled = !ANN.draft.trim() || ANN.busy ? true : null; prev.disabled = !ANN.draft.trim() ? true : null; } });
+    ta.value = ANN.draft;
+    const cnt = h('span', { class: 'muted small' }, `${ANN.draft.length} / 2000`);
+    const prev = h('button', { class: 'btn-ghost', disabled: ANN.draft.trim() ? null : true, onclick: () => annModal({ id: 'demo', at: Date.now(), by: vocalMe() || S.moi || '', texte: ANN.draft.trim(), min: 5 }, true) }, '👁 Aperçu');
+    const pub = h('button', { class: 'btn-fire', disabled: !ANN.draft.trim() || ANN.busy ? true : null, onclick: () => { ANN.confirm = 'pub'; render(); } }, ANN.busy ? 'Envoi…' : '📢 Publier l’annonce');
+    const write = h('div', { class: 'card ann-write' }, h('h2', null, 'Nouvelle annonce'), ta,
+      h('div', { class: 'row ann-actions' }, cnt, h('span', { class: 'spacer' }), prev, pub),
+      ANN.confirm === 'pub' ? h('div', { class: 'ann-confirm' }, h('b', null, 'Tous les FIRE vont afficher ce message et rester bloqués 5 secondes. Publier ?'),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => annPublish(false) }, 'Oui, publier'), h('button', { class: 'btn-ghost small-btn', onclick: () => { ANN.confirm = null; render(); } }, 'Annuler'))) : null,
+      ANN.err ? h('p', { class: 'bad small' }, ANN.err) : null,
+      ANN.cur ? h('p', { class: 'muted small' }, 'Une nouvelle annonce remplace celle en cours.') : null);
+    const roster = annRoster().filter((x) => x.slug !== (ANN.cur ? ANN.cur.by : vocalMe()));
+    const lusOf = (id) => roster.filter((x) => ANN.lus && ANN.lus[x.slug] && ANN.lus[x.slug][id]);
+    let cur = null;
+    if (ANN.cur) {
+      const a = ANN.cur, lus = lusOf(a.id);
+      const rows = roster.slice().sort((x, y) => {
+        const lx = ANN.lus && ANN.lus[x.slug] && ANN.lus[x.slug][a.id], ly = ANN.lus && ANN.lus[y.slug] && ANN.lus[y.slug][a.id];
+        return (lx ? 1 : 0) - (ly ? 1 : 0) || x.name.localeCompare(y.name);
+      }).map((x) => {
+        const t = ANN.lus && ANN.lus[x.slug] && ANN.lus[x.slug][a.id];
+        return h('div', { class: 'ann-row' + (t ? ' ok' : '') }, h('span', { class: 'ann-who' }, x.name, x.tag ? h('span', { class: 'ann-tag' }, x.tag) : null),
+          h('span', { class: 'ann-st ' + (t ? 'st-ok' : 'muted') }, t ? `✅ Lu ${FC.ymd(new Date(t)) === todayYmd() ? '' : dayFrT(t) + ', '}à ${hm(t)}` : '⏳ Pas encore lu'));
+      });
+      cur = h('div', { class: 'card ann-cur' },
+        h('div', { class: 'row' }, h('h2', null, 'Annonce en cours'), h('span', { class: 'spacer' }),
+          h('span', { class: 'ann-count' + (lus.length === roster.length ? ' all' : '') }, ANN.lus ? `${lus.length} / ${roster.length} ont lu` : 'Chargement…')),
+        h('div', { class: 'muted small' }, 'Publiée ' + dayFrT(a.at) + ' à ' + hm(a.at)),
+        h('div', { class: 'ann-quote' }, a.texte),
+        h('div', { class: 'ann-list' }, rows),
+        h('div', { class: 'row ann-actions' },
+          h('button', { class: 'btn-ghost small-btn', onclick: () => annLoadLus() }, '⟳ Actualiser'),
+          ANN.lusAt ? h('span', { class: 'muted small' }, 'à ' + hm(ANN.lusAt)) : null,
+          h('span', { class: 'spacer' }),
+          ANN.confirm === 'del' ? [h('span', { class: 'small' }, 'Retirer ? Ceux qui ne l’ont pas vue ne la verront pas. '),
+            h('button', { class: 'btn-ghost small-btn', onclick: () => annPublish(true) }, 'Oui, retirer'), h('button', { class: 'btn-ghost small-btn', onclick: () => { ANN.confirm = null; render(); } }, 'Annuler')]
+            : h('button', { class: 'btn-ghost small-btn', disabled: ANN.busy ? true : null, onclick: () => { ANN.confirm = 'del'; render(); } }, '🗑 Retirer l’annonce')));
+    }
+    const old = (ANN.hist || []).filter((x) => !ANN.cur || x.id !== ANN.cur.id).slice(0, 10);
+    const hist = old.length ? h('div', { class: 'card ann-hist' }, h('h2', null, 'Anciennes annonces'),
+      old.map((x) => h('details', { class: 'ann-old' }, h('summary', null, h('span', null, dayFrT(x.at) + ' à ' + hm(x.at)), h('span', { class: 'muted small' }, ANN.lus ? ` · ${lusOf(x.id).length} / ${roster.length} ont lu` : ''),
+        h('span', { class: 'ann-sum' }, x.texte.length > 80 ? x.texte.slice(0, 80) + '…' : x.texte)), h('div', { class: 'ann-quote' }, x.texte)))) : null;
+    view.replaceChildren(...[hero, write, cur || h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Aucune annonce en cours.')), hist].filter(Boolean));
+    clearTimeout(ANN.auto);
+    ANN.auto = setTimeout(() => { if (S.section === 'annonces' && !typing() && ANN.cur) annLoadLus(); }, 45000);
+  }
   function chatInit() {
     if (CH.started || !window.fire.chat) return;
     CH.started = true;
@@ -8764,6 +8962,7 @@
     setInterval(() => { chatLoad(); salonsLoad(); membresLoad(); pendingRetry(); subPush(); }, 2 * 60 * 1000);
     setTimeout(subPush, 20000);
     if (FV().onRemp) FV().onRemp(subRecv);
+    annStart();
     if (window.fire.parties && window.fire.parties.onNew) window.fire.parties.onNew((id) => { setTimeout(() => rvAutoShare(id), 25000); RV.list = null; if (S.section === 'revue' && !RV.g) renderRevue(); vocalToast('🎞️ Partie enregistrée : revois-la dans Outils › Revue de parties', true); });
     // Statut : envoyé tout de suite, puis chaque minute ; les cartes reçues sont gardées.
     setTimeout(statusPush, 4000);

@@ -36,4 +36,13 @@ function gcmBox(key, iv, enc) {
 }
 export function createCipheriv(alg, key, iv) { if (alg !== 'aes-256-gcm') throw new Error(alg); return gcmBox(key, iv, true); }
 export function createDecipheriv(alg, key, iv) { if (alg !== 'aes-256-gcm') throw new Error(alg); return gcmBox(key, iv, false); }
-export default { randomBytes, scrypt, timingSafeEqual, createHash, createCipheriv, createDecipheriv };
+// Signatures ECDSA P-256 (annonces du créateur) : vérification seulement, la clé privée reste sur son PC.
+import { p256 } from '@noble/curves/nist.js';
+export function createPublicKey(o) { const b = Buffer.from(o && o.key ? o.key : o); return { __p256: new Uint8Array(b.subarray(b.length - 65)) }; }
+export function verify(alg, data, key, sig) {
+  if (!key || !key.__p256) throw new Error('clé publique invalide');
+  return p256.verify(new Uint8Array(sig), new Uint8Array(data), key.__p256, { prehash: true, lowS: false, format: 'der' });
+}
+export function createPrivateKey() { throw new Error('seulement sur le PC du créateur'); }
+export function sign() { throw new Error('seulement sur le PC du créateur'); }
+export default { randomBytes, scrypt, timingSafeEqual, createHash, createCipheriv, createDecipheriv, createPublicKey, verify, createPrivateKey, sign };

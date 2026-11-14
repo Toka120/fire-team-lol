@@ -819,6 +819,8 @@
     if (m.t === 'invite' && L.onInvite) L.onInvite(from, String(m.room || 'equipe').slice(0, 20));
     if (m.t === 'chat' && m.msg && L.onChat && m.msg.from === from) L.onChat(m.msg);
     if (m.t === 'remp' && m.box && L.onRemp) { L.onRemp(from, m.box); return; }
+    // Annonce du créateur (vérifiée par sa signature) et accusés de lecture des remplaçants.
+    if ((m.t === 'ann' || m.t === 'annack' || m.t === 'annok') && L.onAnn) { L.onAnn(from, m); return; }
     // Revue en direct (une partie revue ensemble, synchronisée) : jamais vers ni depuis les remplaçants.
     if (m.t === 'rv' && L.onRv && !(L.noChat && L.noChat.has(from))) { L.onRv(from, m); return; }
     // Commande de modération (déplacer, rendre muet, déconnecter, exclure…) : FIRE vérifie qui l'envoie avant d'obéir.
@@ -998,6 +1000,7 @@
     onSoundRequest: (f) => { V.onSndReq = f; }, appSend, liveSend, statusSend, modSend, onMod: (f) => { L.onMod = f; }, onApp: (f) => { V.onApp = f; }, onPeer: (f) => { V.onPeer = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
     clearErr: () => { V.err = ''; emit(); },
     onRemp: (f) => { L.onRemp = f; },
+    onAnn: (f) => { L.onAnn = f; },
     onRv: (f) => { L.onRv = f; },
     // Envoi à toute l'équipe titulaire dont FIRE est ouvert (pas aux remplaçants).
     rvBroadcast: async (msg) => { const others = L.ids.filter((x) => x !== L.me && !(L.noChat && L.noChat.has(x))); await Promise.all(others.map(async (x) => { const dc = await link(x); if (dc) { try { dc.send(msg); } catch (e) { /* */ } } })); },
