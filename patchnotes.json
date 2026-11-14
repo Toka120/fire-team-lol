@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.128",
+   "date": "2026-11-14",
+   "titre": "Games en direct sans clignotement",
+   "items": [
+    [
+     "fix",
+     "« En game maintenant » ne clignote plus : à chaque mise à jour (toutes les 2,5 s), FIRE ne change plus que ce qui a bougé (score, KDA, sbires, objets, fil de la partie) au lieu de tout redessiner. Les icônes ne se rechargent plus et le fil de la partie garde sa position quand tu le fais défiler."
+    ]
+   ]
+  },
+  {
    "v": "1.10.127",
    "date": "2026-11-14",
    "titre": "Voix des champions réparées",

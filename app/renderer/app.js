@@ -129,7 +129,7 @@
     if (attrs) for (const [k, v] of Object.entries(attrs)) {
       if (v == null || v === false) continue;
       if (k === 'class') e.className = v;
-      else if (k.startsWith('on') && typeof v === 'function') e.addEventListener(k.slice(2), v);
+      else if (k.startsWith('on') && typeof v === 'function') { e.addEventListener(k.slice(2), v); (e.__on || (e.__on = {}))[k.slice(2)] = v; }
       else e.setAttribute(k, v === true ? '' : String(v));
     }
     for (const kid of kids.flat(Infinity)) {
@@ -137,6 +137,25 @@
       e.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
     }
     return e;
+  }
+  // Met à jour un bloc déjà affiché pour qu'il ressemble au nouveau, en gardant les éléments existants :
+  // les images ne se rechargent pas (pas de clignotement) et les listes gardent leur défilement.
+  function morph(a, b) {
+    if (a.nodeType !== b.nodeType || (a.nodeType === 1 && (a.tagName !== b.tagName || a.tagName === 'VIDEO' || a.tagName === 'CANVAS' || a.tagName === 'IFRAME'))) {
+      if (a.nodeType === 1 && a.tagName === b.tagName && (a.tagName === 'VIDEO' || a.tagName === 'IFRAME') && a.getAttribute('src') === b.getAttribute('src')) return; // lecteur en cours : on n'y touche pas
+      a.replaceWith(b); return;
+    }
+    if (a.nodeType === 3) { if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue; return; }
+    if (a.nodeType !== 1) return;
+    const sameImg = a.tagName === 'IMG' && a.getAttribute('src') === b.getAttribute('src');
+    for (const at of [...a.attributes]) if (!b.hasAttribute(at.name) && !(sameImg && at.name === 'style')) a.removeAttribute(at.name);
+    for (const at of [...b.attributes]) if (a.getAttribute(at.name) !== at.value && !(sameImg && at.name === 'style')) a.setAttribute(at.name, at.value);
+    if (a.__on) for (const [t, f] of Object.entries(a.__on)) a.removeEventListener(t, f);
+    a.__on = null;
+    if (b.__on) { for (const [t, f] of Object.entries(b.__on)) a.addEventListener(t, f); a.__on = b.__on; }
+    const ak = [...a.childNodes], bk = [...b.childNodes];
+    for (let i = 0; i < bk.length; i++) { if (ak[i]) morph(ak[i], bk[i]); else a.append(bk[i]); }
+    for (let i = bk.length; i < ak.length; i++) ak[i].remove();
   }
   const later = (fn) => requestAnimationFrame(() => { try { fn(); } catch (e) { console.error(e); } });
   const hm = (t) => {
@@ -2802,7 +2821,7 @@
     if (S.section === 'stats' && S.view === 'hub' && !typing()) {
       const cur = document.querySelector('.live-sec');
       const next = liveSection();
-      if (cur && next) cur.replaceWith(next); else if (cur || next) render();
+      if (cur && next) morph(cur, next); else if (cur || next) render();
     }
   }
   const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
