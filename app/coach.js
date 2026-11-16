@@ -955,6 +955,108 @@ async function forumOp(id, op) {
     return { ok: true, posts: d.posts };
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
+// ---------- Clips partagés : la vidéo chiffrée en pièce jointe de la release « clips » du dépôt de données,
+// la liste (titre, auteur, likes, commentaires, public ou privé) dans clips/partages.json, chiffrée comme le reste.
+const CLIPS_FEED = 'clips/partages.json';
+const clipThumbPath = (id) => 'clips/vignettes/' + fid(id) + '.json';
+const CLIP_SHARE_MAX = 100 * 1024 * 1024;
+function sealBuf(buf) {
+  const key = teamKey(); if (!key) throw new Error("code d'équipe manquant");
+  const iv = crypto.randomBytes(12), c = crypto.createCipheriv('aes-256-gcm', key, iv); c.setAAD(Buffer.from('fire-clip'));
+  const enc = Buffer.concat([c.update(buf), c.final()]);
+  return Buffer.concat([Buffer.from('FC1'), iv, c.getAuthTag(), enc]);
+}
+function openBuf(buf) {
+  const key = teamKey(); if (!key) throw new Error("code d'équipe manquant");
+  if (buf.slice(0, 3).toString('latin1') !== 'FC1') throw new Error('clip illisible');
+  const d = crypto.createDecipheriv('aes-256-gcm', key, buf.slice(3, 15)); d.setAAD(Buffer.from('fire-clip')); d.setAuthTag(buf.slice(15, 31));
+  return Buffer.concat([d.update(buf.slice(31)), d.final()]);
+}
+async function clipRelease(tok, dr) {
+  const base = 'https://api.github.com/repos/' + dr;
+  let r = await http(base + '/releases/tags/clips', { headers: ghHeaders(tok) });
+  if (r.ok) return r.json();
+  if (r.status !== 404) throw new Error('GitHub a refusé la lecture des clips (' + r.status + ')');
+  r = await http(base + '/releases', { method: 'POST', headers: { ...ghHeaders(tok), 'content-type': 'application/json' },
+    body: JSON.stringify({ tag_name: 'clips', name: 'Clips de l’équipe (chiffrés)', body: 'Clips partagés dans FIRE LoL, chiffrés avec le code d’équipe.', prerelease: true }) });
+  if (!r.ok) throw new Error(r.status === 403 || r.status === 404 ? "le jeton d'équipe ne permet pas encore de publier des clips (il lui faut le droit « Contents : écriture »)" : 'GitHub a refusé la création de l’espace clips (' + r.status + ')');
+  return r.json();
+}
+async function clipShare(o) {
+  if (!teamKey()) return { ok: false, error: "entre à nouveau le code d'équipe" };
+  const dr = getConfig().data_repo || null, tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, error: "le coach n'a pas encore activé le jeton d'équipe" };
+  const buf = Buffer.from(o.buf || []);
+  if (!buf.length || buf.slice(4, 8).toString('latin1') !== 'ftyp') return { ok: false, error: 'clip invalide' };
+  if (buf.length > CLIP_SHARE_MAX) return { ok: false, error: 'clip trop lourd pour être partagé (100 Mo au plus)' };
+  const by = str(o.by, 80);
+  if (!by) return { ok: false, error: 'choisis d’abord qui tu es' };
+  const id = Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
+  try {
+    const rel = await clipRelease(tok, dr);
+    const up = await http(`https://uploads.github.com/repos/${dr}/releases/${rel.id}/assets?name=${id}.bin`,
+      { method: 'POST', headers: { ...ghHeaders(tok), 'content-type': 'application/octet-stream' }, body: sealBuf(buf) }, 600000);
+    if (!up.ok) throw new Error('GitHub a refusé l’envoi du clip (' + up.status + ')');
+    const asset = await up.json();
+    const thumb = typeof o.thumb === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(o.thumb) && o.thumb.length < 90000 ? o.thumb : null;
+    if (thumb) await teamWrite(clipThumbPath(id), () => ({ thumb }), 'Vignette de clip').catch(() => {});
+    const vis = o.vis === 'prive' ? 'prive' : 'public';
+    const entry = { id, by, at: Date.now(), title: str(o.title, 80) || 'Clip', champ: String(o.champ || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 30), mode: str(o.mode, 40), dur: Math.max(0, Math.min(600, Number(o.dur) || 0)),
+      size: buf.length, asset: asset.id, file: asset.name, vis, to: vis === 'prive' ? (Array.isArray(o.to) ? o.to : []).map((x) => String(x).slice(0, 80)).slice(0, 30) : [], likes: [], comments: [] };
+    const d = await teamWrite(CLIPS_FEED, (cur) => ({ clips: [entry].concat(cur && Array.isArray(cur.clips) ? cur.clips : []).slice(0, 300) }), 'Clip partagé');
+    return { ok: true, clip: entry, clips: d.clips };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+async function clipFeed() {
+  try { const d = await teamRead(CLIPS_FEED); return { ok: true, clips: d && Array.isArray(d.clips) ? d.clips : [] }; }
+  catch (e) { return { ok: false, error: String((e && e.message) || e), clips: [] }; }
+}
+async function clipThumb(id) { try { const d = await teamRead(clipThumbPath(id)); return (d && d.thumb) || null; } catch (e) { return null; } }
+async function clipOp(op) {
+  op = op || {};
+  const by = str(op.by, 80), id = fid(op.id);
+  if (!by || !id) return { ok: false, error: 'choisis d’abord qui tu es' };
+  const staff = isStaffHere();
+  let gone = null;
+  try {
+    const d = await teamWrite(CLIPS_FEED, (cur) => {
+      const list = cur && Array.isArray(cur.clips) ? cur.clips : [];
+      const c = list.find((x) => x.id === id);
+      if (!c) throw new Error('ce clip n’existe plus');
+      if (op.type === 'like') { c.likes = (c.likes || []).filter((x) => x !== by); if (op.on) c.likes.push(by); }
+      else if (op.type === 'comment') { const text = str(op.text, 500); if (!text) throw new Error('commentaire vide'); c.comments = (c.comments || []).concat({ id: fid(op.cid) || crypto.randomBytes(4).toString('hex'), by, at: Date.now(), text }).slice(-200); }
+      else if (op.type === 'uncomment') { const k = (c.comments || []).find((x) => x.id === fid(op.cid)); if (!k) throw new Error('commentaire introuvable'); if (k.by !== by && !staff) throw new Error('tu ne peux supprimer que tes commentaires'); c.comments = c.comments.filter((x) => x !== k); }
+      else if (op.type === 'edit') { if (c.by !== by && !staff) throw new Error('seul l’auteur peut modifier ce clip'); if (op.title) c.title = str(op.title, 80); if (op.vis) { c.vis = op.vis === 'prive' ? 'prive' : 'public'; c.to = c.vis === 'prive' ? (Array.isArray(op.to) ? op.to : c.to || []).map((x) => String(x).slice(0, 80)).slice(0, 30) : []; } }
+      else if (op.type === 'del') { if (c.by !== by && !staff) throw new Error('seul l’auteur ou le staff peut retirer ce clip'); gone = c; list.splice(list.indexOf(c), 1); }
+      else throw new Error('action inconnue');
+      return { clips: list };
+    }, 'Clips partagés');
+    if (gone && gone.asset) {
+      const dr = getConfig().data_repo, tok = await teamToken();
+      await http(`https://api.github.com/repos/${dr}/releases/assets/${Number(gone.asset)}`, { method: 'DELETE', headers: ghHeaders(tok) }).catch(() => {});
+    }
+    return { ok: true, clips: d.clips };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+// Télécharge et déchiffre un clip partagé (gardé 14 jours dans le dossier de FIRE pour le revoir sans attendre).
+async function clipFetch(id, file, asset) {
+  id = fid(id); file = String(file || '').replace(/[^\w.-]/g, '').slice(0, 60);
+  if (!id || !file) return { ok: false, error: 'clip inconnu' };
+  const cdir = path.join(dir(), 'clips-equipe');
+  const out = path.join(cdir, id + '.mp4');
+  try {
+    fs.mkdirSync(cdir, { recursive: true });
+    for (const f of fs.readdirSync(cdir)) { const p = path.join(cdir, f); try { if (Date.now() - fs.statSync(p).mtimeMs > 14 * 86400000) fs.unlinkSync(p); } catch (e) { /* */ } }
+    if (fs.existsSync(out)) return { ok: true, path: out };
+    const dr = getConfig().data_repo;
+    let r = await http(`https://github.com/${dr}/releases/download/clips/${file}`, {}, 300000);
+    if (!r.ok && asset) { const tok = await teamToken(); r = await http(`https://api.github.com/repos/${dr}/releases/assets/${Number(asset)}`, { headers: { ...ghHeaders(tok), Accept: 'application/octet-stream' } }, 300000); }
+    if (!r.ok) throw new Error('clip introuvable sur GitHub (' + r.status + ')');
+    const mp4 = openBuf(Buffer.from(await r.arrayBuffer()));
+    fs.writeFileSync(out, mp4);
+    return { ok: true, path: out };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
 // ---------- Carnet de bord (staff) : rôles, activité de chacun, notes du staff, modération ----------
 // Fichiers chiffrés avec le code d'équipe dans le dépôt de données. L'activité : un fichier par membre,
 // écrit seulement par son FIRE (pas de conflit), lu par le carnet de bord du staff.
@@ -1599,4 +1701,4 @@ async function revueNote(id, note, del) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 
-module.exports = { forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

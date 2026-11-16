@@ -400,6 +400,9 @@
     }, 60 * 1000);
     if (!S.moi && !load('fire.moi.demande', false)) later(askWho);
     rdvStart();
+    // Clips : ménage des vieux clips non gardés, et clips partagés par l'équipe.
+    setTimeout(clipsPurge, 30000); setInterval(clipsPurge, 6 * 3600 * 1000);
+    setTimeout(() => cfLoad(true), 15000); setInterval(() => cfLoad(true), 10 * 60000);
     // Nouvelle semaine (lundi 0h) : l'objectif repart à zéro tout de suite, même si FIRE est resté ouvert tout le week-end.
     S.weekMon = mondayOf(todayYmd());
     setInterval(() => {
@@ -5016,7 +5019,7 @@
 
   // ----- Clips instantanés -----
   // Réglages (sur ce PC) : activés ou non, durée, qualité, écran filmé.
-  const clipCfg = () => ({ on: false, seconds: 30, quality: '1080p30', src: '', ...load('fire.clips', {}) });
+  const clipCfg = () => ({ on: false, seconds: 30, quality: '1080p30', src: '', keepDays: 14, ...load('fire.clips', {}) });
   const CL = { list: [], sel: null, recv: {}, sending: {}, open: false };
   async function clipsApply() {
     const c = clipCfg();
@@ -5109,6 +5112,8 @@
       else if (AC_OBJ[e.kind]) { kind = 'objectif'; lab = e.kind === 'DragonKill' && AC_DRAG[e.dragon] ? (e.dragon === 'Elder' ? 'Dragon ancestral' : 'Dragon ' + AC_DRAG[e.dragon]) : AC_OBJ[e.kind]; if (e.stolen) lab += ' volé'; }
       else if ((e.kind === 'TurretKilled' || e.kind === 'InhibKilled') && e.t - AC.lastKA <= 30) { kind = 'tour'; lab = e.kind === 'TurretKilled' ? 'Tour' : 'Inhibiteur'; }
       if (!kind || !c.on || c.auto === false) continue;
+      // Chacun choisit ce qui est filmé : kills, assists, objectifs, tours (tout est activé au départ).
+      if ((c.types || {})[kind] === false) continue;
       autoClipQueue(kind, lab, g);
     }
   }
@@ -5144,10 +5149,143 @@
   }
 
   const CLIP_KINDS = [['tous', 'Tous'], ['auto', '⚡ Automatiques'], ['kill', '⚔️ Kills'], ['assist', '🤝 Assists'], ['objectif', '🐉 Objectifs'], ['tour', '🏰 Tours'], ['manuel', '🎬 Manuels'], ['recu', '📨 Reçus']];
-  const CLB = { filter: 'tous', champ: '', n: 24 };
+  const CLB = { filter: 'tous', champ: '', n: 24, tab: 'mine' };
   const clipKind = (c) => (c.meta && c.meta.kind) || (/ de [^ ]+ \d{4}-/.test(c.name) ? 'recu' : 'manuel');
   const clipTitle = (c) => (c.meta && c.meta.label) || (clipKind(c) === 'recu' ? 'Clip reçu' + (c.meta && c.meta.from ? ' de ' + c.meta.from : '') : 'Clip manuel');
   function clipsPaint() { if (CL.open) clipsModal(); if (S.section === 'clips' && !typing()) renderClipsPage(); }
+  const clipMb = (b) => (b / 1048576 >= 1024 ? (b / 1073741824).toFixed(1) + ' Go' : (b / 1048576).toFixed(1) + ' Mo').replace('.', ',');
+  const clipLeft = (x, c) => { const d = Math.max(0, (c.keepDays ?? 14) - Math.floor((Date.now() - x.t) / 86400000)); return d <= 0 ? 'moins d’un jour' : d === 1 ? '1 jour' : d + ' jours'; };
+  // Ménage : les clips non gardés de plus de X jours partent tout seuls (au lancement, puis toutes les 6 h).
+  async function clipsPurge() {
+    if (!window.fire.clips || !window.fire.clips.purge) return;
+    const days = clipCfg().keepDays ?? 14;
+    const r = await window.fire.clips.purge(days).catch(() => null);
+    if (r && r.n) { vocalToast(`🧹 ${r.n} clip${r.n > 1 ? 's' : ''} de plus de ${days} jours supprimé${r.n > 1 ? 's' : ''} (${clipMb(r.bytes)} libérés)`, true); clipsRefresh(); }
+  }
+  // ----- Partager un clip avec l'équipe -----
+  const CLS = { open: null, title: '', vis: 'public', to: [], busy: false, err: '' };
+  function clipThumbOf(url) {
+    return new Promise((ok) => {
+      const v = document.createElement('video'); v.muted = true; v.preload = 'auto'; v.src = url;
+      const done = (x) => { v.removeAttribute('src'); v.load(); ok(x); };
+      v.onloadedmetadata = () => { v.currentTime = Math.min(2, (v.duration || 4) / 2); };
+      v.onseeked = () => { try { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 144; cv.getContext('2d').drawImage(v, 0, 0, 256, 144); done({ thumb: cv.toDataURL('image/jpeg', 0.6), dur: Math.round(v.duration || 0) }); } catch (e) { done({ thumb: null, dur: Math.round(v.duration || 0) }); } };
+      v.onerror = () => done({ thumb: null, dur: 0 });
+      setTimeout(() => done({ thumb: null, dur: 0 }), 8000);
+    });
+  }
+  function clipShareBox(sel) {
+    const people = S.players.filter((p) => p.slug && p.slug !== vocalMe()).map((p) => [p.slug, vocalName(p.slug)]).concat((S.coachs || []).filter((c) => c.slug !== vocalMe()).map((c) => [c.slug, c.pseudo]));
+    return h('div', { class: 'clb-share' },
+      h('b', null, '🌐 Partager ce clip'),
+      h('input', { class: 'inp', maxlength: 80, value: CLS.title, placeholder: 'Titre du clip', oninput: (e) => { CLS.title = e.target.value; } }),
+      h('div', { class: 'row' },
+        h('button', { class: 'chip' + (CLS.vis === 'public' ? ' on' : ''), 'aria-pressed': String(CLS.vis === 'public'), onclick: () => { CLS.vis = 'public'; renderClipsPage(); } }, '🌐 Public : toute l’équipe'),
+        h('button', { class: 'chip' + (CLS.vis === 'prive' ? ' on' : ''), 'aria-pressed': String(CLS.vis === 'prive'), onclick: () => { CLS.vis = 'prive'; renderClipsPage(); } }, '🔒 Privé : certaines personnes')),
+      CLS.vis === 'prive' ? h('div', { class: 'sal-chips' }, people.map(([sl, n]) => h('button', { class: 'chip' + (CLS.to.includes(sl) ? ' on' : ''), onclick: () => { CLS.to = CLS.to.includes(sl) ? CLS.to.filter((x) => x !== sl) : CLS.to.concat(sl); renderClipsPage(); } }, n))) : null,
+      h('p', { class: 'muted small' }, `${clipMb(sel.size)} · envoyé chiffré dans l’espace de l’équipe : ${CLS.vis === 'prive' ? 'seuls toi et les personnes choisies le voient' : 'toute l’équipe le voit'} dans « Clips de l’équipe », même quand ton PC est éteint.`),
+      CLS.err ? h('p', { class: 'bad small' }, '⚠ ' + CLS.err) : null,
+      h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', disabled: CLS.busy || (CLS.vis === 'prive' && !CLS.to.length) ? true : null, onclick: () => clipShareGo(sel) }, CLS.busy ? 'Envoi en cours…' : 'Partager'),
+        h('button', { class: 'btn-ghost small-btn', onclick: () => { CLS.open = null; renderClipsPage(); } }, 'Annuler')));
+  }
+  async function clipShareGo(sel) {
+    const me = vocalMe();
+    if (!me) { askWho(); return; }
+    if (CLS.busy) return;
+    CLS.busy = true; CLS.err = ''; renderClipsPage();
+    const t = await clipThumbOf(sel.url);
+    const r = await window.fire.clips.share(sel.path, { title: CLS.title.trim() || clipTitle(sel), champ: (sel.meta && sel.meta.champ) || '', mode: (sel.meta && sel.meta.mode) || '', dur: t.dur, thumb: t.thumb, vis: CLS.vis, to: CLS.to, by: me }).catch((e) => ({ ok: false, error: String(e) }));
+    CLS.busy = false;
+    if (r && r.ok) {
+      CF.list = r.clips; if (t.thumb) CF.thumbs[r.clip.id] = t.thumb;
+      await window.fire.clips.keep(sel.name, true).catch(() => {});
+      const to = r.clip.vis === 'prive' ? r.clip.to : S.players.map((p) => p.slug).filter(Boolean).concat((S.coachs || []).map((c) => c.slug), 'coach');
+      for (const x of new Set(to)) if (x !== me) { try { FV().hallSend(x, { t: 'clipfeed', k: 'new', id: r.clip.id, title: r.clip.title }).catch(() => {}); } catch (e) { /* */ } }
+      actLog('clip', 'Clip partagé : ' + r.clip.title);
+      CLS.open = null; popup('🌐 Clip partagé', `« ${r.clip.title} » est dans « Clips de l’équipe ». Il est gardé sur ton PC.`, null);
+      clipsRefresh();
+    } else { CLS.err = (r && r.error) || 'partage impossible'; renderClipsPage(); }
+  }
+  // ----- Clips de l'équipe : likes et commentaires -----
+  const CF = { list: null, sel: null, url: {}, loading: {}, thumbs: {}, busy: false, err: '', com: '', at: 0, n: 24 };
+  const cfVisible = (c) => { const me = vocalMe(); return c.vis !== 'prive' || c.by === me || (c.to || []).includes(me); };
+  const cfUnseen = () => (CF.list || []).filter((c) => cfVisible(c) && c.by !== vocalMe() && c.at > load('fire.clipfeed.vu', 0)).length;
+  async function cfLoad(force) {
+    if (!window.fire.clips || !window.fire.clips.feed || SUB() || MOBILE) return;
+    if (!force && CF.at && Date.now() - CF.at < 60000) return;
+    CF.at = Date.now();
+    const r = await window.fire.clips.feed().catch(() => null);
+    if (r && r.ok) { CF.list = r.clips; renderNav(); if (S.section === 'clips' && CLB.tab === 'team' && !typing()) renderClipsPage(); }
+  }
+  function clipFeedHall(from, m) {
+    CF.at = 0; cfLoad(true);
+    const t = String(m.title || '').slice(0, 80);
+    if (m.k === 'new') vocalToast(`🎬 ${vocalName(from)} a partagé un clip : « ${t} »`, true);
+    if (m.k === 'like') vocalToast(`❤️ ${vocalName(from)} aime ton clip « ${t} »`, true);
+    if (m.k === 'comment') vocalToast(`💬 ${vocalName(from)} a commenté ton clip « ${t} »`, true);
+  }
+  async function cfOp(c, op) {
+    const me = vocalMe(); if (!me) { askWho(); return; }
+    if (CF.busy) return;
+    CF.busy = true; CF.err = ''; renderClipsPage();
+    const r = await window.fire.clips.op({ ...op, id: c.id, by: me }).catch((e) => ({ ok: false, error: String(e) }));
+    CF.busy = false;
+    if (r && r.ok) {
+      CF.list = r.clips;
+      if ((op.type === 'like' && op.on) || op.type === 'comment') { if (c.by !== me) try { FV().hallSend(c.by, { t: 'clipfeed', k: op.type, id: c.id, title: c.title }).catch(() => {}); } catch (e) { /* */ } }
+      if (op.type === 'comment') CF.com = '';
+      if (op.type === 'del') CF.sel = null;
+    } else CF.err = (r && r.error) || 'erreur';
+    renderClipsPage();
+  }
+  async function cfWatch(c) {
+    CF.sel = c.id; CF.err = '';
+    if (!CF.url[c.id] && !CF.loading[c.id]) {
+      CF.loading[c.id] = true; renderClipsPage();
+      const r = await window.fire.clips.fetch(c.id, c.file, c.asset).catch((e) => ({ ok: false, error: String(e) }));
+      CF.loading[c.id] = false;
+      if (r && r.ok) CF.url[c.id] = r.url; else CF.err = 'Clip impossible à télécharger : ' + ((r && r.error) || 'erreur');
+    }
+    renderClipsPage(); window.scrollTo(0, 0);
+  }
+  function renderTeamClips(view, hero, tabs) {
+    if (CF.list === null) { cfLoad(true); }
+    save('fire.clipfeed.vu', Date.now());
+    setTimeout(renderNav, 0);
+    const me = vocalMe();
+    const list = (CF.list || []).filter(cfVisible);
+    const sel = list.find((x) => x.id === CF.sel);
+    const when = (t) => new Date(t).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const thumb = (c) => {
+      if (CF.thumbs[c.id] === undefined) { CF.thumbs[c.id] = null; window.fire.clips.thumb(c.id).then((t) => { CF.thumbs[c.id] = t || ''; const img = document.querySelector(`.cf-th[data-id="${c.id}"]`); if (img && t) img.style.backgroundImage = `url("${t}")`; }).catch(() => {}); }
+      return h('div', { class: 'clb-thumb cf-th', 'data-id': c.id, style: CF.thumbs[c.id] ? `background-image:url("${CF.thumbs[c.id]}")` : '' },
+        h('span', { class: 'cf-play' }, '▶'), c.dur ? h('span', { class: 'cf-dur' }, `${Math.floor(c.dur / 60)}:${String(c.dur % 60).padStart(2, '0')}`) : null,
+        c.champ ? h('span', { class: 'clb-champ-ico' }, champIcon(c.champ, 26)) : null, c.vis === 'prive' ? h('span', { class: 'clb-auto' }, '🔒 Privé') : null);
+    };
+    const liked = (c) => (c.likes || []).includes(me);
+    const player = sel ? h('div', { class: 'card clb-player' },
+      CF.url[sel.id] ? h('video', { src: CF.url[sel.id], controls: '', autoplay: '', preload: 'auto' })
+        : h('div', { class: 'cf-wait' }, CF.loading[sel.id] ? `⏳ Téléchargement du clip (${clipMb(sel.size || 0)})…` : CF.err || ''),
+      h('div', { class: 'clb-ph' }, sel.champ ? champIcon(sel.champ, 32) : null,
+        h('div', null, h('b', null, sel.title), h('div', { class: 'muted small' }, [vocalName(sel.by), when(sel.at), sel.mode, sel.vis === 'prive' ? '🔒 privé : ' + (sel.to || []).map(vocalName).join(', ') : '🌐 public'].filter(Boolean).join(' · '))),
+        h('div', { class: 'row clb-act' },
+          h('button', { class: 'btn-ghost cf-like' + (liked(sel) ? ' on' : ''), disabled: CF.busy ? true : null, onclick: () => cfOp(sel, { type: 'like', on: !liked(sel) }) }, (liked(sel) ? '❤️ ' : '🤍 ') + (sel.likes || []).length),
+          sel.by === me || isStaff() ? h('button', { class: 'btn-ghost', onclick: () => { if (CF.del !== sel.id) { CF.del = sel.id; renderClipsPage(); return; } CF.del = null; cfOp(sel, { type: 'del' }); } }, CF.del === sel.id ? 'Confirmer le retrait' : '🗑 Retirer') : null,
+          h('button', { class: 'btn-ghost', title: 'Fermer', onclick: () => { CF.sel = null; renderClipsPage(); } }, '✕'))),
+      (sel.likes || []).length ? h('p', { class: 'muted small' }, '❤️ ' + sel.likes.map(vocalName).join(', ')) : null,
+      h('div', { class: 'cf-coms' },
+        (sel.comments || []).map((k) => h('div', { class: 'cf-com' }, h('b', { class: 'chat-who-n', onclick: () => openProfile(k.by) }, vocalName(k.by)), h('span', { class: 'muted small' }, ' · ' + when(k.at)),
+          k.by === me || isStaff() ? h('button', { class: 'chat-del', title: 'Supprimer', onclick: () => cfOp(sel, { type: 'uncomment', cid: k.id }) }, '🗑') : null, h('div', null, k.text))),
+        me ? h('div', { class: 'row cf-com-in' }, h('input', { class: 'inp', maxlength: 500, placeholder: 'Écrire un commentaire…', value: CF.com, oninput: (e) => { CF.com = e.target.value; }, onkeydown: (e) => { e.stopPropagation(); if (e.key === 'Enter' && CF.com.trim()) cfOp(sel, { type: 'comment', text: CF.com.trim(), cid: Math.random().toString(36).slice(2, 10) }); } }),
+          h('button', { class: 'btn-fire small-btn', disabled: CF.busy ? true : null, onclick: () => { if (CF.com.trim()) cfOp(sel, { type: 'comment', text: CF.com.trim(), cid: Math.random().toString(36).slice(2, 10) }); } }, 'Envoyer')) : null),
+      CF.err && CF.url[sel.id] ? h('p', { class: 'bad small' }, '⚠ ' + CF.err) : null) : null;
+    const grid = list.length ? h('div', { class: 'clb-grid' }, list.slice(0, CF.n).map((c) => h('button', { class: 'clb-card' + (CF.sel === c.id ? ' on' : ''), onclick: () => cfWatch(c) },
+      thumb(c), h('b', null, c.title), h('small', { class: 'muted' }, `${vocalName(c.by)} · ${when(c.at)}`),
+      h('small', { class: 'cf-stats' }, `${liked(c) ? '❤️' : '🤍'} ${(c.likes || []).length} · 💬 ${(c.comments || []).length}`))))
+      : h('div', { class: 'card' }, h('p', { class: 'muted' }, CF.list === null ? 'Chargement…' : 'Aucun clip partagé pour l’instant. Dans « Mes clips », ouvre un clip et clique sur « 🌐 Partager ».'));
+    view.replaceChildren(...[hero, tabs, player, grid,
+      list.length > CF.n ? h('div', { class: 'more-row' }, h('button', { class: 'btn-ghost', onclick: () => { CF.n += 24; renderClipsPage(); } }, `Voir plus (${list.length - CF.n})`)) : null].filter(Boolean));
+  }
   function renderClipsPage() {
     const view = $('view');
     if (!CL.loaded) { CL.loaded = true; clipsRefresh(); }
@@ -5162,12 +5300,22 @@
     const mb = (b) => (b / 1048576).toFixed(1).replace('.', ',') + ' Mo';
     const when = (t) => new Date(t).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🎬'), h('div', null, h('h1', { class: 'title' }, 'Clips'),
-      h('p', { class: 'muted' }, 'Tes meilleurs moments, enregistrés par FIRE pendant tes games. Rangés dans Vidéos › FIRE Clips, sur ton PC.')));
+      h('p', { class: 'muted' }, 'Tes meilleurs moments, enregistrés par FIRE pendant tes games. Rangés dans Vidéos › FIRE Clips, sur ton PC. Partage les meilleurs avec l’équipe.')));
+    const nNew = cfUnseen();
+    const tabs = h('div', { class: 'row plan-tabs clb-tabs' },
+      h('button', { class: 'plan-tab', 'aria-pressed': String(CLB.tab !== 'team'), onclick: () => { CLB.tab = 'mine'; renderClipsPage(); } }, '🎬 Mes clips'),
+      h('button', { class: 'plan-tab', 'aria-pressed': String(CLB.tab === 'team'), onclick: () => { CLB.tab = 'team'; cfLoad(true); renderClipsPage(); } }, '🌐 Clips de l’équipe', nNew ? h('span', { class: 'plan-tab-n' }, String(nNew)) : null));
+    if (CLB.tab === 'team') { renderTeamClips(view, hero, tabs); return; }
     const cfg = h('div', { class: 'card clb-cfg' },
       h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Enregistrement continu'), h('small', null, `FIRE garde en mémoire les ${c.seconds} dernières secondes de ton écran, du son du jeu et du vocal. Rien n’est écrit tant qu’il n’y a pas de clip.`)),
         h('input', { type: 'checkbox', class: 'vs-tog', checked: c.on ? true : null, onchange: (e) => upd({ on: e.target.checked }) })),
       h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Clips automatiques'), h('small', null, 'Un clip à chaque kill ou assist, à chaque objectif où tu participes (dragon, Nashor, Héraut, larves, Atakhan) et à chaque tour ou inhibiteur pris juste après un kill ou une assist. Pas les camps de la jungle, ni les vagues, ni un TP ou un ignite sans kill. Un combat entier = un seul clip.')),
         h('input', { type: 'checkbox', class: 'vs-tog', checked: c.auto !== false ? true : null, onchange: (e) => upd({ auto: e.target.checked }) })),
+      c.auto !== false ? h('div', { class: 'row clb-types' }, h('span', { class: 'muted small' }, 'Filmer automatiquement :'),
+        [['kill', '⚔️ Mes kills'], ['assist', '🤝 Mes assists'], ['objectif', '🐉 Les objectifs'], ['tour', '🏰 Tours et inhibiteurs']].map(([k, l]) => {
+          const on = (c.types || {})[k] !== false;
+          return h('button', { class: 'chip' + (on ? ' on' : ''), 'aria-pressed': String(on), title: on ? 'Cliquer pour ne plus filmer' : 'Cliquer pour filmer', onclick: () => upd({ types: { ...(c.types || {}), [k]: !on } }) }, (on ? '✓ ' : '') + l);
+        })) : null,
       h('div', { class: 'row clb-row' },
         h('label', { class: 'clb-f' }, h('span', { class: 'muted small' }, 'Durée'), h('select', { class: 'inp', onchange: (e) => upd({ seconds: Number(e.target.value) }) },
           [[15, '15 s'], [30, '30 s'], [60, '1 min'], [90, '1 min 30']].map(([n, t]) => h('option', { value: n, selected: c.seconds === n ? true : null }, t)))),
@@ -5175,7 +5323,12 @@
           [['1080p30', '1080p 30 i/s'], ['1080p60', '1080p 60 i/s'], ['720p30', '720p 30 i/s']].map(([k, t]) => h('option', { value: k, selected: c.quality === k ? true : null }, t)))),
         h('span', { class: 'muted small clb-key' }, `Clip à la main : ${keyTxt(vkeys().clip)}`),
         h('span', { class: 'clb-state ' + (st.on ? 'on' : '') }, st.on ? '● Enregistrement en cours' : st.err ? '⚠ ' + st.err : '○ En pause'),
-        h('button', { class: 'btn-ghost', onclick: () => window.fire.clips.show() }, '📂 Ouvrir le dossier')));
+        h('button', { class: 'btn-ghost', onclick: () => window.fire.clips.show() }, '📂 Ouvrir le dossier')),
+      h('div', { class: 'row clb-row' },
+        h('label', { class: 'clb-f' }, h('span', { class: 'muted small' }, 'Ménage automatique'), h('select', { class: 'inp', onchange: (e) => { save('fire.clips', { ...clipCfg(), keepDays: Number(e.target.value) }); clipsPurge(); renderClipsPage(); } },
+          [[3, 'Supprimer après 3 jours'], [7, 'Supprimer après 7 jours'], [14, 'Supprimer après 14 jours'], [30, 'Supprimer après 30 jours'], [0, 'Ne jamais supprimer']].map(([n, t]) => h('option', { value: n, selected: (c.keepDays ?? 14) === n ? true : null }, t)))),
+        h('span', { class: 'muted small' }, (c.keepDays ?? 14) ? `Les clips que tu n’as pas gardés (⭐) sont supprimés tout seuls au bout de ${c.keepDays ?? 14} jours, pour libérer de la place.` : 'Tes clips restent jusqu’à ce que tu les supprimes.'),
+        h('span', { class: 'muted small clb-size' }, `Tes clips : ${mb(CL.list.reduce((a, x) => a + (x.size || 0), 0))}`)));
     const filters = h('div', { class: 'row clb-filters' },
       CLIP_KINDS.map(([k, l]) => { const n = k === 'tous' ? CL.list.length : CL.list.filter((x) => (k === 'auto' ? x.meta && x.meta.auto : clipKind(x) === k)).length;
         return (n || k === 'tous') ? h('button', { class: 'chip', 'aria-pressed': String(CLB.filter === k), onclick: () => { CLB.filter = k; CLB.n = 24; renderClipsPage(); } }, `${l} · ${n}`) : null; }),
@@ -5186,21 +5339,25 @@
       h('div', { class: 'clb-ph' }, sel.meta && sel.meta.champ ? champIcon(sel.meta.champ, 32) : null,
         h('div', null, h('b', null, clipTitle(sel)), h('div', { class: 'muted small' }, [when(sel.t), sel.meta && sel.meta.mode, mb(sel.size)].filter(Boolean).join(' · '))),
         h('div', { class: 'row clb-act' },
-          others ? h('button', { class: 'btn-fire small-btn', disabled: CL.sending[sel.path] != null ? true : null, onclick: () => clipSend(sel) }, CL.sending[sel.path] != null ? `Envoi… ${CL.sending[sel.path]} %` : '📨 Envoyer au salon') : null,
+          h('button', { class: 'btn-fire small-btn', onclick: () => { CLS.open = CLS.open === sel.path ? null : sel.path; CLS.title = clipTitle(sel); CLS.vis = 'public'; CLS.to = []; CLS.err = ''; renderClipsPage(); } }, '🌐 Partager'),
+          h('button', { class: 'btn-ghost' + (sel.meta && sel.meta.keep ? ' on' : ''), title: sel.meta && sel.meta.keep ? 'Ce clip ne sera jamais supprimé tout seul' : 'Garder ce clip : il ne sera pas supprimé par le ménage automatique', onclick: async () => { await window.fire.clips.keep(sel.name, !(sel.meta && sel.meta.keep)); clipsRefresh(); } }, sel.meta && sel.meta.keep ? '⭐ Gardé' : '☆ Garder'),
+          others ? h('button', { class: 'btn-ghost', disabled: CL.sending[sel.path] != null ? true : null, onclick: () => clipSend(sel) }, CL.sending[sel.path] != null ? `Envoi… ${CL.sending[sel.path]} %` : '📨 Envoyer au salon') : null,
           h('button', { class: 'btn-ghost', onclick: () => window.fire.clips.show(sel.path) }, 'Afficher dans le dossier'),
           h('button', { class: 'btn-ghost', onclick: async () => {
             if (CL.confirm !== sel.path) { CL.confirm = sel.path; renderClipsPage(); return; }
             CL.confirm = null; await window.fire.clips.del(sel.path); CL.sel = null; clipsRefresh();
           } }, CL.confirm === sel.path ? 'Confirmer la suppression' : '🗑 Supprimer'),
           h('button', { class: 'btn-ghost', title: 'Fermer', onclick: () => { CL.sel = null; renderClipsPage(); } }, '✕'))),
-      !others ? h('p', { class: 'muted small' }, 'Pour l’envoyer à l’équipe, rejoins le salon vocal : ceux qui y sont le reçoivent directement.') : null) : null;
+      CLS.open === sel.path ? clipShareBox(sel) : null,
+      !(sel.meta && sel.meta.keep) && (c.keepDays ?? 14) ? h('p', { class: 'muted small' }, `⏳ Supprimé tout seul dans ${clipLeft(sel, c)} : clique sur « ☆ Garder » pour le conserver.`) : null) : null;
     const grid = list.length ? h('div', { class: 'clb-grid' }, list.slice(0, CLB.n).map((x) => h('button', { class: 'clb-card' + (CL.sel === x.path ? ' on' : ''), onclick: () => { CL.sel = x.path; CL.confirm = null; renderClipsPage(); view.scrollTop = 0; window.scrollTo(0, 0); } },
       h('div', { class: 'clb-thumb' }, h('video', { src: x.url + '#t=2', preload: 'metadata', muted: '', onmouseenter: (e) => { e.target.muted = true; e.target.play().catch(() => {}); }, onmouseleave: (e) => e.target.pause() }),
         x.meta && x.meta.auto ? h('span', { class: 'clb-auto' }, '⚡ Auto') : null,
+        x.meta && x.meta.keep ? h('span', { class: 'clb-keep', title: 'Gardé' }, '⭐') : (c.keepDays ?? 14) ? h('span', { class: 'clb-left', title: 'Supprimé tout seul s’il n’est pas gardé' }, '⏳ ' + clipLeft(x, c)) : null,
         x.meta && x.meta.champ ? h('span', { class: 'clb-champ-ico' }, champIcon(x.meta.champ, 26)) : null),
       h('b', null, clipTitle(x)), h('small', { class: 'muted' }, [when(x.t), x.meta && x.meta.mode].filter(Boolean).join(' · ')))))
       : h('div', { class: 'card' }, h('p', { class: 'muted' }, CL.list.length ? 'Aucun clip avec ce filtre.' : c.on ? `Aucun clip pour l’instant. Lance une game : ${c.auto !== false ? 'tes kills, assists et objectifs seront filmés tout seuls, et ' : ''}${keyTxt(vkeys().clip)} garde les ${c.seconds} dernières secondes.` : 'Active l’enregistrement continu ci-dessus pour que FIRE filme tes meilleurs moments.'));
-    view.replaceChildren(...[hero, cfg, player, filters, grid,
+    view.replaceChildren(...[hero, tabs, cfg, player, filters, grid,
       list.length > CLB.n ? h('div', { class: 'more-row' }, h('button', { class: 'btn-ghost', onclick: () => { CLB.n += 24; renderClipsPage(); } }, `Voir plus (${list.length - CLB.n})`)) : null].filter(Boolean));
   }
 
@@ -6224,7 +6381,7 @@
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['accueil', '🏠', 'Accueil'], ['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
-      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['apprendre', '🎓', 'Apprendre en jouant'], ['puzdraft', '🧩', 'Puzzles de draft', pzDue() ? '!' : null], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
+      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips', cfUnseen() || null], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['apprendre', '🎓', 'Apprendre en jouant'], ['puzdraft', '🧩', 'Puzzles de draft', pzDue() ? '!' : null], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
       ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(annMine() ? [['annonces', '📢', 'Annonces']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', bugRepUnseen() ? String(bugRepUnseen()) : patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     if (MOBILE) { const keep = items.filter(([id]) => !MOBILE_OFF.has(id)); items.length = 0; items.push(...keep); }
@@ -9351,6 +9508,7 @@
     if (m.t === 'ann' && m.f && typeof m.f === 'object') { annCheck(m.f); return; }
     if (m.t === 'bugrep') { setTimeout(bugRepCheck, 3000); return; }
     if (m.t === 'forum') { forumHall(from, m); return; }
+    if (m.t === 'clipfeed') { clipFeedHall(from, m); return; }
     if (m.t === 'annack' && !SUB() && window.fire.annonce) {
       const p = S.players.find((x) => x.slug === from);
       if (!p || !isSub(p)) return;

@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.141",
+   "date": "2026-11-16",
+   "titre": "Clips : ménage, partage, likes et commentaires",
+   "items": [
+    [
+     "new",
+     "Clips › Ménage automatique : les clips que tu n’as pas gardés sont supprimés tout seuls au bout de 3, 7, 14 (par défaut) ou 30 jours, ou jamais. Chaque clip affiche le temps qu’il lui reste ; « ☆ Garder » le protège pour toujours."
+    ],
+    [
+     "new",
+     "Clips automatiques : choisis ce qui est filmé (tes kills, tes assists, les objectifs, les tours et inhibiteurs)."
+    ],
+    [
+     "new",
+     "« 🌐 Partager » un clip : public (toute l’équipe) ou privé (les personnes que tu choisis). Le clip est envoyé chiffré dans l’espace de l’équipe : on peut le regarder même quand ton PC est éteint."
+    ],
+    [
+     "new",
+     "Nouvel onglet « Clips de l’équipe » : les clips partagés par tout le monde, avec ❤️ likes et 💬 commentaires. L’auteur est prévenu quand on aime ou commente son clip, et une pastille signale les nouveaux clips."
+    ]
+   ]
+  },
+  {
    "v": "1.10.140",
    "date": "2026-11-16",
    "titre": "Fond visible dans les Paramètres",

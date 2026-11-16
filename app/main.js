@@ -797,6 +797,32 @@ ipcMain.handle('clips:list', () => {
       .sort((a, b) => b.t - a.t).slice(0, 300);
   } catch (err) { return []; }
 });
+// Garder un clip (il n'est jamais supprimé tout seul) et ménage : les clips non gardés partent après X jours.
+ipcMain.handle('clips:keep', (e, name, on) => {
+  try { name = path.basename(String(name || '')); if (!/\.mp4$/i.test(name)) return false; const all = clipMeta(); all[name] = { ...(all[name] || {}), keep: !!on }; fs.writeFileSync(path.join(clipDir(), 'clips.json'), JSON.stringify(all)); return true; } catch (err) { return false; }
+});
+ipcMain.handle('clips:purge', (e, days) => {
+  days = Number(days) || 0;
+  if (days <= 0) return { n: 0, bytes: 0 };
+  try {
+    const dir = clipDir(); if (!fs.existsSync(dir)) return { n: 0, bytes: 0 };
+    const all = clipMeta(); let n = 0, bytes = 0;
+    for (const f of fs.readdirSync(dir)) {
+      if (!/\.mp4$/i.test(f) || (all[f] && all[f].keep)) continue;
+      const p = path.join(dir, f), st = fs.statSync(p);
+      if (!st.isFile() || Date.now() - st.mtimeMs < days * 86400000) continue;
+      try { fs.unlinkSync(p); n++; bytes += st.size; delete all[f]; } catch (err) { /* clip ouvert ailleurs */ }
+    }
+    if (n) fs.writeFileSync(path.join(dir, 'clips.json'), JSON.stringify(all));
+    return { n, bytes };
+  } catch (err) { return { n: 0, bytes: 0 }; }
+});
+// Clips partagés avec l'équipe (dépôt de données, chiffrés).
+ipcMain.handle('clips:share', (e, p, meta) => { try { if (!inClips(p)) return { ok: false, error: 'clip introuvable' }; return coach.clipShare({ ...(meta || {}), buf: fs.readFileSync(p) }); } catch (err) { return { ok: false, error: String(err.message || err) }; } });
+ipcMain.handle('clips:feed', () => coach.clipFeed());
+ipcMain.handle('clips:thumb', (e, id) => coach.clipThumb(String(id || '')));
+ipcMain.handle('clips:op', (e, op) => coach.clipOp(op && typeof op === 'object' ? op : {}));
+ipcMain.handle('clips:fetch', async (e, id, file, asset) => { const r = await coach.clipFetch(id, file, asset); return r.ok ? { ok: true, url: require('url').pathToFileURL(r.path).href } : r; });
 ipcMain.handle('clips:read', (e, p) => { try { if (!inClips(p)) return null; const st = fs.statSync(p); if (st.size > CLIP_MAX) return null; return fs.readFileSync(p); } catch (err) { return null; } });
 ipcMain.handle('clips:show', (e, p) => { if (p && inClips(p)) shell.showItemInFolder(path.resolve(p)); else { fs.mkdirSync(clipDir(), { recursive: true }); shell.openPath(clipDir()); } return true; });
 ipcMain.handle('clips:delete', (e, p) => { try { if (!inClips(p)) return false; fs.unlinkSync(p); return true; } catch (err) { return false; } });

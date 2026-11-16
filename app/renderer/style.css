@@ -2915,3 +2915,24 @@ html.set-open .set-ovl{background:transparent}
 html.set-open .set-left{background:color-mix(in srgb,var(--panel) 84%,transparent);backdrop-filter:blur(12px)}
 html.set-open .set-content{background:linear-gradient(90deg,color-mix(in srgb,var(--bg) 72%,transparent),color-mix(in srgb,var(--bg) 40%,transparent))}
 html.set-open .set-page{text-shadow:0 1px 2px rgb(0 0 0 / 35%)}
+/* ===== Clips : ménage, partage, clips de l'équipe ===== */
+.clb-tabs{margin:0 0 12px;gap:8px}
+.clb-keep,.clb-left{position:absolute;right:8px;top:8px;padding:2px 7px;border-radius:7px;font-size:11px;font-weight:700;background:rgb(0 0 0 / 65%);color:#fff}
+.clb-left{color:#f2c14e}
+.clb-size{margin-left:auto}
+.clb-share{display:flex;flex-direction:column;gap:8px;margin-top:12px;padding:12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--fire1) 40%,var(--line));background:color-mix(in srgb,var(--fire1) 6%,var(--panel))}
+.clb-share .row{gap:6px;flex-wrap:wrap}
+.clb-share .chip.on{border-color:var(--fire1);background:color-mix(in srgb,var(--fire1) 16%,transparent);color:var(--fg)}
+.btn-ghost.on{border-color:var(--fire1);color:var(--fire1)}
+.cf-th{background:#000 center/cover no-repeat;position:relative}
+.cf-play{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;color:rgb(255 255 255 / 85%);text-shadow:0 2px 8px rgb(0 0 0 / 60%)}
+.cf-dur{position:absolute;left:8px;bottom:8px;padding:1px 6px;border-radius:6px;font-size:11px;background:rgb(0 0 0 / 70%);color:#fff}
+.cf-stats{color:var(--muted)}
+.cf-wait{aspect-ratio:16/9;display:grid;place-items:center;border-radius:12px;background:#000;color:#ddd}
+.cf-like.on{border-color:#ef6670;color:#ff8a92}
+.cf-coms{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.cf-com{padding:8px 10px;border-radius:10px;background:var(--panel2)}
+.cf-com-in{gap:8px}
+.cf-com-in .inp{flex:1}
+.clb-types{gap:6px;flex-wrap:wrap;align-items:center;margin:4px 0 10px}
+.clb-types .chip.on{border-color:var(--fire1);background:color-mix(in srgb,var(--fire1) 16%,transparent);color:var(--fg)}
