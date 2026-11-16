@@ -64,7 +64,7 @@ def bases_minimap():
 
 def bases_timers():
     return timeline('Les timers de la saison 2026', 'Ce qui apparaît sur la carte, et quand', [
-        (0.025, '0:30', 'premiers sbires', ALLY), (0.25, '5:00', 'premier dragon', GOLD), (0.4, '8:00', 'larves du Néant', PINK),
+        (0.025, '0:30', 'premiers sbires', ALLY), (0.25, '5:00', 'premier drake', GOLD), (0.4, '8:00', 'larves du Néant', PINK),
         (0.75, '15:00', 'Héraut', '#4cc38a'), (1.0, '20:00', 'Baron Nashor', ENEMY)], 9)
 
 
@@ -77,7 +77,7 @@ def bases_comm():
 
 # ======================= Gérer sa wave =======================
 def wave_slow():
-    s = L('Le slow push', 'Tue ses sbires à distance en premier : ta wave grossit à chaque vague', 8)
+    s = L('Le slow push', 'Tue ses sbires à distance en premier : ta wave grossit à chaque wave', 8)
     s.move_wave('a', 3, [(360, LY), (470, LY)], [(0, 0), (0.3, 1)], 0, 0.3)
     s.move_wave('a', 6, [(470, LY), (560, LY)], [(0.3, 0), (0.6, 1)], 0.3, 0.6)
     s.move_wave('a', 9, [(560, LY), (680, LY)], [(0.6, 0), (0.85, 1)], 0.6, 0.92)
@@ -99,7 +99,7 @@ def wave_fast():
         s.shot(450, LY - 45, 520, LY - 5, GOLD, t)
     s.boom(690, LY, 0.5, GOLD, 'Crash !')
     s.recall(560, LY - 50, 0.62, 0.8)
-    s.show_at(80, LY + 90, s.g_text('🏠 retour à la base', 15, ALLY, 'start', 'bold'), 0.8, 0.97)
+    s.show_at(80, LY + 90, s.g_text('🏠 back', 15, ALLY, 'start', 'bold'), 0.8, 0.97)
     s.captions([(0.02, 0.32, '1. Tu tues ses sbires le plus vite possible'), (0.33, 0.6, '2. Ta wave s’écrase sous sa tour'),
                 (0.61, 0.98, '3. Tu back ou tu roam sans perdre de sbires', OK)])
     return s.render()
@@ -130,7 +130,7 @@ def wave_back():
 
 def wave_erreurs():
     return cards('Les erreurs de wave', 'À éviter', [
-        ('🙈', 'Pousser sans info', 'le jungler adverse n’a pas été vu', 'bad'), ('🔨', 'Taper sans plan', 'sans savoir ce que tu veux faire', 'bad'),
+        ('🙈', 'Push sans info', 'le jungler adverse n’a pas été vu', 'bad'), ('🔨', 'Taper sans plan', 'sans savoir ce que tu veux faire', 'bad'),
         ('🏠', 'Back au mauvais moment', 'une grosse wave arrive chez toi', 'bad'), ('🕳️', 'Suivre la wave trop loin', 'jusqu’à sa tour, sans ward', 'bad')], 2, 7)
 
 
@@ -199,7 +199,7 @@ def top_jungler():
 
 
 def top_tp():
-    s = M('Bien utiliser la Téléportation', 'Pousse ta wave, puis TP sur le fight', 8)
+    s = M('Bien utiliser la Téléportation', 'Push ta wave, puis TP sur le fight', 8)
     P = s.P
     s.move_wave('a', 6, [P(0.10, 0.12), P(0.22, 0.08)], [(0, 0), (0.3, 1)], 0, 0.35)
     s.move_champ('a', 'T', [P(0.10, 0.18), P(0.10, 0.18)], None, 0, 0.5, 13)
@@ -212,13 +212,13 @@ def top_tp():
         s.show_at(*P(u, v), s.g_champ('a', '', 9), 0, 0.98)
     for u, v in ((0.78, 0.76), (0.80, 0.68), (0.72, 0.60)):
         s.show_at(*P(u, v), s.g_champ('e', '', 9), 0, 0.98)
-    s.steps([(0.05, ['1. Tu pousses ta wave d’abord'], FG), (0.32, ['2. Tu lances la TP'], PINK), (0.5, ['3. Tu arrives sur le fight', '   à 4 contre 3'], OK),
-             (0.75, ['Sans wave poussée, tu perds', 'tes sbires et ta tour'], BAD)])
+    s.steps([(0.05, ['1. Tu push ta wave d’abord'], FG), (0.32, ['2. Tu lances la TP'], PINK), (0.5, ['3. Tu arrives sur le fight', '   à 4 contre 3'], OK),
+             (0.75, ['Sans wave push, tu perds', 'tes sbires et ta tour'], BAD)])
     return s.render()
 
 
 def top_larves():
-    s = M('Larves et Héraut', 'Ta prio en top aide ton jungler sur la fosse du haut', 8)
+    s = M('Larves et Herald', 'Ta prio en top aide ton jungler sur la fosse du haut', 8)
     P = s.P
     bx, by = s.pit['baron']
     s.text(bx, by + 5, '🐛', 18)
@@ -226,7 +226,7 @@ def top_larves():
     s.move_champ('a', 'T', [P(0.10, 0.16), P(0.14, 0.12), P(0.27, 0.27)], [(0, 0), (0.3, 1), (0.55, 2)], 0, 1, 13)
     s.move_champ('a', 'J', [P(0.25, 0.55), P(0.36, 0.38)], [(0.2, 0), (0.55, 1)], 0, 1, 13)
     s.boom(bx, by, 0.62, PINK, '8:00')
-    s.steps([(0.05, ['1. 30 s avant : tu pousses ta wave']), (0.3, ['2. Tu rejoins ton jungler']), (0.62, ['3. Larves (8:00) ou Héraut (15:00)', '   à deux contre un'], OK)])
+    s.steps([(0.05, ['1. 30 s avant : tu push ta wave']), (0.3, ['2. Tu rejoins ton jungler']), (0.62, ['3. Larves (8:00) ou Herald (15:00)', '   à deux contre un'], OK)])
     return s.render()
 
 
@@ -264,12 +264,12 @@ def jungle_scuttle():
     s.move_champ('a', 'M', [P(0.50, 0.50), P(0.60, 0.56)], [(0.35, 0), (0.55, 1)], 0, 1, 12)
     s.move_champ('e', 'J', [P(0.85, 0.40), P(0.72, 0.56)], [(0.3, 0), (0.55, 1)], 0, 0.8, 13)
     s.boom(sx, sy, 0.6, GOLD, '2 contre 1')
-    s.steps([(0.05, ['1. Tes lanes mid et bot poussent']), (0.25, ['2. Tu vas à la scuttle']), (0.55, ['3. Ton mid arrive en premier', '   pour t’aider'], OK)])
+    s.steps([(0.05, ['1. Tes lanes mid et bot push']), (0.25, ['2. Tu vas à la scuttle']), (0.55, ['3. Ton mid arrive en premier', '   pour t’aider'], OK)])
     return s.render()
 
 
 def jungle_objectifs():
-    s = M('Préparer un objectif', '1 minute avant : lanes poussées, wards, et Smite à la fin', 8)
+    s = M('Préparer un objectif', '1 minute avant : lanes push, wards, et Smite à la fin', 8)
     P = s.P
     dx, dy = s.pit['drake']
     s.text(dx, dy + 5, '🐉', 18)
@@ -282,7 +282,7 @@ def jungle_objectifs():
     for k, (a, b) in enumerate(((0.40, 0.70), (0.50, 0.52), (0.84, 0.90), (0.86, 0.86))):
         s.move_champ('a', 'JMAS'[k], [P(a, b), P(0.64 + k * 0.02, 0.66 + (k % 2) * 0.04)], [(0.38, 0), (0.6, 1)], 0, 1, 11)
     s.boom(dx, dy, 0.82, GOLD, 'Smite !')
-    s.steps([(0.05, ['1. Les lanes poussent']), (0.22, ['2. Wards autour de la fosse'], GOLD), (0.4, ['3. Tout le monde arrive', '   ensemble']), (0.8, ['4. Smite à la fin'], OK)])
+    s.steps([(0.05, ['1. Les lanes push']), (0.22, ['2. Wards autour de la fosse'], GOLD), (0.4, ['3. Tout le monde arrive', '   ensemble']), (0.8, ['4. Smite à la fin'], OK)])
     return s.render()
 
 
@@ -311,13 +311,13 @@ def jungle_erreurs():
 
 # ======================= Mid =======================
 def mid_prio():
-    s = L('La prio en mid', 'Ta wave pousse : il doit farmer, toi tu es libre de bouger', 7)
+    s = L('La prio en mid', 'Ta wave push : il doit farmer, toi tu es libre de bouger', 7)
     s.move_wave('a', 6, [(430, LY), (690, LY)], [(0, 0), (0.35, 1)], 0, 0.98)
     s.champ(690, LY - 55, 'e', 'M')
     s.show_at(690, LY - 90, s.g_text('bloqué à farmer', 14, ENEMY, 'middle', 'bold'), 0.35, 0.98)
     s.move_champ('a', 'M', [(380, LY - 40), (520, LY - 40), (520, LY - 40), (400, LY - 150), (300, LY - 160)], [(0, 0), (0.3, 1), (0.42, 2), (0.65, 3), (0.85, 4)])
     s.show_at(300, LY - 190, s.g_text('→ scuttle, roam, drake…', 15, OK, 'middle', 'bold'), 0.7, 0.98)
-    s.captions([(0.02, 0.38, '1. Tu pousses ta wave sous sa tour'), (0.38, 0.62, '2. Il doit rester pour ne pas perdre ses sbires', GOLD), (0.62, 0.98, '3. Toi, tu bouges en premier', OK)])
+    s.captions([(0.02, 0.38, '1. Tu push ta wave sous sa tour'), (0.38, 0.62, '2. Il doit rester pour ne pas perdre ses sbires', GOLD), (0.62, 0.98, '3. Toi, tu bouges en premier', OK)])
     return s.render()
 
 
@@ -348,7 +348,7 @@ def mid_follow():
 
 
 def mid_trades():
-    s = L('Trades et temps de recharge', 'Il rate son sort : c’est ta fenêtre', 6, river=False)
+    s = L('Trades et cooldown', 'Il rate son sort : c’est ta fenêtre', 6, river=False)
     s.move_champ('e', 'M', [(560, LY - 30), (560, LY - 30)])
     s.move_champ('a', 'M', [(240, LY - 30), (240, LY - 30), (320, LY - 30), (320, LY - 30), (240, LY - 30)], [(0, 0), (0.15, 1), (0.25, 2), (0.6, 3), (0.8, 4)])
     s.shot(560, LY - 30, 320, LY + 40, ENEMY, 0.08, 0.08, 8)
@@ -361,14 +361,14 @@ def mid_trades():
 
 
 def mid_apres():
-    s = M('Mid après la phase de lane', 'Pousse ta wave, puis suis ton jungler sur l’objectif', 7)
+    s = M('Mid après la phase de lane', 'Push ta wave, puis suis ton jungler sur l’objectif', 7)
     P = s.P
     dx, dy = s.pit['drake']
     s.text(dx, dy + 5, '🐉', 18)
     s.move_wave('a', 6, [P(0.48, 0.52), P(0.58, 0.42)], [(0, 0), (0.25, 1)], 0, 0.98, 3)
     s.move_champ('a', 'M', [P(0.47, 0.53), P(0.55, 0.45), P(0.62, 0.62)], [(0, 0), (0.25, 1), (0.6, 2)], 0, 1, 13)
     s.move_champ('a', 'J', [P(0.40, 0.75), P(0.62, 0.70)], [(0.2, 0), (0.6, 1)], 0, 1, 13)
-    s.steps([(0.05, ['1. Tu pousses la wave mid']), (0.3, ['2. Tu rejoins ton jungler']), (0.6, ['3. Vous arrivez ensemble', '   sur l’objectif'], OK)])
+    s.steps([(0.05, ['1. Tu push la wave mid']), (0.3, ['2. Tu rejoins ton jungler']), (0.6, ['3. Vous arrivez ensemble', '   sur l’objectif'], OK)])
     return s.render()
 
 
@@ -405,16 +405,16 @@ def bot_adc():
 
 
 def bot_support():
-    s = L('Support : vision et pression', 'Wards dans la rivière, pink dans le buisson', 7)
+    s = L('Support : vision et pression', 'Wards dans la rivière, pink dans le bush', 7)
     s.rect(330, 96, 140, 50, '#1f2a1c', 14)
-    s.text(400, 90, 'buisson de la rivière', 13, MUTED)
+    s.text(400, 90, 'bush de la rivière', 13, MUTED)
     s.champ(250, LY + 10, 'a', 'A')
     s.move_champ('a', 'S', [(300, LY - 20), (380, 125), (380, 125), (330, LY - 10)], [(0, 0), (0.2, 1), (0.35, 2), (0.55, 3)])
     s.show_at(420, 120, s.g_ward('a', True), 0.25, 0.98)
     s.pulse(420, 120, PINK, 0.25)
     s.move_champ('a', 'S', [(330, LY - 10), (420, LY - 10), (330, LY - 10)], [(0.6, 0), (0.75, 1), (0.9, 2)], 0.55, 0.98)
     s.champ(560, LY, 'e', 'A')
-    s.captions([(0.02, 0.3, '1. Une pink dans le buisson de la rivière', PINK), (0.3, 0.58, '2. Tu reviens près de ton ADC'), (0.58, 0.98, '3. Tu avances quand il farme : l’adversaire recule', OK)])
+    s.captions([(0.02, 0.3, '1. Une pink dans le bush de la rivière', PINK), (0.3, 0.58, '2. Tu reviens près de ton ADC'), (0.58, 0.98, '3. Tu avances quand il farme : l’adversaire recule', OK)])
     return s.render()
 
 
@@ -431,7 +431,7 @@ def bot_wave():
 
 
 def bot_dragon():
-    s = M('Le dragon, l’objectif du bot', 'Wave poussée, rivière éclairée, jungler sur la fosse', 7)
+    s = M('Le drake, l’objectif du bot', 'Wave push, rivière éclairée, jungler sur la fosse', 7)
     P = s.P
     dx, dy = s.pit['drake']
     s.text(dx, dy + 5, '🐉', 18)
@@ -441,8 +441,8 @@ def bot_dragon():
     s.pulse(*P(0.74, 0.70), GOLD, 0.42)
     s.move_champ('a', 'J', [P(0.42, 0.74), P(0.63, 0.67)], [(0.3, 0), (0.6, 1)], 0, 1, 12)
     s.move_champ('a', 'A', [P(0.88, 0.90), P(0.72, 0.76)], [(0.45, 0), (0.65, 1)], 0, 1, 11)
-    s.boom(dx, dy, 0.75, GOLD, 'Dragon !')
-    s.steps([(0.05, ['1. Le bot pousse sa wave']), (0.22, ['2. Le support éclaire la rivière'], GOLD), (0.45, ['3. Jungler et duo bot', '   sur le dragon'], OK)])
+    s.boom(dx, dy, 0.75, GOLD, 'Drake !')
+    s.steps([(0.05, ['1. Le bot push sa wave']), (0.22, ['2. Le support éclaire la rivière'], GOLD), (0.45, ['3. Jungler et duo bot', '   sur le drake'], OK)])
     return s.render()
 
 
@@ -454,7 +454,7 @@ def bot_roam():
     s.show_at(*P(0.58, 0.60), s.g_ward(), 0.4, 0.98)
     s.move_champ('a', 'A', [P(0.86, 0.92), P(0.86, 0.92), P(0.72, 0.92)], [(0, 0), (0.25, 1), (0.45, 2)], 0, 1, 11)
     s.boom(*P(0.54, 0.54), 0.65, OK, 'mid 2v1')
-    s.steps([(0.05, ['1. Wave bot poussée']), (0.2, ['2. Le support part en mid', '   avec une ward en chemin']), (0.45, ['3. L’ADC recule sous sa tour'], GOLD), (0.65, ['4. Kill ou pression en mid'], OK)])
+    s.steps([(0.05, ['1. Wave bot push']), (0.2, ['2. Le support part en mid', '   avec une ward en chemin']), (0.45, ['3. L’ADC recule sous sa tour'], GOLD), (0.65, ['4. Kill ou pression en mid'], OK)])
     return s.render()
 
 
@@ -474,7 +474,7 @@ def bot_fight():
 
 # ======================= Fights =======================
 def fights_compter():
-    s = A(7).title('Avant de fight : compter', 'Nombre, ultimes, Flash, vision')
+    s = A(7).title('Avant de fight : compter', 'Nombre, ults, Flash, vision')
     for i in range(5):
         s.show_at(120 + i * 60, 140, s.g_champ('a', '', 20), 0, 0.98)
     for i in range(5):
@@ -483,7 +483,7 @@ def fights_compter():
         if not alive:
             s.show_at(470 + i * 60, 140, s.g_text('?', 26, ENEMY, 'middle', 'bold'), 0.15, 0.98)
     s.text(400, 147, 'contre', 16, MUTED)
-    checks = [('👥', 'Combien de chaque côté ?', 0.2), ('💥', 'Ultimes prêts ?', 0.35), ('⚡', 'Flash prêts ?', 0.5), ('👁️', 'Vision autour ?', 0.65)]
+    checks = [('👥', 'Combien de chaque côté ?', 0.2), ('💥', 'Ults prêts ?', 0.35), ('⚡', 'Flash prêts ?', 0.5), ('👁️', 'Vision autour ?', 0.65)]
     for i, (ico, t, t0) in enumerate(checks):
         y = 220 + i * 44
         s.show_at(220, y, f"<text x='0' y='0' font-size='22'>{ico}</text><text x='40' y='-2' font-size='17' fill='{FG}' font-weight='bold'>{t}</text>", t0, 0.98)
@@ -555,7 +555,7 @@ def fights_apres():
     for k in range(4):
         s.move_champ('a', '', [P(0.46 + k * 0.03, 0.56), P(0.34 + k * 0.025, 0.36 + (k % 2) * 0.03)], [(0.3, 0), (0.6, 1)], 0, 1, 10)
     s.boom(bx, by, 0.75, PINK, 'Baron !')
-    s.steps([(0.05, ['1. Fight gagné : 4 adversaires morts'], OK), (0.3, ['2. Pas de poursuite :', '   direction l’objectif']), (0.72, ['3. Baron pris, puis on pousse'], PINK)])
+    s.steps([(0.05, ['1. Fight gagné : 4 adversaires morts'], OK), (0.3, ['2. Pas de poursuite :', '   direction l’objectif']), (0.72, ['3. Baron pris, puis on push'], PINK)])
     return s.render()
 
 
@@ -569,20 +569,20 @@ def fights_erreurs():
 # ======================= Concéder =======================
 def conceder_pourquoi():
     return bars('Pourquoi concéder', 'Ce qu’on perd dans chaque cas (exemple)', [
-        ('Fight perdu d’avance', 100, BAD, 'le dragon + 3 morts + 1 minute à 2 contre 5'),
-        ('Concéder le dragon', 30, GOLD, 'seulement le dragon'),
-        ('Concéder + échanger', 10, OK, 'le dragon, mais une tour et des plates pour vous')], 7)
+        ('Fight perdu d’avance', 100, BAD, 'le drake + 3 morts + 1 minute à 2 contre 5'),
+        ('Concéder le drake', 30, GOLD, 'seulement le drake'),
+        ('Concéder + échanger', 10, OK, 'le drake, mais une tour et des plates pour vous')], 7)
 
 
 def conceder_quand():
     return cards('Quand concéder un objectif', 'Si une de ces cases est cochée, on lâche', [
         ('👥', 'Moins nombreux', '4 contre 5', 'bad'), ('🌊', 'Pas de prio', 'les lanes sont chez nous', 'bad'),
-        ('📈', 'Ils sont plus forts', 'niveaux et objets', 'bad'), ('🙈', 'Pas de vision', 'autour de la fosse', 'bad'),
+        ('📈', 'Ils sont plus forts', 'niveaux et items', 'bad'), ('🙈', 'Pas de vision', 'autour de la fosse', 'bad'),
         ('💥', 'Ultis et Flash pas prêts', '', 'bad'), ('🏃', 'On arrive trop tard', 'l’objectif tombe déjà', 'bad')], 2, 8)
 
 
 def conceder_tour():
-    s = L('Lâcher une tour plutôt que mourir', 'Trois adversaires plongent : tu recules', 7, river=False)
+    s = L('Lâcher une tour plutôt que mourir', 'Trois adversaires dive : tu recules', 7, river=False)
     s.champ(120, LY - 10, 'a', 'T')
     s.move_champ('a', 'T', [(120, LY - 10), (120, LY - 10), (-20, LY - 10)], [(0, 0), (0.3, 1), (0.5, 2)], 0, 0.5)
     for k in range(3):
@@ -618,26 +618,26 @@ def conceder_dire():
     tx, ty = P(0.22, 0.08)
     s.show_at(tx, ty, f"<rect x='-8' y='-8' width='16' height='16' rx='3' fill='#1a1614' stroke='{ENEMY}' stroke-width='3'/>", 0, 0.7)
     s.boom(tx, ty, 0.7, OK, 'tour !')
-    s.steps([(0.05, ['1. Un appel clair, 30 s avant'], GOLD), (0.25, ['2. Tout le monde part en haut']), (0.7, ['3. Une tour contre un dragon'], OK)], y=150)
+    s.steps([(0.05, ['1. Un appel clair, 30 s avant'], GOLD), (0.25, ['2. Tout le monde part en haut']), (0.7, ['3. Une tour contre un drake'], OK)], y=150)
     return s.render()
 
 
 # ======================= Vision =======================
 def vision_wards():
-    s = M('Wards et trinket', 'Là où le danger arrive : rivière et buissons', 7)
+    s = M('Wards et trinket', 'Là où le danger arrive : rivière et bush', 7)
     P = s.P
     for i, (u, v) in enumerate(((0.24, 0.22), (0.40, 0.40), (0.62, 0.60), (0.78, 0.76))):
         t = 0.08 + i * 0.15
         s.show_at(*P(u, v), s.g_ward(), t, 0.98)
         s.pulse(*P(u, v), GOLD, t, 10, 60, 0.15)
-    s.steps([(0.05, ['Une ward = une zone éclairée'], GOLD), (0.35, ['Rivière et buissons :', 'là où passent les ganks']), (0.65, ['En milieu de partie : trinket', 'de balayage pour jungle et support'], OK)])
+    s.steps([(0.05, ['Une ward = une zone éclairée'], GOLD), (0.35, ['Rivière et bush :', 'là où passent les ganks']), (0.65, ['En milieu de partie : trinket', 'de balayage pour jungle et support'], OK)])
     return s.render()
 
 
 def vision_pinks():
     s = A(7).title('Les pinks', 'Elle révèle et désactive les wards adverses')
     s.arena(230, 140, 340, 200, 18, 0.4)
-    s.text(400, 132, 'buisson de la rivière', 14, MUTED)
+    s.text(400, 132, 'bush de la rivière', 14, MUTED)
     s.show_at(470, 260, s.g_ward('e'), 0, 0.98)
     s.move_champ('a', 'S', [(120, 240), (320, 240), (320, 240)], [(0, 0), (0.25, 1), (1, 2)])
     s.show_at(340, 220, s.g_ward('a', True), 0.3, 0.98)
@@ -664,7 +664,7 @@ def vision_off():
 def vision_qui():
     return cards('Qui pose quoi', 'Chaque rôle a ses wards', [
         ('🛡️', 'Top', 'rivière, tri-bush, entrée de sa jungle', 'neutre'), ('🌲', 'Jungle', 'ses buffs et ses entrées', 'neutre'),
-        ('✨', 'Mid', 'la rivière des deux côtés', 'neutre'), ('🏹', 'ADC', 'tri-bush ou rivière près du dragon', 'neutre'),
+        ('✨', 'Mid', 'la rivière des deux côtés', 'neutre'), ('🏹', 'ADC', 'tri-bush ou rivière près du drake', 'neutre'),
         ('💞', 'Support', 'les plus profondes + balayage', 'good')], 2, 8)
 
 
@@ -689,7 +689,7 @@ def vision_facecheck():
 
 # ======================= Objectifs et macro =======================
 def obj_prio():
-    s = M('La prio donne le droit de prendre', 'Les lanes proches poussent, puis l’équipe va sur l’objectif', 8)
+    s = M('La prio donne le droit de prendre', 'Les lanes proches push, puis l’équipe va sur l’objectif', 8)
     P = s.P
     dx, dy = s.pit['drake']
     s.text(dx, dy + 5, '🐉', 18)
@@ -701,16 +701,16 @@ def obj_prio():
     s.boom(*P(0.92, 0.76), 0.33, ENEMY, 'bloqué')
     for k in range(3):
         s.move_champ('a', '', [P(0.46 + k * 0.1, 0.56 + k * 0.1), P(0.62 + k * 0.03, 0.66)], [(0.4, 0), (0.65, 1)], 0, 1, 10)
-    s.boom(dx, dy, 0.8, GOLD, 'Dragon !')
-    s.steps([(0.05, ['1. Mid et bot poussent']), (0.3, ['2. Leurs adversaires doivent', '   rester farmer'], ENEMY), (0.6, ['3. Vous arrivez les premiers'], OK)])
+    s.boom(dx, dy, 0.8, GOLD, 'Drake !')
+    s.steps([(0.05, ['1. Mid et bot push']), (0.3, ['2. Leurs adversaires doivent', '   rester farmer'], ENEMY), (0.6, ['3. Vous arrivez les premiers'], OK)])
     return s.render()
 
 
 def obj_valeur():
     return cards('Ce que rapporte chaque objectif', 'Saison 2026', [
-        ('🐉', 'Dragons (5:00)', 'bonus d’équipe, âme au 4e', 'good'), ('🐛', 'Larves (8:00)', 'dégâts en plus sur les tours', 'good'),
-        ('👁️', 'Héraut (15:00)', 'à lancer sur une tour', 'good'), ('👾', 'Baron (20:00)', 'pousser les lanes', 'good'),
-        ('🐲', 'Dragon ancestral', 'après une âme : achève', 'good'), ('🏰', 'Plates des tours', 'des golds pour l’équipe', 'good')], 2, 8)
+        ('🐉', 'Drakes (5:00)', 'bonus d’équipe, soul au 4e', 'good'), ('🐛', 'Larves (8:00)', 'dégâts en plus sur les tours', 'good'),
+        ('👁️', 'Herald (15:00)', 'à lancer sur une tour', 'good'), ('👾', 'Baron (20:00)', 'push les lanes', 'good'),
+        ('🐲', 'Drake ancestral', 'après une soul : achève', 'good'), ('🏰', 'Plates des tours', 'des golds pour l’équipe', 'good')], 2, 8)
 
 
 def obj_apreskill():
@@ -769,7 +769,7 @@ def obj_regroupe():
         s.move_champ('a', '', [P(0.30 + k * 0.08, 0.50 + k * 0.06), P(0.58 + (k % 2) * 0.04, 0.60 + (k // 2) * 0.05)], [(0.05, 0), (0.4, 1)], 0, 1, 10)
     s.move_champ('a', 'T', [P(0.10, 0.20), P(0.28, 0.08)], [(0.1, 0), (0.6, 1)], 0, 1, 11)
     s.move_wave('a', 6, [P(0.12, 0.12), P(0.30, 0.08)], [(0.1, 0), (0.6, 1)], 0, 0.98, 3)
-    s.steps([(0.05, ['1. Quatre joueurs près du', '   prochain objectif']), (0.3, ['2. Un joueur pousse', '   une lane de côté'], GOLD), (0.6, ['3. L’adversaire doit choisir'], OK)])
+    s.steps([(0.05, ['1. Quatre joueurs près du', '   prochain objectif']), (0.3, ['2. Un joueur push', '   une lane de côté'], GOLD), (0.6, ['3. L’adversaire doit choisir'], OK)])
     return s.render()
 
 
@@ -781,8 +781,8 @@ def recall_quand():
     s.move_champ('a', 'T', [(360, LY - 50), (500, LY - 50), (500, LY - 50)], [(0, 0), (0.3, 1), (0.42, 2)], 0, 0.7)
     s.show_at(500, LY - 90, s.g_text('💰 1 100', 18, GOLD, 'middle', 'bold'), 0.3, 0.7)
     s.recall(500, LY - 50, 0.45, 0.7)
-    s.show_at(100, LY + 85, s.g_text('🛒 objet acheté', 16, OK, 'start', 'bold'), 0.72, 0.98)
-    s.captions([(0.02, 0.4, '1. Tu crashes ta wave'), (0.4, 0.7, '2. Tu as les golds pour ton objet : back'), (0.7, 0.98, '3. Tu reviens plus fort sans rien perdre', OK)])
+    s.show_at(100, LY + 85, s.g_text('🛒 item acheté', 16, OK, 'start', 'bold'), 0.72, 0.98)
+    s.captions([(0.02, 0.4, '1. Tu crashes ta wave'), (0.4, 0.7, '2. Tu as les golds pour ton item : back'), (0.7, 0.98, '3. Tu reviens plus fort sans rien perdre', OK)])
     return s.render()
 
 
@@ -794,7 +794,7 @@ def recall_achats():
     s.text(120 + 560 * 0.78, 178, 'prix du composant', 14, OK)
     for t, v in ((0.05, '200'), (0.25, '500'), (0.45, '850'), (0.6, '1 100')):
         s.show_at(400, 290, s.g_text(f'💰 {v}', 26, GOLD, 'middle', 'bold'), t, t + 0.2 if v != '1 100' else 0.98)
-    s.show_at(400, 350, s.g_text('✓ Assez pour l’objet prévu : back !', 18, OK, 'middle', 'bold'), 0.62, 0.98)
+    s.show_at(400, 350, s.g_text('✓ Assez pour l’item prévu : back !', 18, OK, 'middle', 'bold'), 0.62, 0.98)
     s.show_at(400, 130, s.g_text('✗ Back à 200 golds : aller-retour pour rien', 16, BAD, 'middle', 'bold'), 0.05, 0.3)
     return s.render()
 
@@ -814,7 +814,7 @@ def recall_equipe():
 def recall_chaque():
     return cards('À chaque back', 'La petite routine', [
         ('🩷', 'Une pink', 'toujours une sur toi', 'good'), ('🧪', 'Des potions', 'si ta lane est difficile', 'good'),
-        ('🛒', 'L’objet prévu', 'acheté sans hésiter', 'good'), ('🏃', 'Retour rapide', 'pour la wave suivante', 'good')], 2, 7)
+        ('🛒', 'L’item prévu', 'acheté sans hésiter', 'good'), ('🏃', 'Retour rapide', 'pour la wave suivante', 'good')], 2, 7)
 
 
 def recall_partage():

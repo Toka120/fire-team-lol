@@ -23,6 +23,9 @@
     ['violet', 'Void', '#0b0614', '#9d5cff', '#ff5cc8', 'Le Néant : violet profond et magenta', 1],
     ['matrix', 'Matrix', '#020803', '#39ff6a', '#b6ffb0', 'Vert terminal, police machine, lignes de code', 1],
     ['rgb', 'Gamer RGB', '#08080d', '#ff3d6e', '#3dd8ff', 'Arc-en-ciel animé, comme un clavier gamer', 1],
+    ['hantee', 'Forêt hantée', '#020805', '#7dff6a', '#3a6b40', 'Presque noir, de la brume et des yeux qui s’ouvrent dans l’ombre', 1],
+    ['tenebres', 'Ténèbres', '#050303', '#ff2a2a', '#7a0d0d', 'Noir profond et rouge sang, des braises qui montent', 1],
+    ['abime', 'Abîme', '#030208', '#9d7bff', '#3a2a6b', 'Le plus sombre : un noir violet et une poussière qui flotte', 1],
     ['aurore', 'Aurore boréale', '#03101a', '#2effaa', '#b06eff', 'Rideaux de lumière verts et violets dans un ciel étoilé', 1],
     ['nuit', 'Nuit étoilée', '#070b1c', '#ffe7a3', '#7aa2ff', 'Lune, étoiles qui scintillent et étoiles filantes', 1],
     ['orage', 'Orage', '#070a10', '#9fc0ff', '#e6edf7', 'Pluie battante et éclairs dans la nuit', 1],
@@ -44,6 +47,34 @@
     drako: ['Drako', '<path d="M12 14 L8 4 L18 11 M38 14 L42 4 L32 11" fill="#7c5cff"/><ellipse cx="25" cy="28" rx="17" ry="16" fill="#9d7bff"/><path d="M6 26 L1 20 L6 31 Z M44 26 L49 20 L44 31Z" fill="#c4b0ff"/><ellipse cx="25" cy="38" rx="8" ry="4" fill="#c4b0ff"/>'],
     bulle: ['Bulle', '<circle cx="25" cy="26" r="19" fill="#7fe8ff" opacity=".85"/><circle cx="25" cy="26" r="19" fill="none" stroke="#fff" stroke-width="1.5" opacity=".7"/><ellipse cx="17" cy="15" rx="5" ry="3" fill="#fff" opacity=".7" transform="rotate(-30 17 15)"/>'],
   };
+  // Boutique : effets de profil « sombres » dessinés en SVG (yeux, sourire, chauves-souris, ombres, toiles)
+  // et décorations d'avatar en SVG (ailes, cornes). Dessins originaux de FIRE.
+  const EYE_SVG = (c) => `<svg viewBox="0 0 70 22"><path d="M2 11 Q16 -1 30 11 Q16 23 2 11Z" fill="#050505" stroke="${c}" stroke-width="1.4"/><circle cx="16" cy="11" r="5.2" fill="${c}"/><ellipse cx="16" cy="11" rx="1.3" ry="4.4" fill="#000"/><path d="M40 11 Q54 -1 68 11 Q54 23 40 11Z" fill="#050505" stroke="${c}" stroke-width="1.4"/><circle cx="54" cy="11" r="5.2" fill="${c}"/><ellipse cx="54" cy="11" rx="1.3" ry="4.4" fill="#000"/></svg>`;
+  const GRIN_SVG = '<svg viewBox="0 0 120 46"><path d="M4 8 Q60 62 116 8 Q60 34 4 8Z" fill="#0a0a0a" stroke="#d9ffe0" stroke-width="2"/><path d="M14 15 L17 25 M24 19 L26 31 M34 22 L35 35 M44 24 L45 38 M54 25 L55 40 M66 25 L65 40 M76 24 L75 38 M86 22 L85 35 M96 19 L94 31 M106 15 L103 25" stroke="#d9ffe0" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  const BAT_SVG = '<svg viewBox="0 0 60 26"><path d="M30 8 C27 4 25 6 24 9 C20 4 12 2 2 6 C8 8 10 12 9 16 C13 13 17 14 19 18 C21 14 25 14 27 17 L30 20 L33 17 C35 14 39 14 41 18 C43 14 47 13 51 16 C50 12 52 8 58 6 C48 2 40 4 36 9 C35 6 33 4 30 8Z" fill="#14060a" stroke="#ff4d5e" stroke-width=".7"/></svg>';
+  const TENDRIL_SVG = '<svg viewBox="0 0 40 160" preserveAspectRatio="none"><path d="M20 160 C2 130 36 110 18 80 C4 56 30 40 22 18 C20 10 24 4 26 0" stroke="#000" stroke-width="7" fill="none" stroke-linecap="round" opacity=".85"/></svg>';
+  const WEB_SVG = '<svg viewBox="0 0 80 80"><g stroke="#cfcfd8" stroke-width=".8" fill="none" opacity=".55"><path d="M0 0 L80 80 M0 0 L80 30 M0 0 L30 80 M0 0 L80 55 M0 0 L55 80"/><path d="M0 18 Q10 10 18 0 M0 34 Q20 22 34 0 M0 52 Q30 34 52 0 M0 70 Q40 46 70 0"/></g></svg>';
+  const WINGS_SVG = '<svg viewBox="0 0 200 110"><g fill="#121018" stroke="#6b5aa0" stroke-width="1.2"><path d="M98 60 C80 40 60 20 22 8 C30 20 26 30 8 34 C26 40 28 48 14 58 C32 60 36 68 26 80 C46 78 56 84 54 96 C70 86 82 78 98 70Z"/><path d="M102 60 C120 40 140 20 178 8 C170 20 174 30 192 34 C174 40 172 48 186 58 C168 60 164 68 174 80 C154 78 144 84 146 96 C130 86 118 78 102 70Z"/></g><g stroke="#9d8ad0" stroke-width=".9" opacity=".7" fill="none"><path d="M96 62 C70 44 46 30 20 12 M96 64 C70 52 40 44 12 36 M96 66 C72 62 44 62 18 58 M96 68 C76 72 52 78 30 80"/><path d="M104 62 C130 44 154 30 180 12 M104 64 C130 52 160 44 188 36 M104 66 C128 62 156 62 182 58 M104 68 C124 72 148 78 170 80"/></g></svg>';
+  const HORNS_SVG = '<svg viewBox="0 0 100 40"><path d="M22 38 C14 26 12 12 24 2 C22 14 28 24 36 34Z" fill="#2a0a0a" stroke="#ff4d4d" stroke-width="1.4"/><path d="M78 38 C86 26 88 12 76 2 C78 14 72 24 64 34Z" fill="#2a0a0a" stroke="#ff4d4d" stroke-width="1.4"/></svg>';
+  function pfxEl(k) {
+    const el = h('div', { class: 'pfx pfx-' + k, 'aria-hidden': 'true' });
+    const add = (cls, html, style) => { const sp = h('span', { class: cls, style }); sp.innerHTML = html; el.append(sp); };
+    if (k === 'regards') [[8, 18, 1, 0, '#7dff6a'], [62, 10, 0.8, 1.3, '#ff3b3b'], [20, 52, 0.7, 2.6, '#7dff6a'], [70, 46, 1.1, 0.7, '#b9ff3b'], [40, 76, 0.85, 3.4, '#ff3b3b'], [78, 80, 0.6, 2, '#7dff6a']]
+      .forEach(([x, y, sc, dl, c]) => add('pf-eye', EYE_SVG(c), `left:${x}%;top:${y}%;--sc:${sc};animation-delay:${dl}s;--c:${c}`));
+    if (k === 'sourire') { add('pf-eye big', EYE_SVG('#d9ffe0'), 'left:28%;top:34%;--sc:1.6;--c:#9dffb0'); add('pf-grin', GRIN_SVG, ''); }
+    if (k === 'chauves') [[10, 20, 1, 0], [70, 45, 0.7, -1.8], [35, 65, 0.9, -3.1], [55, 12, 0.55, -4.4], [85, 80, 0.8, -5.2]].forEach(([x, y, sc, dl]) => add('pf-bat', BAT_SVG, `left:${x}%;top:${y}%;--sc:${sc};animation-delay:${dl}s`));
+    if (k === 'ombres') [[6, 0], [24, 1.2], [70, 0.6], [88, 2]].forEach(([x, dl]) => add('pf-tendril', TENDRIL_SVG, `left:${x}%;animation-delay:${dl}s`));
+    if (k === 'toiles') { add('pf-web tl', WEB_SVG, ''); add('pf-web tr', WEB_SVG, ''); add('pf-spider', '<svg viewBox="0 0 20 20"><circle cx="10" cy="11" r="4" fill="#0a0a0a"/><circle cx="10" cy="6" r="2.6" fill="#0a0a0a"/><path d="M6 9 L1 6 M6 11 L0 11 M6 13 L1 17 M14 9 L19 6 M14 11 L20 11 M14 13 L19 17" stroke="#0a0a0a" stroke-width="1.2"/><circle cx="9" cy="5.6" r=".7" fill="#ff3b3b"/><circle cx="11" cy="5.6" r=".7" fill="#ff3b3b"/></svg>', ''); }
+    return el;
+  }
+  // Ce qui s'ajoute autour de l'avatar selon la décoration (le cercle animé, lui, est en CSS).
+  function decoExtra(d) {
+    if (d === 'couronne') return h('i', { class: 'dk-top' }, '👑');
+    if (d === 'coeurs') return h('i', { class: 'dk-top' }, '💞');
+    if (d === 'eclair') return h('i', { class: 'dk-top' }, '⚡');
+    if (d === 'ailes' || d === 'cornes') { const sp = h('span', { class: d === 'ailes' ? 'dk-wings' : 'dk-horns' }); sp.innerHTML = d === 'ailes' ? WINGS_SVG : HORNS_SVG; return sp; }
+    return null;
+  }
   const applyTheme = (t) => {
     const el = document.documentElement;
     const th = THEMES.find((x) => x[0] === t);
@@ -202,6 +233,14 @@
     a.__on = null;
     if (b.__on) { for (const [t, f] of Object.entries(b.__on)) a.addEventListener(t, f); a.__on = b.__on; }
     const ak = [...a.childNodes], bk = [...b.childNodes];
+    // Listes avec des clés (data-k) : chaque ligne garde son élément même si la liste se décale (pas d'images rechargées, pas de clignotement).
+    if (bk.length && bk.every((n) => n.nodeType === 1 && n.dataset && n.dataset.k) && ak.length && ak.every((n) => n.nodeType === 1 && n.dataset && n.dataset.k)) {
+      const old = new Map(ak.map((n) => [n.dataset.k, n]));
+      const out = bk.map((n) => { const o = old.get(n.dataset.k); if (o) { old.delete(n.dataset.k); morph(o, n); return o; } return n; });
+      old.forEach((n) => n.remove());
+      out.forEach((n, i) => { if (a.childNodes[i] !== n) a.insertBefore(n, a.childNodes[i] || null); });
+      return;
+    }
     for (let i = 0; i < bk.length; i++) { if (ak[i]) morph(ak[i], bk[i]); else a.append(bk[i]); }
     for (let i = bk.length; i < ak.length; i++) ak[i].remove();
   }
@@ -428,7 +467,7 @@
     setInterval(() => {
       const mon = mondayOf(todayYmd());
       if (mon === S.weekMon) return;
-      S.weekMon = mon; applyWeek();
+      S.weekMon = mon; S.pools = poolsRoll(S.pools); applyWeek(); loadPools();
       if (['stats', 'accueil', 'pool'].includes(S.section) && !typing()) render(); else renderNav();
     }, 60000);
   }
@@ -932,7 +971,7 @@
   // ----- Paramètres façon Discord : catégories à gauche, réglages à droite -----
   // Comme Discord : des groupes (titres gris) et leurs sous-menus ; certaines pages ont des onglets en haut.
   const SET_GROUPS = [
-    ['Paramètres utilisateur', [['compte', '🪪', 'Mon compte'], ['profil', '👤', 'Profil'], ['boutique', '🛍️', 'Boutique'], ['confid', '🔒', 'Confidentialité']]],
+    ['Paramètres utilisateur', [['compte', '🪪', 'Mon compte'], ['profil', '👤', 'Profil'], ['confid', '🔒', 'Confidentialité']]],
     ['Application', [['apparence', '🎨', 'Apparence'], ['texte', '🔤', 'Polices et texte'], ['access', '♿', 'Accessibilité'], ['voix', '🎙️', 'Voix et vidéo'],
       ['notifs', '🔔', 'Notifications'], ['raccourcis', '⌨️', 'Raccourcis clavier'], ['streamer', '📺', 'Mode streamer'], ['ouverture', '🚀', 'Ouverture de FIRE'], ['avance', '⚙️', 'Avancé']]],
     ['FIRE LoL', [['nouveautes', '🆕', 'Nouveautés'], ['maj', '🔄', 'Mises à jour'], ['bug', '🐞', 'Signaler un bug'], ['apropos', 'ℹ️', 'À propos']]],
@@ -945,6 +984,23 @@
   const uxSeg = (list, cur, on) => h('div', { class: 'row ux-seg' }, list.map(([v, l]) => h('button', { class: 'chip', 'aria-pressed': String(cur === v), onclick: () => on(v) }, l)));
   const uxCard = (title, sub, ...kids) => h('div', { class: 'card settings-card' }, h('h2', null, title), sub ? h('p', { class: 'muted small' }, sub) : null, ...kids);
   // Choix d'un skin (champion puis skin) : bannière du profil et fond d'écran.
+  // Bannière de profil cadrée sur le champion : tools/splash_focus.py a trouvé où il est dans chaque splash.
+  // Le splash (1215 × 717) couvre toute la largeur de la carte ; on décale verticalement pour que le visage
+  // tombe un peu sous le haut de la bannière (vers 45 % de sa hauteur), au lieu d'être coupé.
+  const SPF = { map: null };
+  try { if (window.fire.splashFocus) window.fire.splashFocus().then((m) => { SPF.map = m || {}; }).catch(() => {}); } catch (e) { /* */ }
+  function banStyle(b, w = 555, hb = 150) {
+    const url = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${b.c}_${b.n}.jpg`;
+    const f = SPF.map && (SPF.map[b.c] || []).find((x) => x[0] === b.n);
+    let y = 22;
+    if (f && (f[3] == null || f[3] >= 0.6)) {
+      const hi = w * 717 / 1215; // hauteur du splash affiché
+      const face = f[2] / 100 * hi - hi * 0.06; // le haut du visage est un peu au-dessus du centre de l'icône
+      y = Math.max(0, Math.min(100, (face - hb * 0.45) / (hi - hb) * 100));
+    }
+    const x = f ? Math.max(0, Math.min(100, f[1])) : 50;
+    return `background-image:url('${url}');background-position:${x.toFixed(0)}% ${y.toFixed(0)}%!important`;
+  }
   function skinPicker(cur, onPick) {
     if (!J.data && !J.loading) loadJeux().then(() => { if (S.section === 'settings' && !typing()) renderSettings(); });
     const champs = (J.data && J.data.champs) || ((S.champList && S.champList.list) || []).map((c) => ({ id: c.id, name: c.name, skins: [{ num: 0, name: c.name }] }));
@@ -965,6 +1021,17 @@
         uxSeg(['online', 'busy', 'away', 'invisible'].map((k) => [k, ST_LABEL[k].join(' ')]), UX.status, (v) => { setUx({ status: v }); actLog('statut', 'Statut : ' + ST_LABEL[v][1]); renderSettings(); }),
         LIVE.mine ? h('p', { class: 'good small' }, '🎮 Tu es en game : l’équipe le voit.') : null),
       uxCard('🪪 Ta carte de profil', 'Visible par l’équipe quand on clique sur ton nom dans la discussion.',
+        h('label', { class: 'fld' }, h('span', null, 'Ton nom dans FIRE (discussion, vocal, profil)'),
+          h('div', { class: 'row' },
+            h('input', { class: 'inp ux-nom', maxlength: 20, value: UX.nom || '', placeholder: me ? baseName(me) : 'Ton nom', onchange: (e) => {
+              const v = e.target.value.replace(/\s+/g, ' ').trim().slice(0, 20);
+              const taken = v && (S.players || []).some((p) => p.slug !== me && shortName(p.pseudo || p.slug).toLowerCase() === v.toLowerCase()) || /^coach$/i.test(v);
+              if (v && v.length < 2) { vocalToast('Il faut au moins 2 caractères.'); e.target.value = UX.nom || ''; return; }
+              if (taken) { vocalToast('Ce nom est déjà celui d’un autre membre.'); e.target.value = UX.nom || ''; return; }
+              setUx({ nom: v }); actLog('profil', v ? 'Nouveau nom : ' + v : 'Nom remis par défaut'); renderSettings();
+            } }),
+            UX.nom ? h('button', { class: 'btn-ghost', onclick: () => { setUx({ nom: '' }); renderSettings(); } }, 'Remettre « ' + (me ? baseName(me) : '') + ' »') : null),
+          h('small', { class: 'muted' }, 'Toute l’équipe verra ce nom. Ton compte LoL et tes stats ne changent pas.')),
         h('label', { class: 'fld' }, h('span', null, 'Petite bio (140 caractères)'),
           h('textarea', { class: 'inp ux-bio', maxlength: 140, rows: 2, placeholder: 'Ex. : main Ahri, je flame pas promis 😇', onchange: (e) => setUx({ bio: e.target.value.slice(0, 140) }) }, UX.bio || '')),
         h('div', { class: 'row' }, h('span', null, 'Couleur de ton pseudo'),
@@ -982,11 +1049,11 @@
   }
   // ----- Présentation de la boutique (une seule fois, à l'ouverture) : une petite pub animée, puis « Aller à la boutique » -----
   function promoShop(force) {
-    if (!force && (load('fire.promo.boutique', false) || document.getElementById('promo') || document.getElementById('ann-modal'))) return;
+    if (!force && (load('fire.promo.boutique2', false) || document.getElementById('promo') || document.getElementById('ann-modal'))) return;
     const me = vocalMe();
     const name = me ? vocalName(me) : 'Toi';
     const ini2 = me ? ini(me) : 'FI';
-    save('fire.promo.boutique', true);
+    save('fire.promo.boutique2', true);
     let i = 0, timer = null;
     const FXL = [['rainbow', 'Arc-en-ciel'], ['feu', 'En feu'], ['neon', 'Néon'], ['or', 'Or massif'], ['givre', 'Givre'], ['glitch', 'Glitch']];
     const DKL = [['flammes', 'Flammes'], ['neon', 'Anneau néon'], ['couronne', 'Couronne'], ['arc', 'Arc-en-ciel'], ['void', 'Néant'], ['petales', 'Sakura']];
@@ -997,7 +1064,7 @@
       clearTimeout(timer); loops.forEach(clearInterval);
       ov.classList.add('out'); setTimeout(() => ov.remove(), 450);
       document.removeEventListener('keydown', key, true);
-      if (goShop) { S.setTab = 'boutique'; go('settings'); }
+      if (goShop) go('boutique');
     };
     const key = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(false); } if (e.key === 'ArrowRight') next(); };
     const nm = h('span', { class: 'nm promo-nm', 'data-t': name }, name);
@@ -1006,6 +1073,10 @@
     const avLab = h('small', { class: 'promo-lab' });
     const pfx = h('div', { class: 'pfx' });
     const pfLab = h('small', { class: 'promo-lab' });
+    const dpfx = h('div', { class: 'pfx' });
+    const dav = h('span', { class: 'vc-av prof-av dk dk-ailes' }, ini2, decoExtra('ailes'));
+    const dLab = h('small', { class: 'promo-lab' });
+    const DPL = [['regards', 'Cauchemar', 'ailes'], ['sourire', 'Le Sourire', 'halo'], ['chauves', 'Lune de sang', 'cornes'], ['toiles', 'Manoir', 'epines']];
     const scenes = [
       h('div', { class: 'promo-sc s1' }, h('div', { class: 'promo-kick' }, '✨ Nouveau dans FIRE'), h('h1', { class: 'promo-title' }, 'La Boutique FIRE'),
         h('p', { class: 'promo-sub' }, 'Personnalise ton profil comme jamais.'), h('div', { class: 'promo-free' }, '100 % gratuit')),
@@ -1015,6 +1086,10 @@
         h('div', { class: 'promo-card prof-card pf-themed', style: '--pc1:#3a1020;--pc2:#120a22' }, pfx, h('div', { class: 'prof-ban promo-ban' }),
           h('div', { class: 'prof-av-wrap' }, h('span', { class: 'vc-av prof-av dk dk-neon' }, ini2)), h('div', { class: 'prof-body' }, h('div', { class: 'prof-name plate pl-neon' }, h('span', { class: 'nm nm-rainbow', 'data-t': name }, name)), h('small', { class: 'muted' }, 'Effets de profil, plaques de nom, thèmes de carte'))),
         pfLab),
+      h('div', { class: 'promo-sc s4b' }, h('div', { class: 'promo-kick' }, 'Nouveau · Packs sombres'),
+        h('div', { class: 'promo-card prof-card pf-themed promo-dark', style: '--pc1:#06120a;--pc2:#000000' }, dpfx, h('div', { class: 'prof-ban promo-ban' }),
+          h('div', { class: 'prof-av-wrap' }, dav), h('div', { class: 'prof-body' }, h('div', { class: 'prof-name plate pl-hantee' }, h('span', { class: 'nm nm-spectre', 'data-t': name }, name)), h('small', { class: 'muted' }, 'Des yeux dans le noir, un sourire qui flotte…'))),
+        dLab),
       h('div', { class: 'promo-sc s5' }, h('div', { class: 'promo-kick' }, 'Prêt ?'), h('h1', { class: 'promo-title' }, 'Équipe-toi.'), h('p', { class: 'promo-sub' }, 'Plus de 60 objets à essayer, gratuits, équipés en un clic.'),
         h('button', { class: 'promo-go', onclick: () => close(true) }, '🛍️ Aller à la boutique'),
         h('button', { class: 'promo-later', onclick: () => close(false) }, 'Plus tard')),
@@ -1035,8 +1110,9 @@
     }
     function next() { if (i < scenes.length - 1) show(i + 1); }
     loops.push(cycle(nm, FXL, (el, [k, l]) => { el.className = 'nm promo-nm nm-' + k; nmLab.textContent = l; }));
-    loops.push(cycle(av, DKL, (el, [k, l]) => { el.className = 'vc-av promo-av dk dk-' + k; el.replaceChildren(ini2, ...(k === 'couronne' ? [h('i', { class: 'dk-top' }, '👑')] : [])); avLab.textContent = l; }));
-    loops.push(cycle(pfx, PFL, (el, [k, l]) => { el.className = 'pfx pfx-' + k; pfLab.textContent = l; }));
+    { let k = 0; const f = () => { const [p, l, d] = DPL[k]; const n = pfxEl(p); dpfx.className = n.className; dpfx.replaceChildren(...n.childNodes); dav.className = 'vc-av prof-av dk dk-' + d; dav.replaceChildren(...[ini2, decoExtra(d)].filter(Boolean)); dLab.textContent = 'Pack ' + l; k = (k + 1) % DPL.length; }; f(); loops.push(setInterval(f, 1700)); }
+    loops.push(cycle(av, DKL, (el, [k, l]) => { el.className = 'vc-av promo-av dk dk-' + k; el.replaceChildren(...[ini2, decoExtra(k)].filter(Boolean)); avLab.textContent = l; }));
+    loops.push(cycle(pfx, PFL, (el, [k, l]) => { const n = pfxEl(k); el.className = n.className; el.replaceChildren(...n.childNodes); pfLab.textContent = l; }));
     document.addEventListener('keydown', key, true);
     document.body.append(ov);
     show(0);
@@ -1044,9 +1120,9 @@
   window.FIRE_PROMO = () => promoShop(true); // pour revoir la présentation
   // Au lancement : une fois que FIRE est prêt, devant toi, et sans annonce ni partie en cours.
   function promoLater() {
-    if (load('fire.promo.boutique', false)) return;
+    if (load('fire.promo.boutique2', false)) return;
     const tryShow = () => {
-      if (load('fire.promo.boutique', false)) return;
+      if (load('fire.promo.boutique2', false)) return;
       const busy = document.getElementById('ann-modal') || document.hidden || !document.hasFocus() || (typeof LIVE !== 'undefined' && LIVE.mine) || !vocalMe() || document.querySelector('.who-pop, .lock:not([hidden])');
       if (busy) { setTimeout(tryShow, 5000); return; }
       promoShop();
@@ -1055,17 +1131,29 @@
   }
   // ----- Boutique FIRE : tout est gratuit, on équipe et on déséquipe en un clic -----
   const SHOP = {
-    fx: [['', 'Aucun', 'Le pseudo simple'], ['shine', 'Brillance', 'Un reflet qui passe'], ['neon', 'Néon', 'Il brille dans le noir'], ['rainbow', 'Arc-en-ciel', 'Toutes les couleurs, en mouvement'], ['feu', 'En feu', 'Des flammes qui dansent'], ['givre', 'Givre', 'Glacé et scintillant'], ['glitch', 'Glitch', 'Un bug… voulu'], ['pulse', 'Pulsation', 'Il bat comme un cœur'], ['or', 'Or massif', 'Doré et brillant']],
+    fx: [['', 'Aucun', 'Le pseudo simple'], ['spectre', 'Spectre', 'Une lueur pâle qui vacille'], ['sang', 'Sang', 'Rouge sombre qui coule'], ['shine', 'Brillance', 'Un reflet qui passe'], ['neon', 'Néon', 'Il brille dans le noir'], ['rainbow', 'Arc-en-ciel', 'Toutes les couleurs, en mouvement'], ['feu', 'En feu', 'Des flammes qui dansent'], ['givre', 'Givre', 'Glacé et scintillant'], ['glitch', 'Glitch', 'Un bug… voulu'], ['pulse', 'Pulsation', 'Il bat comme un cœur'], ['or', 'Or massif', 'Doré et brillant']],
     font: [['', 'Normale'], ['cinzel', 'Cinzel'], ['orbitron', 'Orbitron'], ['bangers', 'Bangers'], ['fredoka', 'Fredoka'], ['press', 'Rétro 8-bit'], ['marker', 'Feutre'], ['bebas', 'Bebas'], ['mono', 'Code']],
     grad: [[null, 'Aucun'], [['#ff5e3a', '#ffb02e'], 'FIRE'], [['#ff2bd6', '#22e6ff'], 'Néon'], [['#ff8fb8', '#b8a6ff'], 'Sakura'], [['#2effaa', '#4aa8ff'], 'Aurore'], [['#ffd23d', '#ff7a1f'], 'Soleil'], [['#c49bff', '#ff9fe0'], 'Galaxie'], [['#8fd8ff', '#ffffff'], 'Glace'], [['#39ff6a', '#b6ffb0'], 'Matrix'], [['#c8aa6e', '#0ac8b9'], 'Hextech'], [['#ff3b1f', '#9d5cff'], 'Lave']],
-    deco: [['', 'Aucune'], ['flammes', 'Flammes'], ['neon', 'Anneau néon'], ['arc', 'Arc-en-ciel'], ['petales', 'Sakura'], ['givre', 'Givre'], ['hextech', 'Hextech'], ['couronne', 'Couronne'], ['void', 'Néant'], ['eclair', 'Éclair'], ['coeurs', 'Cœurs']],
-    pfx: [['', 'Aucun'], ['petales', 'Pétales'], ['neige', 'Neige'], ['etincelles', 'Étincelles'], ['braises', 'Braises'], ['etoiles', 'Étoiles'], ['confettis', 'Confettis'], ['bulles', 'Bulles'], ['coeurs', 'Cœurs']],
-    plate: [['', 'Aucune'], ['aube', 'Aube'], ['ocean', 'Océan'], ['foret', 'Forêt'], ['nuit', 'Nuit'], ['lave', 'Lave'], ['neon', 'Néon'], ['or', 'Or'], ['glace', 'Glace'], ['sakura', 'Sakura'], ['matrix', 'Matrix'], ['galaxie', 'Galaxie']],
+    deco: [['', 'Aucune'], ['ailes', 'Ailes sombres'], ['cornes', 'Cornes'], ['halo', 'Halo noir'], ['epines', 'Épines'], ['flammes', 'Flammes'], ['neon', 'Anneau néon'], ['arc', 'Arc-en-ciel'], ['petales', 'Sakura'], ['givre', 'Givre'], ['hextech', 'Hextech'], ['couronne', 'Couronne'], ['void', 'Néant'], ['eclair', 'Éclair'], ['coeurs', 'Cœurs']],
+    pfx: [['', 'Aucun'], ['regards', 'Regards'], ['sourire', 'Sourire'], ['chauves', 'Chauves-souris'], ['ombres', 'Ombres'], ['brume', 'Brume'], ['toiles', 'Toiles'], ['petales', 'Pétales'], ['neige', 'Neige'], ['etincelles', 'Étincelles'], ['braises', 'Braises'], ['etoiles', 'Étoiles'], ['confettis', 'Confettis'], ['bulles', 'Bulles'], ['coeurs', 'Cœurs']],
+    plate: [['', 'Aucune'], ['abime', 'Abîme'], ['hantee', 'Forêt hantée'], ['sangp', 'Lune de sang'], ['aube', 'Aube'], ['ocean', 'Océan'], ['foret', 'Forêt'], ['nuit', 'Nuit'], ['lave', 'Lave'], ['neon', 'Néon'], ['or', 'Or'], ['glace', 'Glace'], ['sakura', 'Sakura'], ['matrix', 'Matrix'], ['galaxie', 'Galaxie']],
     pet: [['', 'Aucun'], ...Object.entries(PETS).map(([k, v]) => [k, v[0]])],
-    card: [[null, 'Selon le thème'], [['#3a1020', '#120a22'], 'Pourpre'], [['#0b2a3a', '#06121c'], 'Abysses'], [['#2a1a05', '#120a02'], 'Ambre'], [['#0d2a18', '#04100a'], 'Forêt'], [['#2a0b2a', '#0b0a2a'], 'Néon'], [['#1d1d2e', '#0a0a12'], 'Nuit'], [['#3a2a10', '#101820'], 'Hextech']],
+    card: [[null, 'Selon le thème'], [['#06120a', '#000000'], 'Forêt hantée'], [['#1a0206', '#030000'], 'Lune de sang'], [['#0b0614', '#000000'], 'Abîme'], [['#0d0d0d', '#000000'], 'Ténèbres'], [['#3a1020', '#120a22'], 'Pourpre'], [['#0b2a3a', '#06121c'], 'Abysses'], [['#2a1a05', '#120a02'], 'Ambre'], [['#0d2a18', '#04100a'], 'Forêt'], [['#2a0b2a', '#0b0a2a'], 'Néon'], [['#1d1d2e', '#0a0a12'], 'Nuit'], [['#3a2a10', '#101820'], 'Hextech']],
   };
+  // Packs : un ensemble complet (effet de profil, décoration, pseudo, plaque, carte, compagnon) en un clic.
+  const PACKS = [
+    ['cauchemar', '👁️ Cauchemar', 'Des yeux qui s’ouvrent dans le noir, des ailes sombres', { pfx: 'regards', deco: 'ailes', fx: 'spectre', plate: 'hantee', card: ['#06120a', '#000000'], pet: 'boo' }],
+    ['sourire', '😁 Le Sourire', 'Un grand sourire qui flotte dans l’ombre', { pfx: 'sourire', deco: 'halo', fx: 'spectre', plate: 'abime', card: ['#0d0d0d', '#000000'] }],
+    ['sang', '🩸 Lune de sang', 'Cornes, rouge sang et chauves-souris', { pfx: 'chauves', deco: 'cornes', fx: 'sang', plate: 'sangp', card: ['#1a0206', '#030000'] }],
+    ['abime', '🌑 Abîme', 'Des ombres qui montent du fond', { pfx: 'ombres', deco: 'epines', fx: 'glitch', plate: 'abime', card: ['#0b0614', '#000000'] }],
+    ['manoir', '🕸️ Manoir', 'Toiles, brume et araignée', { pfx: 'toiles', deco: 'halo', fx: 'spectre', plate: 'nuit', card: ['#0d0d0d', '#000000'], pet: 'drako' }],
+    ['sakura', '🌸 Printemps', 'Pétales, fleurs et douceur', { pfx: 'petales', deco: 'petales', grad: ['#ff8fb8', '#b8a6ff'], plate: 'sakura', card: ['#3a1020', '#120a22'], pet: 'neko' }],
+    ['brasier', '🔥 Brasier', 'Tout en flammes', { pfx: 'braises', deco: 'flammes', fx: 'feu', plate: 'lave', pet: 'flammi' }],
+    ['hiver', '❄️ Hiver', 'Neige et givre', { pfx: 'neige', deco: 'givre', fx: 'givre', plate: 'glace', card: ['#0b2a3a', '#06121c'], pet: 'givro' }],
+  ];
   const looks = () => UX.look || {};
-  const setLook = (k, v) => { const L = { ...looks() }; if (v == null || v === '') delete L[k]; else L[k] = v; setUx({ look: Object.keys(L).length ? L : null }); renderSettings(); };
+  const shopRedraw = () => { if (S.section === 'boutique') { const y = $('view').scrollTop, w = window.scrollY; renderBoutique(); $('view').scrollTop = y; window.scrollTo(0, w); } else renderSettings(); };
+  const setLook = (k, v) => { const L = { ...looks() }; if (v == null || v === '') delete L[k]; else L[k] = v; setUx({ look: Object.keys(L).length ? L : null }); shopRedraw(); };
   function shopCards() {
     const me = vocalMe();
     if (!me) return [uxCard('🛍️ Boutique FIRE', 'Choisis d’abord qui tu es pour personnaliser ton profil.', h('button', { class: 'btn-fire small-btn', onclick: askWho }, 'Qui es-tu ?'))];
@@ -1079,11 +1167,11 @@
     const name = (fx, font, grad) => h('span', { class: 'nm' + (grad ? ' nm-grad' : '') + (fx ? ' nm-' + fx : ''), style: (grad ? `--n1:${grad[0]};--n2:${grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (font && LOOK_FONT[font] ? `font-family:${LOOK_FONT[font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
     // L'aperçu : la carte de profil, une ligne de discussion, la liste des membres et la case du vocal, avec le look donné.
     const lname = (X) => h('span', { class: 'nm' + (X.grad ? ' nm-grad' : '') + (X.fx ? ' nm-' + X.fx : ''), style: (X.grad ? `--n1:${X.grad[0]};--n2:${X.grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (X.font && LOOK_FONT[X.font] ? `font-family:${LOOK_FONT[X.font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
-    const lav = (X, cls) => h('span', { class: 'vc-av ' + (cls || '') + (X.deco ? ' dk dk-' + X.deco : '') }, ini(me), X.deco === 'couronne' ? h('i', { class: 'dk-top' }, '👑') : X.deco === 'coeurs' ? h('i', { class: 'dk-top' }, '💞') : X.deco === 'eclair' ? h('i', { class: 'dk-top' }, '⚡') : null, X.pet ? petEl(X.pet, 'pet-av') : null);
+    const lav = (X, cls) => h('span', { class: 'vc-av ' + (cls || '') + (X.deco ? ' dk dk-' + X.deco : '') }, ini(me), decoExtra(X.deco), X.pet ? petEl(X.pet, 'pet-av') : null);
     const previewOf = (X, trying) => h('div', { class: 'shop-preview' + (trying ? ' trying' : '') },
       h('div', { class: 'prof-card pf-mini' + (X.card ? ' pf-themed' : ''), style: X.card ? `--pc1:${X.card[0]};--pc2:${X.card[1]}` : '' },
-        X.pfx ? h('div', { class: 'pfx pfx-' + X.pfx }) : null,
-        h('div', { class: 'prof-ban', style: UX.banner ? `background-image:url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${UX.banner.c}_${UX.banner.n}.jpg')` : '' }),
+        X.pfx ? pfxEl(X.pfx) : null,
+        h('div', { class: 'prof-ban', style: UX.banner ? banStyle(UX.banner) : '' }),
         h('div', { class: 'prof-av-wrap' }, lav(X, 'prof-av')),
         h('div', { class: 'prof-body' }, h('div', { class: 'prof-name' + (X.plate ? ' plate pl-' + X.plate : '') }, lname(X)), h('small', { class: 'muted' }, UX.bio || 'Ta carte de profil, comme les autres la voient'))),
       h('div', { class: 'shop-side' },
@@ -1096,13 +1184,16 @@
     return [
       preview,
       uxCard('🛍️ Boutique FIRE', 'Comme la boutique de Discord, mais tout est gratuit. Survole un objet pour l’essayer sur l’aperçu, clique pour l’équiper. Tes coéquipiers voient ce que tu portes dans la discussion, le vocal et sur ta carte de profil.',
-        h('div', { class: 'row' }, h('button', { class: 'linkbtn small', onclick: () => { setUx({ look: null }); renderSettings(); } }, '↺ Tout déséquiper'), h('button', { class: 'linkbtn small', onclick: () => { setClose(true); promoShop(true); } }, '▶ Revoir la présentation'))),
+        h('div', { class: 'row' }, h('button', { class: 'linkbtn small', onclick: () => { setUx({ look: null }); shopRedraw(); } }, '↺ Tout déséquiper'), h('button', { class: 'linkbtn small', onclick: () => { setClose(true); promoShop(true); } }, '▶ Revoir la présentation'))),
+      sec('🎁 Packs', 'Tout un style d’un coup : survole pour l’essayer, clique pour l’équiper.', PACKS.map(([id, l, d, P]) => { const on = JSON.stringify(L) === JSON.stringify(P);
+        return h('button', { class: 'shop-it shop-pack' + (on ? ' on' : ''), onclick: () => { setUx({ look: { ...P } }); shopRedraw(); }, onmouseenter: () => { const Pv = document.querySelector('.shop-preview'); if (Pv) Pv.replaceWith(previewOf(P, true)); }, onmouseleave: () => tryOn('fx', undefined) },
+          h('div', { class: 'shop-prev shop-packprev' + (P.card ? ' pf-themed' : ''), style: P.card ? `--pc1:${P.card[0]};--pc2:${P.card[1]}` : '' }, P.pfx ? pfxEl(P.pfx) : null, lav(P, 'shop-av')), h('b', null, l), h('small', { class: 'muted' }, d), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Tout équiper')); })),
       sec('✨ Effet de pseudo', 'Il s’anime partout où ton pseudo apparaît.', SHOP.fx.map(([v, l, d]) => item('fx', v, l, d, name(v, L.font, L.grad)))),
       sec('🎨 Dégradé de pseudo', 'Deux couleurs pour ton pseudo (sinon, ta couleur de Profil).', SHOP.grad.map(([v, l]) => item('grad', v, l, '', name(L.fx, L.font, v)))),
       sec('🔤 Police du pseudo', null, SHOP.font.map(([v, l]) => item('font', v, l, '', name(L.fx, v, L.grad)))),
-      sec('💫 Décoration d’avatar', 'Autour de ton avatar dans le vocal et sur ta carte.', SHOP.deco.map(([v, l]) => item('deco', v, l, '', h('span', { class: 'vc-av shop-av' + (v ? ' dk dk-' + v : '') }, ini(me), v === 'couronne' ? h('i', { class: 'dk-top' }, '👑') : v === 'coeurs' ? h('i', { class: 'dk-top' }, '💞') : v === 'eclair' ? h('i', { class: 'dk-top' }, '⚡') : null)))),
+      sec('💫 Décoration d’avatar', 'Autour de ton avatar dans le vocal et sur ta carte.', SHOP.deco.map(([v, l]) => item('deco', v, l, '', h('span', { class: 'vc-av shop-av' + (v ? ' dk dk-' + v : '') }, ini(me), decoExtra(v))))),
       sec('🐾 Compagnon chibi', 'Une petite mascotte de FIRE à côté de ton avatar.', SHOP.pet.map(([v, l]) => item('pet', v, l, '', v ? petEl(v, 'shop-pet') : h('span', { class: 'muted' }, '—')))),
-      sec('🌠 Effet de profil', 'Une animation sur ta carte de profil.', SHOP.pfx.map(([v, l]) => item('pfx', v, l, '', h('div', { class: 'shop-pfx' }, v ? h('div', { class: 'pfx pfx-' + v }) : null)))),
+      sec('🌠 Effet de profil', 'Une animation sur ta carte de profil.', SHOP.pfx.map(([v, l]) => item('pfx', v, l, '', h('div', { class: 'shop-pfx' }, v ? pfxEl(v) : null)))),
       sec('🏷️ Plaque de nom', 'Le fond derrière ton pseudo dans la liste des membres.', SHOP.plate.map(([v, l]) => item('plate', v, l, '', h('div', { class: 'cp-cv shop-plate' + (v ? ' plate pl-' + v : '') }, h('span', { class: 'chat-cv-l' }, vocalName(me)))))),
       sec('🃏 Thème de carte de profil', null, SHOP.card.map(([v, l]) => item('card', v, l, '', h('div', { class: 'shop-card' + (v ? ' pf-themed' : ''), style: v ? `--pc1:${v[0]};--pc2:${v[1]}` : '' })))),
     ];
@@ -1162,7 +1253,7 @@
       else { S.vidErr = (r && r.error) || 'vidéo impossible à copier'; renderSettings(); }
     } });
     const PRESET = ['#f5a524', '#ff5e3a', '#ff2bd6', '#9d5cff', '#579dff', '#00e5ff', '#2ee6c5', '#39c58a', '#ffd23d', '#ff4d6d'];
-    const FXS = { aurore: 'aurore boréale qui ondule', nuit: 'étoiles filantes et lune', orage: 'pluie et éclairs', lucioles: 'lucioles dans la forêt', galaxie: 'galaxie qui tourne', sakura: 'pétales de cerisier qui tombent', givre: 'neige', ocean: 'bulles et rayons de lumière', matrix: 'pluie de code', synthwave: 'grille qui défile et soleil rétro', bagarre: 'braises', hextech: 'étincelles hextech', arcane: 'particules chimiques', violet: 'poussière aspirée par le Néant', neon: 'orbes lumineux', rgb: 'orbes arc-en-ciel', futur: 'balayage et flux de données', cafe: 'vapeur et poussière dorée' };
+    const FXS = { hantee: 'des yeux qui s’ouvrent dans la brume', tenebres: 'braises rouges dans le noir', abime: 'poussière violette et vignettage', aurore: 'aurore boréale qui ondule', nuit: 'étoiles filantes et lune', orage: 'pluie et éclairs', lucioles: 'lucioles dans la forêt', galaxie: 'galaxie qui tourne', sakura: 'pétales de cerisier qui tombent', givre: 'neige', ocean: 'bulles et rayons de lumière', matrix: 'pluie de code', synthwave: 'grille qui défile et soleil rétro', bagarre: 'braises', hextech: 'étincelles hextech', arcane: 'particules chimiques', violet: 'poussière aspirée par le Néant', neon: 'orbes lumineux', rgb: 'orbes arc-en-ciel', futur: 'balayage et flux de données', cafe: 'vapeur et poussière dorée' };
     const thNow = load('fire.theme', 'fire');
     const fxCard = uxCard('✨ Animations du fond', FXS[thNow] ? `Avec ton thème : ${FXS[thNow]}. Elles se mettent en pause pendant tes parties et quand FIRE est caché.` : 'Choisis un thème « ambiance » (Sakura, Freljord, Matrix…) pour avoir un fond animé.',
       uxSeg([['off', 'Aucune'], ['leger', 'Légères'], ['normal', 'Normales'], ['fort', 'Beaucoup']], UX.fx || 'normal', (v) => { setUx({ fx: v }); renderSettings(); }),
@@ -1378,7 +1469,6 @@
       compte: () => [pWho, adminCard(), C.access],
       profil: () => ({ statut: [pStatus], carte: [pCard] }[sub]),
       confid: () => [cDm, cLive],
-      boutique: () => shopCards(),
       apparence: () => ({ theme: [aTheme, aFx], couleurs: [aAccent, aBg], affichage: [aDisp] }[sub]),
       texte: () => [fontCard()],
       access: () => accessCards(),
@@ -2406,6 +2496,10 @@
   // ===== Puzzle du jour : une situation de partie, plusieurs bonnes réponses selon le style, au moins une mauvaise =====
   // Les puzzles livrés avec FIRE, plus ceux créés par l'IA (banque partagée de l'équipe). Quand un joueur a presque tout fait,
   // FIRE demande tout seul un nouveau lot, un niveau plus dur à chaque fois jusqu'au niveau 5 (Pro), puis toujours au niveau 5.
+  // Vocabulaire de LoL (back, wave, lane, push, drake…) pour les situations créées par l'IA avant la règle « pas de traduction ».
+  const LOLW = [["un retour à la base", "un back"], ["(?:re)?tourner à la base|rentrer à la base|revenir à la base", "back"], ["retour à la base", "back"], ["en rentrant", "au back"], ["(?:R|r)entre à la base", "back"], ["Rentrer|Rentres|Rentre|Rentrée?s?", "Back"], ["rentrer|rentres|rentrent|rentre|rentrée?s?", "back"], ["Vagues", "Waves"], ["vagues", "waves"], ["Vague", "Wave"], ["vague", "wave"], ["voie du haut", "toplane"], ["voie du bas", "botlane"], ["voie du milieu", "midlane"], ["Voies", "Lanes"], ["voies", "lanes"], ["Voie", "Lane"], ["voie", "lane"], ["l[’']âme du dragon", "la soul"], ["l[’']âme des dragons", "la soul"], ["l[’']âme", "la soul"], ["âme", "soul"], ["Dragons", "Drakes"], ["dragons", "drakes"], ["Dragon", "Drake"], ["dragon", "drake"], ["Pousser", "Push"], ["pousser", "push"], ["Pousse", "Push"], ["poussent|pousses|pousse", "push"], ["Poussée?s?", "Push"], ["poussée?s?", "push"], ["poussant", "en push"], ["la plongée", "le dive"], ["une plongée", "un dive"], ["leur plongée", "leur dive"], ["plongées?", "dive"], ["plonger|plongent|plonges|plonge", "dive"], ["Carapateurs?", "Scuttle"], ["carapateurs?", "scuttle"], ["Hérauts?", "Herald"], ["héraut", "herald"], ["balises? de contrôle", "pink ward"], ["balise rouge", "trinket rouge"], ["Balises", "Wards"], ["balises", "wards"], ["Balise", "Ward"], ["balise", "ward"], ["(son|leur|le|ton|mon|du|au) Rouge", "$1 red"], ["commencé Rouge", "commencé red"], ["(son|leur|le|ton|mon|du|au) Bleu", "$1 blue"], ["commencé Bleu", "commencé blue"], ["Ultimes", "Ults"], ["ultimes", "ults"], ["Ultime", "Ult"], ["ultime", "ult"], ["buissons?", "bush"], ["Buissons?", "Bush"], ["Objets", "Items"], ["objets", "items"], ["Objet", "Item"], ["objet", "item"], ["Combats", "Fights"], ["combats", "fights"], ["Combat", "Fight"], ["combat", "fight"], ["une escarmouche", "un skirmish"], ["escarmouches?", "skirmish"], ["temps de recharge", "cooldown"], ["réapparaît", "respawn"], ["réapparaissent", "respawn"], ["réapparaître", "respawn"], ["inhibiteurs", "inhibs"], ["inhibiteur", "inhib"], ["Inhibiteurs", "Inhibs"], ["Inhibiteur", "Inhib"], ["contrôle de foule", "CC"]].map(([a, b]) => [new RegExp('(?<![\\p{L}\\p{N}_-])' + a + '(?![\\p{L}\\p{N}_-])', 'gu'), b]);
+  const lolWords = (t) => typeof t === 'string' ? LOLW.reduce((x, [a, b]) => x.replace(a, b), t).replace(/\b([Bb])ack à la base\b/g, '$1ack') : t;
+  const lolPuzzle = (p) => p && ({ ...p, titre: lolWords(p.titre), sit: lolWords(p.sit), q: lolWords(p.q), a: (p.a || []).map((x) => ({ ...x, txt: lolWords(x.txt), e: lolWords(x.e) })) });
   const GP = { cur: null, pick: null, order: [], role: null, th: 'all', mode: 'jour', bank: null, bankAt: 0, rev: false, genBusy: false };
   const GP_LV = ['', 'Facile', 'Moyen', 'Difficile', 'Expert', 'Pro'];
   const gpData = () => window.FIRE_PUZZLES || { P: [], SP: {}, THEMES: {}, ROLES: {}, STYLES: {} };
@@ -2417,7 +2511,7 @@
     if (!window.fire.gpuz || SUB() || (!force && Date.now() - GP.bankAt < 10 * 60000)) return;
     GP.bankAt = Date.now();
     const r = await window.fire.gpuz.bank().catch(() => null);
-    if (r && r.ok) { const n = (GP.bank || []).length; GP.bank = r.list; if (r.list.length !== n && S.section === 'puzzle' && !GP.cur) renderGamePuzzle(); }
+    if (r && r.ok) { const n = (GP.bank || []).length; GP.bank = (r.list || []).map(lolPuzzle); if (r.list.length !== n && S.section === 'puzzle' && !GP.cur) renderGamePuzzle(); }
     gpCheckSupply();
   }
   // Niveau du joueur : la plus petite difficulté où il lui reste des puzzles jamais faits.
@@ -2462,6 +2556,8 @@
     return n;
   }
   const GP_V = { P: ['✅', 'Ce qu’un pro ferait', 'pro'], O: ['🟡', 'Jouable, pas optimal', 'ok'], X: ['❌', 'Mauvaise réponse', 'bad'] };
+  function gpBack() { GP.cur = null; GP.pick = null; renderGamePuzzle(); window.scrollTo(0, 0); }
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.section === 'puzzle' && GP.cur && !document.querySelector('#promo, #ann-modal, .modal, .pop-ov') && !typing()) { e.preventDefault(); gpBack(); } });
   function gpOpen(p, rev) { GP.cur = p; GP.pick = null; GP.rev = !!rev; GP.order = p.a.map((_, i) => i).sort(() => Math.random() - 0.5); renderGamePuzzle(); window.scrollTo(0, 0); }
   const gpFilter = (p) => (GP.th === 'all' || p.th === GP.th) && (!GP.role || GP.role === 'all' || p.role === GP.role || p.role === 'all');
   // Suivant : d'abord les inédits, du plus facile au plus dur ; quand il n'y en a plus, révision des anciens (ratés d'abord).
@@ -2521,7 +2617,7 @@
           h('p', null, h('b', null, '🎙 Lecture pro : '), a.e)) : null);
     });
     return h('div', { class: 'card gp-card' },
-      h('div', { class: 'row gp-meta' }, h('span', { class: 'chip' }, D.THEMES[p.th] || p.th), h('span', { class: 'chip' }, D.ROLES[p.role] || p.role), p.t ? h('span', { class: 'chip' }, '⏱ ' + p.t) : null,
+      h('div', { class: 'row gp-meta' }, h('button', { class: 'btn-ghost small-btn gp-back', title: 'Revenir à la liste sans répondre (Échap)', onclick: gpBack }, '← Retour'), h('span', { class: 'chip' }, D.THEMES[p.th] || p.th), h('span', { class: 'chip' }, D.ROLES[p.role] || p.role), p.t ? h('span', { class: 'chip' }, '⏱ ' + p.t) : null,
         h('span', { class: 'gp-diff', title: 'Niveau ' + GP_LV[p.d || 1] }, gpStars(p.d || 1) + ' ' + GP_LV[p.d || 1]), p.gen ? h('span', { class: 'chip gp-new' }, '✨ Situation inédite') : null, GP.rev ? h('span', { class: 'chip' }, '🔁 Révision') : null),
       h('h2', { class: 'gp-title' }, p.titre),
       h('div', { class: 'gp-body' + (p.map ? '' : ' nomap') }, p.map ? gpMap(p) : null,
@@ -2863,7 +2959,7 @@
   // ===== Carnet de bord (staff) : ce que fait chaque membre dans FIRE, notes du staff, modération, rôles =====
   // Chaque FIRE note ses actions (pages ouvertes, messages, vocal, planning, POOL, quiz, clips…) et les envoie toutes les
   // 3 minutes dans le fichier d'activité du joueur (chiffré avec le code d'équipe). Le contenu des messages privés n'est jamais noté.
-  const PAGE_NAMES = { annonces: 'Annonces', accueil: 'Accueil', apprendre: 'Apprendre en jouant', puzdraft: 'Puzzles de draft', puzzle: 'Puzzle du jour', stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
+  const PAGE_NAMES = { annonces: 'Annonces', boutique: 'Boutique', accueil: 'Accueil', apprendre: 'Apprendre en jouant', puzdraft: 'Puzzles de draft', puzzle: 'Puzzle du jour', stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
     coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', puzzle: 'Puzzle du jour', apprendre: 'Apprendre en jouant', puzdraft: 'Puzzles de draft', scrims: 'Scrims', stream: 'Stream Twitch', revue: 'Revue de parties', web: 'navigateur' };
   const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
   function actLog(k, d) {
@@ -3246,7 +3342,7 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'carnet' || S.section === 'annonces' || S.section === 'parcours' || S.section === 'puzzle' || S.section === 'apprendre' || S.section === 'puzdraft' || S.section === 'accueil' || S.section === 'scrims' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'carnet' || S.section === 'annonces' || S.section === 'boutique' || S.section === 'parcours' || S.section === 'puzzle' || S.section === 'apprendre' || S.section === 'puzdraft' || S.section === 'accueil' || S.section === 'scrims' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (S.section === 'settings') renderSettings();
@@ -3254,6 +3350,7 @@
     else if (S.section === 'chat') renderChatPage();
     else if (S.section === 'carnet') renderCarnet();
     else if (S.section === 'annonces') renderAnnonces();
+    else if (S.section === 'boutique') renderBoutique();
     else if (S.section === 'clips') renderClipsPage();
     else if (S.section === 'reunion') renderReunion();
     else if (S.section === 'outils') renderOutils();
@@ -3316,9 +3413,10 @@
     ['Jeu', '🎮', 'Avant, pendant et entre les games', ['draft', 'train', 'jeux']],
     ['Apprendre', '🎓', 'Progresser en jouant, à ton rythme', ['parcours', 'apprendre', 'puzzle', 'puzdraft', 'guides', 'coach', 'worlds', 'lolpatch']],
     ['Outils', '🧰', 'Revoir et analyser vos parties', ['revue', 'parties', 'outils', 'reunion', 'annonces', 'carnet']],
-    ['Social', '💬', 'Parler, jouer et regarder ensemble', ['chat', 'vocal', 'clips', 'stream']],
+    ['Social', '💬', 'Parler, jouer et regarder ensemble', ['chat', 'vocal', 'clips', 'stream', 'boutique']],
     ['FIRE', '⚙️', 'Nouveautés et réglages', ['patch', 'settings']]];
   const ACC_DESC = {
+    boutique: 'Effets de profil, pseudos animés et packs, tout gratuit.',
     stats: 'Les stats de chaque joueur et de l’équipe, les games en direct.', pool: 'Les champions de chacun : obligatoires, maîtrisés, à travailler.', planning: 'Qui joue quand, et les créneaux de coaching individuel.',
     scrims: 'Vos scrims : adversaires, résultats, notes.', draft: 'Tier list, matchups, one-tricks et la draft en direct.', train: 'Esquive, skillshots, last hit : ta mécanique.',
     jeux: 'Devine le champion, quiz, League of Listen…', parcours: 'La carte des compétences de macro, étape par étape.', apprendre: 'Lis la wave, le jungler, les trades : des situations de vraies parties.',
@@ -3344,7 +3442,7 @@
     const v = accVisits(); v[sec] = (v[sec] || 0) + 1; save('fire.visits', v);
   }
   // Accueil personnalisé (sur ce PC) : blocs cachés et rubriques épinglées, dans l'ordre choisi.
-  const ACC_W = [['plan', '📅', 'Planning du jour'], ['obj', '🎯', 'Objectif de la semaine'], ['rdv', '⏰', 'Prochain rendez-vous'], ['chat', '💬', 'Discussion'], ['coach', '📣', 'Parole du coach'], ['puzzle', '🧩', 'Puzzle du jour'], ['clips', '🎬', 'Clips de l’équipe']];
+  const ACC_W = [['plan', '📅', 'Planning du jour'], ['obj', '🎯', 'Objectif de la semaine'], ['rdv', '⏰', 'Prochain rendez-vous'], ['chat', '💬', 'Discussion'], ['coach', '📣', 'Parole du coach'], ['puzzle', '🧩', 'Puzzle du jour'], ['clips', '🎬', 'Clips de l’équipe'], ['boutique', '🛍️', 'Boutique']];
   const accPrefs = () => ({ pins: null, hide: [], ...load('fire.acc', {}) });
   const accSave = (patch) => { save('fire.acc', { ...accPrefs(), ...patch }); renderAccueil(); };
   const ACCE = { edit: false };
@@ -3392,6 +3490,12 @@
     // Clips de l'équipe
     const nc = cfUnseen();
     if (by.clips && nc && !hid.has('clips')) ws.push(tile('clips', '🎬', 'Clips de l’équipe', h('b', null, `${nc} nouveau${nc > 1 ? 'x' : ''} clip${nc > 1 ? 's' : ''}`), h('small', null, 'Like et commente ceux de tes coéquipiers'), 'hot', () => { CLB.tab = 'team'; go('clips'); }));
+    // Boutique : ton style actuel et un accès direct
+    if (by.boutique && !hid.has('boutique') && meV) {
+      const Lk = looks();
+      const prev = h('div', { class: 'acc-shop-prev' + (Lk.card ? ' pf-themed' : ''), style: Lk.card ? `--pc1:${Lk.card[0]};--pc2:${Lk.card[1]}` : '' }, Lk.pfx ? pfxEl(Lk.pfx) : null, avatarEl(meV, 'acc-shop-av'), nameEl(meV));
+      ws.push(tile('boutique', '🛍️', 'Boutique FIRE', shopNew() ? h('b', null, 'Nouveaux packs sombres 👁️') : h('b', null, 'Ton style'), prev, shopNew() ? 'hot acc-shop' : 'acc-shop'));
+    }
     // Raccourcis : tes rubriques les plus utilisées (ou celles du début)
     const v = accVisits();
     const pinned = Array.isArray(A.pins);
@@ -3460,7 +3564,7 @@
   }
 
   // ----- Parties en direct : la mienne (API locale de Riot) et celles des coéquipiers (envoyées par leur FIRE) -----
-  const LIVE = { mine: null, lastSend: 0, sig: '' };
+  const LIVE = { mine: null, lastSend: 0, sig: '', gone: 0 };
   function liveAll() {
     const out = {};
     try { Object.assign(out, (FV().state().lives) || {}); } catch (e) { /* vocal pas prêt */ }
@@ -3494,7 +3598,9 @@
     if (S.section === 'stats' && S.view === 'hub' && !typing()) {
       const cur = document.querySelector('.live-sec');
       const next = liveSection();
-      if (cur && next) morph(cur, next); else if (cur || next) render();
+      if (cur && next) { LIVE.gone = 0; morph(cur, next); }
+      else if (cur && !next) { if (++LIVE.gone >= 3) { LIVE.gone = 0; cur.remove(); } } // parti : on attend 3 mises à jour avant de l'enlever (pas de clignotement)
+      else if (next) render();
     }
   }
   const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
@@ -3507,9 +3613,12 @@
   const gameModeKind = (g) => { const id = g.queue && g.queue.id; return id === 420 || id === 440 ? 'ranked' : (g.mode === 'ARAM' || g.mode === 'KIWI' || id === 450 || id === 2400) ? 'aram' : g.mode === 'CLASSIC' ? 'normal' : 'fun'; };
   // ----- Vue spectateur FIRE : comme le tableau (Tab) en jeu, avec objets, sorts, objectifs et le fil de la partie -----
   const SP_DRAG = { Fire: ['#ff6a3d', 'Infernal'], Earth: ['#b98a4a', 'Montagne'], Water: ['#3dc8d8', 'Océan'], Air: ['#cfe3ff', 'Nuages'], Hextech: ['#3d8bff', 'Hextech'], Chemtech: ['#9be03d', 'Chemtech'], Elder: ['#e8d9ff', 'Ancestral'] };
+  // Tous les noms Riot des joueurs de FIRE (compte actuel, anciens comptes, comptes Flex), en minuscules, avec et sans le #tag.
+  function namesOf(p) { const l = [p.pseudo].concat((p.comptes || []).map((c) => c.pseudo), (p.comptes_flex || []).map((c) => c.pseudo)).filter(Boolean).map((x) => String(x).toLowerCase()); return l.concat(l.map((x) => x.split('#')[0])); }
+  function ourNames() { return new Set(S.players.flatMap(namesOf)); }
   function specView(g, slugs) {
     const v = (S.champList && S.champList.version) || '';
-    const ours = new Set(S.players.map((p) => String(p.pseudo || '').toLowerCase()));
+    const ours = ourNames();
     const img = (src, cls, title, sz) => h('img', { class: cls, src, alt: '', title: title || '', width: sz, height: sz, loading: 'lazy', onerror: (e) => { e.target.style.visibility = 'hidden'; } });
     const item = (id) => id ? img(`https://ddragon.leagueoflegends.com/cdn/${v}/img/item/${id}.png`, 'sp-it', '', 22) : h('span', { class: 'sp-it empty' });
     const spell = (k) => k ? img(`https://ddragon.leagueoflegends.com/cdn/${v}/img/spell/${k}.png`, 'sp-sp', k.replace(/^Summoner/, ''), 16) : h('span', { class: 'sp-sp empty' });
@@ -3522,7 +3631,7 @@
         o.grubs ? h('span', { title: 'Larves du Néant' }, '🪲 ', o.grubs) : null, o.herald ? h('span', { title: 'Héraut' }, '👁 ', o.herald) : null,
         o.baron ? h('span', { title: 'Nashor' }, '🟣 ', o.baron) : null, o.atakhan ? h('span', { title: 'Atakhan' }, '🔥 ', o.atakhan) : null);
     };
-    const row = (p) => h('div', { class: 'sp-p' + (ours.has(p.n.toLowerCase()) ? ' ours' : '') + (p.dead ? ' dead' : '') },
+    const row = (p) => h('div', { class: 'sp-p' + (ours.has(p.n.toLowerCase()) ? ' ours' : '') + (p.dead ? ' dead' : ''), 'data-k': p.n },
       h('span', { class: 'sp-ch' }, champIcon(p.c, 34), h('b', { class: 'sp-lvl' }, p.lvl), p.dead ? h('span', { class: 'sp-dead' }, p.dead) : null),
       h('span', { class: 'sp-sps' }, (p.sp || []).map(spell)),
       h('span', { class: 'sp-n' }, h('b', null, p.n.split('#')[0]), h('small', { class: 'muted' }, `${p.cs} CS${p.ward ? ' · vision ' + p.ward : ''}`)),
@@ -3530,7 +3639,7 @@
       h('span', { class: 'sp-k' }, `${p.k} / ${p.d} / ${p.a}`));
     const FEED = { drag: '🐉', baron: '🟣', herald: '👁', grubs: '🪲', atakhan: '🔥', tower: '🏰', inhib: '⬢' };
     const feedTxt = (f) => f.x === 'drag' ? `Dragon ${((SP_DRAG[f.what] || ['', f.what])[1] || '').toLowerCase()}${f.st ? ' (volé)' : ''}` : f.x === 'baron' ? 'Nashor' + (f.st ? ' (volé)' : '') : f.x === 'herald' ? 'Héraut' : f.x === 'grubs' ? 'Larve du Néant' : f.x === 'atakhan' ? 'Atakhan' : f.x === 'tower' ? 'Tour détruite' : f.x === 'inhib' ? 'Inhibiteur détruit' : '';
-    const feed = (g.feed || []).slice().reverse().map((f) => h('div', { class: 'sp-f ' + (f.team === 'ORDER' ? 'blue' : f.team === 'CHAOS' ? 'red' : '') },
+    const feed = (g.feed || []).map((f, i) => [f, i]).reverse().map(([f, i]) => h('div', { class: 'sp-f ' + (f.team === 'ORDER' ? 'blue' : f.team === 'CHAOS' ? 'red' : ''), 'data-k': `${i}-${f.t}-${f.x}` },
       h('small', { class: 'muted sp-ft' }, mmss(f.t)),
       f.x === 'kill' ? [f.kc ? champIcon(f.kc, 22) : h('span', { title: { tour: 'Tour', sbire: 'Sbires', monstre: 'Monstre', exec: 'Exécuté' }[f.kk] || '' }, { tour: '🏰', sbire: '👾', monstre: '🐉', exec: '💀' }[f.kk] || '💀'), h('span', { class: 'sp-sw' }, '⚔'), f.vc ? champIcon(f.vc, 22) : h('span', null, '?'), f.n ? h('small', { class: 'muted' }, ` +${f.n}`) : null]
         : [h('span', null, FEED[f.x] || '•'), h('span', null, feedTxt(f)), f.kc ? champIcon(f.kc, 18) : null]));
@@ -3541,7 +3650,9 @@
     const watchers = slugs.filter((x) => x !== me);
     const SPX = (LIVE.spx = LIVE.spx || {});
     const actions = h('div', { class: 'row sp-act' },
-      watchers.map((x) => { const nm = String(((S.players.find((p) => p.slug === x) || {}).pseudo) || vocalName(x)).split('#')[0];
+      watchers.map((x) => { const pl = S.players.find((p) => p.slug === x); const cand = pl ? new Set(namesOf(pl)) : new Set();
+        const inGame = g.players.find((q) => cand.has(q.n.toLowerCase()) || cand.has(q.n.split('#')[0].toLowerCase()));
+        const nm = String(inGame ? inGame.n : (pl && pl.pseudo) || vocalName(x)).split('#')[0];
         return h('button', { class: 'btn-fire small-btn', disabled: SPX[x] === '…' ? true : null, title: 'Ouvre le mode spectateur de League of Legends (le client LoL doit être ouvert). Riot impose 3 minutes de délai.', onclick: async () => {
           SPX[x] = '…'; liveRefresh(true);
           const r = await window.fire.live.spectate({ puuid: g.puuid || '', name: (g.players.find((p) => p.n.split('#')[0].toLowerCase() === nm.toLowerCase()) || {}).n || nm }).catch((e) => ({ ok: false, error: String(e) }));
@@ -3555,7 +3666,7 @@
       h('div', { class: 'sp-score' }, objs('ORDER'), h('div', { class: 'sp-k2' }, h('b', { class: 'blue' }, kills('ORDER')), h('span', { class: 'muted' }, mmss(g.time)), h('b', { class: 'red' }, kills('CHAOS'))), objs('CHAOS')),
       h('div', { class: 'sp-body' },
         h('div', { class: 'sp-teams' }, h('div', { class: 'sp-team blue' }, g.players.filter((p) => p.team === 'ORDER').map(row)), h('div', { class: 'sp-team red' }, g.players.filter((p) => p.team === 'CHAOS').map(row))),
-        feed.length ? h('div', { class: 'sp-feed' }, h('h4', null, 'Fil de la partie'), feed) : null),
+        feed.length ? h('div', { class: 'sp-feed' }, h('h4', null, 'Fil de la partie'), h('div', { class: 'sp-fl' }, feed)) : null),
       actions);
   }
   function liveSection() {
@@ -3571,7 +3682,7 @@
     const shown = new Set(Object.keys(all));
     const bare = S.players.filter((p) => p.slug && !p.pending && !shown.has(p.slug) && p.slug !== vocalMe() && statusOf(p.slug).game);
     if (!games.length && !bare.length) return null;
-    const ours = new Set(S.players.map((p) => String(p.pseudo || '').toLowerCase()));
+    const ours = ourNames();
     const isOurs = (p) => ours.has(p.n.toLowerCase());
     const team = (g, side) => h('div', { class: 'lv-team ' + (side === 'ORDER' ? 'blue' : 'red') }, g.players.filter((p) => p.team === side).map((p) =>
       h('div', { class: 'lv-p' + (isOurs(p) ? ' ours' : '') }, champIcon(p.c, 24),
@@ -3586,7 +3697,7 @@
         const open = LIVE.open[key] != null ? LIVE.open[key] : games.length === 1;
         const mine = g.players.filter(isOurs);
         const names = slugs.map((x) => (S.players.find((p) => p.slug === x) || {}).pseudo || vocalName(x)).map((x) => String(x).split('#')[0]);
-        return h('div', { class: 'card lv-card' + (open ? ' open' : '') },
+        return h('div', { class: 'card lv-card' + (open ? ' open' : ''), 'data-k': key },
           h('button', { class: 'lv-head lv-tog', 'aria-expanded': String(open), onclick: () => { LIVE.open[key] = !open; const cur = document.querySelector('.live-sec'); if (cur) cur.replaceWith(liveSection()); } },
             h('span', { class: 'lv-live' }, 'EN DIRECT'),
             h('span', { class: 'lv-mode ' + gameModeKind(g) }, gameModeLabel(g)),
@@ -4401,6 +4512,8 @@
     if (SUB() && !SUB_OK.has(sec)) sec = 'stats';
     if (MOBILE && MOBILE_OFF.has(sec)) sec = 'stats';
     try { accVisit(sec); } catch (e) { /* */ }
+    // Revenir dans « Puzzle du jour » depuis une autre rubrique ramène à la liste, pas au puzzle laissé en plan.
+    if (sec === 'puzzle' && S.section !== 'puzzle') { GP.cur = null; GP.pick = null; }
     if (sec !== S.section && S.section !== 'settings') S.prevSection = S.section;
     if (sec !== 'settings') setClose(true);
     if (sec !== 'web' && WEB.open) webClose(true);
@@ -4529,13 +4642,21 @@
     if (b.busy) return;
     if ((b.texte || '').trim().length < 5) { b.msg = 'Décris le problème en quelques mots.'; render(); return; }
     b.busy = true; b.msg = ''; render();
-    const me = S.players.find((x) => x.slug === S.moi);
+    const qui = bugWho();
+    if (!b.anon && !qui.name) { b.msg = 'Écris ton pseudo, ou coche « Rester anonyme ».'; b.busy = false; render(); return; }
     let r;
-    try { r = await window.fire.bugs.send({ texte: b.texte, images: b.images, qui: me ? me.pseudo : (coachOf(S.moi) ? coachOf(S.moi).pseudo : 'anonyme'), slug: S.moi || '', version: S.version, section: S.prevSection || '' }); } catch (e) { r = { ok: false, error: String(e) }; }
+    try { r = await window.fire.bugs.send({ texte: b.texte, images: b.images, qui: b.anon ? 'anonyme' : qui.name, slug: b.anon ? '' : qui.slug, anon: !!b.anon, version: S.version, section: S.prevSection || '' }); } catch (e) { r = { ok: false, error: String(e) }; }
     b.busy = false;
     if (r && r.ok) { S.bug = { open: false, texte: '', images: [], busy: false, msg: '', ok: true }; popup('🐞 Rapport envoyé', 'Merci ! Le coach a bien reçu ton rapport de bug.', null); }
     else b.msg = '⚠ Envoi impossible : ' + ((r && r.error) || 'erreur inconnue');
     render();
+  }
+  // Qui envoie le rapport : le joueur, le coach ou le remplaçant reconnu, sinon le pseudo tapé à la main.
+  function bugWho() {
+    const v = vocalMe();
+    if (v) return { slug: v, name: vocalName(v) !== baseName(v) ? `${vocalName(v)} (${baseName(v)})` : baseName(v) };
+    const t = String(S.bug.nom || load('fire.bug.nom', '') || '').trim().slice(0, 40);
+    return { slug: '', name: t };
   }
   function bugCard() {
     const b = S.bug;
@@ -4555,7 +4676,12 @@
         b.images.map((src, i) => h('div', { class: 'bug-thumb' }, h('img', { src, alt: '', onclick: () => zoom(src, 'Capture ' + (i + 1)) }),
           h('button', { class: 'bug-x', title: 'Retirer', onclick: () => { b.images.splice(i, 1); render(); } }, '✕'))),
         b.images.length < 3 ? h('button', { class: 'bug-add', onclick: () => file.click(), disabled: b.busy ? true : null }, '＋', h('span', null, 'Ajouter une image')) : null, file),
-      h('p', { class: 'muted small' }, 'Jusqu’à 3 images. Tu peux aussi coller une capture avec Ctrl+V (Win+Maj+S pour en faire une). Ton pseudo et ta version de FIRE sont ajoutés automatiquement.'),
+      h('p', { class: 'muted small' }, 'Jusqu’à 3 images. Tu peux aussi coller une capture avec Ctrl+V (Win+Maj+S pour en faire une). Ta version de FIRE est ajoutée automatiquement.'),
+      (() => { const w = bugWho(); return h('div', { class: 'bug-who' },
+        h('span', { class: 'muted small' }, 'Envoyé par :'),
+        b.anon ? h('b', null, '🕶️ Anonyme') : vocalMe() ? h('b', null, '👤 ' + w.name) : h('input', { class: 'inp bug-nom', maxlength: 40, placeholder: 'Ton pseudo', value: S.bug.nom || load('fire.bug.nom', ''), oninput: (e) => { S.bug.nom = e.target.value; save('fire.bug.nom', e.target.value.trim().slice(0, 40)); } }),
+        h('label', { class: 'bug-anon' }, h('input', { type: 'checkbox', checked: b.anon ? true : null, onchange: (e) => { b.anon = e.target.checked; render(); } }), ' Rester anonyme'),
+        h('small', { class: 'muted' }, b.anon ? 'Le staff ne saura pas qui l’a envoyé, et tu ne recevras pas de notification quand il répondra.' : 'Le staff voit ton nom et peut te répondre : tu reçois une notification quand c’est réglé.')); })(),
       b.msg ? h('p', { class: 'bad small' }, b.msg) : null,
       h('div', { class: 'row' },
         h('button', { class: 'btn-fire small-btn', disabled: b.busy ? true : null, onclick: sendBug }, b.busy ? 'Envoi…' : '📨 Envoyer le rapport'),
@@ -4721,7 +4847,19 @@
   const vocalMe = () => S.moi || (S.coachState && S.coachState.coach ? 'coach' : null);
   const coachOf = (slug) => (S.coachs || []).find((c) => c.slug === slug) || null;
   // Pseudo choisi par moi pour quelqu'un (« Changer le pseudo », visible seulement par moi).
-  const vocalName = (slug) => (load('fire.nicks', {})[slug]) || (slug === 'coach' ? 'Coach' : coachOf(slug) ? coachOf(slug).pseudo : shortName((S.players.find((p) => p.slug === slug) || {}).pseudo || slug));
+  const baseName = (slug) => slug === 'coach' ? 'Coach' : coachOf(slug) ? coachOf(slug).pseudo : shortName((S.players.find((p) => p.slug === slug) || {}).pseudo || slug);
+  // Nom choisi par le joueur lui-même (Paramètres › Profil). Refusé s'il reprend le nom d'un autre membre, pour qu'on ne puisse pas se faire passer pour quelqu'un.
+  const NOM_C = { at: 0, m: {} };
+  function chosenName(slug) {
+    let n = '';
+    try { n = (statusOf(slug).nom || '').trim(); } catch (e) { return ''; }
+    if (!n) return '';
+    const k = n.toLowerCase();
+    if (Date.now() - NOM_C.at > 2000) { NOM_C.m = {}; for (const p of S.players || []) NOM_C.m[shortName(p.pseudo || p.slug).toLowerCase()] = p.slug; NOM_C.m.coach = 'coach'; NOM_C.at = Date.now(); }
+    if (NOM_C.m[k] && NOM_C.m[k] !== slug) return '';
+    return n;
+  }
+  const vocalName = (slug) => (load('fire.nicks', {})[slug]) || chosenName(slug) || baseName(slug);
   const vocalIds = () => S.players.map((p) => p.slug).filter(Boolean).concat((S.coachs || []).map((c) => c.slug), 'coach');
   const ini = (slug) => vocalName(slug).slice(0, 2).toUpperCase();
   // Qui est en vocal : les gens connectés avec moi si je suis dans le salon, sinon ce que les autres FIRE annoncent.
@@ -5365,6 +5503,64 @@
 
   const CLIP_KINDS = [['tous', 'Tous'], ['auto', '⚡ Automatiques'], ['kill', '⚔️ Kills'], ['assist', '🤝 Assists'], ['objectif', '🐉 Objectifs'], ['tour', '🏰 Tours'], ['manuel', '🎬 Manuels'], ['recu', '📨 Reçus']];
   const CLB = { filter: 'tous', champ: '', n: 24, tab: 'mine' };
+  // Sélection de plusieurs clips (supprimer, garder ou publier d'un coup). Ctrl + clic ou « ☑ Sélectionner ».
+  const CLM = { on: false, pick: new Set(), last: null, confirm: false, share: false, vis: 'public', to: [], busy: null, err: '' };
+  function clmBar(list) {
+    const n = CLM.pick.size;
+    const picked = CL.list.filter((x) => CLM.pick.has(x.path));
+    const allOn = list.length && list.every((x) => CLM.pick.has(x.path));
+    const people = S.players.filter((p) => p.slug && p.slug !== vocalMe()).map((p) => [p.slug, vocalName(p.slug)]).concat((S.coachs || []).filter((c) => c.slug !== vocalMe()).map((c) => [c.slug, c.pseudo]));
+    const size = picked.reduce((a, x) => a + (x.size || 0), 0);
+    return h('div', { class: 'card clm-bar' },
+      h('div', { class: 'row' },
+        h('b', null, n ? `${n} clip${n > 1 ? 's' : ''} sélectionné${n > 1 ? 's' : ''}` : 'Clique sur les clips à sélectionner'), n ? h('span', { class: 'muted small' }, clipMb(size)) : null,
+        h('span', { class: 'spacer' }),
+        h('button', { class: 'btn-ghost small-btn', onclick: () => { if (allOn) list.forEach((x) => CLM.pick.delete(x.path)); else list.forEach((x) => CLM.pick.add(x.path)); CLM.confirm = false; renderClipsPage(); } }, allOn ? 'Tout désélectionner' : `Tout sélectionner (${list.length})`),
+        h('button', { class: 'btn-ghost small-btn', disabled: !n || CLM.busy ? true : null, onclick: async () => { const keep = !picked.every((x) => x.meta && x.meta.keep); for (const x of picked) await window.fire.clips.keep(x.name, keep).catch(() => {}); clipsRefresh(); } }, picked.length && picked.every((x) => x.meta && x.meta.keep) ? '☆ Ne plus garder' : '⭐ Garder'),
+        h('button', { class: 'btn-fire small-btn', disabled: !n || CLM.busy ? true : null, onclick: () => { CLM.share = !CLM.share; CLM.confirm = false; CLM.err = ''; renderClipsPage(); } }, '🌐 Publier'),
+        h('button', { class: 'btn-ghost small-btn clm-del' + (CLM.confirm ? ' on' : ''), disabled: !n || CLM.busy ? true : null, onclick: async () => {
+          if (!CLM.confirm) { CLM.confirm = true; CLM.share = false; renderClipsPage(); return; }
+          CLM.confirm = false; CLM.busy = 'del'; renderClipsPage();
+          let k = 0; for (const x of picked) { if (await window.fire.clips.del(x.path).catch(() => false)) k++; }
+          CLM.busy = null; CLM.pick.clear(); if (CL.sel && picked.some((x) => x.path === CL.sel)) CL.sel = null;
+          actLog('clip', `${k} clip${k > 1 ? 's' : ''} supprimé${k > 1 ? 's' : ''}`); clipsRefresh();
+        } }, CLM.confirm ? `Confirmer : supprimer ${n} clip${n > 1 ? 's' : ''}` : '🗑 Supprimer'),
+        h('button', { class: 'btn-ghost small-btn', onclick: () => { CLM.on = false; CLM.pick.clear(); CLM.confirm = false; CLM.share = false; renderClipsPage(); } }, 'Terminé')),
+      CLM.confirm ? h('p', { class: 'bad small' }, `⚠ Les ${n} clips seront effacés de ton PC. Ceux déjà publiés restent dans « Clips de l’équipe ».`) : null,
+      CLM.share && n ? h('div', { class: 'clb-share' },
+        h('b', null, `🌐 Publier ${n} clip${n > 1 ? 's' : ''} dans « Clips de l’équipe »`),
+        h('div', { class: 'row' },
+          h('button', { class: 'chip' + (CLM.vis === 'public' ? ' on' : ''), onclick: () => { CLM.vis = 'public'; renderClipsPage(); } }, '🌐 Public : toute l’équipe'),
+          h('button', { class: 'chip' + (CLM.vis === 'prive' ? ' on' : ''), onclick: () => { CLM.vis = 'prive'; renderClipsPage(); } }, '🔒 Privé : certaines personnes')),
+        CLM.vis === 'prive' ? h('div', { class: 'sal-chips' }, people.map(([sl, nm]) => h('button', { class: 'chip' + (CLM.to.includes(sl) ? ' on' : ''), onclick: () => { CLM.to = CLM.to.includes(sl) ? CLM.to.filter((x) => x !== sl) : CLM.to.concat(sl); renderClipsPage(); } }, nm))) : null,
+        h('p', { class: 'muted small' }, `${clipMb(size)} au total. Chaque clip garde son titre automatique (tu pourras les retrouver dans « Clips de l’équipe »). Ils sont aussi marqués ⭐ pour ne pas être supprimés.`),
+        CLM.err ? h('p', { class: 'bad small' }, '⚠ ' + CLM.err) : null,
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', disabled: CLM.busy || (CLM.vis === 'prive' && !CLM.to.length) ? true : null, onclick: () => clmShare(picked) }, CLM.busy ? CLM.busy : `Publier les ${n}`),
+          h('button', { class: 'btn-ghost small-btn', onclick: () => { CLM.share = false; renderClipsPage(); } }, 'Annuler'))) : null);
+  }
+  async function clmShare(picked) {
+    const me = vocalMe();
+    if (!me) { askWho(); return; }
+    if (CLM.busy) return;
+    CLM.err = ''; let ok = 0; const fails = []; const done = [];
+    for (let i = 0; i < picked.length; i++) {
+      const sel = picked[i];
+      CLM.busy = `Envoi ${i + 1}/${picked.length}…`; renderClipsPage();
+      const t = await clipThumbOf(sel.url);
+      const r = await window.fire.clips.share(sel.path, { title: clipTitle(sel), champ: (sel.meta && sel.meta.champ) || '', mode: (sel.meta && sel.meta.mode) || '', dur: t.dur, thumb: t.thumb, vis: CLM.vis, to: CLM.to, by: me }).catch((e) => ({ ok: false, error: String(e) }));
+      if (r && r.ok) { ok++; CF.list = r.clips; if (t.thumb) CF.thumbs[r.clip.id] = t.thumb; done.push(r.clip); await window.fire.clips.keep(sel.name, true).catch(() => {}); } else fails.push(clipTitle(sel) + ' : ' + ((r && r.error) || 'erreur'));
+    }
+    // Une seule notification pour toute la série
+    if (done.length) {
+      const to = CLM.vis === 'prive' ? CLM.to : S.players.map((p) => p.slug).filter(Boolean).concat((S.coachs || []).map((c) => c.slug), 'coach');
+      for (const x of new Set(to)) if (x !== me) { try { FV().hallSend(x, { t: 'clipfeed', k: 'new', id: done[0].id, title: done.length > 1 ? `${done.length} nouveaux clips` : done[0].title }).catch(() => {}); } catch (e) { /* */ } }
+      actLog('clip', `${done.length} clip${done.length > 1 ? 's' : ''} partagé${done.length > 1 ? 's' : ''}`);
+    }
+    CLM.busy = null;
+    if (fails.length) CLM.err = `${fails.length} clip${fails.length > 1 ? 's' : ''} non envoyé${fails.length > 1 ? 's' : ''} : ` + fails.slice(0, 3).join(' · ');
+    else { CLM.share = false; CLM.pick.clear(); popup('🌐 Clips publiés', `${ok} clip${ok > 1 ? 's sont' : ' est'} dans « Clips de l’équipe ».`, null); }
+    clipsRefresh();
+  }
   const clipKind = (c) => (c.meta && c.meta.kind) || (/ de [^ ]+ \d{4}-/.test(c.name) ? 'recu' : 'manuel');
   const clipTitle = (c) => (c.meta && c.meta.label) || (clipKind(c) === 'recu' ? 'Clip reçu' + (c.meta && c.meta.from ? ' de ' + c.meta.from : '') : 'Clip manuel');
   function clipsPaint() { if (CL.open) clipsModal(); if (S.section === 'clips' && !typing()) renderClipsPage(); }
@@ -5548,7 +5744,8 @@
       CLIP_KINDS.map(([k, l]) => { const n = k === 'tous' ? CL.list.length : CL.list.filter((x) => (k === 'auto' ? x.meta && x.meta.auto : clipKind(x) === k)).length;
         return (n || k === 'tous') ? h('button', { class: 'chip', 'aria-pressed': String(CLB.filter === k), onclick: () => { CLB.filter = k; CLB.n = 24; renderClipsPage(); } }, `${l} · ${n}`) : null; }),
       champs.length ? h('select', { class: 'inp clb-champ', onchange: (e) => { CLB.champ = e.target.value; renderClipsPage(); } }, h('option', { value: '' }, 'Tous les champions'),
-        champs.map((x) => h('option', { value: x, selected: CLB.champ === x ? true : null }, FC.champName(x)))) : null);
+        champs.map((x) => h('option', { value: x, selected: CLB.champ === x ? true : null }, FC.champName(x)))) : null,
+      CL.list.length && !CLM.on ? h('button', { class: 'btn-ghost clm-go', title: 'Ou Ctrl + clic sur un clip', onclick: () => { CLM.on = true; renderClipsPage(); } }, '☑ Sélectionner') : null);
     const player = sel ? h('div', { class: 'card clb-player' },
       h('video', { src: sel.url, controls: '', autoplay: '', preload: 'auto' }),
       h('div', { class: 'clb-ph' }, sel.meta && sel.meta.champ ? champIcon(sel.meta.champ, 32) : null,
@@ -5565,14 +5762,24 @@
           h('button', { class: 'btn-ghost', title: 'Fermer', onclick: () => { CL.sel = null; renderClipsPage(); } }, '✕'))),
       CLS.open === sel.path ? clipShareBox(sel) : null,
       !(sel.meta && sel.meta.keep) && (c.keepDays ?? 14) ? h('p', { class: 'muted small' }, `⏳ Supprimé tout seul dans ${clipLeft(sel, c)} : clique sur « ☆ Garder » pour le conserver.`) : null) : null;
-    const grid = list.length ? h('div', { class: 'clb-grid' }, list.slice(0, CLB.n).map((x) => h('button', { class: 'clb-card' + (CL.sel === x.path ? ' on' : ''), onclick: () => { CL.sel = x.path; CL.confirm = null; renderClipsPage(); view.scrollTop = 0; window.scrollTo(0, 0); } },
-      h('div', { class: 'clb-thumb' }, h('video', { src: x.url + '#t=2', preload: 'metadata', muted: '', onmouseenter: (e) => { e.target.muted = true; e.target.play().catch(() => {}); }, onmouseleave: (e) => e.target.pause() }),
+    const grid = list.length ? h('div', { class: 'clb-grid' }, list.slice(0, CLB.n).map((x) => h('button', { class: 'clb-card' + (CL.sel === x.path && !CLM.on ? ' on' : '') + (CLM.on ? ' picking' : '') + (CLM.pick.has(x.path) ? ' picked' : ''), 'aria-pressed': CLM.on ? String(CLM.pick.has(x.path)) : null, onclick: (e) => {
+        if (CLM.on || e.ctrlKey || e.metaKey || e.shiftKey) {
+          CLM.on = true; CLM.confirm = false;
+          const vis = list.slice(0, CLB.n).map((y) => y.path);
+          if (e.shiftKey && CLM.last && vis.includes(CLM.last)) { const [a, b] = [vis.indexOf(CLM.last), vis.indexOf(x.path)].sort((m, n) => m - n); vis.slice(a, b + 1).forEach((p) => CLM.pick.add(p)); }
+          else if (CLM.pick.has(x.path)) CLM.pick.delete(x.path); else CLM.pick.add(x.path);
+          CLM.last = x.path; renderClipsPage(); return;
+        }
+        CL.sel = x.path; CL.confirm = null; renderClipsPage(); view.scrollTop = 0; window.scrollTo(0, 0); } },
+      h('div', { class: 'clb-thumb' }, CLM.on ? h('span', { class: 'clm-check', 'aria-hidden': 'true' }, CLM.pick.has(x.path) ? '✓' : '') : null, h('video', { src: x.url + '#t=2', preload: 'metadata', muted: '', onmouseenter: (e) => { e.target.muted = true; e.target.play().catch(() => {}); }, onmouseleave: (e) => e.target.pause() }),
         x.meta && x.meta.auto ? h('span', { class: 'clb-auto' }, '⚡ Auto') : null,
         x.meta && x.meta.keep ? h('span', { class: 'clb-keep', title: 'Gardé' }, '⭐') : (c.keepDays ?? 14) ? h('span', { class: 'clb-left', title: 'Supprimé tout seul s’il n’est pas gardé' }, '⏳ ' + clipLeft(x, c)) : null,
         x.meta && x.meta.champ ? h('span', { class: 'clb-champ-ico' }, champIcon(x.meta.champ, 26)) : null),
       h('b', null, clipTitle(x)), h('small', { class: 'muted' }, [when(x.t), x.meta && x.meta.mode].filter(Boolean).join(' · ')))))
       : h('div', { class: 'card' }, h('p', { class: 'muted' }, CL.list.length ? 'Aucun clip avec ce filtre.' : c.on ? `Aucun clip pour l’instant. Lance une game : ${c.auto !== false ? 'tes kills, assists et objectifs seront filmés tout seuls, et ' : ''}${keyTxt(vkeys().clip)} garde les ${c.seconds} dernières secondes.` : 'Active l’enregistrement continu ci-dessus pour que FIRE filme tes meilleurs moments.'));
-    view.replaceChildren(...[hero, tabs, cfg, player, filters, grid,
+    // Les clips supprimés entre-temps ne restent pas sélectionnés
+    for (const p of [...CLM.pick]) if (!CL.list.some((x) => x.path === p)) CLM.pick.delete(p);
+    view.replaceChildren(...[hero, tabs, cfg, player, filters, CLM.on ? clmBar(list) : null, grid,
       list.length > CLB.n ? h('div', { class: 'more-row' }, h('button', { class: 'btn-ghost', onclick: () => { CLB.n += 24; renderClipsPage(); } }, `Voir plus (${list.length - CLB.n})`)) : null].filter(Boolean));
   }
 
@@ -6249,8 +6456,9 @@
       seg(TL_REG, P.region, 'region'),
       seg([['all', 'Tous les rôles']].concat(TL_LANES), P.lane, 'lane'),
       h('div', { class: 'row tl-row' }, h('select', { class: 'inp tl-elo', onchange: (e) => set('elo', e.target.value) },
-          h('optgroup', { label: 'Un seul rang' }, TL_RANKS.map(([id, label]) => h('option', { value: id, selected: P.elo === id ? true : null }, label))),
-          h('optgroup', { label: 'Ce rang et au-dessus' }, TL_PLUS.map(([id, label]) => h('option', { value: id, selected: P.elo === id ? true : null }, label)))),
+          // Une seule liste dans l'ordre des rangs : « Or » puis « Or+ » juste en dessous, et ainsi de suite.
+          [['all', 'Tous les elos'], ...TL_RANKS.flatMap((r) => [r, ...TL_PLUS.filter(([id]) => id === r[0] + '_plus').map(([id, l]) => [id, l + ' (' + r[1].toLowerCase() + ' et au-dessus)'])])]
+            .map(([id, label]) => h('option', { value: id, selected: P.elo === id ? true : null }, label))),
         h('label', { class: 'tl-off' }, h('input', { type: 'checkbox', checked: P.off ? true : null, onchange: (e) => set('off', e.target.checked) }), 'Afficher les choix hors méta')));
     const D = TL.data;
     let body, trend = null;
@@ -6596,7 +6804,7 @@
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['accueil', '🏠', 'Accueil'], ['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
-      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips', cfUnseen() || null], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['apprendre', '🎓', 'Apprendre en jouant'], ['puzdraft', '🧩', 'Puzzles de draft', pzDue() ? '!' : null], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
+      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips', cfUnseen() || null], ['boutique', '🛍️', 'Boutique', shopNew() ? 'NEW' : null], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['apprendre', '🎓', 'Apprendre en jouant'], ['puzdraft', '🧩', 'Puzzles de draft', pzDue() ? '!' : null], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
       ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(annMine() ? [['annonces', '📢', 'Annonces']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', bugRepUnseen() ? String(bugRepUnseen()) : patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     if (MOBILE) { const keep = items.filter(([id]) => !MOBILE_OFF.has(id)); items.length = 0; items.push(...keep); }
@@ -8894,11 +9102,31 @@
         e.err ? h('span', { class: 'bad small' }, '⚠ ' + e.err) : null)].filter(Boolean));
   }
 
+  // Chaque lundi, la semaine des POOL passe toute seule à la suivante : elle reprend les tierlists et l'objectif
+  // de la semaine d'avant. Tout le monde la voit tout de suite ; le FIRE du coach l'enregistre pour de bon.
+  function poolsRoll(list) {
+    const real = (list || []).filter((w) => !w.auto);
+    const mon = mondayOf(todayYmd());
+    const last = real.filter((w) => w.debut <= mon).pop();
+    if (!last || last.debut >= mon || real.some((w) => w.debut === mon)) return real;
+    return real.concat([{ id: 'auto-' + mon, debut: mon, objectif: last.objectif, note: last.note || '', joueurs: JSON.parse(JSON.stringify(last.joueurs || {})), auto: true }]).sort((a, b) => a.debut.localeCompare(b.debut));
+  }
+  async function poolsAutoSave(r) {
+    const w = (S.pools || []).find((x) => x.auto);
+    if (!w || !(r && r.ok) || r.offline || !(S.coachState && S.coachState.coach) || S.poolAutoBusy) return;
+    S.poolAutoBusy = true;
+    try {
+      const q = await window.fire.coach.savePools({ type: 'save', semaine: { id: w.id, debut: w.debut, objectif: w.objectif, note: w.note, joueurs: w.joueurs } });
+      if (q && q.ok) { S.pools = poolsRoll(q.semaines); applyWeek(); actLog('pool', 'Nouvelle semaine des POOL créée toute seule'); if (S.section === 'pool' && !typing()) render(); }
+    } catch (e) { /* on réessaiera au prochain chargement */ }
+    S.poolAutoBusy = false;
+  }
   async function loadPools() {
     let r;
     try { r = await window.fire.pools(); } catch (e) { r = { ok: false, error: String(e) }; }
-    if (r && r.ok) { S.pools = r.semaines || []; S.bonus = r.bonus || {}; S.poolsErr = r.offline ? 'Hors ligne : derniers pools enregistrés.' : ''; }
-    else { S.pools = S.pools || []; S.poolsErr = (r && r.error) || 'pools indisponibles'; }
+    if (r && r.ok) { S.pools = poolsRoll(r.semaines || []); S.bonus = r.bonus || {}; S.poolsErr = r.offline ? 'Hors ligne : derniers pools enregistrés.' : ''; }
+    else { S.pools = poolsRoll((S.pools || []).filter((w) => !w.auto)); S.poolsErr = (r && r.error) || 'pools indisponibles'; }
+    poolsAutoSave(r);
     S.poolWrite = !!(r && r.peutEcrire);
     applyWeek();
     if (typing()) return;
@@ -9332,7 +9560,7 @@
   function avatarEl(slug, cls) {
     const d = decoOf(slug);
     const pet = petOf(slug);
-    return h('span', { class: 'vc-av ' + (cls || '') + (d ? ' dk dk-' + d : ''), title: vocalName(slug) }, ini(slug), d === 'couronne' ? h('i', { class: 'dk-top' }, '👑') : d === 'coeurs' ? h('i', { class: 'dk-top' }, '💞') : d === 'eclair' ? h('i', { class: 'dk-top' }, '⚡') : null, pet ? petEl(pet, 'pet-av') : null);
+    return h('span', { class: 'vc-av ' + (cls || '') + (d ? ' dk dk-' + d : ''), title: vocalName(slug) }, ini(slug), decoExtra(d), pet ? petEl(pet, 'pet-av') : null);
   }
   function chatWhoIco(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 '; const p = S.players.find((x) => x.slug === slug); return p ? roleOf(p).ico + ' ' : ''; }
   function chatWho(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 ' + vocalName(slug); const p = S.players.find((x) => x.slug === slug); return (p ? roleOf(p).ico + ' ' : '') + vocalName(slug); }
@@ -9505,12 +9733,12 @@
     try {
       if (!FV() || !FV().statusSend || !vocalMe()) return;
       if (UX.status === 'invisible') { FV().statusSend(null); return; }
-      FV().statusSend({ st: UX.status, game: !!(LIVE.mine), bio: UX.bio || '', color: UX.color || '', banner: UX.banner || null, dm: UX.dm || 'all', games: UX.games || [], look: UX.look || null });
+      FV().statusSend({ st: UX.status, game: !!(LIVE.mine), nom: UX.nom || '', bio: UX.bio || '', color: UX.color || '', banner: UX.banner || null, dm: UX.dm || 'all', games: UX.games || [], look: UX.look || null });
     } catch (e) { /* hall pas prêt */ }
   }
   const ST_CACHE = { at: 0, st: {}, prof: {} };
   function statusOf(slug) {
-    if (slug === vocalMe()) return { st: UX.status === 'invisible' ? 'invisible' : UX.status, game: !!LIVE.mine, bio: UX.bio, color: UX.color, banner: UX.banner, dm: UX.dm, games: UX.games || [], look: UX.look || null };
+    if (slug === vocalMe()) return { st: UX.status === 'invisible' ? 'invisible' : UX.status, game: !!LIVE.mine, nom: UX.nom || '', bio: UX.bio, color: UX.color, banner: UX.banner, dm: UX.dm, games: UX.games || [], look: UX.look || null };
     // Lus au plus deux fois par seconde (FV().state() et le stockage local coûtent cher appelés pour chaque nom).
     if (!ST_CACHE.at || Date.now() - ST_CACHE.at > 500) { let st = {}; try { st = (FV() && FV().state().statuses) || {}; } catch (e) { /* */ } ST_CACHE.st = st; ST_CACHE.prof = load('fire.profiles', {}) || {}; ST_CACHE.at = Date.now(); }
     const live = ST_CACHE.st[slug] || null;
@@ -9524,7 +9752,7 @@
       if (!Object.keys(st).length) return;
       const all = load('fire.profiles', {}) || {};
       let ch = false;
-      for (const [k, x] of Object.entries(st)) { const v = { bio: x.bio || '', color: x.color || '', banner: x.banner || null, dm: x.dm || 'all', games: x.games || [], look: x.look || null }; if (JSON.stringify(all[k]) !== JSON.stringify(v)) { all[k] = v; ch = true; } }
+      for (const [k, x] of Object.entries(st)) { const v = { nom: x.nom || '', bio: x.bio || '', color: x.color || '', banner: x.banner || null, dm: x.dm || 'all', games: x.games || [], look: x.look || null }; if (JSON.stringify(all[k]) !== JSON.stringify(v)) { all[k] = v; ch = true; } }
       if (ch) save('fire.profiles', all);
     } catch (e) { /* */ }
   }
@@ -9582,11 +9810,12 @@
     const games = (x.games || []).filter(Boolean);
     const box = h('div', { class: 'prof-pop', onclick: (e) => { if (e.target === box) close(); } },
       h('div', { class: 'prof-card pf-wide' + ((x.look || {}).card ? ' pf-themed' : ''), style: (x.look || {}).card ? `--pc1:${x.look.card[0]};--pc2:${x.look.card[1]}` : '' },
-        (x.look || {}).pfx ? h('div', { class: 'pfx pfx-' + x.look.pfx, 'aria-hidden': 'true' }) : null,
-        h('div', { class: 'prof-ban', style: banner ? `background-image:url('${banner}')` : '' }),
+        (x.look || {}).pfx ? pfxEl(x.look.pfx) : null,
+        h('div', { class: 'prof-ban', style: banner ? banStyle(x.banner) : '' }),
         h('div', { class: 'prof-av-wrap' }, avatarEl(slug, 'prof-av')),
         h('div', { class: 'prof-body' },
           h('div', { class: 'prof-name' + (plateOf(slug) ? ' plate pl-' + plateOf(slug) : '') }, nameEl(slug), stDot(slug), roleBadge(slug)),
+          vocalName(slug) !== baseName(slug) ? h('small', { class: 'muted prof-aka' }, 'alias ' + baseName(slug)) : null,
           h('div', { class: 'muted small' }, (p ? (p.role || roleOf(p).label) + ' · ' : coachOf(slug) ? 'Coach · ' : '') + (x.game ? '🎮 En game' : (ST_LABEL[x.st] || ST_LABEL.offline).join(' '))),
           x.bio ? h('p', { class: 'prof-bio' }, x.bio) : null,
           games.length ? h('div', { class: 'pf-games' }, h('small', { class: 'muted' }, 'Ses jeux'), h('div', { class: 'pf-gl' }, games.map((g) => h('span', { class: 'pf-g' }, gameIco(g) + ' ' + g)))) : null,
@@ -9596,7 +9825,7 @@
             canDm ? h('button', { class: 'btn-fire small-btn', onclick: () => { close(); CH.conv = slug; go('chat'); } }, '💬 Message privé') : slug !== me ? h('span', { class: 'muted small' }, '🔒 Ne reçoit pas de messages privés') : null,
             p ? h('button', { class: 'btn-ghost', onclick: () => { close(); go('stats'); openPlayer(slug); } }, '📊 Toutes ses stats') : null,
             slug === me ? h('button', { class: 'btn-ghost', onclick: () => { close(); S.setTab = 'profil'; S.setSub = 'carte'; go('settings'); } }, '✏️ Modifier mon profil') : null,
-            slug === me ? h('button', { class: 'btn-ghost', onclick: () => { close(); S.setTab = 'boutique'; go('settings'); } }, '🛍️ Boutique') : null,
+            slug === me ? h('button', { class: 'btn-ghost', onclick: () => { close(); go('boutique'); } }, '🛍️ Boutique') : null,
             h('button', { class: 'btn-ghost', onclick: close }, 'Fermer')))));
     document.body.append(box);
   }
@@ -9804,6 +10033,17 @@
     } else ANN.err = 'Non envoyée : ' + ((r && r.error) || 'erreur');
     render();
   }
+  // ===== Boutique : sa propre rubrique (menu de gauche et Accueil) =====
+  // Version de la boutique : le badge « NEW » revient quand on y ajoute des objets.
+  function shopNew() { return (load('fire.shop.vu', 0) || 0) < 2; }
+  function renderBoutique() {
+    if (shopNew()) { save('fire.shop.vu', 2); setTimeout(() => { try { renderNav(); } catch (e) { /* */ } }, 0); }
+    const view = $('view');
+    const hero = h('header', { class: 'acc-hero shop-hero' },
+      h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE LoL · tout est gratuit'), h('h1', null, '🛍️ Boutique FIRE'),
+        h('p', { class: 'muted' }, 'Effets de profil, décorations d’avatar, pseudos animés, packs complets… Survole pour essayer, clique pour équiper.')));
+    view.replaceChildren(hero, h('div', { class: 'shop-page' }, ...shopCards()));
+  }
   function renderAnnonces() {
     const view = $('view');
     const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📢'), h('div', null, h('h1', { class: 'title' }, 'Annonces'),
@@ -9894,7 +10134,7 @@
   // Version téléphone : pas ce qui lit le jeu, le client LoL ou l'écran du PC.
   const MOBILE = !!window.FIRE_MOBILE;
   const MOBILE_OFF = new Set(['train', 'clips', 'parties', 'reunion', 'lolpatch', 'web']);
-  const SUB_OK = new Set(['accueil', 'stats', 'planning', 'jeux', 'puzzle', 'stream', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);
+  const SUB_OK = new Set(['boutique', 'accueil', 'stats', 'planning', 'jeux', 'puzzle', 'stream', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);
   const roomOk = (r) => (!SUB() || (r && r.id !== 'coaching' && !r.staff)) && salonOk(r);
   const subSlugs = () => S.players.filter((p) => p.slug && isSub(p)).map((p) => p.slug);
   function subInit() {

@@ -96,7 +96,7 @@ def render(deck, s, i, skin, src, ico, tot):
     if k == 'wave':
         col = s['color']
         head = (f'<div style="display:flex;gap:28px;align-items:center"><p style="font-size:110px;line-height:1">{s["emo"]}</p>'
-                f'<div style="display:flex;flex-direction:column;gap:6px">{kicker("Carte de vague", col)}'
+                f'<div style="display:flex;flex-direction:column;gap:6px">{kicker("Carte de wave", col)}'
                 f'<h2 style="{OS};font-size:96px;font-weight:700;line-height:1;color:#f3eee2">{E(s["term"])}</h2></div></div>')
         d = para(s['defn'], 40, 1600, '#ffd38a')
         c1 = box(h3('✅ Forces · quand', GREEN, 38) + '\n' + '\n'.join(line(x, 31) for x in s['forces']), color=GREEN, pad=28)
@@ -293,7 +293,7 @@ def minimap(m, ico, size=600):
 
 
 def lanediag(s, ico, w=980, h=520):
-    """Une lane vue de côté : ta tour à gauche, sa tour à droite, buissons, sbires, champions."""
+    """Une lane vue de côté : ta tour à gauche, sa tour à droite, bush, sbires, champions."""
     X = lambda v: v / 100 * w
     Y = lambda v: v / 100 * h
     g = [f'<rect x="0" y="0" width="{w}" height="{h}" rx="22" fill="#0e1a14" stroke="#d4ab4f" stroke-width="3"/>',
@@ -302,7 +302,7 @@ def lanediag(s, ico, w=980, h=520):
     for bx, top in s.get('bushes', []):
         y = Y(14) if top else Y(80)
         g.append(f'<ellipse cx="{X(bx):.0f}" cy="{y:.0f}" rx="{w*0.11:.0f}" ry="{Y(11):.0f}" fill="#2f7d3a" stroke="#5fd39a" stroke-width="3"/>'
-                 f'<text x="{X(bx)+w*0.06:.0f}" y="{y+Y(9):.0f}" font-size="24" font-family="Rubik" font-weight="700" fill="#d8ffd8" text-anchor="middle">buisson</text>')
+                 f'<text x="{X(bx)+w*0.06:.0f}" y="{y+Y(9):.0f}" font-size="24" font-family="Rubik" font-weight="700" fill="#d8ffd8" text-anchor="middle">bush</text>')
     for x, lab, col in ((5, 'ta tour', '#9cc7ff'), (95, 'sa tour', '#ff9c9c')):
         g.append(f'<text x="{X(x):.0f}" y="{Y(57):.0f}" font-size="64" text-anchor="middle">🗼</text>'
                  f'<text x="{X(x):.0f}" y="{Y(72):.0f}" font-size="24" font-family="Rubik" font-weight="700" fill="{col}" text-anchor="middle">{lab}</text>')

@@ -984,6 +984,9 @@ ipcMain.handle('salons:save', (e, d) => coach.salonsSave(d || {}));
 // Fond d'écran vidéo : le fichier choisi par le joueur est copié dans le dossier de FIRE (rien n'est envoyé en ligne).
 const bgVidDir = () => app.getPath('userData');
 const bgVidFile = () => { try { const f = fs.readdirSync(bgVidDir()).find((x) => /^fond-video\.(mp4|webm|mov|m4v)$/i.test(x)); return f ? path.join(bgVidDir(), f) : null; } catch (e) { return null; } };
+// Position du champion dans chaque splash (tools/splash_focus.py) : pour cadrer les bannières de profil sur le visage.
+let SPLASH_FOCUS = null;
+ipcMain.handle('splash:focus', () => { if (!SPLASH_FOCUS) { try { SPLASH_FOCUS = require('./splash.json').skins || {}; } catch (e) { SPLASH_FOCUS = {}; } } return SPLASH_FOCUS; });
 ipcMain.handle('bgvid:get', () => { const f = bgVidFile(); return f ? require('url').pathToFileURL(f).href + '?v=' + Math.round(fs.statSync(f).mtimeMs) : null; });
 ipcMain.handle('bgvid:set', (e, data, ext) => {
   ext = String(ext || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '');

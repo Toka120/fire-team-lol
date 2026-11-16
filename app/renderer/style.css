@@ -1686,6 +1686,9 @@ html[data-theme=futur]   { --bg:#050b12; --panel:#0a1622; --panel2:#0f2131; --li
 html[data-theme=hextech] { --bg:#010a13; --panel:#0a1428; --panel2:#0f1d36; --line:#1e2d4a; --muted:#a09b8c; --fire1:#c8aa6e; --fire2:#c8aa6e; --fire3:#0ac8b9; --glow:rgba(200,170,110,.3); --bar:rgba(1,10,19,.9); }
 html[data-theme=cafe]    { --bg:#1a130e; --panel:#241a13; --panel2:#2f2219; --line:#4a3626; --muted:#c9b29a; --fire1:#e0a96d; --fire2:#d4884a; --fire3:#a8653a; --glow:rgba(224,169,109,.28); --bar:rgba(26,19,14,.9); }
 html[data-theme=bagarre] { --bg:#0d0505; --panel:#1a0909; --panel2:#250d0d; --line:#4a1515; --muted:#d9a99f; --fire1:#ff3b1f; --fire2:#ff3b1f; --fire3:#ffc21f; --glow:rgba(255,59,31,.35); --bar:rgba(13,5,5,.9); }
+html[data-theme=hantee] { --bg:#020805; --panel:#06110a; --panel2:#0a1a10; --line:#18301e; --muted:#8fae94; --fire1:#7dff6a; --fire2:#7dff6a; --fire3:#3a6b40; --glow:rgba(125,255,106,.2); --bar:rgba(2,8,5,.92); }
+html[data-theme=tenebres] { --bg:#050303; --panel:#0c0606; --panel2:#130909; --line:#2a1212; --muted:#a88f8f; --fire1:#ff2a2a; --fire2:#ff2a2a; --fire3:#7a0d0d; --glow:rgba(255,42,42,.2); --bar:rgba(5,3,3,.92); }
+html[data-theme=abime] { --bg:#030208; --panel:#08060f; --panel2:#0d0a18; --line:#1d1830; --muted:#958dad; --fire1:#9d7bff; --fire2:#9d7bff; --fire3:#3a2a6b; --glow:rgba(157,123,255,.2); --bar:rgba(3,2,8,.92); }
 html[data-theme=aurore] { --bg:#03101a; --panel:#071c28; --panel2:#0b2634; --line:#1d4a52; --muted:#9cc9c2; --fire1:#2effaa; --fire2:#2effaa; --fire3:#b06eff; --glow:rgba(46,255,170,.25); --bar:rgba(3,16,26,.9); }
 html[data-theme=nuit] { --bg:#070b1c; --panel:#0d1430; --panel2:#131c3e; --line:#26325e; --muted:#a9b2d6; --fire1:#ffe7a3; --fire2:#ffe7a3; --fire3:#7aa2ff; --glow:rgba(255,231,163,.25); --bar:rgba(7,11,28,.9); }
 html[data-theme=orage] { --bg:#070a10; --panel:#0e131c; --panel2:#141b27; --line:#2a3546; --muted:#9aa8bb; --fire1:#9fc0ff; --fire2:#9fc0ff; --fire3:#e6edf7; --glow:rgba(159,192,255,.25); --bar:rgba(7,10,16,.9); }
@@ -3126,3 +3129,93 @@ html[data-calm] .pet{animation:none}
 .shop-vt{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:12px;background:#000c;max-width:260px}
 .vc-av.shop-vt-av{width:48px;height:48px;font-size:15px}
 .shop-vt-n{font-weight:700}
+
+/* ===== Pack sombre : effets de profil ===== */
+.pf-eye{position:absolute;width:56px;transform:scale(var(--sc,1));transform-origin:center;filter:drop-shadow(0 0 6px var(--c,#7dff6a));opacity:1;animation:pfEyes 7s ease-in-out infinite}
+.pf-eye svg{width:100%;height:auto;display:block;animation:pfBlink 7s infinite;animation-delay:inherit;transform-origin:50% 50%}
+.pf-eye.big{width:64px;opacity:1;animation:pfGrinFade 9s ease-in-out infinite}
+.pf-eye.big svg{animation:pfBlink 4.5s infinite}
+@keyframes pfEyes{0%,8%{opacity:0}16%,70%{opacity:1}80%,100%{opacity:0}}
+@keyframes pfBlink{0%,40%,46%,100%{transform:scaleY(1)}43%{transform:scaleY(.06)}}
+.pf-grin{position:absolute;left:18%;right:18%;top:52%;filter:drop-shadow(0 0 8px #9dffb0);opacity:.95;animation:pfGrinFade 9s ease-in-out infinite}
+.pf-grin svg{width:100%;height:auto;display:block}
+@keyframes pfGrinFade{0%,10%{opacity:0;transform:scale(.92)}25%,75%{opacity:.95;transform:none}90%,100%{opacity:0;transform:scale(1.04)}}
+.pf-bat{position:absolute;width:46px;transform:scale(var(--sc,1));animation:pfBat 7s linear infinite}
+.pf-bat svg{width:100%;height:auto;display:block;filter:drop-shadow(0 0 4px rgb(255 60 80 / 70%));animation:pfFlap .28s ease-in-out infinite alternate}
+@keyframes pfBat{0%{left:-60px;margin-top:0}25%{margin-top:-14px}50%{margin-top:6px}75%{margin-top:-10px}100%{left:110%;margin-top:0}}
+@keyframes pfFlap{to{transform:scaleY(.55)}}
+.pf-tendril{position:absolute;bottom:-10px;width:34px;height:70%;transform-origin:50% 100%;animation:pfSway 4.5s ease-in-out infinite alternate;filter:blur(.6px)}
+.pf-tendril svg{width:100%;height:100%;display:block}
+@keyframes pfSway{from{transform:rotate(-7deg) scaleY(.85)}to{transform:rotate(7deg) scaleY(1.05)}}
+.pfx-brume::before,.pfx-brume::after{content:'';position:absolute;inset:0 -50%;background:radial-gradient(40% 30% at 30% 70%,rgb(200 210 220 / 22%),transparent 70%),radial-gradient(35% 25% at 70% 85%,rgb(200 210 220 / 18%),transparent 70%),radial-gradient(30% 20% at 50% 40%,rgb(200 210 220 / 10%),transparent 70%);animation:pfFog 14s ease-in-out infinite alternate;filter:blur(6px)}
+.pfx-brume::after{animation-duration:20s;animation-direction:alternate-reverse;opacity:.8}
+@keyframes pfFog{from{transform:translateX(-12%)}to{transform:translateX(12%)}}
+.pf-web{position:absolute;top:0;width:90px}
+.pf-web svg{width:100%;height:auto;display:block}
+.pf-web.tl{left:0}.pf-web.tr{right:0;transform:scaleX(-1)}
+.pf-spider{position:absolute;right:22%;top:0;width:18px;animation:pfSpider 6s ease-in-out infinite}
+.pf-spider::before{content:'';position:absolute;left:50%;bottom:100%;width:1px;height:400px;background:rgb(220 220 230 / 45%)}
+.pf-spider svg{width:100%;height:auto;display:block}
+@keyframes pfSpider{0%,100%{transform:translateY(-10px)}50%{transform:translateY(90px)}}
+.shop-pfx .pf-eye{width:32px}.shop-pfx .pf-bat{width:26px}.shop-pfx .pf-web{width:46px}
+
+/* ===== Décorations sombres ===== */
+.dk-halo::before{background:conic-gradient(#000,#2a1840,#000,#140820,#000);box-shadow:0 0 16px 4px rgb(0 0 0 / 85%),0 0 22px rgb(120 80 200 / 55%);animation:dkSpin 6s linear infinite}
+.dk-epines::before{inset:-8px!important;background:repeating-conic-gradient(#0a0a0a 0 6deg,transparent 6deg 15deg);-webkit-mask:radial-gradient(circle,transparent 58%,#000 59%);mask:radial-gradient(circle,transparent 58%,#000 59%);filter:drop-shadow(0 0 4px #ff3b3b);animation:dkSpin 18s linear infinite}
+.dk-ailes::before{background:conic-gradient(#1b1528,#6b5aa0,#1b1528);box-shadow:0 0 12px rgb(107 90 160 / 60%)}
+.dk-cornes::before{background:conic-gradient(#2a0a0a,#ff4d4d,#2a0a0a);box-shadow:0 0 12px rgb(255 77 77 / 50%)}
+.dk-wings{position:absolute;left:-75%;top:-40%;width:250%;z-index:-2;pointer-events:none;animation:dkWing 3s ease-in-out infinite;filter:drop-shadow(0 4px 8px rgb(0 0 0 / 60%))}
+.dk-wings svg,.dk-horns svg{width:100%;height:auto;display:block}
+@keyframes dkWing{50%{transform:translateY(-3px) scaleX(1.04)}}
+.dk-horns{position:absolute;left:0;top:-32%;width:100%;z-index:2;pointer-events:none;filter:drop-shadow(0 0 4px rgb(255 77 77 / 60%))}
+
+/* ===== Pseudo sombre ===== */
+.nm-spectre{color:#d9ffe0!important;-webkit-text-fill-color:#d9ffe0;text-shadow:0 0 6px #7dff9a,0 0 16px #2aff7a;animation:nmSpectre 3.2s ease-in-out infinite}
+@keyframes nmSpectre{0%,100%{opacity:1}45%{opacity:.75}47%{opacity:.35}49%{opacity:.9}60%{opacity:.6}}
+.nm-sang{background:linear-gradient(180deg,#ff4d4d 0%,#a80000 60%,#3a0000 100%) 0 0/100% 160%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 2px rgb(120 0 0 / 70%));animation:nmSang 3s ease-in-out infinite alternate}
+@keyframes nmSang{to{background-position:0 100%}}
+
+/* ===== Plaques et packs sombres ===== */
+.pl-abime{background:radial-gradient(120% 140% at 0% 50%,rgb(60 30 110 / 55%),transparent 60%),linear-gradient(90deg,#000 0%,rgb(0 0 0 / 50%) 60%,transparent)!important}
+.pl-hantee{background:radial-gradient(5px 3px at 20% 50%,#7dff6a,transparent),radial-gradient(5px 3px at 26% 50%,#7dff6a,transparent),linear-gradient(90deg,rgb(6 30 14 / 90%),rgb(0 0 0 / 60%),transparent)!important}
+.pl-sangp{background:linear-gradient(90deg,rgb(120 0 10 / 70%),rgb(30 0 0 / 50%),transparent)!important}
+.shop-packprev{height:96px;background:linear-gradient(160deg,var(--panel2),var(--panel))}
+.shop-packprev.pf-themed{background:linear-gradient(160deg,var(--pc1),var(--pc2))}
+.shop-pack{grid-column:span 1}
+html[data-calm] .pf-eye,html[data-calm] .pf-eye svg,html[data-calm] .pf-grin,html[data-calm] .pf-bat,html[data-calm] .pf-tendril,html[data-calm] .dk-wings{animation:none!important;opacity:1}
+
+/* Carte sombre : la bannière suit la couleur de la carte au lieu de l’accent vif */
+.prof-card.pf-themed .prof-ban:not([style*=url]){background:radial-gradient(120% 140% at 85% 0%,color-mix(in srgb,var(--pc1) 55%,var(--fire1) 45%),transparent 60%),linear-gradient(135deg,color-mix(in srgb,var(--pc1) 80%,#fff 6%),var(--pc2))}
+.prof-aka{display:block;margin-top:-2px;font-size:11.5px;opacity:.75}
+.shop-page{display:flex;flex-direction:column;gap:14px;position:relative}
+.shop-hero{margin-bottom:14px}
+.acc-shop .acc-wm{margin-bottom:6px}
+.acc-shop-prev{position:relative;overflow:hidden;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:linear-gradient(160deg,var(--panel2),var(--panel));min-height:58px}
+.acc-shop-prev.pf-themed{background:linear-gradient(160deg,var(--pc1),var(--pc2))}
+.acc-shop-prev .vc-av{width:38px;height:38px;font-size:13px;position:relative;z-index:1}
+.acc-shop-prev .nm{position:relative;z-index:4;font-weight:700}
+.acc-shop-prev .pfx{left:auto;width:48%}
+.acc-shop-prev .pf-eye{width:26px}.acc-shop-prev .pf-eye.big{width:30px;top:8%!important}
+.acc-shop-prev .pf-grin{top:44%}
+.shop-packprev .pf-eye.big,.shop-pfx .pf-eye.big{width:34px}
+.promo-dark .promo-ban{background:radial-gradient(90% 120% at 80% 0%,rgb(40 90 50 / 55%),transparent 60%),linear-gradient(160deg,#06120a,#000)!important}
+.promo-dark{box-shadow:0 0 60px rgb(125 255 106 / 18%),0 20px 60px rgb(0 0 0 / 70%)}
+.promo-dark .prof-av-wrap{overflow:visible}
+.clm-go{margin-left:auto}
+.clm-bar{position:sticky;top:8px;z-index:20;display:flex;flex-direction:column;gap:8px;border-color:color-mix(in srgb,var(--fire1) 45%,transparent);box-shadow:0 10px 30px rgb(0 0 0 / 45%)}
+.clm-bar .row{flex-wrap:wrap;gap:8px;align-items:center}
+.clm-del.on{background:var(--bad,#ef5a5a);color:#fff;border-color:transparent}
+.clb-card.picking .clb-thumb{position:relative}
+.clm-check{position:absolute;left:8px;bottom:8px;z-index:3;width:24px;height:24px;border-radius:7px;border:2px solid #fff;background:rgb(0 0 0 / 55%);display:grid;place-items:center;font-weight:800;color:#fff;box-shadow:0 2px 6px rgb(0 0 0 / 50%)}
+.clb-card.picked{border-color:var(--fire1);box-shadow:0 0 0 2px var(--fire1)}
+.clb-card.picked .clm-check{background:var(--fire1);border-color:var(--fire1);color:#111}
+.clb-card.picked .clb-thumb video{opacity:.75}
+.bug-who{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:4px 0 8px}
+.bug-who .bug-nom{max-width:220px}
+.bug-anon{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.bug-who small{flex-basis:100%}
+/* Bannière de skin : les splash arts de LoL ont le visage dans le tiers haut de l'image. On cadre plus haut
+   (au lieu du centre) pour que le visage tombe au milieu de la bannière, et la bannière est un peu plus haute. */
+.prof-ban[style*=url]{background-position:50% 22%;background-size:cover!important}
+.prof-card:not(.pf-mini) .prof-ban[style*=url]{height:150px}
+.sp-fl { display: flex; flex-direction: column; gap: 4px; }

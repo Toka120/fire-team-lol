@@ -1,6 +1,69 @@
 {
  "versions": [
   {
+   "v": "1.10.147",
+   "date": "2026-11-16",
+   "titre": "Packs sombres, Boutique dans le menu, changer de nom, clips en lot",
+   "items": [
+    [
+     "new",
+     "🛍️ La Boutique a sa propre rubrique dans le menu de gauche (Social › Boutique) et un bloc sur l’Accueil avec ton style actuel. Elle n’est plus dans les Paramètres."
+    ],
+    [
+     "new",
+     "🎁 Packs : tout un style en un clic (effet de profil, décoration, pseudo, plaque, carte, compagnon). Packs sombres : 👁️ Cauchemar (des yeux qui s’ouvrent dans le noir, ailes sombres), 😁 Le Sourire (un grand sourire qui flotte dans l’ombre), 🩸 Lune de sang (cornes et chauves-souris), 🌑 Abîme, 🕸️ Manoir. Et aussi Printemps, Brasier et Hiver."
+    ],
+    [
+     "new",
+     "Nouveaux objets sombres : effets de profil Regards, Sourire, Chauves-souris, Ombres, Brume et Toiles ; décorations Ailes sombres, Cornes, Halo noir et Épines ; pseudos Spectre et Sang ; plaques Abîme, Forêt hantée et Lune de sang ; cartes Ténèbres, Sang, Forêt hantée et Abîme."
+    ],
+    [
+     "new",
+     "3 thèmes très sombres, animés : Forêt hantée (des yeux s’ouvrent dans la brume), Ténèbres (noir et braises rouges) et Abîme (noir violet, poussière qui flotte)."
+    ],
+    [
+     "new",
+     "✏️ Tu peux changer ton nom dans FIRE (Paramètres › Profil › Carte de profil) : toute l’équipe le voit dans la discussion, le vocal et ta carte (« alias » rappelle ton pseudo). Impossible de prendre le nom d’un autre membre. Ton compte LoL et tes stats ne changent pas."
+    ],
+    [
+     "new",
+     "🎬 Clips : sélectionne plusieurs clips (« ☑ Sélectionner », Ctrl + clic, Maj + clic pour une plage) pour les supprimer, les garder ou les publier d’un coup dans « Clips de l’équipe »."
+    ],
+    [
+     "new",
+     "🐞 Rapports de bug : ton nom est affiché (le staff peut te répondre et tu reçois la notification). Coche « Rester anonyme » si tu préfères."
+    ],
+    [
+     "new",
+     "POOL : chaque lundi, la nouvelle semaine se crée toute seule et reprend les tierlists et l’objectif de la semaine d’avant."
+    ],
+    [
+     "fix",
+     "Vocabulaire de LoL : le Parcours, le Puzzle du jour, Lanes et principes et les carnets disent back, wave, lane, push, drake, soul, Herald, scuttle, ward, dive, fight, item, ult… au lieu des traductions (rentrer, vague, voie, pousser, dragon, balise…). Les nouvelles situations créées par l’IA suivent la même règle."
+    ],
+    [
+     "fix",
+     "Puzzle du jour : bouton « ← Retour » (ou Échap) pour quitter un puzzle sans répondre, et revenir dans la rubrique ramène à la liste au lieu de rester bloqué sur le même puzzle."
+    ],
+    [
+     "fix",
+     "Bannière de profil : l’image est cadrée sur le champion de chaque skin (son visage n’est plus coupé en haut), et la bannière est un peu plus haute."
+    ],
+    [
+     "fix",
+     "Parties en direct : le tableau ne clignote plus à chaque mise à jour (les lignes du fil de la partie gardent leurs images), et le bouton « Regarder … en spectateur » utilise le nom du compte en jeu (Seuf93)."
+    ],
+    [
+     "fix",
+     "Tier list : le choix d’élo est une seule liste dans l’ordre (Or, puis Or+, Platine, Platine+…) au lieu de deux catégories séparées."
+    ],
+    [
+     "new",
+     "La présentation animée de la boutique montre les nouveaux packs sombres (elle s’affiche une fois pour tout le monde)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.146",
    "date": "2026-11-16",
    "titre": "Voix plus naturelle, présentation de la boutique, compagnons",

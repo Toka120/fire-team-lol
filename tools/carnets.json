@@ -1,7 +1,7 @@
 {
  "jungle": {
   "titre": "Le carnet du jungler · Toks42o",
-  "resume": "Les notes du coach pour Toks42o : ta classe, ton départ, le carapateur, les ganks, en mode quête.",
+  "resume": "Les notes du coach pour Toks42o : ta classe, ton départ, le scuttle, les ganks, en mode quête.",
   "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-jungle/",
   "slides": [
    {
@@ -78,7 +78,7 @@
    },
    {
     "img": "slide-19.jpg?v=9",
-    "titre": "Les 5 mots des vagues"
+    "titre": "Les 5 mots des waves"
    },
    {
     "img": "slide-20.jpg?v=9",
@@ -167,15 +167,15 @@
     "diff": "simple"
    },
    {
-    "q": "Tu veux le carapateur bot. Quelles prios tu regardes ?",
+    "q": "Tu veux le scuttle bot. Quelles prios tu regardes ?",
     "ch": [
      "Top + mid",
      "Mid + bot",
      "Seulement le bot"
     ],
     "good": 1,
-    "why": "Carapateur bot : prio mid et bot. Carapateur top : prio mid et top. Pas de prio : n'y va pas.",
-    "niveau": "Niveau 4 · Le carapateur",
+    "why": "Scuttle bot : prio mid et bot. Scuttle top : prio mid et top. Pas de prio : n'y va pas.",
+    "niveau": "Niveau 4 · Le scuttle",
     "diff": "simple"
    },
    {
@@ -194,7 +194,7 @@
     "q": "Le freeze, c'est…",
     "ch": [
      "La wave ne bouge plus, près d'une tour",
-     "Pousser la wave le plus vite possible",
+     "Push la wave le plus vite possible",
      "Annuler la wave au milieu"
     ],
     "good": 0,
@@ -209,7 +209,7 @@
      "Jamais"
     ],
     "good": 0,
-    "why": "Fast push seulement si tu peux crash. Sinon : back direct pour acheter tes objets.",
+    "why": "Fast push seulement si tu peux crash. Sinon : back direct pour acheter tes items.",
     "diff": "simple"
    },
    {
@@ -224,11 +224,11 @@
     "diff": "simple"
    },
    {
-    "q": "Un buisson sans vision, sans info. Qui le face check ?",
+    "q": "Un bush sans vision, sans info. Qui le face check ?",
     "ch": [
      "Les tanks, pas les squishies",
      "Toujours l'ADC",
-     "Personne ne va jamais dans un buisson"
+     "Personne ne va jamais dans un bush"
     ],
     "good": 0,
     "why": "Les tanks avancent et face check. Les squishies restent derrière.",
@@ -300,7 +300,7 @@
     "diff": "dur"
    },
    {
-    "q": "Tu veux le dragon. Ton bot n'a pas la prio, ton mid l'a.",
+    "q": "Tu veux le drake. Ton bot n'a pas la prio, ton mid l'a.",
     "ch": [
      "Je le lance seul tout de suite",
      "Je prépare : vision, attendre la prio bot ou jouer autre chose",
@@ -345,7 +345,7 @@
     "q": "Leur jungler a été vu au top à 3:20.",
     "ch": [
      "Il est forcément encore top",
-     "Il peut être au carapateur bot vers 3:50 : je préviens",
+     "Il peut être au scuttle bot vers 3:50 : je préviens",
      "Il est mort"
     ],
     "good": 1,
@@ -462,7 +462,7 @@
     "q": "Les larves arrivent. Ton top est en retard, ton mid sans prio, ton bot avec la prio.",
     "ch": [
      "Je force les larves",
-     "Je joue l'opposé avec la prio bot : dragon ou carapateur",
+     "Je joue l'opposé avec la prio bot : drake ou scuttle",
      "Je reste au milieu"
     ],
     "good": 1,
@@ -522,7 +522,7 @@
     "diff": "hardcore"
    },
    {
-    "q": "Late game : ton ADC n'a pas fini son objet, un camp est prêt sur son chemin.",
+    "q": "Late game : ton ADC n'a pas fini son item, un camp est prêt sur son chemin.",
     "ch": [
      "Je prends le camp",
      "Je le lui laisse : il a besoin de gold",
@@ -533,7 +533,7 @@
     "suite": {
      "q": "L'exception ?",
      "ch": [
-      "Si tu scales très fort ou qu'il te manque un objet clé",
+      "Si tu scales très fort ou qu'il te manque un item clé",
       "Jamais",
       "Toujours"
      ],
@@ -666,7 +666,7 @@
      "Je connais ma classe : ganker ou farmeur, monocible ou AOE",
      "Je choisis mon start : Blue ou Red",
      "Smite sur le Grump au bon moment, ward à l'opposé",
-     "Je regarde mes prios avant le carapateur",
+     "Je regarde mes prios avant le scuttle",
      "Je gank la bonne lane, je ne perds pas de temps",
      "Je laisse les ressources quand il faut"
     ],
@@ -681,7 +681,7 @@
      "5:10",
      "Leur top est avancé, sans flash",
      "Ton top freeze devant sa tour",
-     "Ton bot pousse sous leur tour"
+     "Ton bot push sous leur tour"
     ],
     "q": "Tu sors de ton blue. Où vas-tu ?",
     "ch": [
@@ -820,7 +820,7 @@
     ]
    },
    {
-    "titre": "Larves ou dragon ?",
+    "titre": "Larves ou drake ?",
     "contexte": [
      "8:00",
      "Ils sont aux larves avec la prio",
@@ -829,7 +829,7 @@
     "q": "Les deux objectifs sont en vie. Tu fais quoi ?",
     "ch": [
      "Je conteste les larves",
-     "Je prends le dragon avec mon bot",
+     "Je prends le drake avec mon bot",
      "Je farme"
     ],
     "good": 1,
@@ -1001,7 +1001,7 @@
  },
  "adc": {
   "titre": "Le carnet de l’ADC · The World",
-  "resume": "Les notes du coach pour The World : les 4 catégories, les fondamentaux, le trading, les vagues et la bot lane en duo, en mode quête.",
+  "resume": "Les notes du coach pour The World : les 4 catégories, les fondamentaux, le trading, les waves et la bot lane en duo, en mode quête.",
   "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-adc/",
   "slides": [
    {
@@ -1126,7 +1126,7 @@
    },
    {
     "img": "slide-31.jpg?v=9",
-    "titre": "Le plan de jeu vient des vagues"
+    "titre": "Le plan de jeu vient des waves"
    },
    {
     "img": "slide-32.jpg?v=9",
@@ -1295,7 +1295,7 @@
     ],
     "good": 1,
     "why": "Le bounce : ses sbires et sa wave tuent vite, il prend l'XP pendant que toi tu es encore sous ta tour.",
-    "niveau": "Niveau 6 · Les vagues",
+    "niveau": "Niveau 6 · Les waves",
     "diff": "simple"
    },
    {
@@ -1314,7 +1314,7 @@
     "q": "Le freeze, c'est…",
     "ch": [
      "La wave ne bouge plus, près d'une tour",
-     "Pousser la wave le plus vite possible",
+     "Push la wave le plus vite possible",
      "Annuler la wave au milieu"
     ],
     "good": 0,
@@ -1329,7 +1329,7 @@
      "Jamais"
     ],
     "good": 0,
-    "why": "Fast push seulement si tu peux crash. Sinon : back direct pour acheter tes objets.",
+    "why": "Fast push seulement si tu peux crash. Sinon : back direct pour acheter tes items.",
     "diff": "simple"
    },
    {
@@ -1344,11 +1344,11 @@
     "diff": "simple"
    },
    {
-    "q": "Un buisson sans vision, sans info. Qui le face check ?",
+    "q": "Un bush sans vision, sans info. Qui le face check ?",
     "ch": [
      "Les tanks, pas les squishies",
      "Toujours l'ADC",
-     "Personne ne va jamais dans un buisson"
+     "Personne ne va jamais dans un bush"
     ],
     "good": 0,
     "why": "Les tanks avancent et face check. Les squishies restent derrière.",
@@ -1420,7 +1420,7 @@
     "diff": "dur"
    },
    {
-    "q": "Un canon va mourir sous ta tour, ton support a une charge d'objet.",
+    "q": "Un canon va mourir sous ta tour, ton support a une charge d'item.",
     "ch": [
      "Je le laisse mourir",
      "Le support l'achève avec sa charge : je touche le gold du canon",
@@ -1441,14 +1441,14 @@
     "diff": "dur"
    },
    {
-    "q": "Fiddlesticks n'est plus visible depuis une minute, une escarmouche commence au mid.",
+    "q": "Fiddlesticks n'est plus visible depuis une minute, un skirmish commence au mid.",
     "ch": [
      "Je viens devant pour faire un maximum de dégâts",
      "Je reste à portée maximale, loin de sa zone probable",
      "Je ne viens jamais"
     ],
     "good": 1,
-    "why": "Contre Fiddlesticks, se rapprocher dans une escarmouche peut finir en one-shot.",
+    "why": "Contre Fiddlesticks, se rapprocher dans un skirmish peut finir en one-shot.",
     "suite": {
      "q": "Pourquoi rester loin ?",
      "ch": [
@@ -1624,7 +1624,7 @@
     "q": "Tu es 10/1 à 14 min.",
     "ch": [
      "Je farme pour arriver au late",
-     "On force les objectifs avec l'équipe : tours, dragon",
+     "On force les objectifs avec l'équipe : tours, drake",
      "Je joue seul en side"
     ],
     "good": 1,
@@ -2030,10 +2030,10 @@
     ]
    },
    {
-    "titre": "Ta position au dragon",
+    "titre": "Ta position au drake",
     "contexte": [
      "17:10",
-     "Ton équipe tape le dragon",
+     "Ton équipe tape le drake",
      "Ils arrivent par la rivière, côté mid"
     ],
     "q": "Où te places-tu ?",
@@ -2127,7 +2127,7 @@
  },
  "top": {
   "titre": "Le carnet du top · Formation TOPLANE",
-  "resume": "La formation complète de la toplane en 6 niveaux : comprendre son rôle, la phase de lane (trading, vagues, buissons, matchups), jouer avec les informations (tracking, weakside/strongside, cover), la tempo, le mid et late game (side lane, TP, objectifs) et le bilan.",
+  "resume": "La formation complète de la toplane en 6 niveaux : comprendre son rôle, la phase de lane (trading, waves, bush, matchups), jouer avec les informations (tracking, weakside/strongside, cover), la tempo, le mid et late game (side lane, TP, objectifs) et le bilan.",
   "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-top/",
   "slides": [
    {
@@ -2248,7 +2248,7 @@
    },
    {
     "img": "slide-30.jpg?v=9",
-    "titre": "Utilise les buissons de la lane"
+    "titre": "Utilise les bush de la lane"
    },
    {
     "img": "slide-31.jpg?v=9",
@@ -2352,11 +2352,11 @@
    },
    {
     "img": "slide-56.jpg?v=9",
-    "titre": "Jouer le 2e dragon avec la TP"
+    "titre": "Jouer le 2e drake avec la TP"
    },
    {
     "img": "slide-57.jpg?v=9",
-    "titre": "Le 2e dragon : ce que tu vérifies"
+    "titre": "Le 2e drake : ce que tu vérifies"
    },
    {
     "img": "slide-58.jpg?v=9",
@@ -2417,7 +2417,7 @@
   ],
   "quiz": [
    {
-    "q": "Tu joues un splitpusher qui a besoin de 2 objets, contre un range. Ton plan ?",
+    "q": "Tu joues un splitpusher qui a besoin de 2 items, contre un range. Ton plan ?",
     "ch": [
      "All-in niveau 1 pour gagner la lane",
      "Limiter les pertes, farmer, prendre l'XP et atteindre mes timings",
@@ -2453,9 +2453,9 @@
     "diff": "simple"
    },
    {
-    "q": "Le 2e dragon arrive. Ta wave n'est pas crash et ta TP est en recharge. Tu fais quoi ?",
+    "q": "Le 2e drake arrive. Ta wave n'est pas crash et ta TP est en recharge. Tu fais quoi ?",
     "ch": [
-     "Je pars au dragon en marchant tout de suite",
+     "Je pars au drake en marchant tout de suite",
      "Je joue ma lane, je crash, et je dis à mon équipe que je ne viens pas",
      "Je reste sans rien dire"
     ],
@@ -2492,7 +2492,7 @@
     "q": "Le freeze, c'est…",
     "ch": [
      "La wave ne bouge plus, près d'une tour",
-     "Pousser la wave le plus vite possible",
+     "Push la wave le plus vite possible",
      "Annuler la wave au milieu"
     ],
     "good": 0,
@@ -2507,7 +2507,7 @@
      "Jamais"
     ],
     "good": 0,
-    "why": "Fast push seulement si tu peux crash. Sinon : back direct pour acheter tes objets.",
+    "why": "Fast push seulement si tu peux crash. Sinon : back direct pour acheter tes items.",
     "diff": "simple"
    },
    {
@@ -2522,11 +2522,11 @@
     "diff": "simple"
    },
    {
-    "q": "Un buisson sans vision, sans info. Qui le face check ?",
+    "q": "Un bush sans vision, sans info. Qui le face check ?",
     "ch": [
      "Les tanks, pas les squishies",
      "Toujours l'ADC",
-     "Personne ne va jamais dans un buisson"
+     "Personne ne va jamais dans un bush"
     ],
     "good": 0,
     "why": "Les tanks avancent et face check. Les squishies restent derrière.",
@@ -2609,7 +2609,7 @@
     "suite": {
      "q": "Et si tu tues trop de sbires ?",
      "ch": [
-      "La wave pousse ou bounce : tu perds ton freeze",
+      "La wave push ou bounce : tu perds ton freeze",
       "Rien ne change",
       "Tu gagnes plus d'XP sans risque"
      ],
@@ -2619,7 +2619,7 @@
     "diff": "dur"
    },
    {
-    "q": "Leur jungler a été vu au top side à 3:15. Il est 3:40, tu es en avance et ta wave pousse vers lui.",
+    "q": "Leur jungler a été vu au top side à 3:15. Il est 3:40, tu es en avance et ta wave push vers lui.",
     "ch": [
      "Je push pour prendre une plaque",
      "Je ralentis et je respecte un gank possible",
@@ -2668,7 +2668,7 @@
      "Tu perds ta Téléportation"
     ],
     "good": 1,
-    "why": "Jusqu'au niveau 3, rester sur ta lane te rapporte plus : la quête te pousse à jouer le top.",
+    "why": "Jusqu'au niveau 3, rester sur ta lane te rapporte plus : la quête te push à jouer le top.",
     "diff": "dur"
    },
    {
@@ -2779,7 +2779,7 @@
     "suite": {
      "q": "Ce qu'il aurait fallu faire avant ?",
      "ch": [
-      "Poser et retirer la vision, pousser les waves",
+      "Poser et retirer la vision, push les waves",
       "Avoir plus de dégâts",
       "Attendre le prochain Baron"
      ],
@@ -2842,7 +2842,7 @@
     "suite": {
      "q": "Ce qu'on vérifie avant d'échanger ?",
      "ch": [
-      "Waveclear, risques de dive ou de 1v2, déplacements, objets",
+      "Waveclear, risques de dive ou de 1v2, déplacements, items",
       "La couleur des skins",
       "Rien"
      ],
@@ -2999,11 +2999,11 @@
   ],
   "scenarios": [
    {
-    "titre": "Wave qui pousse, jungler disparu",
+    "titre": "Wave qui push, jungler disparu",
     "contexte": [
      "4:10",
      "Leur Lee Sin vu à leur red à 3:50",
-     "Ta wave pousse vers leur tour"
+     "Ta wave push vers leur tour"
     ],
     "q": "Tu es avancé au milieu de ta lane. Que fais-tu ?",
     "ch": [
@@ -3080,16 +3080,16 @@
     }
    },
    {
-    "titre": "La TP pour le dragon",
+    "titre": "La TP pour le drake",
     "contexte": [
      "14:00",
      "Ta wave vient de crash sous leur tour",
      "TP prête",
      "Leur top est sur sa lane"
     ],
-    "q": "Ton équipe va combattre au dragon à 4 contre 4. Tu fais quoi ?",
+    "q": "Ton équipe va combattre au drake à 4 contre 4. Tu fais quoi ?",
     "ch": [
-     "Je TP sur une ward derrière le dragon",
+     "Je TP sur une ward derrière le drake",
      "J'y vais en marchant",
      "Je reste au top"
     ],
@@ -3206,16 +3206,16 @@
     "contexte": [
      "24:00",
      "Tu split top",
-     "Ton équipe est près du dragon"
+     "Ton équipe est près du drake"
     ],
-    "q": "Tu vois 4 ennemis arriver par leur jungle vers ta lane. Le dragon est en vie.",
+    "q": "Tu vois 4 ennemis arriver par leur jungle vers ta lane. Le drake est en vie.",
     "ch": [
      "Je reste me battre à 1 contre 4",
-     "Je recule, et mon équipe prend le dragon",
-     "Je TP au dragon tout de suite"
+     "Je recule, et mon équipe prend le drake",
+     "Je TP au drake tout de suite"
     ],
     "good": 1,
-    "why": "Ils sont 4 sur toi : ton équipe a le nombre au dragon. Tu les as attirés, c'est gagné si tu ne meurs pas.",
+    "why": "Ils sont 4 sur toi : ton équipe a le nombre au drake. Tu les as attirés, c'est gagné si tu ne meurs pas.",
     "champs": [
      [
       8,
@@ -3318,7 +3318,7 @@
      "q": "Le 5e ennemi est inconnu. Ça change quoi ?",
      "ch": [
       "Rien",
-      "Il peut être près du dragon : ton équipe vérifie avant de lancer",
+      "Il peut être près du drake : ton équipe vérifie avant de lancer",
       "Il est forcément sur toi"
      ],
      "good": 1,
@@ -3403,7 +3403,7 @@
  },
  "mid": {
   "titre": "Le carnet du mid · xena",
-  "resume": "Les notes du coach pour xena : le farm, le trading, les vagues, le swap et les fights, en mode quête.",
+  "resume": "Les notes du coach pour xena : le farm, le trading, les waves, le swap et les fights, en mode quête.",
   "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-mid/",
   "slides": [
    {
@@ -3625,14 +3625,14 @@
     ],
     "good": 1,
     "why": "Le bounce : ses sbires et sa wave tuent vite, il prend l'XP pendant que toi tu es encore sous ta tour.",
-    "niveau": "Niveau 4 · Les vagues",
+    "niveau": "Niveau 4 · Les waves",
     "diff": "simple"
    },
    {
     "q": "Le freeze, c'est…",
     "ch": [
      "La wave ne bouge plus, près d'une tour",
-     "Pousser la wave le plus vite possible",
+     "Push la wave le plus vite possible",
      "Annuler la wave au milieu"
     ],
     "good": 0,
@@ -3647,7 +3647,7 @@
      "Jamais"
     ],
     "good": 0,
-    "why": "Fast push seulement si tu peux crash. Sinon : back direct pour acheter tes objets.",
+    "why": "Fast push seulement si tu peux crash. Sinon : back direct pour acheter tes items.",
     "diff": "simple"
    },
    {
@@ -3662,11 +3662,11 @@
     "diff": "simple"
    },
    {
-    "q": "Un buisson sans vision, sans info. Qui le face check ?",
+    "q": "Un bush sans vision, sans info. Qui le face check ?",
     "ch": [
      "Les tanks, pas les squishies",
      "Toujours l'ADC",
-     "Personne ne va jamais dans un buisson"
+     "Personne ne va jamais dans un bush"
     ],
     "good": 0,
     "why": "Les tanks avancent et face check. Les squishies restent derrière.",
@@ -3720,7 +3720,7 @@
     "q": "Ta wave est crash sous sa tour, son jungler a été vu bot. Tu as la prio. Le meilleur choix ?",
     "ch": [
      "Rester au mid à attendre",
-     "Bouger : aider ton jungler, un carapateur, un roam",
+     "Bouger : aider ton jungler, un scuttle, un roam",
      "Back sans raison"
     ],
     "good": 1,
@@ -3759,19 +3759,19 @@
     "diff": "dur"
    },
    {
-    "q": "Le dragon apparaît dans 40 s, ta wave arrive au milieu de la lane. Tu joues un mage.",
+    "q": "Le drake apparaît dans 40 s, ta wave arrive au milieu de la lane. Tu joues un mage.",
     "ch": [
-     "Je pars au dragon tout de suite, je laisse la wave",
+     "Je pars au drake tout de suite, je laisse la wave",
      "Je push vite la wave, puis je pars avec la prio",
      "Je reste au mid"
     ],
     "good": 1,
     "why": "Push puis bouge : tu arrives avec la prio, lui doit prendre sa wave.",
     "suite": {
-     "q": "Ce que ta prio mid apporte au dragon :",
+     "q": "Ce que ta prio mid apporte au drake :",
      "ch": [
       "Tu arrives le premier, leur mid arrive en retard",
-      "Plus de dégâts sur le dragon",
+      "Plus de dégâts sur le drake",
       "Rien du tout"
      ],
      "good": 0,
@@ -3897,7 +3897,7 @@
     "diff": "dur"
    },
    {
-    "q": "Leur jungler est inconnu depuis 45 s, leur support a quitté le bot. Ta wave pousse vers eux.",
+    "q": "Leur jungler est inconnu depuis 45 s, leur support a quitté le bot. Ta wave push vers eux.",
     "ch": [
      "Je push au maximum pour la plaque",
      "Je ralentis, je reste à hauteur de ma ward, côté opposé à la menace",
@@ -4301,15 +4301,15 @@
     "fleches": []
    },
    {
-    "titre": "Le dragon dans 40 secondes",
+    "titre": "Le drake dans 40 secondes",
     "contexte": [
      "11:20",
-     "Dragon dans 0:40",
+     "Drake dans 0:40",
      "Ta wave arrive au milieu"
     ],
-    "q": "Ton équipe veut le dragon. Tu joues un mage.",
+    "q": "Ton équipe veut le drake. Tu joues un mage.",
     "ch": [
-     "Je pars tout de suite au dragon",
+     "Je pars tout de suite au drake",
      "Je push vite ma wave, puis je bouge avec la prio",
      "Je reste mid"
     ],
@@ -4359,7 +4359,7 @@
       67,
       70,
       "🐉",
-      "dragon 0:40"
+      "drake 0:40"
      ]
     ],
     "fleches": [
@@ -4384,7 +4384,7 @@
     "contexte": [
      "3:15",
      "Ton jungler veut voler leur red",
-     "Leur mid pousse sa wave sous ta tour"
+     "Leur mid push sa wave sous ta tour"
     ],
     "q": "Tu y vas avec lui ?",
     "ch": [
@@ -4449,7 +4449,7 @@
  },
  "support": {
   "titre": "Le carnet du support · Formation SUPPORT",
-  "resume": "La formation complète du support en 6 niveaux : le rôle et les familles de supports, la botlane (buissons, triangle, objet support, plaques), la vision, les déplacements et les roams, le jeu collectif (objectifs, cibles, peel) et le bilan.",
+  "resume": "La formation complète du support en 6 niveaux : le rôle et les familles de supports, la botlane (bush, triangle, item support, plaques), la vision, les déplacements et les roams, le jeu collectif (objectifs, cibles, peel) et le bilan.",
   "base": "https://toka120.github.io/fire-team-lol/diapos/carnet-support/",
   "slides": [
    {
@@ -4506,7 +4506,7 @@
    },
    {
     "img": "slide-14.jpg?v=9",
-    "titre": "Le plan de jeu vient des vagues"
+    "titre": "Le plan de jeu vient des waves"
    },
    {
     "img": "slide-15.jpg?v=9",
@@ -4526,11 +4526,11 @@
    },
    {
     "img": "slide-19.jpg?v=9",
-    "titre": "Le support qui contrôle les buissons"
+    "titre": "Le support qui contrôle les bush"
    },
    {
     "img": "slide-20.jpg?v=9",
-    "titre": "Eux contrôlent les buissons : tu réagis"
+    "titre": "Eux contrôlent les bush : tu réagis"
    },
    {
     "img": "slide-21.jpg?v=9",
@@ -4546,11 +4546,11 @@
    },
    {
     "img": "slide-24.jpg?v=9",
-    "titre": "Les 5 mots des vagues"
+    "titre": "Les 5 mots des waves"
    },
    {
     "img": "slide-25.jpg?v=9",
-    "titre": "Comprendre ton objet support"
+    "titre": "Comprendre ton item support"
    },
    {
     "img": "slide-26.jpg?v=9",
@@ -4702,7 +4702,7 @@
    },
    {
     "img": "slide-63.jpg?v=9",
-    "titre": "Jouer autour du dragon"
+    "titre": "Jouer autour du drake"
    },
    {
     "img": "slide-64.jpg?v=9",
@@ -4795,9 +4795,9 @@
     "diff": "simple"
    },
    {
-    "q": "Ta botlane se fait pousser, ils tiennent tes buissons. Ta pink ?",
+    "q": "Ta botlane se fait push, ils tiennent tes bush. Ta pink ?",
     "ch": [
-     "Dans le buisson qu'ils contrôlent, tout de suite",
+     "Dans le bush qu'ils contrôlent, tout de suite",
      "Là où je peux la défendre, ou là où elle évite un gank",
      "Je ne pose plus rien"
     ],
@@ -4819,7 +4819,7 @@
     "diff": "simple"
    },
    {
-    "q": "Le dragon arrive. Leur jungler est un tank, leur ADC est mal placé, sans flash. Tu engages sur qui ?",
+    "q": "Le drake arrive. Leur jungler est un tank, leur ADC est mal placé, sans flash. Tu engages sur qui ?",
     "ch": [
      "Le jungler, toujours",
      "Leur ADC : on peut l'atteindre et il meurt vite",
@@ -4834,7 +4834,7 @@
     "q": "Le freeze, c'est…",
     "ch": [
      "La wave ne bouge plus, près d'une tour",
-     "Pousser la wave le plus vite possible",
+     "Push la wave le plus vite possible",
      "Annuler la wave au milieu"
     ],
     "good": 0,
@@ -4849,7 +4849,7 @@
      "Jamais"
     ],
     "good": 0,
-    "why": "Fast push seulement si tu peux crash. Sinon : back direct pour acheter tes objets.",
+    "why": "Fast push seulement si tu peux crash. Sinon : back direct pour acheter tes items.",
     "diff": "simple"
    },
    {
@@ -4864,11 +4864,11 @@
     "diff": "simple"
    },
    {
-    "q": "Un buisson sans vision, sans info. Qui le face check ?",
+    "q": "Un bush sans vision, sans info. Qui le face check ?",
     "ch": [
      "Les tanks, pas les squishies",
      "Toujours l'ADC",
-     "Personne ne va jamais dans un buisson"
+     "Personne ne va jamais dans un bush"
     ],
     "good": 0,
     "why": "Les tanks avancent et face check. Les squishies restent derrière.",
@@ -5089,9 +5089,9 @@
     "diff": "dur"
    },
    {
-    "q": "Dragon dans 40 s. Ton jungler est au top et veut les larves.",
+    "q": "Drake dans 40 s. Ton jungler est au top et veut les larves.",
     "ch": [
-     "Je vais au dragon seul",
+     "Je vais au drake seul",
      "Je m'adapte à son plan : je propose, ou je fais autre chose d'utile",
      "Je pars aux larves sans le dire"
     ],
@@ -5100,7 +5100,7 @@
     "suite": {
      "q": "Ce que tu fais d'abord ?",
      "ch": [
-      "Je communique : « larves ou dragon ? »",
+      "Je communique : « larves ou drake ? »",
       "Rien",
       "Je ward le Baron"
      ],
@@ -5121,7 +5121,7 @@
     "suite": {
      "q": "Pourquoi attendre ?",
      "ch": [
-      "Sa R repousse et soigne : ton engage serait gâché",
+      "Sa R repush et soigne : ton engage serait gâché",
       "Janna est un tank",
       "Pour farmer"
      ],
@@ -5152,7 +5152,7 @@
     "diff": "hardcore"
    },
    {
-    "q": "Tu joues un tank. Un assassin plonge ton ADC. Tu peux le sauver, mais tu risques de mourir.",
+    "q": "Tu joues un tank. Un assassin dive ton ADC. Tu peux le sauver, mais tu risques de mourir.",
     "ch": [
      "Je me mets entre eux : il survit, le fight est gagnable",
      "Je recule",

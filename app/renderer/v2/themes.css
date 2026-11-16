@@ -102,6 +102,30 @@ html.v2[data-theme=rgb] {
   --trainbow: linear-gradient(90deg, #ff3d6e, #ffd23d, #3dff8a, #3dd8ff, #b13dff, #ff3d6e);
 }
 
+html.v2[data-theme=hantee] {
+  --bg:#020805; --panel:#06110a; --panel2:#0a1a10; --line:#18301e; --fg:#e4f5e6; --muted:#8fae94;
+  --ta:#7dff6a; --tb:#3a6b40; --ton:#021006; --ttitle:'Cinzel', Georgia, serif;
+  --tart: radial-gradient(1000px 600px at 50% 120%, rgb(60 120 70 / 12%), transparent 65%), linear-gradient(180deg, #000 0%, #020805 60%, #041008);
+  --tglow: 0 10px 30px rgb(0 0 0 / 60%), 0 0 0 1px rgb(125 255 106 / 8%);
+}
+html.v2[data-theme=tenebres] {
+  --bg:#050303; --panel:#0c0606; --panel2:#130909; --line:#2a1212; --fg:#f2e6e6; --muted:#a88f8f;
+  --ta:#ff2a2a; --tb:#7a0d0d; --ton:#1a0000; --ttitle:'Cinzel', Georgia, serif;
+  --tart: radial-gradient(900px 600px at 50% 120%, rgb(140 0 0 / 16%), transparent 62%), linear-gradient(180deg, #000, #050303);
+  --tglow: 0 10px 30px rgb(0 0 0 / 70%), 0 0 0 1px rgb(255 42 42 / 8%);
+}
+html.v2[data-theme=abime] {
+  --bg:#030208; --panel:#08060f; --panel2:#0d0a18; --line:#1d1830; --fg:#ebe6f7; --muted:#958dad;
+  --ta:#9d7bff; --tb:#3a2a6b; --ton:#0a0418; --ttitle:'Outfit', var(--v2-font);
+  --tart: radial-gradient(900px 600px at 50% 50%, rgb(60 40 120 / 10%), transparent 62%), #030208;
+  --tglow: 0 10px 30px rgb(0 0 0 / 70%);
+}
+.th-hantee .th-prev { background: radial-gradient(3px 2px at 30% 45%, #7dff6a, transparent), radial-gradient(3px 2px at 36% 45%, #7dff6a, transparent), radial-gradient(3px 2px at 70% 70%, #ff3b3b, transparent), radial-gradient(3px 2px at 75% 70%, #ff3b3b, transparent), linear-gradient(180deg, #000, #041008); }
+.th-tenebres .th-prev { background: radial-gradient(140px 60px at 50% 120%, rgb(160 0 0 / 50%), transparent 70%), #050303; }
+.th-abime .th-prev { background: radial-gradient(90px 50px at 50% 50%, rgb(80 50 160 / 30%), transparent 70%), #030208; }
+.th-hantee .th-tt, .th-tenebres .th-tt { font-family: 'Cinzel'; font-weight: 600; }
+.th-abime .th-tt { font-family: 'Outfit'; font-weight: 700; }
+
 html.v2[data-theme=aurore] {
   --bg:#03101a; --panel:#071c28; --panel2:#0b2634; --line:#1d4a52; --fg:#eafff7; --muted:#9cc9c2;
   --ta:#2effaa; --tb:#b06eff; --ton:#032018; --ttitle:'Outfit', var(--v2-font);

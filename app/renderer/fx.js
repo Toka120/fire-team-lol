@@ -245,6 +245,48 @@
       draw(c, p) { const x = FX.w / 2 + Math.cos(p.a) * p.d, y = FX.h / 2 + Math.sin(p.a) * p.d * 0.45; c.globalAlpha = 0.75; c.fillStyle = p.col; c.beginPath(); c.arc(x, y, p.r, 0, TAU); c.fill(); },
       bg(c, t) { const g = c.createRadialGradient(FX.w / 2, FX.h / 2, 0, FX.w / 2, FX.h / 2, Math.min(FX.w, FX.h) * 0.5); g.addColorStop(0, 'rgba(255,214,245,.18)'); g.addColorStop(0.4, 'rgba(140,110,255,.08)'); g.addColorStop(1, 'rgba(140,110,255,0)'); c.globalAlpha = 1; c.fillStyle = g; c.fillRect(0, 0, FX.w, FX.h); },
     },
+    hantee: {
+      n: 9,
+      make() { return { x: rnd(0.05, 0.95) * FX.w, y: rnd(0.12, 0.92) * FX.h, s: rnd(0.6, 1.3), life: rnd(5, 10), age: rnd(-6, 0), col: Math.random() < 0.75 ? '125,255,106' : '255,59,59', bl: rnd(1.5, 4) }; },
+      step(p, dt) { p.age += dt; return p.age < p.life; },
+      draw(c, p) {
+        if (p.age < 0) return;
+        const t = p.age, fade = Math.min(1, t / 1.2, (p.life - t) / 1.2);
+        const ph = (t % p.bl) / p.bl; const open = ph > 0.92 ? Math.abs(Math.cos((ph - 0.92) / 0.08 * Math.PI)) : 1;
+        const w = 18 * p.s, hh = 7 * p.s * open, gap = 26 * p.s;
+        c.save(); c.globalAlpha = Math.max(0, fade) * 0.9;
+        for (const dx of [-gap / 2, gap / 2]) {
+          const x = p.x + dx, y = p.y;
+          const g = c.createRadialGradient(x, y, 0, x, y, w * 1.6); g.addColorStop(0, `rgba(${p.col},.35)`); g.addColorStop(1, `rgba(${p.col},0)`);
+          c.fillStyle = g; c.beginPath(); c.arc(x, y, w * 1.6, 0, TAU); c.fill();
+          c.beginPath(); c.moveTo(x - w / 2, y); c.quadraticCurveTo(x, y - hh * 1.6, x + w / 2, y); c.quadraticCurveTo(x, y + hh * 1.6, x - w / 2, y); c.closePath();
+          c.fillStyle = `rgba(${p.col},.95)`; c.fill();
+          c.fillStyle = '#000'; c.beginPath(); c.ellipse(x, y, 1.6 * p.s, Math.max(0.3, hh * 0.9), 0, 0, TAU); c.fill();
+        }
+        c.restore();
+      },
+      bg(c, t) {
+        for (let i = 0; i < 3; i++) {
+          const x = ((t * (8 + i * 4)) % (FX.w * 1.6)) - FX.w * 0.3, y = FX.h * (0.65 + i * 0.12);
+          const g = c.createRadialGradient(x, y, 0, x, y, FX.w * 0.35); g.addColorStop(0, 'rgba(170,200,180,.08)'); g.addColorStop(1, 'rgba(170,200,180,0)');
+          c.globalAlpha = 1; c.fillStyle = g; c.fillRect(0, 0, FX.w, FX.h);
+        }
+      },
+    },
+    tenebres: {
+      n: 34,
+      make(fresh) { return { x: rnd(0, FX.w), y: fresh ? rnd(0, FX.h) : FX.h + 10, r: rnd(1, 2.6), vy: rnd(10, 30), sway: rnd(0, TAU), life: rnd(6, 12), age: 0 }; },
+      step(p, dt) { p.age += dt; p.sway += dt; p.y -= p.vy * dt; p.x += Math.sin(p.sway) * 8 * dt; return p.age < p.life && p.y > -10; },
+      draw(c, p) { const a = Math.min(1, p.age, (p.life - p.age)) * 0.7; c.globalAlpha = Math.max(0, a); c.fillStyle = '#ff2a2a'; c.shadowColor = '#ff0000'; c.shadowBlur = 8; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill(); c.shadowBlur = 0; },
+      bg(c, t) { const g = c.createRadialGradient(FX.w / 2, FX.h * 1.1, 0, FX.w / 2, FX.h * 1.1, FX.h); g.addColorStop(0, `rgba(120,0,0,${0.18 + 0.04 * Math.sin(t)})`); g.addColorStop(1, 'rgba(120,0,0,0)'); c.globalAlpha = 1; c.fillStyle = g; c.fillRect(0, 0, FX.w, FX.h); },
+    },
+    abime: {
+      n: 50,
+      make() { return { x: rnd(0, FX.w), y: rnd(0, FX.h), r: rnd(0.5, 1.6), vx: rnd(-4, 4), vy: rnd(-6, -1), tw: rnd(0, TAU) }; },
+      step(p, dt) { p.tw += dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.y < -5) { p.y = FX.h + 5; p.x = rnd(0, FX.w); } return true; },
+      draw(c, p) { c.globalAlpha = 0.25 + 0.3 * (1 + Math.sin(p.tw)) / 2; c.fillStyle = '#9d7bff'; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill(); },
+      bg(c) { const g = c.createRadialGradient(FX.w / 2, FX.h / 2, Math.min(FX.w, FX.h) * 0.2, FX.w / 2, FX.h / 2, Math.max(FX.w, FX.h) * 0.75); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.55)'); c.globalAlpha = 1; c.fillStyle = g; c.fillRect(0, 0, FX.w, FX.h); },
+    },
   };
   // Un éclair : une ligne brisée du haut vers le bas.
   function bolt() { const pts = []; let x = rnd(FX.w * 0.2, FX.w * 0.9), y = 0; while (y < FX.h * rnd(0.45, 0.8)) { pts.push([x, y]); x += rnd(-40, 40); y += rnd(20, 50); } return pts; }

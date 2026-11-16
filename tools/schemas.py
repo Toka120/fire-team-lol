@@ -13,9 +13,9 @@ def carte_timers():
     s.line(bx + 20, by - 4, 470, 140, MUTED, 1.5, '4 4')
     s.line(dx + 20, dy, 470, 318, MUTED, 1.5, '4 4')
     s.lines(480, 112, ['Fosse du haut (B)'], 17, FG, weight='bold')
-    s.lines(480, 140, ['8:00  Larves du Néant (une seule fois)', '15:00  Héraut de la Faille (une fois)', '20:00  Baron Nashor (+6 min après', '           chaque Baron tué)'], 15, MUTED, gap=24)
+    s.lines(480, 140, ['8:00  Larves du Néant (une seule fois)', '15:00  Herald de la Faille (une fois)', '20:00  Baron Nashor (+6 min après', '           chaque Baron tué)'], 15, MUTED, gap=24)
     s.lines(480, 300, ['Fosse du bas (D)'], 17, FG, weight='bold')
-    s.lines(480, 328, ['5:00  Premier dragon', 'Âme au 4e dragon d’une équipe,', 'puis Dragon ancestral'], 15, MUTED, gap=24)
+    s.lines(480, 328, ['5:00  Premier drake', 'Âme au 4e drake d’une équipe,', 'puis Drake ancestral'], 15, MUTED, gap=24)
     s.text(480, 420, 'Sbires : 0:30', 15, GOLD, 'start', 'bold')
     return s.render()
 
@@ -121,7 +121,7 @@ def chemin_jungle():
 
 
 def roam_mid():
-    s = Svg().title('Mid : pousser puis bouger', 'Crash ta wave, puis va là où il y a quelque chose à gagner')
+    s = Svg().title('Mid : push puis bouger', 'Crash ta wave, puis va là où il y a quelque chose à gagner')
     s.map(40, 70, 360)
     P = s.P
     mx, my = P(0.5, 0.5)
@@ -134,7 +134,7 @@ def roam_mid():
     s.ward(wx, wy)
     wx2, wy2 = P(0.60, 0.62)
     s.ward(wx2, wy2)
-    s.lines(450, 110, ['1. Pousse : ta wave arrive', '    sous sa tour.', '2. Pars par la rivière', '    (avec une ward devant toi).', '3. Gagne quelque chose : un kill,', '    le drake, une ward, un camp.'], 16, FG, gap=26)
+    s.lines(450, 110, ['1. Push : ta wave arrive', '    sous sa tour.', '2. Pars par la rivière', '    (avec une ward devant toi).', '3. Gagne quelque chose : un kill,', '    le drake, une ward, un camp.'], 16, FG, gap=26)
     s.lines(450, 300, ['Si ton adversaire disparaît :', 'ping « MIA » tout de suite.'], 15, ENEMY, gap=22)
     s.legend([('ally', 'tes sbires'), ('ward', 'ward')], 450, 400)
     return s.render()
@@ -180,13 +180,13 @@ def conceder():
     s.circle(tx + 22, ty - 52, 9, ALLY, '#0f0d0c', 1.5)
     s.rect(tx - 10, ty - 92, 20, 20, '#1a1614', 3, ENEMY, 3)
     s.arrow([(dx - 30, dy - 30), (bx + 30, by + 30)], GOLD, 3, '8 6')
-    s.lines(450, 110, ['À la place d’un fight perdu :', '• une tour top ou mid', '• les larves ou le Héraut', '• la jungle adverse', '• des waves et des plates'], 16, FG, gap=27)
+    s.lines(450, 110, ['À la place d’un fight perdu :', '• une tour top ou mid', '• les larves ou le Herald', '• la jungle adverse', '• des waves et des plates'], 16, FG, gap=27)
     s.lines(450, 290, ['Décide-le 30 secondes avant,', 'et dis-le : « on lâche le drake,', 'on prend top ».'], 15, MUTED, gap=23)
     return s.render()
 
 
 def vision_drake():
-    s = Svg().title('Préparer un dragon', '1 minute avant : wards autour de la fosse, lanes poussées')
+    s = Svg().title('Préparer un drake', '1 minute avant : wards autour de la fosse, lanes push')
     s.map(40, 70, 360)
     P = s.P
     dx, dy = s.pit['drake']
@@ -200,13 +200,13 @@ def vision_drake():
     s.wave(mx + 26, my - 26, 'a', 4, 2, 13, 6)
     bx, by = P(0.92, 0.75)
     s.wave(bx, by - 20, 'a', 4, 2, 13, 6)
-    s.lines(450, 110, ['• Mid et bot poussent leur wave', '• Wards dans la rivière et', '   à l’entrée de sa jungle', '• Une pink près de la fosse', '• Le jungler a son Smite', '• Tout le monde arrive ensemble'], 16, FG, gap=27)
+    s.lines(450, 110, ['• Mid et bot push leur wave', '• Wards dans la rivière et', '   à l’entrée de sa jungle', '• Une pink près de la fosse', '• Le jungler a son Smite', '• Tout le monde arrive ensemble'], 16, FG, gap=27)
     s.legend([('ward', 'ward'), ('pink', 'pink'), ('ally', 'tes sbires')], 450, 400)
     return s.render()
 
 
 def split():
-    s = Svg().title('Le split push (side lane)', 'Un joueur pousse sur le côté, les 4 autres font pression ailleurs')
+    s = Svg().title('Le split push (side lane)', 'Un joueur push sur le côté, les 4 autres font pression ailleurs')
     s.map(40, 70, 360)
     P = s.P
     tx, ty = P(0.30, 0.08)

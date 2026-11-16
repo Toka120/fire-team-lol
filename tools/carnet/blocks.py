@@ -11,7 +11,7 @@ def bold(t):
 # ---------------------------------------------------------------- Rôles
 ROLES = {
  'jungle': ("Farmer et ganker", f"Tu fais tes camps et tu {bold('ganks les lanes')}. C'est toi qui donnes le rythme.",
-            ['🌲 4 camps + Red + Blue', '🦀 + le Carapateur (à personne)', '⚔️ Smite']),
+            ['🌲 4 camps + Red + Blue', '🦀 + le Scuttle (à personne)', '⚔️ Smite']),
  'adc': ("La petite princesse", f"Tu dois {bold('mettre des dégâts constants en teamfight')} en restant en vie. "
          "Tu es fragile : l'équipe te protège en fight, ton support t'aide en lane, toi tu farmes.",
          ['💰 Tu scales avec les golds', '🛡️ À protéger', '🎯 Dégâts constants']),
@@ -33,9 +33,9 @@ def role(lane, niv, champ=None):
 def waves_full(lane, niv):
     adc = lane == 'adc'
     s = []
-    s.append(dict(kind='std', niv=niv, kick='Les vagues · le principe', title='La wave est un outil',
+    s.append(dict(kind='std', niv=niv, kick='Les waves · le principe', title='La wave est un outil',
         bullets=[f"Le bon outil au bon moment : {bold('on n’enfonce pas un clou avec une scie')}.",
-                 f"Deux groupes de sbires s'affrontent : {bold('le plus nombreux gagne et pousse')}.",
+                 f"Deux groupes de sbires s'affrontent : {bold('le plus nombreux gagne et push')}.",
                  "Comme un fight à 10 contre 10 : un mort, c'est 10 contre 9… puis 8 contre 6.",
                  f"Chaque gestion de wave a {bold('un but')} : dive, reset, objectif. Sinon, ça ne sert à rien.",
                  "Plus la game avance, plus les sbires sont forts (comme les camps de jungle)."]))
@@ -49,7 +49,7 @@ def waves_full(lane, niv):
     s.append(dict(kind='std', niv=niv, kick='Le freeze', title='Comment freeze devant la tour ?',
         bigs=[('3 casters full PV', 'à laisser vivre en face'), ('3 casters + 1 mêlée', 'quand c’est une wave canon')],
         bullets=["Tu last hit seulement : la wave reste devant ta tour.",
-                 "Si tu en tues trop, elle pousse ou elle bounce."]))
+                 "Si tu en tues trop, elle push ou elle bounce."]))
     av = [f"{bold('Au mid game')} : rends-toi disponible sur la carte, push plutôt.",
           f"{bold('Pas de wave ?')} Ne force pas : laisse-la crash et farme sous ta tour."]
     if adc:
@@ -63,8 +63,8 @@ def waves_full(lane, niv):
                 "Il casse ton slow push ? Sois agressif : tu as plus de sbires, tu gagnes les longs fights."],
         faibl=["Ta wave est loin de ta tour : attention aux ganks.", "Reste près de tes sbires pour qu'ils t'aident."]))
     s.append(dict(kind='wave', niv=niv, term='Le fast push', emo='⚡', color='#ffb347',
-        defn="Tu pousses la wave le plus vite possible.",
-        forces=[f"{bold('SEULEMENT si tu peux crash la wave')}.", "Sinon : back direct pour acheter tes objets.",
+        defn="Tu push la wave le plus vite possible.",
+        forces=[f"{bold('SEULEMENT si tu peux crash la wave')}.", "Sinon : back direct pour acheter tes items.",
                 "Finit un slow push pour reset."],
         faibl=["Crash au mauvais moment : la wave bounce vers toi… puis repart."]))
     s.append(dict(kind='wave', niv=niv, term='Le bounce', emo='↩️', color='#b48cff',
@@ -86,10 +86,10 @@ def waves_full(lane, niv):
 def waves_short(lane, niv):
     extra = ("Une lane qui freeze devant sa tour : le gank est possible." if lane == 'jungle'
              else "Freeze agressif : c'est toi qui zones la bot adverse pendant que ton ADC farme.")
-    return [dict(kind='std', niv=niv, kick='Les vagues · vite fait', title='Les 5 mots des vagues',
+    return [dict(kind='std', niv=niv, kick='Les waves · vite fait', title='Les 5 mots des waves',
         bullets=[('🧊', f"{bold('Freeze')} : la wave ne bouge plus, près d'une tour."),
                  ('🐢', f"{bold('Slow push')} : la wave avance lentement et grossit (pour dive ou reset)."),
-                 ('⚡', f"{bold('Fast push')} : on pousse vite, seulement si on peut crash."),
+                 ('⚡', f"{bold('Fast push')} : on push vite, seulement si on peut crash."),
                  ('↩️', f"{bold('Bounce')} : la wave crash puis revient de l'autre côté."),
                  ('🔄', f"{bold('Reset')} : on annule tout, la wave revient au milieu."),
                  ('💡', extra)], size=36)]
@@ -124,7 +124,7 @@ def trading(lane, niv):
     if lane in ('adc', 'support'):
         s.append(dict(kind='std', niv=niv, kick='Le trading', title='Les petits plus de la bot',
             bullets=[f"{bold('Toujours contester le niveau 2')} si possible.",
-                     "Respecte le timing de ton jungler, en général pendant le carapateur ou avant.",
+                     "Respecte le timing de ton jungler, en général pendant le scuttle ou avant.",
                      "Bot all-in contre bot poke au niveau 1 : garde tes PV, sinon tu ne pourras plus all-in."]))
     return s
 
@@ -144,17 +144,17 @@ def back_mid(lane, niv):
         bullets=[f"{bold('Toujours crash ta wave')} avant de back.",
                  f"Back {bold('sur une wave canon')} si possible.",
                  "Timing de wave canon : va ward, aide un objectif.",
-                 f"Un gros composant ou un objet à acheter ? {bold('Ne reste pas avec tes golds')}."]),
+                 f"Un gros composant ou un item à acheter ? {bold('Ne reste pas avec tes golds')}."]),
          dict(kind='std', niv=niv, kick='Le mid game', title='Push mid, puis fight',
         bullets=["Évite de freeze : rends-toi disponible sur la carte.",
                  f"{bold('Ne va jamais chercher une wave seul')} : fais-toi shadow, et dis-le.",
                  "Pas de shadow ? Attends la wave en sécurité. À 5 pour une wave, c'est bien aussi.",
                  "Ton jungler est à l'opposé, ou fait un objectif ? Prends des camps (demande-lui).",
-                 f"{bold('Le fog')} : ne donne pas d'infos (où tu es, tes objets). Ils te croient à 1 objet, tu en as 2."])]
+                 f"{bold('Le fog')} : ne donne pas d'infos (où tu es, tes items). Ils te croient à 1 item, tu en as 2."])]
     if lane in ('adc', 'mid'):
         who = ("Toi tu viens au mid, ton mid va bot." if lane == 'adc' else "Ton ADC vient au mid, toi tu vas bot.")
         s.append(dict(kind='std', niv=niv, kick='Le swap lane', title='Le swap mid / bot',
-            bullets=[f"Vers {bold('15 min')}, quand la première tour tombe, ou pour contester le Héraut.",
+            bullets=[f"Vers {bold('15 min')}, quand la première tour tombe, ou pour contester le Herald.",
                      who,
                      "Pourquoi le mid : lane courte, l'ADC fragile y est plus safe que sur une lane longue.",
                      f"{bold('Casse le rythme')} : swap aussi à d'autres moments pour surprendre."]))
@@ -210,7 +210,7 @@ def mindset(lane, niv, jungle=False):
         s.append(dict(kind='std', niv=niv, kick='En équipe', title='Laisse les ressources',
             bullets=["À un moment de la game, laisse les camps aux laners : ils doivent scale.",
                      "Sauf si ton jungler scale très fort : ça dépend.",
-                     "Un laner a besoin d'un objet ? Laisse-lui le camp.",
+                     "Un laner a besoin d'un item ? Laisse-lui le camp.",
                      "C'est un peu triste… mais tu as fait ton taf."]))
     return s
 
@@ -282,7 +282,7 @@ def deny(lane, niv):
 def after_kill(lane, niv):
     return [dict(kind='std', niv=niv, kick='Après un kill', title='Deux questions, tout de suite',
         bigs=[('1', 'Qu’est-ce que je fais avec ma wave ?'), ('2', 'Où est le jungler adverse ?')],
-        bullets=["Pousser, crash, garder la wave, la laisser évoluer, back, prendre plus de ressources, demander de l'aide.",
+        bullets=["Push, crash, garder la wave, la laisser évoluer, back, prendre plus de ressources, demander de l'aide.",
                  "Ça dépend : position et taille de la wave, tes PV, son temps de retour, le jungler, le risque de perdre des waves.",
                  f"{bold('Prépare tes options avant')} que la situation arrive : tu décides vite."],
         size=32),
@@ -348,7 +348,7 @@ def cover(lane, niv):
         cards=[('⚔️ Gank', '#ff6b6b', ["Le jungler vient pour tuer ou faire flash."]),
                ('🛡️ Cover', '#5aa9ff', ["Il reste à côté pour sécuriser ton action.", e['cover']]),
                ('🔁 Countergank', '#b48cff', ["Il anticipe un gank adverse et se place pour y répondre."]),
-               ('🌊 Aide au crash', '#5fd39a', ["Il t'aide à pousser ta wave pour débloquer la situation et back."])],
+               ('🌊 Aide au crash', '#5fd39a', ["Il t'aide à push ta wave pour débloquer la situation et back."])],
         foot="« On n'est pas obligé d'appeler le jungler uniquement pour obtenir un gank. »")]
 
 
@@ -362,11 +362,11 @@ def tempo(lane, niv):
                  f"Pour toi : {e['tempo']}"], size=32),
          dict(kind='path', niv=niv, kick='La tempo', title='Une bonne wave crée du temps',
         steps=['🌊 Wave', '💥 Crash', '🏠 Back ou déplacement', '🎯 Action', '🔁 Retour sur la carte'],
-        bullets=["Tu crash : la wave pousse chez eux, tu as du temps pour faire autre chose.",
+        bullets=["Tu crash : la wave push chez eux, tu as du temps pour faire autre chose.",
                  "Tu ne crash pas : tu perds des sbires dès que tu pars.",
                  f"{bold('Compare toujours')} ce que rapporte le déplacement et ce qu'il te coûte."]),
          dict(kind='cards', niv=niv, kick='La tempo', title='Ta fenêtre, ou la leur ?', cols=2,
-        cards=[('🔥 Votre fenêtre', '#ffb347', ["Vous avez vos R, vos flashs, vos PV, des waves qui poussent.",
+        cards=[('🔥 Votre fenêtre', '#ffb347', ["Vous avez vos R, vos flashs, vos PV, des waves qui push.",
                                               "C'est le moment de préparer ou de lancer une action."]),
                ('🧊 Leur fenêtre', '#5aa9ff', ["Vous venez de tout utiliser, vous devez back.",
                                              "L'initiative peut passer chez eux : ralentissez, évitez l'engage."])],
@@ -400,7 +400,7 @@ def first_self(lane, niv):
 
 def structures(lane, niv):
     return [dict(kind='std', niv=niv, kick='Les objectifs', title='« Les tours sont aussi des objectifs »',
-        bullets=["League ne se résume pas aux dragons et au Baron : les tours et les inhibiteurs mènent au Nexus.",
+        bullets=["League ne se résume pas aux drakes et au Baron : les tours et les inhibs mènent au Nexus.",
                  "Un fight trop dangereux sur un objectif ? Prenez des ressources ou une tour ailleurs.",
                  f"Un échange n'est pas gratuit : {bold('compare ce que vous prenez et ce que vous laissez')}.",
                  "Toutes les tours ne valent pas plus que tous les objectifs : ça se décide à chaque fois."], size=34)]
@@ -411,8 +411,8 @@ def structures(lane, niv):
 EX2 = {
  'top': dict(count="4 au bot et 1 au mid ? Ton jungler et toi pouvez jouer les grubs, une plaque ou un dive.",
              ward="La ward de rivière top et le tri-buisson : tu cherches le jungler qui vient sur toi.",
-             anti="Wave poussée, jungler adverse pas vu depuis 40 s : il peut arriver par la rivière.",
-             obj="Les grubs et le Héraut se jouent près de toi : ta wave et ta TP décident si tu peux venir.",
+             anti="Wave push, jungler adverse pas vu depuis 40 s : il peut arriver par la rivière.",
+             obj="Les grubs et le Herald se jouent près de toi : ta wave et ta TP décident si tu peux venir.",
              tgt="Ton duel est gagné, mais traverser 3 champions pour leur ADC n'est pas une bonne idée."),
  'mid': dict(count="2 au top, 2 au bot, leur mid visible : tu sais qui peut venir t'aider ou te punir si tu roam.",
              ward="Les deux côtés de la rivière : tu cherches les ganks et les roams vers ta lane.",
@@ -421,17 +421,17 @@ EX2 = {
              tgt="Ton combo sur la cible accessible vaut mieux qu'un sort lancé dans le vide sur leur ADC."),
  'adc': dict(count="Leur support et leur jungler disparaissent : le 2v2 devient un 2v3 possible.",
              ward="Le tri-buisson et la rivière bot : tu cherches le jungler et le roam de leur support.",
-             anti="Leur support n'est plus visible et la wave pousse chez toi : recule avant de le voir arriver.",
-             obj="Ta wave poussée et ton back au bon moment permettent d'être là au dragon.",
+             anti="Leur support n'est plus visible et la wave push chez toi : recule avant de le voir arriver.",
+             obj="Ta wave push et ton back au bon moment permettent d'être là au drake.",
              tgt="Tape ce que tu peux taper en sécurité : la cible la plus proche est souvent la bonne."),
  'support': dict(count="Tu as souvent un peu plus de temps pour regarder la carte : compte, et partage.",
              ward="Les entrées de jungle et la rivière : tu prépares les déplacements et les objectifs.",
-             anti="Leur jungler a été vu en haut : c'est peut-être le moment de pousser ou de poser une ward profonde.",
+             anti="Leur jungler a été vu en haut : c'est peut-être le moment de push ou de poser une ward profonde.",
              obj="Tu prépares la vision et les accès, tu accompagnes ton jungler.",
              tgt="Ton engage sur la cible que l'équipe peut vraiment suivre."),
- 'jungle': dict(count="Tu vois 4 adversaires au top : leur jungler est sûrement là, le dragon est peut-être libre.",
+ 'jungle': dict(count="Tu vois 4 adversaires au top : leur jungler est sûrement là, le drake est peut-être libre.",
              ward="Les entrées de ta jungle, celles de la sienne : tu suis son pathing.",
-             anti="Tu l'as vu au top à 3:20 : il peut être au carapateur bot vers 3:50.",
+             anti="Tu l'as vu au top à 3:20 : il peut être au scuttle bot vers 3:50.",
              obj="C'est souvent toi qui lances l'objectif : vérifie la prio de tes lanes avant.",
              tgt="Avant un objectif, leur jungler est souvent une bonne cible, s'il est attrapable."),
 }
@@ -481,7 +481,7 @@ def anticip_comms(lane, niv):
 def obj_prep(lane, niv):
     e = EX2[lane]
     return [dict(kind='std', niv=niv, kick='Les objectifs', title='Un objectif se prépare avant de le taper',
-        bullets=["Achats faits, retour sur la carte, waves poussées, vision posée, vision adverse retirée, accès contrôlés.",
+        bullets=["Achats faits, retour sur la carte, waves push, vision posée, vision adverse retirée, accès contrôlés.",
                  "L'équipe n'est pas obligée de le commencer tout de suite : mieux se placer, attendre une erreur, un catch.",
                  "Échanger ou abandonner un objectif peut aussi être la bonne décision.",
                  f"Ta part : {e['obj']}"], size=33)]
@@ -524,9 +524,9 @@ def triangle(lane, niv):
 
 
 def coop_adc(lane, niv):
-    """Ce que l'ADC doit savoir du support (objet, canons, plaques, farm sous tour)."""
+    """Ce que l'ADC doit savoir du support (item, canons, plaques, farm sous tour)."""
     return [dict(kind='cards', niv=niv, kick='ADC et support', title='Ce que ton support peut faire pour toi', cols=2,
-        cards=[('🗺️ Son objet support', '#5fd39a', ["Il achève un sbire avec une charge : tu touches le gold du sbire.",
+        cards=[('🗺️ Son item support', '#5fd39a', ["Il achève un sbire avec une charge : tu touches le gold du sbire.",
                                                  "Sur un canon : le gold du canon pour toi."]),
                ('🗼 Sous ta tour', '#5aa9ff', ["Il abîme un sbire avant le tir de tour : tu le last hit.",
                                              "À coordonner, sinon il te le vole."]),

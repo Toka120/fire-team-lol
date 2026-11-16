@@ -312,7 +312,7 @@ async function coachSave(keys) {
 // ---------- Génération d'une fiche avec Claude ----------
 
 const SYSTEM = `Tu es l'assistant du coach de FIRE LoL, une équipe amateur de League of Legends (classé Solo/Duo, serveur EUW).
-Le coach te donne un sujet ou une consigne. Fais d'abord une recherche web (guides récents, vidéos YouTube de coachs reconnus, patch en cours si c'est utile), puis rédige une fiche claire en français pour les joueurs : simple, concrète, compréhensible par tous, tutoiement, ton direct et encourageant. Reformule avec tes propres mots, sans longues citations.
+Le coach te donne un sujet ou une consigne. Fais d'abord une recherche web (guides récents, vidéos YouTube de coachs reconnus, patch en cours si c'est utile), puis rédige une fiche claire en français pour les joueurs : simple, concrète, compréhensible par tous, tutoiement, ton direct et encourageant. Reformule avec tes propres mots, sans longues citations. Vocabulaire : garde les mots de LoL que tous les joueurs utilisent (back, wave, lane, push, freeze, bounce, crash, drake, soul, Herald, scuttle, ward, pink, dive, gank, roam, fight, item, ult, cooldown), jamais leur traduction (rentrer, vague, voie, pousser, dragon, balise, plongée…).
 
 Réponds UNIQUEMENT par un objet JSON valide, sans texte avant ni après et sans bloc de code, au format :
 {
@@ -649,7 +649,9 @@ async function savePools(action) {
         const slug = String(action.slug || '').slice(0, 80);
         if (!slug) throw new Error('joueur inconnu');
         let w = semaines.find((x) => x.debut === action.debut);
-        if (!w) { w = cleanWeek({ debut: action.debut, objectif: action.objectif || (cfg.objectif && cfg.objectif.games) || 20, joueurs: {} }); semaines.push(w); }
+        // Nouvelle semaine créée par un joueur : elle reprend les tierlists et l'objectif de la semaine d'avant (sinon les autres perdraient la leur).
+        if (!w) { const prev = semaines.filter((x) => x.debut < action.debut).sort((a, b) => a.debut.localeCompare(b.debut)).pop();
+          w = cleanWeek({ id: action.id, debut: action.debut, objectif: (prev && prev.objectif) || action.objectif || (cfg.objectif && cfg.objectif.games) || 20, note: prev ? prev.note : '', joueurs: prev ? prev.joueurs : {} }); semaines.push(w); }
         w.joueurs = w.joueurs || {};
         w.joueurs[slug] = cleanTiers(action.tiers, isCoach && action.par !== 'joueur' ? 'coach' : 'joueur');
         w.joueurs[slug].maj = Date.now();
@@ -1475,7 +1477,7 @@ async function revueShots(id) {
 // Analyse IA d'une partie (coach uniquement : c'est sa clé Claude). Le contexte texte vient de la Revue,
 // les images de la vidéo de la game. Le résultat est rangé avec la revue, visible par toute l'équipe.
 const IA_SYS = `Tu es l'analyste vidéo d'une équipe amateur de League of Legends (niveau visé : progresser vite). On te donne le déroulé d'une partie (joueurs, kills, objectifs, combats, positions, tableau aux moments clés) et des images de la vidéo de la partie à ces moments.
-Analyse comme un coach pro qui fait une revue VOD avec le joueur indiqué (« moi ») : décisions, placement, timing des objectifs, vision, combats, macro. Sois concret, cite les instants (en secondes de jeu), explique le POURQUOI et ce qu'il fallait faire à la place. Ne juge que ce que les données et les images montrent ; si une image est floue ou ne montre pas la scène, dis-le plutôt que d'inventer. Pas de classement entre joueurs, ton bienveillant mais franc. Écris en français.
+Analyse comme un coach pro qui fait une revue VOD avec le joueur indiqué (« moi ») : décisions, placement, timing des objectifs, vision, combats, macro. Sois concret, cite les instants (en secondes de jeu), explique le POURQUOI et ce qu'il fallait faire à la place. Ne juge que ce que les données et les images montrent ; si une image est floue ou ne montre pas la scène, dis-le plutôt que d'inventer. Pas de classement entre joueurs, ton bienveillant mais franc. Écris en français. Vocabulaire : garde les mots de LoL que tous les joueurs utilisent (back, wave, lane, push, freeze, bounce, crash, drake, soul, Herald, scuttle, ward, pink, dive, gank, roam, fight, item, ult, cooldown), jamais leur traduction (rentrer, vague, voie, pousser, dragon, balise, plongée…).
 Réponds UNIQUEMENT avec un objet JSON :
 {"resume":"3 à 5 phrases sur la partie et ce qui l'a décidée",
  "points_forts":["…", "…"],
@@ -1658,6 +1660,7 @@ Règles :
 - Situations INÉDITES : jamais une reformulation des titres déjà existants qu'on te donne.
 - Plusieurs réponses peuvent être « ce qu'un pro ferait » (verdict P) selon le style et la lecture de la partie (agressif, prudent, macro, jeu d'équipe, tempo, scaling) ; au moins UNE réponse mauvaise (verdict X) obligatoire ; « O » = jouable mais pas optimal.
 - Chaque réponse a une explication « lecture pro » (e) : pourquoi, et quand ce choix est bon ou mauvais. Concret, 2 à 4 phrases, en français, tutoiement.
+- Vocabulaire : garde les mots de LoL que tous les joueurs utilisent (back, wave, lane, push, freeze, bounce, crash, drake, soul, Herald, scuttle, ward, pink, dive, gank, roam, fight, item, ult, cooldown), jamais leur traduction (rentrer, vague, voie, pousser, dragon, balise, plongée…).
 - Pas de chiffres de patch précis (dégâts, temps de réapparition exacts) : raisonne en principes (prio, tempo, vision, état des vagues, timers, nombre).
 - Ne cite aucun joueur professionnel réel.
 - Niveau de difficulté d (1 à 5) : 1 facile, 2 moyen, 3 difficile, 4 expert (nuances fines, plusieurs infos à croiser), 5 pro (lecture de niveau compétitif : tempo croisé, états de vagues sur plusieurs lanes, lignes de vision, timers d'objectifs et de sorts, gestion du nombre). Respecte le niveau demandé.

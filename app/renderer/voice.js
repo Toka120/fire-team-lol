@@ -957,9 +957,9 @@
   }
   // Statut et petite carte de profil d'un coéquipier (Paramètres › Mon profil) : seulement des champs connus et courts.
   // Boutique FIRE (gratuite) : effets de pseudo, décorations… seulement des valeurs connues.
-  const LOOK = { fx: ['shine', 'neon', 'rainbow', 'feu', 'givre', 'glitch', 'pulse', 'or'], font: ['cinzel', 'orbitron', 'bangers', 'fredoka', 'press', 'marker', 'bebas', 'mono'],
-    deco: ['flammes', 'neon', 'arc', 'petales', 'givre', 'hextech', 'couronne', 'void', 'eclair', 'coeurs'], pfx: ['petales', 'neige', 'etincelles', 'braises', 'etoiles', 'confettis', 'bulles', 'coeurs'],
-    plate: ['aube', 'ocean', 'foret', 'nuit', 'lave', 'neon', 'or', 'glace', 'sakura', 'matrix', 'galaxie'],
+  const LOOK = { fx: ['shine', 'neon', 'rainbow', 'feu', 'givre', 'glitch', 'pulse', 'or', 'spectre', 'sang'], font: ['cinzel', 'orbitron', 'bangers', 'fredoka', 'press', 'marker', 'bebas', 'mono'],
+    deco: ['flammes', 'neon', 'arc', 'petales', 'givre', 'hextech', 'couronne', 'void', 'eclair', 'coeurs', 'ailes', 'cornes', 'halo', 'epines'], pfx: ['petales', 'neige', 'etincelles', 'braises', 'etoiles', 'confettis', 'bulles', 'coeurs', 'regards', 'sourire', 'chauves', 'ombres', 'brume', 'toiles'],
+    plate: ['aube', 'ocean', 'foret', 'nuit', 'lave', 'neon', 'or', 'glace', 'sakura', 'matrix', 'galaxie', 'abime', 'hantee', 'sangp'],
     pet: ['flammi', 'givro', 'slimy', 'boo', 'neko', 'robo', 'shroom', 'astro', 'drako', 'bulle'] };
   function cleanLook(l) {
     if (!l || typeof l !== 'object') return null;
@@ -978,7 +978,9 @@
     const color = /^#[0-9a-fA-F]{6}$/.test(x.color || '') ? x.color : '';
     const banner = x.banner && /^[A-Za-z]{2,20}$/.test(x.banner.c || '') && Number.isInteger(x.banner.n) && x.banner.n >= 0 && x.banner.n < 200 ? { c: x.banner.c, n: x.banner.n } : null;
     const games = (Array.isArray(x.games) ? x.games : []).map((g) => str(g, 24)).filter(Boolean).slice(0, 8);
-    return { st, game: !!x.game, bio: str(x.bio, 140), color, banner, dm: ['all', 'coach', 'none'].includes(x.dm) ? x.dm : 'all', games, look: cleanLook(x.look) };
+    // Nom affiché choisi par le joueur : 2 à 20 caractères visibles, sans caractères de contrôle ni invisibles.
+    const nom = String(x.nom == null ? '' : x.nom).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20);
+    return { st, game: !!x.game, nom: nom.length >= 2 ? nom : '', bio: str(x.bio, 140), color, banner, dm: ['all', 'coach', 'none'].includes(x.dm) ? x.dm : 'all', games, look: cleanLook(x.look) };
   }
   // Mon statut envoyé à l'équipe (toutes les minutes et à chaque changement) ; null = invisible (les autres ne me voient plus).
   async function statusSend(st) {
