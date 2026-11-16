@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.154",
+   "date": "2026-11-16",
+   "titre": "Photo de profil",
+   "items": [
+    [
+     "new",
+     "📸 Photo de profil : Paramètres › Profil › Carte de profil › « Choisir une photo ». Elle est recadrée en carré au centre, réduite, et remplace tes initiales partout : carte de profil, vocal, listes de membres, boutique. « Retirer » remet tes initiales. Tes coéquipiers la voient dès qu’ils ont cette version."
+    ]
+   ]
+  },
+  {
    "v": "1.10.153",
    "date": "2026-11-16",
    "titre": "Spectateur et parties en direct plus fiables",

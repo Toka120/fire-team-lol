@@ -980,7 +980,8 @@
     const games = (Array.isArray(x.games) ? x.games : []).map((g) => str(g, 24)).filter(Boolean).slice(0, 8);
     // Nom affiché choisi par le joueur : 2 à 20 caractères visibles, sans caractères de contrôle ni invisibles.
     const nom = String(x.nom == null ? '' : x.nom).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20);
-    return { st, game: !!x.game, nom: nom.length >= 2 ? nom : '', bio: str(x.bio, 140), color, banner, dm: ['all', 'coach', 'none'].includes(x.dm) ? x.dm : 'all', games, look: cleanLook(x.look) };
+    const photo = typeof x.photo === 'string' && x.photo.length <= 40000 && /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(x.photo) ? x.photo : '';
+    return { st, game: !!x.game, nom: nom.length >= 2 ? nom : '', photo, bio: str(x.bio, 140), color, banner, dm: ['all', 'coach', 'none'].includes(x.dm) ? x.dm : 'all', games, look: cleanLook(x.look) };
   }
   // Mon statut envoyé à l'équipe (toutes les minutes et à chaque changement) ; null = invisible (les autres ne me voient plus).
   async function statusSend(st) {

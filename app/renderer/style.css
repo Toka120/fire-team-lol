@@ -3266,3 +3266,9 @@ html.v2 body:has(#fire-pet) #vtoasts{right:100px}
 .promo-video.ended .promo-vid{filter:brightness(.55) blur(2px);transition:filter .5s}
 .lv-stale{font-size:12px;font-weight:700;color:#ffc24b;padding:2px 8px;border-radius:999px;background:rgb(255 194 75 / 12%)}
 .lv-bare .sp-act{margin-top:8px}
+
+/* Photo de profil */
+.vc-av.has-ph,.vb-p.has-ph{background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important;color:transparent!important;text-shadow:none!important}
+.ph-row{align-items:center;gap:12px}
+.ph-prev{width:64px;height:64px;font-size:20px;flex:none}
+.ph-pick{cursor:pointer}

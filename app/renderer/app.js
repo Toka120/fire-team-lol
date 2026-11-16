@@ -1011,6 +1011,22 @@
         skins.map((k) => h('option', { value: String(k.num), selected: Number(cur.n) === k.num ? true : null }, k.name || ch.name))) : null,
       ch ? h('img', { class: 'skin-prev', src: `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${ch.id}_${Number(cur.n) || 0}.jpg`, alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } }) : null);
   }
+  // Photo de profil : recadrée en carré au centre, 160 × 160, compressée (elle voyage avec ta carte de profil).
+  function photoShrink(file) {
+    return new Promise((ok) => {
+      const rd = new FileReader();
+      rd.onload = () => { const img = new Image(); img.onload = () => {
+        const n = Math.min(img.width, img.height); const sx = (img.width - n) / 2, sy = (img.height - n) / 2;
+        const c = document.createElement('canvas'); c.width = 160; c.height = 160;
+        c.getContext('2d').drawImage(img, sx, sy, n, n, 0, 0, 160, 160);
+        let q = 0.85, d = c.toDataURL('image/webp', q);
+        if (!/^data:image\/webp/.test(d)) d = c.toDataURL('image/jpeg', q);
+        while (d.length > 30000 && q > 0.35) { q -= 0.1; d = c.toDataURL(/^data:image\/webp/.test(d) ? 'image/webp' : 'image/jpeg', q); }
+        ok(d.length <= 40000 ? d : null);
+      }; img.onerror = () => ok(null); img.src = rd.result; };
+      rd.onerror = () => ok(null); rd.readAsDataURL(file);
+    });
+  }
   function profilCards() {
     const me = vocalMe();
     return [
@@ -1019,6 +1035,13 @@
         uxSeg(['online', 'busy', 'away', 'invisible'].map((k) => [k, ST_LABEL[k].join(' ')]), UX.status, (v) => { setUx({ status: v }); actLog('statut', 'Statut : ' + ST_LABEL[v][1]); renderSettings(); }),
         LIVE.mine ? h('p', { class: 'good small' }, '🎮 Tu es en game : l’équipe le voit.') : null),
       uxCard('🪪 Ta carte de profil', 'Visible par l’équipe quand on clique sur ton nom dans la discussion.',
+        h('div', { class: 'fld' }, h('span', null, 'Photo de profil'),
+          h('div', { class: 'row ph-row' },
+            h('span', { class: 'vc-av ph-prev' + (UX.photo ? ' has-ph' : ''), style: UX.photo ? `background-image:url('${UX.photo}')` : null }, me ? ini(me) : '?'),
+            h('label', { class: 'btn-fire small-btn ph-pick' }, UX.photo ? '🖼️ Changer la photo' : '🖼️ Choisir une photo',
+              h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', hidden: true, onchange: async (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const d = await photoShrink(f); if (!d) { vocalToast('Image illisible, essaie un autre fichier.'); return; } setUx({ photo: d }); actLog('profil', 'Nouvelle photo de profil'); renderSettings(); } })),
+            UX.photo ? h('button', { class: 'btn-ghost', onclick: () => { setUx({ photo: '' }); renderSettings(); } }, 'Retirer') : null),
+          h('small', { class: 'muted' }, 'Elle remplace tes initiales partout : discussion, vocal, carte de profil. Elle est recadrée en carré au centre et réduite.')),
         h('label', { class: 'fld' }, h('span', null, 'Ton nom dans FIRE (discussion, vocal, profil)'),
           h('div', { class: 'row' },
             h('input', { class: 'inp ux-nom', maxlength: 20, value: UX.nom || '', placeholder: me ? baseName(me) : 'Ton nom', onchange: (e) => {
@@ -1188,7 +1211,7 @@
     const name = (fx, font, grad) => h('span', { class: 'nm' + (grad ? ' nm-grad' : '') + (fx ? ' nm-' + fx : ''), style: (grad ? `--n1:${grad[0]};--n2:${grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (font && LOOK_FONT[font] ? `font-family:${LOOK_FONT[font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
     // L'aperçu : la carte de profil, une ligne de discussion, la liste des membres et la case du vocal, avec le look donné.
     const lname = (X) => h('span', { class: 'nm' + (X.grad ? ' nm-grad' : '') + (X.fx ? ' nm-' + X.fx : ''), style: (X.grad ? `--n1:${X.grad[0]};--n2:${X.grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (X.font && LOOK_FONT[X.font] ? `font-family:${LOOK_FONT[X.font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
-    const lav = (X, cls) => h('span', { class: 'vc-av ' + (cls || '') + (X.deco ? ' dk dk-' + X.deco : '') }, ini(me), decoExtra(X.deco));
+    const lav = (X, cls) => h('span', { class: 'vc-av ' + (cls || '') + (X.deco ? ' dk dk-' + X.deco : '') + (UX.photo ? ' has-ph' : ''), style: UX.photo ? `background-image:url('${UX.photo}')` : null }, ini(me), decoExtra(X.deco));
     const previewOf = (X, trying) => h('div', { class: 'shop-preview' + (trying ? ' trying' : '') },
       h('div', { class: 'prof-card pf-mini' + (X.card ? ' pf-themed' : ''), style: X.card ? `--pc1:${X.card[0]};--pc2:${X.card[1]}` : '' },
         X.pfx ? pfxEl(X.pfx) : null,
@@ -4935,7 +4958,7 @@
     const target = (byRoom.find(([r]) => r.id === 'equipe') || byRoom[0] || [ROOMS[0]])[0].id;
     el.replaceChildren(
       h('span', { class: 'vl-live' }, h('span', { class: 'dot' }), 'EN DIRECT'),
-      h('span', { class: 'vl-av' }, ppl.slice(0, 6).map((x) => h('span', { class: 'vc-av mini', title: vocalName(x) }, ini(x)))),
+      h('span', { class: 'vl-av' }, ppl.slice(0, 6).map((x) => miniAv(x))),
       h('b', { class: 'vl-txt' }, '🎙️ ', txt),
       h('button', { class: 'vl-join', onclick: () => { go('vocal'); vocalJoin(target); } }, byRoom.length > 1 ? 'Rejoindre l’équipe' : 'Rejoindre'),
       h('button', { class: 'vl-see', onclick: () => go('vocal') }, 'Voir le salon'));
@@ -5003,7 +5026,7 @@
     const live = v.videos.length;
     bar.replaceChildren(
       h('button', { class: 'vb-go', title: 'Ouvrir le salon vocal', onclick: () => go('vocal') }, '🎙️ ', h('b', null, 'Vocal'), ' · ', String(ppl.length), live ? h('span', { class: 'vb-live' }, ' · 🔴 ' + live + ' en direct') : null),
-      h('span', { class: 'vb-ppl' }, ppl.map((s) => h('span', { class: 'vb-p', 'data-vslug': s, title: vocalName(s) }, ini(s)))),
+      h('span', { class: 'vb-ppl' }, ppl.map((s) => h('span', { class: 'vb-p' + (photoOf(s) ? ' has-ph' : ''), style: phStyle(s), 'data-vslug': s, title: vocalName(s) }, ini(s)))),
       h('button', { class: 'vb-btn' + (v.mute ? ' off' : ''), title: (v.mute ? 'Réactiver le micro' : 'Couper le micro') + ` (${keyTxt(vkeys().mute)})`, onclick: () => FV().setMute(!v.mute) }, v.mute ? '🔇' : '🎤'),
       h('button', { class: 'vb-btn' + (v.deaf ? ' off' : ''), title: (v.deaf ? 'Réactiver le son' : 'Couper le son') + ` (${keyTxt(vkeys().deaf)})`, onclick: () => FV().setDeaf(!v.deaf) }, v.deaf ? '🔕' : '🎧'),
       h('button', { class: 'vb-btn leave', title: 'Quitter le salon', onclick: () => FV().leave() }, '📞'));
@@ -5878,7 +5901,7 @@
         ? h('div', null,
           h('button', { class: 'vm-item head', onclick: () => { VX.invOpen = false; renderVocal(); } }, h('span', null, '‹ Inviter dans le salon vocal')),
           !others.length ? h('p', { class: 'vm-note' }, 'Toute l’équipe est déjà là.') : null,
-          others.map((x) => h('div', { class: 'vm-inv' }, h('span', { class: 'vc-av mini' }, ini(x)), h('span', { class: 'vm-n' }, vocalName(x)),
+          others.map((x) => h('div', { class: 'vm-inv' }, miniAv(x), h('span', { class: 'vm-n' }, vocalName(x)),
             VX.inv[x] ? h('span', { class: 'vm-st ' + VX.inv[x] }, stTxt[VX.inv[x]]) : h('button', { class: 'vm-btn', onclick: () => doInvite(x) }, 'Inviter'))),
           others.length > 1 ? h('button', { class: 'vm-item', onclick: () => others.filter((x) => !VX.inv[x]).forEach(doInvite) }, h('span', null, 'Inviter tout le monde')) : null,
           h('p', { class: 'vm-note' }, 'Ils reçoivent une notification Windows, si FIRE est ouvert chez eux.'))
@@ -6054,12 +6077,12 @@
               h('span', { class: 'vr-ico' }, r.ico),
               h('span', { class: 'vr-t' }, h('b', null, r.name, r.prive ? ' 🔒' : '', r.type === 'conference' ? h('span', { class: 'vr-tag' }, 'Conférence') : null), h('small', null, there.length ? `${there.length}${r.max ? '/' + r.max : ''} en ligne` : r.sub)),
               canManageSalons() && !r.fixed ? h('span', { class: 'vr-gear', title: 'Modifier ce salon', onclick: (e) => { e.stopPropagation(); salonDialog('voix', r.raw || { id: r.id, name: r.name, ico: r.ico, desc: r.sub, max: r.max, type: r.type }); } }, '⚙') : null,
-              h('span', { class: 'vr-av' }, there.slice(0, 4).map((x) => h('span', { class: 'vc-av mini', title: vocalName(x) }, ini(x)))),
+              h('span', { class: 'vr-av' }, there.slice(0, 4).map((x) => miniAv(x))),
               full ? h('span', { class: 'vr-full' }, 'Complet') : null);
           })),
           canManageSalons() ? h('div', { class: 'row vc-manage' }, h('button', { class: 'btn-ghost small-btn', onclick: () => salonDialog('voix') }, '＋ Créer un salon vocal'), h('button', { class: 'linkbtn small', onclick: openSalons }, '↕ Réorganiser les salons')) : null,
           VX.roomErr ? h('p', { class: 'bad' }, '⚠ ' + VX.roomErr) : null,
-          h('div', { class: 'vc-lobby-me' }, h('div', { class: 'vc-av big' }, ini(me)), h('div', null, h('b', null, vocalName(me)), h('small', { class: 'muted' }, v.monitor ? 'Test du micro en cours' : 'Prêt à rejoindre')),
+          h('div', { class: 'vc-lobby-me' }, miniAv(me, 'big'), h('div', null, h('b', null, vocalName(me)), h('small', { class: 'muted' }, v.monitor ? 'Test du micro en cours' : 'Prêt à rejoindre')),
             h('div', { class: 'vc-meter slim' }, h('div', { class: 'vc-meter-fill' }))),
           h('div', { class: 'vc-lobby-act' },
             h('button', { class: 'vc-join', disabled: v.joining ? true : null, onclick: () => vocalJoin() }, v.joining ? 'Connexion…' : `Rejoindre « ${roomOf(VX.room || load('fire.vocal.room', 'equipe')).name} »`),
@@ -6204,7 +6227,7 @@
         title: (names.length ? `Dedans : ${names.join(', ')}` : 'Personne pour le moment') + (mine ? ' · tu es ici' : full ? ' · complet' : ' · clique pour y aller'), onclick: () => vocalJoin(r.id) },
         h('span', { class: 'vs-rh' }, r.ico, ' ', r.name, full && !mine ? h('span', { class: 'vs-n full' }, 'complet') : null),
         mine ? h('span', { class: 'vs-empty here' }, 'tu es ici') : there.length
-          ? h('span', { class: 'vs-ppl' }, there.slice(0, 4).map((x) => h('span', { class: 'vc-av mini' }, ini(x))), h('span', { class: 'vs-names' }, names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(', ')))
+          ? h('span', { class: 'vs-ppl' }, there.slice(0, 4).map((x) => miniAv(x)), h('span', { class: 'vs-names' }, names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(', ')))
           : h('span', { class: 'vs-empty' }, 'vide'));
     }));
     view.replaceChildren(...[h('div', { class: 'vc-room' },
@@ -9684,11 +9707,14 @@
   const petOf = (slug) => ((statusOf(slug).look || {}).pet || '');
   const decoOf = (slug) => ((statusOf(slug).look || {}).deco || '');
   const plateOf = (slug) => ((statusOf(slug).look || {}).plate || '');
+  // Photo de profil (Paramètres › Profil) : la mienne vient de mes réglages, celle des autres de leur carte reçue.
+  const photoOf = (slug) => { const x = statusOf(slug).photo; return typeof x === 'string' && /^data:image\/(webp|jpeg|png);base64,/.test(x) ? x : ''; };
+  const phStyle = (slug) => { const ph = slug ? photoOf(slug) : ''; return ph ? `background-image:url('${ph}')` : null; };
+  // Petit avatar rond (listes, vocal) : la photo si le joueur en a mis une, sinon ses initiales.
+  const miniAv = (slug, cls) => h('span', { class: 'vc-av ' + (cls || 'mini') + (photoOf(slug) ? ' has-ph' : ''), style: phStyle(slug), title: vocalName(slug) }, ini(slug));
   function avatarEl(slug, cls) {
     const d = decoOf(slug);
-    const pet = petOf(slug);
-    void pet;
-    return h('span', { class: 'vc-av ' + (cls || '') + (d ? ' dk dk-' + d : ''), title: vocalName(slug) }, ini(slug), decoExtra(d));
+    return h('span', { class: 'vc-av ' + (cls || '') + (d ? ' dk dk-' + d : '') + (photoOf(slug) ? ' has-ph' : ''), style: phStyle(slug), title: vocalName(slug) }, ini(slug), decoExtra(d));
   }
   function chatWhoIco(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 '; const p = S.players.find((x) => x.slug === slug); return p ? roleOf(p).ico + ' ' : ''; }
   function chatWho(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 ' + vocalName(slug); const p = S.players.find((x) => x.slug === slug); return (p ? roleOf(p).ico + ' ' : '') + vocalName(slug); }
@@ -9861,12 +9887,12 @@
     try {
       if (!FV() || !FV().statusSend || !vocalMe()) return;
       if (UX.status === 'invisible') { FV().statusSend(null); return; }
-      FV().statusSend({ st: UX.status, game: !!(LIVE.mine), nom: UX.nom || '', bio: UX.bio || '', color: UX.color || '', banner: UX.banner || null, dm: UX.dm || 'all', games: UX.games || [], look: UX.look || null });
+      FV().statusSend({ st: UX.status, game: !!(LIVE.mine), nom: UX.nom || '', photo: UX.photo || '', bio: UX.bio || '', color: UX.color || '', banner: UX.banner || null, dm: UX.dm || 'all', games: UX.games || [], look: UX.look || null });
     } catch (e) { /* hall pas prêt */ }
   }
   const ST_CACHE = { at: 0, st: {}, prof: {} };
   function statusOf(slug) {
-    if (slug === vocalMe()) return { st: UX.status === 'invisible' ? 'invisible' : UX.status, game: !!LIVE.mine, nom: UX.nom || '', bio: UX.bio, color: UX.color, banner: UX.banner, dm: UX.dm, games: UX.games || [], look: UX.look || null };
+    if (slug === vocalMe()) return { st: UX.status === 'invisible' ? 'invisible' : UX.status, game: !!LIVE.mine, nom: UX.nom || '', photo: UX.photo || '', bio: UX.bio, color: UX.color, banner: UX.banner, dm: UX.dm, games: UX.games || [], look: UX.look || null };
     // Lus au plus deux fois par seconde (FV().state() et le stockage local coûtent cher appelés pour chaque nom).
     if (!ST_CACHE.at || Date.now() - ST_CACHE.at > 500) { let st = {}; try { st = (FV() && FV().state().statuses) || {}; } catch (e) { /* */ } ST_CACHE.st = st; ST_CACHE.prof = load('fire.profiles', {}) || {}; ST_CACHE.at = Date.now(); }
     const live = ST_CACHE.st[slug] || null;
@@ -9880,7 +9906,7 @@
       if (!Object.keys(st).length) return;
       const all = load('fire.profiles', {}) || {};
       let ch = false;
-      for (const [k, x] of Object.entries(st)) { const v = { nom: x.nom || '', bio: x.bio || '', color: x.color || '', banner: x.banner || null, dm: x.dm || 'all', games: x.games || [], look: x.look || null }; if (JSON.stringify(all[k]) !== JSON.stringify(v)) { all[k] = v; ch = true; } }
+      for (const [k, x] of Object.entries(st)) { const v = { nom: x.nom || '', photo: x.photo || '', bio: x.bio || '', color: x.color || '', banner: x.banner || null, dm: x.dm || 'all', games: x.games || [], look: x.look || null }; if (JSON.stringify(all[k]) !== JSON.stringify(v)) { all[k] = v; ch = true; } }
       if (ch) save('fire.profiles', all);
     } catch (e) { /* */ }
   }
