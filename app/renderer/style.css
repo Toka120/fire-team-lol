@@ -3396,3 +3396,9 @@ html[data-calm] .jeu-ombre.torch .om-light{animation:none}
 .vc-av .av-ph,.vb-p .av-ph{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:1;pointer-events:none}
 .vc-av.has-ph,.vb-p.has-ph{color:transparent!important}
 .vc-av .dk-top{z-index:2}
+
+.jeu-skin{display:flex;flex-direction:column;gap:6px}
+.jeu-skin .row{gap:8px;flex-wrap:wrap}
+.jeu-skin .inp{flex:1;min-width:220px}
+.jeu-skin.ok{border-color:#5fd39a}
+.jeu-skin.ko{border-color:rgb(239 90 90 / 60%)}

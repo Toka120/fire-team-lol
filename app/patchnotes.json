@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.164",
+   "date": "2026-11-16",
+   "titre": "Ombre : la suite, trouve le skin",
+   "items": [
+    [
+     "new",
+     "🎨 Détente › Ombre : une fois le champion trouvé, la suite : écris le nom de son skin (3 essais, avec la liste de ses skins en aide ; « Classique » pour le skin de base). Le nom du skin n’est révélé qu’après. Tes skins trouvés sont comptés à part."
+    ]
+   ]
+  },
+  {
    "v": "1.10.163",
    "date": "2026-11-16",
    "titre": "Photo de profil fiable, Ombre plus lisible",

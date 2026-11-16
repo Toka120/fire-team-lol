@@ -8950,7 +8950,7 @@
         h('div', { class: 'jeu-ombre torch' + (r.done ? ' lit' : ''), style: `--r:${R}px;--ob:${Math.min(0.8, 0.5 + wrong * 0.03).toFixed(2)};--obl:${Math.max(1.5, 6 - wrong * 0.4).toFixed(1)}px` },
           h('img', { class: 'om-dark', src, alt: '', onerror: onerr }),
           h('img', { class: 'om-light', src, alt: '', onerror: onerr })),
-        h('p', { class: 'muted small' }, r.done ? (r.skin && r.skin.name ? r.skin.name : t.name) : R < 400 ? 'La lumière grandit à chaque essai raté.' : 'Presque en plein jour !'));
+        h('p', { class: 'muted small' }, r.done ? (r.gaveUp || (r.sk && r.sk.end) ? (r.skin && r.skin.name ? '🎨 ' + r.skin.name : t.name) : 'Et le skin ?') : R < 400 ? 'La lumière grandit à chaque essai raté.' : 'Presque en plein jour !'));
     }
     if (mode === 'passif') {
       const blur = r.done ? 0 : Math.max(0, 14 - 3 * wrong);
@@ -9001,6 +9001,38 @@
       later(() => { if (S.section === 'jeux' && document.activeElement === document.body) inp.focus(); });
     } else {
       const KL = { P: 'Passif', Q: 'Q (A)', W: 'W (Z)', E: 'E', R: 'R' };
+      // Ombre, la suite : le champion est trouvé, maintenant le nom du skin (3 essais).
+      if (mode === 'ombre' && !r.gaveUp && r.skin) {
+        r.sk = r.sk || { tries: [], end: false, ok: false };
+        const SK = r.sk;
+        const skins = (t.skins || []).filter((x) => x.name);
+        const want = r.skin.name || t.name;
+        const strip = (x) => jn(String(x).replace(new RegExp(t.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), ''));
+        const isOk = (v) => { const a = jn(v), b = jn(want); if (!a) return false; if (a === b) return true; if (r.skin.num === 0) return /^(classique|base|defaut|default|original)$/.test(a) || a === jn(t.name); const sb = strip(want); return sb.length > 2 && strip(v) === sb; };
+        const tryIt = (v) => {
+          if (SK.end || !String(v || '').trim()) return;
+          const ok = isOk(v); SK.tries.push(v);
+          if (ok || SK.tries.length >= 3) {
+            SK.end = true; SK.ok = ok;
+            const st = jstats(); const m = st.ombreSkin || { wins: 0, played: 0 }; m.played++; if (ok) m.wins++; st.ombreSkin = m; save('fire.jeux', st);
+            try { petReact(ok ? 'win' : 'lose'); } catch (e) { /* */ }
+          }
+          render();
+        };
+        const inp2 = h('input', { id: 'jeu-skin', class: 'inp', list: 'jeu-skins', placeholder: 'Nom du skin… (ex. : ' + ((skins.find((x) => x.num > 0) || {}).name || t.name + ' Arcade') + ')', autocomplete: 'off', onkeydown: (e) => { if (e.key === 'Enter') tryIt(e.target.value); } });
+        const st2 = jstats().ombreSkin || { wins: 0, played: 0 };
+        nodes.push(h('div', { class: 'card jeu-skin' + (SK.end ? (SK.ok ? ' ok' : ' ko') : '') },
+          h('h3', null, '🎨 La suite : quel skin ?'),
+          SK.end ? h('p', { class: SK.ok ? 'good' : 'bad' }, SK.ok ? `✔ Exact : ${want} !` : `✘ C’était ${r.skin.num === 0 ? 'son skin de base (' + t.name + ')' : want}.`)
+            : h('div', null,
+              h('p', { class: 'muted small' }, `Écris le nom du skin de ${t.name}. ${3 - SK.tries.length} essai${3 - SK.tries.length > 1 ? 's' : ''} restant${3 - SK.tries.length > 1 ? 's' : ''}. « Classique » si c’est son skin de base.`),
+              h('datalist', { id: 'jeu-skins' }, [h('option', { value: 'Classique' }), ...skins.filter((x) => x.num > 0).map((x) => h('option', { value: x.name }))]),
+              h('div', { class: 'row' }, inp2, h('button', { class: 'btn-fire small-btn', onclick: () => tryIt(inp2.value) }, 'Valider'),
+                h('button', { class: 'btn-ghost', onclick: () => { SK.end = true; SK.ok = false; const st = jstats(); const m = st.ombreSkin || { wins: 0, played: 0 }; m.played++; st.ombreSkin = m; save('fire.jeux', st); render(); } }, 'Je ne sais pas'))),
+          SK.tries.length && !SK.end ? h('p', { class: 'small bad' }, 'Pas ça : ' + SK.tries.join(' · ')) : null,
+          h('p', { class: 'muted small' }, `🎨 Skins trouvés : ${st2.wins} sur ${st2.played}`)));
+        if (!SK.end) later(() => { const i = $('jeu-skin'); if (i && document.activeElement !== i) i.focus(); });
+      }
       const bonus = mode === 'sort' && !r.gaveUp ? h('div', { class: 'jeu-bonus' }, h('span', null, '⭐ Et maintenant : c’était son passif ou quelle touche ?'),
         'PQWER'.split('').map((k) => h('button', { class: 'chip' + (r.bonus ? (k === r.spell.key ? ' ok' : k === r.bonus ? ' ko' : '') : ''), disabled: r.bonus ? true : null, onclick: () => { r.bonus = k; const st = load('fire.jeux.key', { ok: 0, n: 0 }); st.n++; if (k === r.spell.key) st.ok++; save('fire.jeux.key', st); render(); } }, KL[k])),
         r.bonus ? h('b', { class: r.bonus === r.spell.key ? 'good' : 'bad' }, r.bonus === r.spell.key ? ` Bien vu : ${r.spell.name} !` : ` Raté, c’était ${KL[r.spell.key]} : ${r.spell.name}.`) : null) : null;
