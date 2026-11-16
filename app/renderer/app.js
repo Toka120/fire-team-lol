@@ -4488,10 +4488,10 @@
   // Salon libre : toute l'équipe arrive dans le même salon, sans code.
   // Plusieurs salons : le salon de l'équipe, deux salons duo et un salon de coaching perso (2 places).
   const ROOMS = [
-    { id: 'equipe', ico: '🔊', name: 'Salon de l’équipe', sub: 'Toute l’équipe', max: 0 },
-    { id: 'duo1', ico: '🎧', name: 'Duo 1', sub: '2 places', max: 2 },
-    { id: 'duo2', ico: '🎧', name: 'Duo 2', sub: '2 places', max: 2 },
-    { id: 'coaching', ico: '🎓', name: 'Coaching perso', sub: '2 places · en tête-à-tête', max: 2 }
+    { id: 'equipe', ico: '🔊', name: 'Salon de l’équipe', sub: 'Toute l’équipe', max: 0, type: 'vocal', fixed: true },
+    { id: 'duo1', ico: '🎧', name: 'Duo 1', sub: '2 places', max: 2, type: 'vocal' },
+    { id: 'duo2', ico: '🎧', name: 'Duo 2', sub: '2 places', max: 2, type: 'vocal' },
+    { id: 'coaching', ico: '🎓', name: 'Coaching perso', sub: '2 places · en tête-à-tête', max: 2, type: 'vocal' }
   ];
   const roomOf = (id) => ROOMS.find((r) => r.id === id) || ROOMS[0];
   // Le salon de l'équipe garde son adresse d'avant : les versions précédentes de FIRE s'y retrouvent.
@@ -4726,7 +4726,7 @@
         onChange: () => { if (S.section === 'vocal' && !document.fullscreenElement) renderVocal(); },
         onOpen: (from) => { vocalToast(`${vocalName(from)} a ouvert le tableau tactique`, true); if (S.section === 'vocal') { save('fire.vocal.layout', 'focus'); VX.focus = 'board'; } },
       });
-      FV().onApp((from, m) => { if (m && m.t === 'tb') { if (!SUB()) FireBoard.onMsg(from, m); } else if (m && m.t === 'clip') clipRecv(from, m); });
+      FV().onApp((from, m) => { if (m && m.t === 'tb') { if (!SUB()) FireBoard.onMsg(from, m); } else if (m && m.t === 'clip') clipRecv(from, m); else if (m && m.t === 'hand') { if (m.on) CONF.hands[from] = Date.now(); else delete CONF.hands[from]; if (m.on && isStaff()) vocalToast(`✋ ${vocalName(from)} lève la main`, true); if (S.section === 'vocal') renderVocal(); } });
       FV().onPeer((slug) => FireBoard.peerReady(slug));
     }
     // Définition reçue de chaque écran partagé (petit badge en haut à gauche de la vidéo).
@@ -4883,6 +4883,11 @@
     if (c.a === 'kick') { if (v && v.on) FV().leave(); vocalToast(`${who} t’a déconnecté du vocal`, false); }
     if (c.a === 'timeout') { MOD.me.until = Date.now() + c.min * 60000; if (v && v.on) FV().leave(); popup('⛔ Exclusion', `${who} t’a exclu du vocal et de la discussion pour ${c.min >= 60 ? Math.round(c.min / 60) + ' h' : c.min + ' min'}.`, null); }
     if (c.a === 'untimeout') { MOD.me.until = 0; vocalToast(`${who} a levé ton exclusion`, true); }
+    if (c.a === 'speak') {
+      CONF.speak = !!c.on;
+      if (c.on) { if (CONF.hand) { CONF.hand = false; try { FV().appSend({ t: 'hand', on: false }); } catch (e) { /* */ } } vocalToast(`🎙️ ${who} te donne la parole : réactive ton micro pour parler`, true); }
+      else { FV().setMute(true); vocalToast(`${who} a repris la parole`, false); }
+    }
     save('fire.mod', MOD.me);
     actLog('modo', `Reçu de ${who} : ${c.a}`);
     render();
@@ -4895,9 +4900,39 @@
     try { FV().onChange(() => { const on = FV().isOn ? FV().isOn() : false; if (on !== last) { last = on; w.inVoice(on); } }); } catch (e) { /* */ }
     if (w.onLeaveVoice) w.onLeaveVoice(() => { try { FV().leave(); } catch (e) { /* */ } });
   }
+  // ----- Salon « Conférence » : le staff parle, les autres écoutent et lèvent la main ; le staff donne la parole -----
+  const CONF = { speak: false, hand: false, hands: {}, room: null };
+  const confRoom = (v) => !!(v && v.on && roomOf(v.room).type === 'conference');
+  const confLocked = (v) => confRoom(v) && !isStaff() && !CONF.speak;
+  function confHand(on) {
+    CONF.hand = on;
+    try { FV().appSend({ t: 'hand', on }); } catch (e) { /* */ }
+    vocalToast(on ? '✋ Main levée : le staff peut te donner la parole' : 'Main baissée', true);
+    renderVocal();
+  }
+  function confGive(slug, on) {
+    modDo(slug, { a: 'speak', on }, `${on ? 'Parole donnée à' : 'Parole retirée à'} ${vocalName(slug)}`).then((ok) => {
+      if (ok) { if (on) delete CONF.hands[slug]; CONF.given = { ...(CONF.given || {}), [slug]: on }; vocalToast(ok ? `${vocalName(slug)} ${on ? 'a la parole' : 'n’a plus la parole'}` : 'Commande pas reçue', ok); renderVocal(); }
+    });
+  }
+  function confPanel(v, people) {
+    if (!confRoom(v)) return null;
+    if (!isStaff()) return h('div', { class: 'vc-conf' }, h('b', null, '🎙️ Conférence'), h('span', null, CONF.speak ? ' · tu as la parole : réactive ton micro pour parler.' : CONF.hand ? ' · ta main est levée, le staff va te donner la parole.' : ' · le staff parle. Lève la main ✋ (en bas) pour poser une question.'));
+    const hands = Object.keys(CONF.hands).filter((x) => people.some((p) => p.slug === x)).sort((a, b) => CONF.hands[a] - CONF.hands[b]);
+    const given = Object.keys(CONF.given || {}).filter((x) => CONF.given[x] && people.some((p) => p.slug === x));
+    return h('div', { class: 'vc-conf staff' }, h('b', null, '🎙️ Conférence'), h('span', { class: 'muted' }, ' · tu peux parler (staff). Les autres sont muets jusqu’à ce que tu leur donnes la parole.'),
+      hands.length ? h('div', { class: 'vc-conf-l' }, hands.map((x) => h('span', { class: 'vc-conf-p' }, '✋ ', vocalName(x), ' ', h('button', { class: 'btn-fire small-btn', onclick: () => confGive(x, true) }, 'Donner la parole')))) : null,
+      given.length ? h('div', { class: 'vc-conf-l' }, given.map((x) => h('span', { class: 'vc-conf-p' }, '🎙️ ', vocalName(x), ' ', h('button', { class: 'btn-ghost small-btn', onclick: () => confGive(x, false) }, 'Reprendre la parole')))) : null);
+  }
   function modInit() {
     try {
       FV().onMod((from, c) => modReceive(from, c));
+      FV().onChange(() => {
+        const v = FV().state();
+        const r = v.on ? v.room : null;
+        if (r !== CONF.room) { CONF.room = r; CONF.speak = false; CONF.hand = false; CONF.hands = {}; CONF.given = {}; }
+        if (confLocked(v) && !v.mute) FV().setMute(true);
+      });
       // Rendu muet ou en sourdine par le staff : on ne peut pas se le retirer soi-même.
       FV().onChange(() => {
         if (!MOD.me.mute && !MOD.me.deaf && !modBlocked()) return;
@@ -5335,11 +5370,12 @@
             const sel = (VX.room || load('fire.vocal.room', 'equipe')) === r.id;
             return h('button', { class: 'vr-card' + (sel ? ' sel' : '') + (full ? ' full' : '') + (there.length ? ' busy' : ''), onclick: () => { VX.room = r.id; save('fire.vocal.room', r.id); VX.roomErr = ''; renderVocal(); }, ondblclick: () => vocalJoin(r.id) },
               h('span', { class: 'vr-ico' }, r.ico),
-              h('span', { class: 'vr-t' }, h('b', null, r.name), h('small', null, there.length ? `${there.length}${r.max ? '/' + r.max : ''} en ligne` : r.sub)),
+              h('span', { class: 'vr-t' }, h('b', null, r.name, r.prive ? ' 🔒' : '', r.type === 'conference' ? h('span', { class: 'vr-tag' }, 'Conférence') : null), h('small', null, there.length ? `${there.length}${r.max ? '/' + r.max : ''} en ligne` : r.sub)),
+              canManageSalons() && !r.fixed ? h('span', { class: 'vr-gear', title: 'Modifier ce salon', onclick: (e) => { e.stopPropagation(); salonDialog('voix', r.raw || { id: r.id, name: r.name, ico: r.ico, desc: r.sub, max: r.max, type: r.type }); } }, '⚙') : null,
               h('span', { class: 'vr-av' }, there.slice(0, 4).map((x) => h('span', { class: 'vc-av mini', title: vocalName(x) }, ini(x)))),
               full ? h('span', { class: 'vr-full' }, 'Complet') : null);
           })),
-          canManageSalons() ? h('button', { class: 'linkbtn small vc-manage', onclick: openSalons }, '⚙️ Gérer les salons (coach et chef d’équipe)') : null,
+          canManageSalons() ? h('div', { class: 'row vc-manage' }, h('button', { class: 'btn-ghost small-btn', onclick: () => salonDialog('voix') }, '＋ Créer un salon vocal'), h('button', { class: 'linkbtn small', onclick: openSalons }, '↕ Réorganiser les salons')) : null,
           VX.roomErr ? h('p', { class: 'bad' }, '⚠ ' + VX.roomErr) : null,
           h('div', { class: 'vc-lobby-me' }, h('div', { class: 'vc-av big' }, ini(me)), h('div', null, h('b', null, vocalName(me)), h('small', { class: 'muted' }, v.monitor ? 'Test du micro en cours' : 'Prêt à rejoindre')),
             h('div', { class: 'vc-meter slim' }, h('div', { class: 'vc-meter-fill' }))),
@@ -5418,6 +5454,7 @@
       const sndVol = so.vol ?? 0.8;
       const hasSnd = t.kind === 'screen' && !t.mine && t.sound;
       box.append(h('div', { class: 'vt-name' }, t.kind === 'screen' ? vi('screen') : null, (t.kind === 'screen' ? 'Écran de ' : '') + (t.mine ? (t.kind === 'screen' ? 'toi' : vocalName(t.slug) + ' (toi)') : ((pl.capitaine ? '👑 ' : coachOf(t.slug) ? '🎓 ' : '') + vocalName(t.slug))),
+        t.kind === 'person' && (CONF.hands[t.slug] || (t.mine && CONF.hand)) ? h('span', { class: 'vt-st hand', title: 'Main levée' }, '✋') : null,
         t.kind === 'person' && r.mute ? h('span', { class: 'vt-st bad' }, vi('micOff')) : null,
         t.kind === 'person' && r.deaf ? h('span', { class: 'vt-st bad' }, vi('headOff')) : null,
         hasSnd ? h('span', { class: 'vt-st ' + (sndOn ? 'snd' : 'bad') }, vi(sndOn ? 'vol' : 'headOff')) : null,
@@ -5457,7 +5494,8 @@
     const bar = h('div', { class: 'vc-bar' },
       h('div', { class: 'vc-bar-l' }, h('span', { class: 'vc-live-pill' }, h('span', { class: 'dot' }), `${roomOf(v.room).ico} ${roomOf(v.room).name} · ${people.length}`)),
       h('div', { class: 'vc-bar-c' },
-        cbtn(v.mute, 'micOff', 'mic', `${v.mute ? 'Réactiver' : 'Couper'} le micro (${keyTxt(K.mute)})`, () => FV().setMute(!v.mute), 'warn'),
+        confLocked(v) ? h('button', { class: 'cb hand' + (CONF.hand ? ' on' : ''), title: CONF.hand ? 'Baisser la main' : 'Conférence : lève la main pour demander la parole', onclick: () => confHand(!CONF.hand) }, '✋')
+          : cbtn(v.mute, 'micOff', 'mic', `${v.mute ? 'Réactiver' : 'Couper'} le micro (${keyTxt(K.mute)})`, () => FV().setMute(!v.mute), 'warn'),
         cbtn(v.deaf, 'headOff', 'head', `${v.deaf ? 'Réactiver' : 'Couper'} le son (${keyTxt(K.deaf)})`, () => FV().setDeaf(!v.deaf), 'warn'),
         cbtn(!!v.cam, 'cam', 'camOff', `${v.cam ? 'Couper' : 'Allumer'} la caméra (${keyTxt(K.cam)})`, () => (v.cam ? FV().stopCam() : FV().startCam()), 'live'),
         cbtn(!!v.screen, 'screen', 'screen', `${v.screen ? 'Arrêter le partage' : 'Partager ton écran'} (${keyTxt(K.screen)})`, () => (v.screen ? FV().stopScreen() : openScreenPicker()), 'live'),
@@ -5490,7 +5528,7 @@
     view.replaceChildren(...[h('div', { class: 'vc-room' },
       v.err ? h('p', { class: 'bad vc-err' }, '⚠ ' + v.err, ' ', h('button', { class: 'linkbtn small', onclick: () => FV().clearErr() }, 'OK')) : null,
       VX.roomErr ? h('p', { class: 'bad vc-err' }, '⚠ ' + VX.roomErr) : null,
-      switcher, stage, bar,
+      switcher, confPanel(v, people), stage, bar,
       people.length === 1 ? h('p', { class: 'vc-alone' }, 'Tu es seul pour le moment : invite tes coéquipiers avec le menu ⋯ en bas à droite.') : null,
       hidden ? h('p', { class: 'vc-alone' }, `${hidden} participant${hidden > 1 ? 's' : ''} sans vidéo masqué${hidden > 1 ? 's' : ''} (menu ⋯).`) : null), drawer].filter(Boolean));
     resumeVideos();
@@ -8488,18 +8526,38 @@
   // Messages privés refusés (Paramètres › Confidentialité) : ceux des expéditeurs non autorisés ne s'affichent pas.
   const dmAllowedFrom = (from) => UX.dm === 'all' || (UX.dm === 'coach' && !!coachOf(from));
   // Salons de l'équipe (comme Discord) : #général (« team »), #stratégie, #games, #détente ; puis les messages privés.
-  const CHANNELS = [['team', '💬', 'général', 'Toute l’équipe, tous les sujets'], ['ch:strat', '🧠', 'stratégie', 'Compos, drafts, plans de jeu, ce qu’on retient des games'],
-    ['ch:games', '🎮', 'games', 'On lance une game ? Résultats, clips, invitations'], ['ch:detente', '😄', 'détente', 'Memes, musique, tout et n’importe quoi']];
-  const isChan = (c) => CHANNELS.some(([id]) => id === c);
+  // Chaque salon : [id, emoji, nom, description, { type, prive, acces, fixed }].
+  const IDEES_CH = ['ch:idees', '💡', 'boîte-à-idées', 'Propose une idée pour l’équipe ou pour FIRE, et vote pour les meilleures', { type: 'idees', fixed: true }];
+  const CHANNELS = [['team', '💬', 'général', 'Toute l’équipe, tous les sujets', { type: 'texte', fixed: true }], ['ch:strat', '🧠', 'stratégie', 'Compos, drafts, plans de jeu, ce qu’on retient des games', { type: 'texte' }],
+    ['ch:games', '🎮', 'games', 'On lance une game ? Résultats, clips, invitations', { type: 'texte' }], ['ch:detente', '😄', 'détente', 'Memes, musique, tout et n’importe quoi', { type: 'texte' }], IDEES_CH];
+  // Salon privé : seulement les rôles ou membres choisis (le staff et ceux qui gèrent les salons voient tout).
+  function salonOk(m) {
+    if (!m) return true;
+    if (SUB() && (m.type === 'forum' || m.type === 'idees')) return false;
+    if (!m.prive) return true;
+    if (isStaff() || canManageSalons()) return true;
+    const me = vocalMe();
+    if (!me) return false;
+    const a = m.acces || {}, roles = a.roles || [];
+    if ((a.membres || []).includes(me)) return true;
+    if (roles.includes('coachs') && coachOf(me)) return true;
+    const p = S.players.find((x) => x.slug === me);
+    return !!(p && ((roles.includes('titulaires') && !isSub(p)) || (roles.includes('remplacants') && isSub(p))));
+  }
+  const chanMeta = (c) => (CHANNELS.find(([id]) => id === c) || [])[4] || null;
+  const chanType = (c) => (chanMeta(c) || {}).type || 'texte';
+  const isForum = (c) => ['forum', 'idees'].includes(chanType(c)) && c.startsWith('ch:');
+  const isChan = (c) => CHANNELS.some((x) => x[0] === c && salonOk(x[4]));
+  const TYPE_ICO = { texte: '#', forum: '🗂️', annonce: '📢', idees: '💡', vocal: '🔊', conference: '🎙️' };
   // Salons créés par le coach ou le chef d'équipe (salons.json) ; sans fichier, ceux par défaut.
-  const SAL_DEF = { texte: [{ id: 'strat', ico: '🧠', name: 'stratégie', desc: 'Compos, drafts, plans de jeu, ce qu’on retient des games' }, { id: 'games', ico: '🎮', name: 'games', desc: 'On lance une game ? Résultats, clips, invitations' },
-    { id: 'detente', ico: '😄', name: 'détente', desc: 'Memes, musique, tout et n’importe quoi' }],
-    voix: [{ id: 'duo1', ico: '🎧', name: 'Duo 1', desc: '2 places', max: 2 }, { id: 'duo2', ico: '🎧', name: 'Duo 2', desc: '2 places', max: 2 }, { id: 'coaching', ico: '🎓', name: 'Coaching perso', desc: '2 places · en tête-à-tête', max: 2 }] };
+  const SAL_DEF = { texte: [{ id: 'strat', ico: '🧠', name: 'stratégie', desc: 'Compos, drafts, plans de jeu, ce qu’on retient des games', type: 'texte' }, { id: 'games', ico: '🎮', name: 'games', desc: 'On lance une game ? Résultats, clips, invitations', type: 'texte' },
+    { id: 'detente', ico: '😄', name: 'détente', desc: 'Memes, musique, tout et n’importe quoi', type: 'texte' }],
+    voix: [{ id: 'duo1', ico: '🎧', name: 'Duo 1', desc: '2 places', max: 2, type: 'vocal' }, { id: 'duo2', ico: '🎧', name: 'Duo 2', desc: '2 places', max: 2, type: 'vocal' }, { id: 'coaching', ico: '🎓', name: 'Coaching perso', desc: '2 places · en tête-à-tête', max: 2, type: 'vocal' }] };
   const SAL = { data: load('fire.salons', null), gerer: false };
   function applySalons(d) {
     const x = d && (Array.isArray(d.texte) || Array.isArray(d.voix)) ? d : SAL_DEF;
-    CHANNELS.splice(1, CHANNELS.length - 1, ...(x.texte || []).map((c) => ['ch:' + c.id, c.ico || '💬', c.name, c.desc || '']));
-    ROOMS.splice(1, ROOMS.length - 1, ...(x.voix || []).map((r) => ({ id: r.id, ico: r.ico || '🔊', name: r.name, sub: r.desc || (r.max ? `${r.max} places` : 'Places illimitées'), max: Number(r.max) || 0 })));
+    CHANNELS.splice(1, CHANNELS.length - 1, ...(x.texte || []).map((c) => ['ch:' + c.id, c.ico || '💬', c.name, c.desc || '', { type: c.type || 'texte', prive: !!c.prive, acces: c.acces || null, raw: c }]), IDEES_CH);
+    ROOMS.splice(1, ROOMS.length - 1, ...(x.voix || []).map((r) => ({ id: r.id, ico: r.ico || '🔊', name: r.name, sub: r.desc || (r.type === 'conference' ? 'Conférence : lève la main pour parler' : r.max ? `${r.max} places` : 'Places illimitées'), max: Number(r.max) || 0, type: r.type || 'vocal', prive: !!r.prive, acces: r.acces || null, raw: r })));
   }
   async function salonsLoad() {
     if (!window.fire.salons) return;
@@ -8558,6 +8616,194 @@
     paint();
     document.body.append(box);
   }
+  // ----- Créer ou modifier un salon (comme Discord) : type, nom, description, places, salon privé -----
+  const SAL_TYPES = [
+    ['texte', 'texte', 'Texte', 'Messages, liens, avis : la discussion classique'],
+    ['voix', 'vocal', 'Vocal', 'Voix, caméra et partage d’écran'],
+    ['texte', 'forum', 'Forum', 'Des sujets avec un titre et leurs réponses, pour organiser les discussions'],
+    ['texte', 'annonce', 'Annonces', 'Seul le staff écrit, toute l’équipe lit'],
+    ['texte', 'idees', 'Boîte à idées', 'Chacun propose, tout le monde vote, le staff donne une suite'],
+    ['voix', 'conference', 'Conférence', 'Le staff parle ; les autres écoutent et lèvent la main pour prendre la parole'],
+  ];
+  const salSlug = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20);
+  function salonDialog(kind, cur) {
+    document.querySelectorAll('.sal-pop').forEach((x) => x.remove());
+    const edit = !!(cur && cur.id);
+    const E = { kind: edit ? kind : kind, type: (cur && cur.type) || (kind === 'voix' ? 'vocal' : 'texte'), name: (cur && cur.name) || '', ico: (cur && cur.ico) || '', desc: (cur && cur.desc) || '',
+      max: Number(cur && cur.max) || 0, prive: !!(cur && cur.prive), roles: ((cur && cur.acces && cur.acces.roles) || []).slice(), membres: ((cur && cur.acces && cur.acces.membres) || []).slice(), busy: false, err: '', del: false };
+    const box = h('div', { class: 'sal-pop', onmousedown: (e) => { if (e.target === box) box.remove(); } });
+    const people = () => S.players.filter((p) => p.slug).map((p) => [p.slug, vocalName(p.slug), isSub(p) ? 'remplaçant' : '']).concat((S.coachs || []).map((c) => [c.slug, c.pseudo, 'coach']));
+    const voice = () => E.type === 'vocal' || E.type === 'conference';
+    async function submit(remove) {
+      const base = SAL.data && (SAL.data.texte || SAL.data.voix) ? SAL.data : SAL_DEF;
+      const D = { texte: (base.texte || []).map((x) => ({ ...x })), voix: (base.voix || []).map((x) => ({ ...x })) };
+      const fam = voice() ? 'voix' : 'texte';
+      const name = E.name.trim();
+      if (!remove && !name) { E.err = 'Donne un nom au salon.'; paint(); return; }
+      if (edit) { for (const k of ['texte', 'voix']) D[k] = D[k].filter((x) => x.id !== cur.id); }
+      if (!remove) {
+        let id = edit ? cur.id : salSlug(name);
+        if (!id || id.length < 2) id = (fam === 'voix' ? 'vocal-' : 'salon-') + Date.now().toString(36).slice(-4);
+        const taken = new Set(D.texte.concat(D.voix).map((x) => x.id).concat(['team', 'equipe', 'general', 'idees']));
+        if (!edit) { let base2 = id, n = 2; while (taken.has(id)) id = (base2.slice(0, 17) + '-' + n++); }
+        const o = { id, name: name.slice(0, 30), ico: E.ico.trim() || (fam === 'voix' ? (E.type === 'conference' ? '🎙️' : '🔊') : ({ forum: '🗂️', annonce: '📢', idees: '💡' }[E.type] || '💬')), desc: E.desc.trim().slice(0, 90), type: E.type };
+        if (fam === 'voix') o.max = E.max;
+        if (E.prive) { o.prive = true; o.acces = { roles: E.roles, membres: E.membres }; }
+        const list = D[fam];
+        const at = edit ? Math.min(list.length, (base[fam] || []).findIndex((x) => x.id === cur.id)) : -1;
+        if (at >= 0) list.splice(at, 0, o); else list.push(o);
+        E.newId = id;
+      }
+      E.busy = true; E.err = ''; paint();
+      const r = await window.fire.salons.save(D).catch((e) => ({ ok: false, error: String(e) }));
+      E.busy = false;
+      if (r && r.ok) {
+        SAL.data = r.salons; save2(r.salons); applySalons(r.salons); box.remove();
+        if (!remove && !voice()) CH.conv = 'ch:' + E.newId;
+        if (!remove && voice()) { VX.room = E.newId; save('fire.vocal.room', E.newId); }
+        actLog('salons', remove ? `Salon supprimé : ${cur.name}` : edit ? `Salon modifié : ${name}` : `Salon créé : ${name}`);
+        render();
+        popup(remove ? '🗑 Salon supprimé' : edit ? '✅ Salon modifié' : '✅ Salon créé', 'Toute l’équipe le voit dans 2 minutes au plus.', null);
+      } else { E.err = (r && r.error) || 'enregistrement impossible'; paint(); }
+    }
+    const save2 = (d) => { try { localStorage.setItem('fire.salons', JSON.stringify(d)); } catch (e) { /* */ } };
+    const paint = () => {
+      const types = SAL_TYPES.filter(([fam]) => !edit || fam === (voice() ? 'voix' : 'texte'));
+      box.replaceChildren(h('div', { class: 'sal-card sal-new' },
+        h('div', { class: 'row sal-new-h' }, h('h2', null, edit ? `Modifier « ${cur.name} »` : 'Créer un salon'), h('button', { class: 'sal-x', title: 'Fermer', onclick: () => box.remove() }, '✕')),
+        h('p', { class: 'sal-lab' }, 'Type de salon'),
+        h('div', { class: 'sal-types' }, types.map(([fam, t, lab, desc]) => h('label', { class: 'sal-type' + (E.type === t ? ' on' : '') },
+          h('input', { type: 'radio', name: 'saltype', checked: E.type === t ? true : null, onchange: () => { E.type = t; if (t === 'vocal' || t === 'conference') E.kind = 'voix'; paint(); } }),
+          h('span', { class: 'sal-type-i' }, TYPE_ICO[t]), h('span', null, h('b', null, lab), h('small', null, desc))))),
+        h('p', { class: 'sal-lab' }, 'Nom du salon'),
+        h('div', { class: 'sal-name-row' }, h('span', { class: 'sal-pre' }, TYPE_ICO[E.type]),
+          h('input', { class: 'inp', value: E.name, maxlength: 30, placeholder: voice() ? 'Nouveau salon' : 'nouveau-salon', oninput: (e) => { E.name = e.target.value; } }),
+          h('input', { class: 'inp sal-ico', value: E.ico, maxlength: 4, placeholder: '😀', title: 'Emoji du salon', oninput: (e) => { E.ico = e.target.value; } })),
+        h('p', { class: 'sal-lab' }, 'Description'),
+        h('input', { class: 'inp', value: E.desc, maxlength: 90, placeholder: 'À quoi sert ce salon ?', oninput: (e) => { E.desc = e.target.value; } }),
+        voice() ? [h('p', { class: 'sal-lab' }, 'Places'), h('select', { class: 'inp', onchange: (e) => { E.max = Number(e.target.value); } },
+          [0, 2, 3, 4, 5, 6, 8, 10, 15, 20, 25].map((n) => h('option', { value: String(n), selected: E.max === n ? true : null }, n ? `${n} places` : 'Illimité')))] : null,
+        h('label', { class: 'sal-priv' }, h('span', null, h('b', null, '🔒 Salon privé'), h('small', null, 'Seuls les rôles et membres choisis le voient. Le staff voit toujours tout.')),
+          h('input', { type: 'checkbox', class: 'vs-tog', checked: E.prive ? true : null, onchange: (e) => { E.prive = e.target.checked; paint(); } })),
+        E.prive ? h('div', { class: 'sal-acc' },
+          h('div', { class: 'sal-chips' }, [['titulaires', 'Titulaires'], ['remplacants', 'Remplaçants'], ['coachs', 'Coachs']].map(([k, l]) => h('button', { class: 'chip' + (E.roles.includes(k) ? ' on' : ''), 'aria-pressed': String(E.roles.includes(k)),
+            onclick: () => { E.roles = E.roles.includes(k) ? E.roles.filter((x) => x !== k) : E.roles.concat(k); paint(); } }, l))),
+          h('p', { class: 'muted small' }, 'Et ces membres :'),
+          h('div', { class: 'sal-chips' }, people().map(([sl, n, tag]) => h('button', { class: 'chip' + (E.membres.includes(sl) ? ' on' : ''), 'aria-pressed': String(E.membres.includes(sl)),
+            onclick: () => { E.membres = E.membres.includes(sl) ? E.membres.filter((x) => x !== sl) : E.membres.concat(sl); paint(); } }, n, tag ? h('small', null, ' · ' + tag) : null)))) : null,
+        E.err ? h('p', { class: 'bad small' }, '⚠ ' + E.err) : null,
+        E.del ? h('div', { class: 'sal-del-ok' }, h('b', null, `Supprimer « ${cur.name} » pour toute l’équipe ?`), h('small', null, voice() ? ' Ceux qui sont dedans restent connectés jusqu’à ce qu’ils changent de salon.' : ' Ses messages ne seront plus affichés.'),
+          h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn danger', disabled: E.busy ? true : null, onclick: () => submit(true) }, 'Oui, supprimer'), h('button', { class: 'btn-ghost small-btn', onclick: () => { E.del = false; paint(); } }, 'Annuler'))) : null,
+        h('div', { class: 'row sal-act' },
+          edit ? h('button', { class: 'btn-ghost small-btn sal-del', disabled: E.busy ? true : null, onclick: () => { E.del = true; paint(); } }, '🗑 Supprimer') : null,
+          h('span', { class: 'spacer' }),
+          h('button', { class: 'btn-ghost', onclick: () => box.remove() }, 'Annuler'),
+          h('button', { class: 'btn-fire small-btn', disabled: E.busy ? true : null, onclick: () => submit(false) }, E.busy ? 'Enregistrement…' : edit ? 'Enregistrer' : 'Créer le salon'))));
+    };
+    paint();
+    document.body.append(box);
+    setTimeout(() => { const i = box.querySelector('.sal-name-row .inp'); if (i) i.focus(); }, 40);
+  }
+
+  // ----- Forums et boîte à idées -----
+  const FO = { posts: {}, open: null, ver: 0, busy: false, err: '', draft: null, reply: '', sort: {}, filtre: 'tous', loading: {}, at: {}, statDraft: {} };
+  const IDEE = { nouvelle: ['💡', 'Nouvelle'], etude: ['👀', 'À l’étude'], acceptee: ['✅', 'Acceptée'], faite: ['🚀', 'Faite'], refusee: ['❌', 'Refusée'] };
+  const staffHere = () => !!(S.coachState && (S.coachState.coach || S.coachState.chef || S.coachState.admin));
+  const foId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const foBump = () => { FO.ver++; if (S.section === 'chat') chatPagePaint(); };
+  async function forumLoad(conv, force) {
+    if (!window.fire.forum || !conv || !conv.startsWith('ch:')) return;
+    if (FO.loading[conv] || (!force && FO.at[conv] && Date.now() - FO.at[conv] < 60000)) return;
+    FO.loading[conv] = true;
+    const r = await window.fire.forum.get(conv.slice(3)).catch(() => null);
+    FO.loading[conv] = false; FO.at[conv] = Date.now();
+    if (r && r.ok) { FO.posts[conv] = r.posts || []; FO.keepScroll = true; foBump(); }
+  }
+  async function forumDo(conv, op, done) {
+    const me = vocalMe();
+    if (!me) { askWho(); return; }
+    if (FO.busy) return;
+    FO.busy = true; FO.err = ''; FO.keepScroll = true; foBump();
+    const r = await window.fire.forum.op(conv.slice(3), { ...op, by: me }).catch((e) => ({ ok: false, error: String(e) }));
+    FO.busy = false;
+    if (r && r.ok) {
+      FO.posts[conv] = r.posts || []; FO.at[conv] = Date.now();
+      if (done) done();
+      const to = new Set(S.players.map((p) => p.slug).filter(Boolean).concat((S.coachs || []).map((c) => c.slug), 'coach')); to.delete(me);
+      for (const x of to) { try { FV().hallSend(x, { t: 'forum', ch: conv.slice(3), k: op.type, title: String(op.title || '').slice(0, 100) }).catch(() => {}); } catch (e) { /* */ } }
+      actLog('forum', `${convName(conv)} : ${op.type === 'post' ? 'nouveau post « ' + String(op.title || '').slice(0, 60) + ' »' : op.type}`);
+    } else FO.err = (r && r.error) || 'erreur';
+    FO.keepScroll = true; foBump();
+  }
+  function forumHall(from, m) {
+    const conv = 'ch:' + String(m.ch || '').slice(0, 20);
+    if (!isChan(conv)) return;
+    FO.at[conv] = 0;
+    if (S.section === 'chat' && CH.conv === conv) forumLoad(conv, true);
+    if (m.k === 'post' && chanType(conv) === 'idees' && staffHere()) notifyDesk('chat', '💡 Nouvelle idée', `${vocalName(from)} : ${String(m.title || '').slice(0, 100)}`, 'chat');
+  }
+  function forumView(conv) {
+    const me = vocalMe();
+    const idees = chanType(conv) === 'idees';
+    const all = FO.posts[conv];
+    if (!all) { forumLoad(conv); return h('p', { class: 'muted fo-empty' }, 'Chargement…'); }
+    const word = idees ? 'idée' : 'sujet';
+    const err = FO.err ? h('p', { class: 'bad small' }, '⚠ ' + FO.err) : null;
+    const who = (sl) => h('b', { class: 'chat-who-n', onclick: () => openProfile(sl) }, vocalName(sl));
+    const stChip = (p) => idees ? h('span', { class: 'fo-st st-' + (p.statut || 'nouvelle') }, (IDEE[p.statut] || IDEE.nouvelle).join(' ')) : null;
+    const vote = (p) => { const on = (p.votes || []).includes(me); return h('button', { class: 'fo-vote' + (on ? ' on' : ''), title: on ? 'Retirer mon vote' : 'Je vote pour', disabled: FO.busy || !me ? true : null, onclick: (e) => { e.stopPropagation(); forumDo(conv, { type: 'vote', post: p.id, on: !on }); } }, '▲ ', String((p.votes || []).length)); };
+    // ---- Un sujet ouvert ----
+    const p = FO.open && all.find((x) => x.id === FO.open);
+    if (p) {
+      const canDel = (by) => by === me || staffHere();
+      const sd = FO.statDraft[p.id] || { statut: p.statut || 'nouvelle', reponse: p.reponse || '' };
+      const ta = h('textarea', { class: 'inp fo-in', rows: 3, maxlength: 2000, placeholder: 'Répondre…', oninput: (e) => { FO.reply = e.target.value; } });
+      ta.value = FO.reply || '';
+      return h('div', { class: 'fo' },
+        h('button', { class: 'linkbtn fo-back', onclick: () => { FO.open = null; FO.reply = ''; foBump(); } }, `← Toutes les ${idees ? 'idées' : 'discussions'}`),
+        h('div', { class: 'fo-post big' },
+          h('div', { class: 'fo-top' }, idees ? vote(p) : null, h('div', { class: 'fo-tt' }, h('h2', null, p.pin ? '📌 ' : '', p.title), h('div', { class: 'muted small' }, who(p.by), ' · ', chatDay(p.at), ' à ', hm(p.at), ' ', stChip(p)))),
+          p.text ? h('div', { class: 'fo-text' }, p.text) : null,
+          idees && p.reponse ? h('div', { class: 'fo-rep-staff' }, h('b', null, `Réponse du staff${p.statutPar ? ' (' + vocalName(p.statutPar) + ')' : ''} : `), p.reponse) : null,
+          h('div', { class: 'row fo-acts' },
+            staffHere() ? h('button', { class: 'btn-ghost small-btn', onclick: () => forumDo(conv, { type: 'pin', post: p.id, on: !p.pin }) }, p.pin ? 'Désépingler' : '📌 Épingler') : null,
+            canDel(p.by) ? h('button', { class: 'btn-ghost small-btn', onclick: () => { if (FO.delAsk === p.id) { FO.delAsk = null; forumDo(conv, { type: 'del', post: p.id }, () => { FO.open = null; }); } else { FO.delAsk = p.id; foBump(); } } }, FO.delAsk === p.id ? 'Confirmer la suppression' : `🗑 Supprimer ${idees ? 'l’idée' : 'le sujet'}`) : null)),
+        idees && staffHere() ? h('div', { class: 'fo-staff' }, h('b', null, 'Suite donnée (staff)'),
+          h('div', { class: 'sal-chips' }, Object.entries(IDEE).map(([k, [ico, l]]) => h('button', { class: 'chip' + (sd.statut === k ? ' on' : ''), onclick: () => { FO.statDraft[p.id] = { ...sd, statut: k }; foBump(); } }, ico + ' ' + l))),
+          h('input', { class: 'inp', maxlength: 500, placeholder: 'Un mot pour expliquer (facultatif)', value: sd.reponse, oninput: (e) => { FO.statDraft[p.id] = { ...(FO.statDraft[p.id] || sd), reponse: e.target.value }; } }),
+          h('button', { class: 'btn-fire small-btn', disabled: FO.busy ? true : null, onclick: () => { const d = FO.statDraft[p.id] || sd; forumDo(conv, { type: 'statut', post: p.id, statut: d.statut, reponse: d.reponse }, () => { delete FO.statDraft[p.id]; }); } }, 'Enregistrer')) : null,
+        h('h3', { class: 'fo-h' }, `${(p.replies || []).length} réponse${(p.replies || []).length > 1 ? 's' : ''}`),
+        (p.replies || []).map((r) => h('div', { class: 'fo-reply' }, h('div', { class: 'muted small' }, who(r.by), ' · ', chatDay(r.at), ' à ', hm(r.at),
+          canDel(r.by) ? h('button', { class: 'chat-del', title: 'Supprimer', onclick: () => forumDo(conv, { type: 'del', post: p.id, reply: r.id }) }, '🗑') : null), h('div', { class: 'fo-text' }, r.text))),
+        me ? h('div', { class: 'fo-new' }, ta, err, h('button', { class: 'btn-fire small-btn', disabled: FO.busy ? true : null, onclick: () => { const t = (FO.reply || '').trim(); if (!t) return; forumDo(conv, { type: 'reply', post: p.id, reply: foId(), text: t }, () => { FO.reply = ''; }); } }, FO.busy ? 'Envoi…' : 'Répondre'))
+          : h('button', { class: 'btn-ghost', onclick: askWho }, '👤 Choisis qui tu es pour répondre'));
+    }
+    // ---- La liste ----
+    const sort = FO.sort[conv] || (idees ? 'votes' : 'recent');
+    let list = all.slice();
+    if (idees && FO.filtre !== 'tous') list = list.filter((x) => (x.statut || 'nouvelle') === FO.filtre);
+    list.sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0) || (sort === 'votes' ? (b.votes || []).length - (a.votes || []).length : 0) || (b.last || b.at) - (a.last || a.at));
+    const d = FO.draft && FO.draft.conv === conv ? FO.draft : null;
+    const form = d ? h('div', { class: 'fo-new card' },
+      h('input', { class: 'inp', maxlength: 100, placeholder: idees ? 'Ton idée en une phrase' : 'Titre du sujet', value: d.title, oninput: (e) => { d.title = e.target.value; } }),
+      h('textarea', { class: 'inp fo-in', rows: 4, maxlength: 2000, placeholder: idees ? 'Explique-la : pourquoi, comment, pour qui…' : 'Ton message', oninput: (e) => { d.text = e.target.value; } }, d.text || ''),
+      err,
+      h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', disabled: FO.busy ? true : null, onclick: () => { if (!String(d.title || '').trim()) { FO.err = 'Donne un titre.'; foBump(); return; } forumDo(conv, { type: 'post', post: foId(), title: d.title, text: d.text || '' }, () => { FO.draft = null; }); } }, FO.busy ? 'Envoi…' : (idees ? 'Proposer l’idée' : 'Publier')),
+        h('button', { class: 'btn-ghost small-btn', onclick: () => { FO.draft = null; FO.err = ''; foBump(); } }, 'Annuler'))) : null;
+    return h('div', { class: 'fo' },
+      h('div', { class: 'row fo-bar' },
+        me ? h('button', { class: 'btn-fire small-btn', onclick: () => { FO.draft = { conv, title: '', text: '' }; FO.err = ''; foBump(); } }, idees ? '💡 Proposer une idée' : '＋ Nouveau sujet') : h('button', { class: 'btn-ghost', onclick: askWho }, '👤 Choisis qui tu es pour écrire'),
+        h('span', { class: 'spacer' }),
+        idees ? h('select', { class: 'inp fo-sel', onchange: (e) => { FO.filtre = e.target.value; foBump(); } }, [['tous', 'Toutes les idées']].concat(Object.entries(IDEE).map(([k, [i, l]]) => [k, i + ' ' + l])).map(([k, l]) => h('option', { value: k, selected: FO.filtre === k ? true : null }, l))) : null,
+        h('select', { class: 'inp fo-sel', onchange: (e) => { FO.sort[conv] = e.target.value; foBump(); } }, [['recent', 'Activité récente'], ['votes', 'Plus de votes']].map(([k, l]) => h('option', { value: k, selected: sort === k ? true : null }, l))),
+        h('button', { class: 'btn-ghost small-btn', title: 'Actualiser', onclick: () => forumLoad(conv, true) }, '⟳')),
+      form,
+      !list.length ? h('p', { class: 'muted fo-empty' }, idees ? 'Aucune idée pour l’instant : propose la première 💡' : 'Aucun sujet pour l’instant : lance le premier.') : null,
+      list.map((x) => h('div', { class: 'fo-post', role: 'button', tabindex: '0', onclick: () => { FO.open = x.id; FO.reply = ''; FO.err = ''; FO.delAsk = null; foBump(); } },
+        h('div', { class: 'fo-top' }, idees ? vote(x) : null,
+          h('div', { class: 'fo-tt' }, h('b', null, x.pin ? '📌 ' : '', x.title), h('div', { class: 'muted small' }, vocalName(x.by), ' · ', chatDay(x.last || x.at), ' · ', `💬 ${(x.replies || []).length}`, ' ', stChip(x))),
+          x.text ? h('p', { class: 'fo-ex muted small' }, x.text.length > 160 ? x.text.slice(0, 160) + '…' : x.text) : null))));
+  }
   const chatConvOf = (m, me) => (!m.to ? (m.ch ? (isChan('ch:' + m.ch) ? 'ch:' + m.ch : null) : 'team') : m.from === me ? m.to : m.to === me ? (dmAllowedFrom(m.from) ? m.from : null) : null);
   const chatVisible = (m, me) => chatConvOf(m, me) != null;
   const chatSeenAt = (conv) => (conv === 'team' ? CH.seen : (CH.seenBy[conv] || 0));
@@ -8605,7 +8851,7 @@
     if (CH.conv === 'team') { if (t > CH.seen) { CH.seen = t; save('fire.chat.seen', t); } }
     else if (t > (CH.seenBy[CH.conv] || 0)) { CH.seenBy[CH.conv] = t; save('fire.chat.seenBy', CH.seenBy); }
   }
-  function chatConv(c) { CH.conv = c; chatPaint(true); setTimeout(() => { const i = chatInput(); if (i && !i.disabled) i.focus(); }, 30); }
+  function chatConv(c) { CH.conv = c; if (isForum(c)) { FO.open = null; forumLoad(c); if (S.section !== 'chat') { go('chat'); return; } } chatPaint(true); setTimeout(() => { const i = chatInput(); if (i && !i.disabled) i.focus(); }, 30); }
   function chatOpen(v) { CH.open = v; save('fire.chat.open', v); chatPaint(); if (v) setTimeout(() => { if (CH.inp) CH.inp.focus(); }, 50); }
   async function chatSend() {
     const me = vocalMe();
@@ -8643,13 +8889,16 @@
   }
   const convName = (c) => { const ch = CHANNELS.find(([id]) => id === c); return ch ? '#' + ch[2] : vocalName(c); };
   function chatRefuse(me) {
+    if (isChan(CH.conv) && chanType(CH.conv) === 'annonce' && !isStaff()) return 'annonce';
     if (CH.conv === 'team' || isChan(CH.conv)) return false;
     const x = statusOf(CH.conv);
     return x.dm === 'none' || (x.dm === 'coach' && !coachOf(me));
   }
-  const chatPlaceholder = (me, refuse) => refuse ? `${vocalName(CH.conv)} ne reçoit pas de messages privés.` : isChan(CH.conv) ? `Écrire dans ${convName(CH.conv)}… (Entrée pour envoyer)` : `Message privé à ${vocalName(CH.conv)}…`;
+  const chatPlaceholder = (me, refuse) => refuse === 'annonce' ? '📢 Salon d’annonces : seul le staff écrit ici.' : refuse ? `${vocalName(CH.conv)} ne reçoit pas de messages privés.` : isChan(CH.conv) ? `Écrire dans ${convName(CH.conv)}… (Entrée pour envoyer)` : `Message privé à ${vocalName(CH.conv)}…`;
   // Les messages d'une conversation (jour, auteur en couleur, messages groupés).
   function chatRows(me) {
+    if (isForum(CH.conv)) return [h('div', { class: 'chat-forum-go' }, h('p', { class: 'muted small' }, `${chanType(CH.conv) === 'idees' ? '💡 La boîte à idées' : '🗂️ Ce forum'} s’ouvre en grand dans la page Discussion.`),
+      h('button', { class: 'btn-fire small-btn', onclick: () => go('chat') }, 'Ouvrir')) ];
     const rows = [];
     const stc = {};
     const st = (slug) => (stc[slug] = stc[slug] || statusOf(slug));
@@ -8683,7 +8932,8 @@
   }
   function composerSync(c, me) {
     const refuse = chatRefuse(me);
-    c.form.hidden = !me; c.who.hidden = !!me;
+    const forum = isForum(CH.conv);
+    c.form.hidden = !me || forum; c.who.hidden = !!me;
     c.err.hidden = !CH.err; c.err.textContent = CH.err ? '⚠ ' + CH.err : '';
     c.inp.disabled = !!refuse;
     const ph = chatPlaceholder(me, refuse);
@@ -8692,9 +8942,17 @@
   function chatConvButtons(me, cls, full) {
     const btn = (id, ico, label, title, dot) => { const n = chatUnreadIn(id); return h('button', { class: cls + (CH.conv === id ? ' on' : ''), title, onclick: () => chatConv(id), oncontextmenu: dot ? (e) => { e.preventDefault(); personMenu({ slug: id }, e.clientX, e.clientY); } : null },
       h('span', { class: 'chat-cv-i' }, ico), h('span', { class: 'chat-cv-l' }, label), dot ? stDot(id) : null, n && CH.conv !== id ? h('span', { class: 'chat-cv-n' }, String(n)) : null); };
-    const chans = CHANNELS.map(([id, ico, label, desc]) => btn(id, full ? '#' : ico, full ? label : '#' + label, desc, false));
+    const chans = CHANNELS.filter((x) => salonOk(x[4])).map(([id, ico, label, desc, m]) => {
+      const t = (m && m.type) || 'texte';
+      const b = btn(id, full ? (TYPE_ICO[t] || '#') : ico, full ? label : (t === 'texte' ? '#' : TYPE_ICO[t] + ' ') + label, desc, false);
+      if (m && m.prive) b.querySelector('.chat-cv-l').append(h('span', { class: 'cp-lock', title: 'Salon privé' }, ' 🔒'));
+      if (full && canManageSalons() && m && !m.fixed) b.append(h('span', { class: 'cp-gear', title: 'Modifier ce salon', onclick: (e) => { e.stopPropagation(); salonDialog('texte', m.raw || { id: id.slice(3), name: label, ico, desc, type: t }); } }, '⚙'));
+      return b;
+    });
     const dms = me ? chatPeople(me).map(([slug, ico, label]) => btn(slug, ico, label, 'Message privé avec ' + label, true)) : [];
-    return full ? [h('div', { class: 'cp-gt' }, h('span', null, 'Salons'), canManageSalons() ? h('button', { class: 'cp-add', title: 'Gérer les salons', onclick: openSalons }, '⚙') : null), ...chans, h('div', { class: 'cp-gt' }, 'Messages privés'), ...dms] : [...chans, ...dms];
+    return full ? [h('div', { class: 'cp-gt' }, h('span', null, 'Salons'), canManageSalons() ? h('span', { class: 'cp-gt-act' },
+      h('button', { class: 'cp-add', title: 'Créer un salon', onclick: () => salonDialog('texte') }, '＋'),
+      h('button', { class: 'cp-add', title: 'Réorganiser tous les salons', onclick: openSalons }, '↕')) : null), ...chans, h('div', { class: 'cp-gt' }, 'Messages privés'), ...dms] : [...chans, ...dms];
   }
   function chatHead(un) {
     CH.el.classList.toggle('open', !!CH.open);
@@ -8761,9 +9019,19 @@
     const key = CH.conv + '|' + CHANNELS.map(([id, ico, n]) => id + ico + n + chatUnreadIn(id)).join(',') + '|' + me + '|' + stSig + canManageSalons();
     if (key !== CHP.key) { CHP.key = key; CHP.side.replaceChildren(...chatConvButtons(me, 'cp-cv', true)); }
     const ch = CHANNELS.find(([id]) => id === CH.conv);
-    CHP.head.replaceChildren(ch ? h('div', null, h('b', null, '# ' + ch[2]), h('span', { class: 'muted' }, ' · ' + ch[3]))
+    const cm = ch && ch[4];
+    CHP.head.replaceChildren(ch ? h('div', null, h('b', null, (TYPE_ICO[(cm && cm.type) || 'texte'] || '#') + ' ' + ch[2]), cm && cm.prive ? h('span', { class: 'cp-lock' }, ' 🔒') : null, ch[3] ? h('span', { class: 'muted' }, ' · ' + ch[3]) : null,
+      cm && cm.type === 'annonce' ? h('span', { class: 'cp-tag' }, 'lecture seule') : null)
       : h('div', { class: 'cp-dm' }, h('b', { class: 'chat-who-n', onclick: () => openProfile(CH.conv) }, '@ ' + vocalName(CH.conv)), stDot(CH.conv), h('span', { class: 'muted' }, ' · 🔒 messages privés')));
     composerSync(CHP.comp, me);
+    CHP.root.classList.toggle('forum', isForum(CH.conv));
+    if (isForum(CH.conv)) {
+      // Forum : redessiné seulement quand il change (sinon les champs en cours de saisie perdraient le clavier).
+      const fk = CH.conv + '|' + FO.ver + '|' + me;
+      if (fk !== CHP.fk) { CHP.fk = fk; const top = CHP.list.scrollTop; CHP.list.replaceChildren(forumView(CH.conv)); CHP.list.scrollTop = FO.keepScroll ? top : 0; FO.keepScroll = false; }
+      return;
+    }
+    CHP.fk = '';
     const atBottom = CHP.list.scrollHeight - CHP.list.scrollTop - CHP.list.clientHeight < 60;
     CHP.list.replaceChildren(...chatRows(me));
     if (atBottom || live) CHP.list.scrollTop = CHP.list.scrollHeight;
@@ -9029,6 +9297,7 @@
   function annHall(from, m) {
     if (m.t === 'ann' && m.f && typeof m.f === 'object') { annCheck(m.f); return; }
     if (m.t === 'bugrep') { setTimeout(bugRepCheck, 3000); return; }
+    if (m.t === 'forum') { forumHall(from, m); return; }
     if (m.t === 'annack' && !SUB() && window.fire.annonce) {
       const p = S.players.find((x) => x.slug === from);
       if (!p || !isSub(p)) return;
@@ -9168,7 +9437,7 @@
   const MOBILE = !!window.FIRE_MOBILE;
   const MOBILE_OFF = new Set(['train', 'clips', 'parties', 'reunion', 'lolpatch', 'web']);
   const SUB_OK = new Set(['accueil', 'stats', 'planning', 'jeux', 'puzzle', 'stream', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);
-  const roomOk = (r) => !SUB() || (r && r.id !== 'coaching' && !r.staff);
+  const roomOk = (r) => (!SUB() || (r && r.id !== 'coaching' && !r.staff)) && salonOk(r);
   const subSlugs = () => S.players.filter((p) => p.slug && isSub(p)).map((p) => p.slug);
   function subInit() {
     if (S.subInit) return; S.subInit = true;

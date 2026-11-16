@@ -955,6 +955,8 @@ ipcMain.handle('ann:lus', (e, slugs) => coach.annonceLus(slugs));
 ipcMain.handle('staff:save', (e, note, who) => coach.staffNoteSave(note, who));
 ipcMain.handle('chat:delete', (e, id, who) => coach.chatDelete(id, who));
 ipcMain.handle('salons:save', (e, d) => coach.salonsSave(d || {}));
+ipcMain.handle('forum:get', (e, id) => coach.forumGet(String(id || '')));
+ipcMain.handle('forum:op', (e, id, op) => coach.forumOp(String(id || ''), op && typeof op === 'object' ? op : {}));
 ipcMain.handle('chat:send', (e, m) => coach.chatSend(m || {}));
 ipcMain.handle('planning:save', (e, action) => coach.savePlanning(action || {}));
 ipcMain.handle('bug:send', (e, b) => coach.sendBug(b || {}));

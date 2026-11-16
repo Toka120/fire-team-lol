@@ -1,6 +1,41 @@
 {
  "versions": [
   {
+   "v": "1.10.138",
+   "date": "2026-11-16",
+   "titre": "Salons comme sur Discord, boîte à idées",
+   "items": [
+    [
+     "new",
+     "Discussion et Vocal : « Créer un salon » comme sur Discord, avec 6 types : Texte, Vocal, Forum, Annonces, Boîte à idées et Conférence. Chaque salon se modifie ou se supprime avec ⚙ (coach et chef d’équipe)."
+    ],
+    [
+     "new",
+     "Salons privés : visibles seulement par les rôles choisis (titulaires, remplaçants, coachs) ou par certains membres. Le staff voit toujours tout."
+    ],
+    [
+     "new",
+     "💡 Boîte à idées (toujours là dans la Discussion) : chacun propose une idée, tout le monde vote ▲, on en discute en dessous, et le staff donne une suite (À l’étude, Acceptée, Faite, Refusée) avec un mot d’explication. Le staff est prévenu de chaque nouvelle idée."
+    ],
+    [
+     "new",
+     "Forums : des sujets avec un titre et leurs réponses, triés par activité ou par votes, à épingler. Ils ne disparaissent pas avec le temps comme les messages."
+    ],
+    [
+     "new",
+     "Salon Annonces : seul le staff peut y écrire, toute l’équipe lit."
+    ],
+    [
+     "new",
+     "Salon vocal Conférence : le staff parle, les autres écoutent. Bouton ✋ pour lever la main ; le staff voit les mains levées et donne (ou reprend) la parole."
+    ],
+    [
+     "improve",
+     "Paramètres : la fenêtre porte maintenant le thème choisi (fond, couleur d’accent, police des titres, image de fond)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.137",
    "date": "2026-11-16",
    "titre": "Streams à 120 images/s",

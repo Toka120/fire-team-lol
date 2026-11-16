@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld('fire', {
   jeux: { data: call('jeux:data'), lore: call('jeux:lore') },
   worlds: call('worlds:season'),
   notify: call('notify'),
+  forum: { get: call('forum:get'), op: call('forum:op') },
   annonce: { get: call('ann:get'), post: call('ann:post'), lu: call('ann:lu'), lus: call('ann:lus') },
   onNotifyGo: (cb) => ipcRenderer.on('notify:go', (e, sec) => cb(sec)),
   background: { get: call('bg:get'), set: call('bg:set') },

@@ -66,6 +66,7 @@ window.fire = {
     rempSeal: async (o) => coach.rempSeal(o), rempOpen: async (b) => coach.rempOpen(b),
     membres: () => coach.membres(), demande: (m) => coach.membreDemande(m || {}), decision: (slug, ok, role, who, fix) => coach.membreDecision(String(slug || ''), !!ok, role, who, fix || null),
     notes: () => coach.staffNotes(), noteSave: (n, w) => coach.staffNoteSave(n, w), chatDelete: (id, w) => coach.chatDelete(id, w) },
+  forum: { get: (id) => coach.forumGet(id), op: (id, op) => coach.forumOp(id, op || {}) },
   annonce: { get: (f) => coach.annonceGet(f || null), post: (t, w, r) => coach.annoncePost(String(t || ''), String(w || ''), !!r), lu: (id, s, at) => coach.annonceLu(id, s, at), lus: (s) => coach.annonceLus(s) },
   bugs: { send: (b) => coach.sendBug(b || {}), list: () => coach.listBugs(), close: (id) => coach.closeBug(id), reply: (o) => coach.bugReply(o || {}), replies: (s) => coach.bugReplies(s) },
   coach: {

@@ -850,14 +850,24 @@ function cleanSalons(d) {
   const one = (x, voice) => {
     const id = salonId(x && (x.id || x.name));
     if (!id || id.length < 2 || ['team', 'equipe', 'general'].includes(id)) return null;
+    if (!voice && id === 'idees') return null; // la boîte à idées est toujours là
     const o = { id, name: str(x.name, 30) || id, ico: str(x.ico, 8) || (voice ? '🔊' : '💬'), desc: str(x.desc, 90) };
-    if (voice) o.max = Math.max(0, Math.min(10, Math.round(Number(x.max) || 0)));
+    if (voice) o.max = Math.max(0, Math.min(25, Math.round(Number(x.max) || 0)));
+    // Type de salon : texte, forum, annonces (seul le staff écrit), boîte à idées ; vocal ou conférence.
+    const types = voice ? ['vocal', 'conference'] : ['texte', 'forum', 'annonce', 'idees'];
+    o.type = types.includes(x.type) ? x.type : types[0];
+    // Salon privé : visible seulement par certains rôles ou membres (le staff voit tout).
+    if (x.prive) {
+      const a = x.acces || {};
+      o.prive = true;
+      o.acces = { roles: (Array.isArray(a.roles) ? a.roles : []).filter((r) => ['titulaires', 'remplacants', 'coachs'].includes(r)), membres: (Array.isArray(a.membres) ? a.membres : []).map((m) => String(m).slice(0, 80)).slice(0, 40) };
+    }
     return o;
   };
   const uniq = (l) => { const seen = new Set(); return l.filter((x) => x && !seen.has(x.id) && seen.add(x.id)); };
   return {
-    texte: uniq((Array.isArray(d && d.texte) ? d.texte : []).map((x) => one(x, false))).slice(0, 15),
-    voix: uniq((Array.isArray(d && d.voix) ? d.voix : []).map((x) => one(x, true))).slice(0, 12),
+    texte: uniq((Array.isArray(d && d.texte) ? d.texte : []).map((x) => one(x, false))).slice(0, 30),
+    voix: uniq((Array.isArray(d && d.voix) ? d.voix : []).map((x) => one(x, true))).slice(0, 20),
   };
 }
 async function salons() {
@@ -884,6 +894,65 @@ async function salonsSave(d) {
       if (r.ok) { saveCache('salons', box); return { ok: true, salons: clean }; }
     }
     throw new Error("les salons ont changé pendant l'enregistrement, réessaie");
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+// ---------- Forums et boîte à idées : un fichier par salon (posts, réponses, votes, statut des idées) ----------
+const forumPath = (id) => 'forums/' + salonId(id) + '.json';
+const IDEE_ST = ['nouvelle', 'etude', 'acceptee', 'faite', 'refusee'];
+const fid = (x) => String(x || '').replace(/[^\w-]/g, '').slice(0, 40);
+async function forumGet(id) {
+  id = salonId(id);
+  if (!id) return { ok: false, error: 'salon inconnu', posts: [] };
+  try { const d = await teamRead(forumPath(id)); return { ok: true, posts: d && Array.isArray(d.posts) ? d.posts : [] }; }
+  catch (e) { return { ok: false, error: String((e && e.message) || e), posts: [] }; }
+}
+async function forumOp(id, op) {
+  id = salonId(id); op = op || {};
+  const by = str(op.by, 80), pid = fid(op.post);
+  if (!id) return { ok: false, error: 'salon inconnu' };
+  if (!by) return { ok: false, error: 'choisis d’abord qui tu es' };
+  const staff = isStaffHere();
+  try {
+    const d = await teamWrite(forumPath(id), (cur) => {
+      const posts = cur && Array.isArray(cur.posts) ? cur.posts : [];
+      const p = posts.find((x) => x.id === pid);
+      if (op.type === 'post') {
+        const title = str(op.title, 100), text = str(op.text, 2000);
+        if (!title) throw new Error('donne un titre');
+        if (!pid) throw new Error('post sans identifiant');
+        if (!p) posts.unshift({ id: pid, title, text, by, at: Date.now(), last: Date.now(), statut: 'nouvelle', votes: [by], replies: [] });
+      } else if (!p) throw new Error('ce post n’existe plus');
+      else if (op.type === 'reply') {
+        const text = str(op.text, 2000), rid = fid(op.reply);
+        if (!text || !rid) throw new Error('réponse vide');
+        p.replies = Array.isArray(p.replies) ? p.replies : [];
+        if (!p.replies.some((r) => r.id === rid)) p.replies.push({ id: rid, by, text, at: Date.now() });
+        p.replies = p.replies.slice(-300); p.last = Date.now();
+      } else if (op.type === 'vote') {
+        p.votes = (Array.isArray(p.votes) ? p.votes : []).filter((x) => x !== by);
+        if (op.on) p.votes.push(by);
+      } else if (op.type === 'statut') {
+        if (!staff) throw new Error('réservé au staff');
+        if (IDEE_ST.includes(op.statut)) p.statut = op.statut;
+        if (typeof op.reponse === 'string') p.reponse = str(op.reponse, 500);
+        p.statutPar = by; p.last = Date.now();
+      } else if (op.type === 'pin') {
+        if (!staff) throw new Error('réservé au staff');
+        p.pin = !!op.on;
+      } else if (op.type === 'del') {
+        if (op.reply) {
+          const r = (p.replies || []).find((x) => x.id === fid(op.reply));
+          if (!r) throw new Error('message introuvable');
+          if (r.by !== by && !staff) throw new Error('tu ne peux supprimer que tes messages');
+          p.replies = p.replies.filter((x) => x !== r);
+        } else {
+          if (p.by !== by && !staff) throw new Error('tu ne peux supprimer que tes posts');
+          posts.splice(posts.indexOf(p), 1);
+        }
+      } else throw new Error('action inconnue');
+      return { posts: posts.slice(0, 300), maj: Date.now() };
+    }, 'Forum ' + id);
+    return { ok: true, posts: d.posts };
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 // ---------- Carnet de bord (staff) : rôles, activité de chacun, notes du staff, modération ----------
@@ -1530,4 +1599,4 @@ async function revueNote(id, note, del) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 
-module.exports = { bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
