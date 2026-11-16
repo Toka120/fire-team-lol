@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.176",
+   "date": "2026-11-16",
+   "titre": "Nouveau compagnon : le croco",
+   "items": [
+    [
+     "new",
+     "Boutique › Compagnons : « Croco (chibi) », animé. Il rebondit, remue la queue, sa cape flotte, ses cœurs battent et s’envolent, et il cligne des yeux. Comme les autres, il vit en bas à droite de l’app et réagit à ce qui se passe dans FIRE."
+    ]
+   ]
+  },
+  {
    "v": "1.10.175",
    "date": "2026-11-16",
    "titre": "Briar pour toute l’équipe, stats dpm.lol directes",
