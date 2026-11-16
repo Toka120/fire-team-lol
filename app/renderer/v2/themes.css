@@ -102,6 +102,15 @@ html.v2[data-theme=rgb] {
   --trainbow: linear-gradient(90deg, #ff3d6e, #ffd23d, #3dff8a, #3dd8ff, #b13dff, #ff3d6e);
 }
 
+html.v2[data-theme=pantins] {
+  --bg:#120806; --panel:#1c0d09; --panel2:#26120c; --line:#3d2016; --fg:#f6e9d6; --muted:#b89c82;
+  --ta:#e0a93e; --tb:#8a1c1c; --ton:#1a0c02; --ttitle:'Cinzel', Georgia, serif;
+  --tart: radial-gradient(700px 500px at 50% -10%, rgb(255 214 140 / 14%), transparent 65%), linear-gradient(180deg, #120806, #0b0503);
+  --tglow: 0 10px 30px rgb(0 0 0 / 55%), 0 0 0 1px rgb(224 169 62 / 10%);
+}
+.th-pantins .th-prev { background: linear-gradient(90deg, #6e1414 0 12%, transparent 12% 88%, #6e1414 88%), linear-gradient(180deg, transparent 0 70%, rgb(255 214 140 / 18%)), radial-gradient(40px 70px at 50% 0%, rgb(255 214 140 / 35%), transparent 70%), #120806; }
+.th-pantins .th-tt { font-family: 'Cinzel'; font-weight: 600; }
+
 html.v2[data-theme=hantee] {
   --bg:#020805; --panel:#06110a; --panel2:#0a1a10; --line:#18301e; --fg:#e4f5e6; --muted:#8fae94;
   --ta:#7dff6a; --tb:#3a6b40; --ton:#021006; --ttitle:'Cinzel', Georgia, serif;

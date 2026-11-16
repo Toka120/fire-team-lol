@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.148",
+   "date": "2026-11-16",
+   "titre": "Thème Pantins",
+   "items": [
+    [
+     "new",
+     "🎭 Nouveau thème animé « Pantins », un clin d’œil au premier jeu de Toks : un petit théâtre de marionnettes avec rideaux de velours rouge, lambrequin doré, projecteur où flotte la poussière, et trois pantins de bois qui se balancent au bout de leurs fils. Paramètres › Apparence › Thème."
+    ]
+   ]
+  },
+  {
    "v": "1.10.147",
    "date": "2026-11-16",
    "titre": "Packs sombres, Boutique dans le menu, changer de nom, clips en lot",

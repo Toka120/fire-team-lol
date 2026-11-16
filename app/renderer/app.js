@@ -23,6 +23,7 @@
     ['violet', 'Void', '#0b0614', '#9d5cff', '#ff5cc8', 'Le Néant : violet profond et magenta', 1],
     ['matrix', 'Matrix', '#020803', '#39ff6a', '#b6ffb0', 'Vert terminal, police machine, lignes de code', 1],
     ['rgb', 'Gamer RGB', '#08080d', '#ff3d6e', '#3dd8ff', 'Arc-en-ciel animé, comme un clavier gamer', 1],
+    ['pantins', 'Pantins', '#120806', '#e0a93e', '#8a1c1c', 'Le petit théâtre de marionnettes : rideaux de velours, projecteur et pantins de bois au bout de leurs fils', 1],
     ['hantee', 'Forêt hantée', '#020805', '#7dff6a', '#3a6b40', 'Presque noir, de la brume et des yeux qui s’ouvrent dans l’ombre', 1],
     ['tenebres', 'Ténèbres', '#050303', '#ff2a2a', '#7a0d0d', 'Noir profond et rouge sang, des braises qui montent', 1],
     ['abime', 'Abîme', '#030208', '#9d7bff', '#3a2a6b', 'Le plus sombre : un noir violet et une poussière qui flotte', 1],
@@ -1253,7 +1254,7 @@
       else { S.vidErr = (r && r.error) || 'vidéo impossible à copier'; renderSettings(); }
     } });
     const PRESET = ['#f5a524', '#ff5e3a', '#ff2bd6', '#9d5cff', '#579dff', '#00e5ff', '#2ee6c5', '#39c58a', '#ffd23d', '#ff4d6d'];
-    const FXS = { hantee: 'des yeux qui s’ouvrent dans la brume', tenebres: 'braises rouges dans le noir', abime: 'poussière violette et vignettage', aurore: 'aurore boréale qui ondule', nuit: 'étoiles filantes et lune', orage: 'pluie et éclairs', lucioles: 'lucioles dans la forêt', galaxie: 'galaxie qui tourne', sakura: 'pétales de cerisier qui tombent', givre: 'neige', ocean: 'bulles et rayons de lumière', matrix: 'pluie de code', synthwave: 'grille qui défile et soleil rétro', bagarre: 'braises', hextech: 'étincelles hextech', arcane: 'particules chimiques', violet: 'poussière aspirée par le Néant', neon: 'orbes lumineux', rgb: 'orbes arc-en-ciel', futur: 'balayage et flux de données', cafe: 'vapeur et poussière dorée' };
+    const FXS = { pantins: 'pantins qui se balancent sous le projecteur', hantee: 'des yeux qui s’ouvrent dans la brume', tenebres: 'braises rouges dans le noir', abime: 'poussière violette et vignettage', aurore: 'aurore boréale qui ondule', nuit: 'étoiles filantes et lune', orage: 'pluie et éclairs', lucioles: 'lucioles dans la forêt', galaxie: 'galaxie qui tourne', sakura: 'pétales de cerisier qui tombent', givre: 'neige', ocean: 'bulles et rayons de lumière', matrix: 'pluie de code', synthwave: 'grille qui défile et soleil rétro', bagarre: 'braises', hextech: 'étincelles hextech', arcane: 'particules chimiques', violet: 'poussière aspirée par le Néant', neon: 'orbes lumineux', rgb: 'orbes arc-en-ciel', futur: 'balayage et flux de données', cafe: 'vapeur et poussière dorée' };
     const thNow = load('fire.theme', 'fire');
     const fxCard = uxCard('✨ Animations du fond', FXS[thNow] ? `Avec ton thème : ${FXS[thNow]}. Elles se mettent en pause pendant tes parties et quand FIRE est caché.` : 'Choisis un thème « ambiance » (Sakura, Freljord, Matrix…) pour avoir un fond animé.',
       uxSeg([['off', 'Aucune'], ['leger', 'Légères'], ['normal', 'Normales'], ['fort', 'Beaucoup']], UX.fx || 'normal', (v) => { setUx({ fx: v }); renderSettings(); }),

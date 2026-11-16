@@ -245,6 +245,50 @@
       draw(c, p) { const x = FX.w / 2 + Math.cos(p.a) * p.d, y = FX.h / 2 + Math.sin(p.a) * p.d * 0.45; c.globalAlpha = 0.75; c.fillStyle = p.col; c.beginPath(); c.arc(x, y, p.r, 0, TAU); c.fill(); },
       bg(c, t) { const g = c.createRadialGradient(FX.w / 2, FX.h / 2, 0, FX.w / 2, FX.h / 2, Math.min(FX.w, FX.h) * 0.5); g.addColorStop(0, 'rgba(255,214,245,.18)'); g.addColorStop(0.4, 'rgba(140,110,255,.08)'); g.addColorStop(1, 'rgba(140,110,255,0)'); c.globalAlpha = 1; c.fillStyle = g; c.fillRect(0, 0, FX.w, FX.h); },
     },
+    // Pantins : un petit théâtre de marionnettes (rideaux de velours, projecteur, pantins de bois au bout de leurs fils).
+    pantins: {
+      n: 40,
+      make(fresh) { return { x: FX.w / 2 + rnd(-0.22, 0.22) * FX.w, y: fresh ? rnd(0.1, 1) * FX.h : FX.h * 1.02, r: rnd(0.6, 1.8), vy: rnd(4, 12), sway: rnd(0, TAU), a: rnd(0.2, 0.55) }; },
+      step(p, dt) { p.sway += dt * 0.7; p.y -= p.vy * dt; p.x += Math.sin(p.sway) * 6 * dt; return p.y > FX.h * 0.08; },
+      draw(c, p) {
+        // poussière : visible seulement dans le faisceau du projecteur
+        const k = 1 - Math.min(1, Math.abs(p.x - FX.w / 2) / (FX.w * (0.06 + 0.2 * p.y / FX.h)));
+        if (k <= 0) return;
+        c.globalAlpha = p.a * k; c.fillStyle = '#ffe6b0'; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill();
+      },
+      bg(c, t) {
+        const W = FX.w, H = FX.h;
+        c.globalAlpha = 1;
+        // projecteur
+        const top = H * 0.07, sw = W * 0.05, bw = W * 0.26;
+        const g = c.createLinearGradient(0, top, 0, H);
+        g.addColorStop(0, `rgba(255,214,140,${0.16 + 0.015 * Math.sin(t * 1.3)})`); g.addColorStop(1, 'rgba(255,214,140,0.02)');
+        c.fillStyle = g; c.beginPath(); c.moveTo(W / 2 - sw, top); c.lineTo(W / 2 + sw, top); c.lineTo(W / 2 + bw, H); c.lineTo(W / 2 - bw, H); c.closePath(); c.fill();
+        const fl = c.createRadialGradient(W / 2, H * 0.97, 0, W / 2, H * 0.97, bw * 1.1);
+        fl.addColorStop(0, 'rgba(255,214,140,.14)'); fl.addColorStop(1, 'rgba(255,214,140,0)');
+        c.fillStyle = fl; c.fillRect(0, 0, W, H);
+        // planches de la scène
+        const st = c.createLinearGradient(0, H * 0.9, 0, H);
+        st.addColorStop(0, 'rgba(90,52,28,0)'); st.addColorStop(1, 'rgba(90,52,28,.35)');
+        c.fillStyle = st; c.fillRect(0, H * 0.9, W, H * 0.1);
+        // pantins
+        const P = FX.extra.puppets || (FX.extra.puppets = [[0.2, 0.3, 1, 0], [0.5, 0.36, 1.25, 2.1], [0.8, 0.28, 0.95, 4.2]]);
+        for (const [fx, fl2, sc, ph] of P) puppet(c, W * fx, H * 0.075, H * fl2, Math.max(0.8, Math.min(1.6, H / 700)) * sc, t, ph);
+        // rideaux et lambrequin
+        curtain(c, t, false); curtain(c, t, true);
+        const vh = H * 0.075;
+        const vg = c.createLinearGradient(0, 0, 0, vh);
+        vg.addColorStop(0, '#3a0808'); vg.addColorStop(1, '#6e1414');
+        c.globalAlpha = 0.92; c.fillStyle = vg; c.beginPath(); c.moveTo(0, 0); c.lineTo(W, 0); c.lineTo(W, vh * 0.7);
+        const n = Math.max(6, Math.round(W / 140));
+        for (let i = n; i >= 0; i--) { const x = (i / n) * W; c.quadraticCurveTo(x + W / n / 2, vh * 1.25, x, vh * 0.7); }
+        c.closePath(); c.fill();
+        c.globalAlpha = 0.8; c.strokeStyle = '#d9a640'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, vh * 0.7);
+        for (let i = 0; i < n; i++) { const x = (i / n) * W; c.quadraticCurveTo(x + W / n / 2, vh * 1.25, x + W / n, vh * 0.7); }
+        c.stroke();
+        c.globalAlpha = 1;
+      },
+    },
     hantee: {
       n: 9,
       make() { return { x: rnd(0.05, 0.95) * FX.w, y: rnd(0.12, 0.92) * FX.h, s: rnd(0.6, 1.3), life: rnd(5, 10), age: rnd(-6, 0), col: Math.random() < 0.75 ? '125,255,106' : '255,59,59', bl: rnd(1.5, 4) }; },
@@ -288,6 +332,66 @@
       bg(c) { const g = c.createRadialGradient(FX.w / 2, FX.h / 2, Math.min(FX.w, FX.h) * 0.2, FX.w / 2, FX.h / 2, Math.max(FX.w, FX.h) * 0.75); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.55)'); c.globalAlpha = 1; c.fillStyle = g; c.fillRect(0, 0, FX.w, FX.h); },
     },
   };
+
+  // ----- Pantins : rideau et marionnette -----
+  function curtain(c, t, right) {
+    const W = FX.w, H = FX.h, cw = Math.max(50, W * 0.075);
+    c.save();
+    if (right) { c.translate(W, 0); c.scale(-1, 1); }
+    const folds = 5, wave = Math.sin(t * 0.6) * 4;
+    const g = c.createLinearGradient(0, 0, cw, 0);
+    for (let i = 0; i <= folds; i++) { g.addColorStop(i / folds, i % 2 ? '#7a1616' : '#3c0707'); }
+    c.globalAlpha = 0.9; c.fillStyle = g;
+    c.beginPath(); c.moveTo(0, 0); c.lineTo(cw, 0);
+    c.bezierCurveTo(cw + wave, H * 0.35, cw * 0.45 + wave, H * 0.55, cw * 0.55, H * 0.66); // embrasse
+    c.bezierCurveTo(cw * 0.8, H * 0.8, cw * 0.95 + wave, H * 0.92, cw * 1.05, H);
+    c.lineTo(0, H); c.closePath(); c.fill();
+    c.globalAlpha = 0.9; c.strokeStyle = '#d9a640'; c.lineWidth = 3; c.beginPath(); c.moveTo(cw * 0.15, H * 0.64); c.quadraticCurveTo(cw * 0.45, H * 0.69, cw * 0.62, H * 0.655); c.stroke();
+    c.restore();
+  }
+  function puppet(c, x0, y0, L, s, t, ph) {
+    const sway = 0.1 * Math.sin(t * 0.9 + ph) + 0.03 * Math.sin(t * 2.1 + ph * 2);
+    const cx = x0 + Math.sin(t * 0.7 + ph) * 10 * s, cy = y0 + 6 * s, rot = 0.22 * Math.sin(t * 0.9 + ph + 0.5);
+    const nx = cx + Math.sin(sway) * L, ny = cy + Math.cos(sway) * L;
+    const bodyR = -sway * 0.7;
+    const Wp = (px, py) => [nx + px * Math.cos(bodyR) - py * Math.sin(bodyR), ny + px * Math.sin(bodyR) + py * Math.cos(bodyR)];
+    const arm = (side) => { const a = side * (0.3 + 0.22 * Math.sin(t * 1.7 + ph + side)); const sx = side * 8 * s, sy = 3 * s;
+      const ex = sx + Math.sin(a) * 12 * s, ey = sy + Math.cos(a) * 12 * s; const b = a * 0.4 + side * 0.15 * Math.sin(t * 2.3 + ph);
+      return [[sx, sy], [ex, ey], [ex + Math.sin(b) * 11 * s, ey + Math.cos(b) * 11 * s]]; };
+    const leg = (side) => { const a = side * 0.06 + 0.16 * Math.sin(t * 1.3 + ph + (side > 0 ? 0 : Math.PI)); const hx = side * 4.5 * s, hy = 26 * s;
+      const kx = hx + Math.sin(a) * 13 * s, ky = hy + Math.cos(a) * 13 * s; const b = a * 0.3 - 0.1;
+      return [[hx, hy], [kx, ky], [kx + Math.sin(b) * 13 * s, ky + Math.cos(b) * 13 * s]]; };
+    const A = [arm(-1), arm(1)], Lg = [leg(-1), leg(1)];
+    // croix de manipulation
+    const cr = (dx, dy) => [cx + dx * Math.cos(rot) - dy * Math.sin(rot), cy + dx * Math.sin(rot) + dy * Math.cos(rot)];
+    const ends = [cr(-22 * s, 0), cr(22 * s, 0), cr(0, -10 * s), cr(0, 14 * s)];
+    c.globalAlpha = 0.85; c.strokeStyle = '#6b4424'; c.lineWidth = 4 * s; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(...ends[0]); c.lineTo(...ends[1]); c.moveTo(...ends[2]); c.lineTo(...ends[3]); c.stroke();
+    // fils
+    c.globalAlpha = 0.4; c.strokeStyle = '#f3e3c0'; c.lineWidth = 0.8;
+    const head = Wp(0, -12 * s);
+    c.beginPath();
+    c.moveTo(...ends[2]); c.lineTo(...head);
+    c.moveTo(...ends[0]); c.lineTo(...Wp(...A[0][2]));
+    c.moveTo(...ends[1]); c.lineTo(...Wp(...A[1][2]));
+    c.moveTo(...ends[3]); c.lineTo(...Wp(...Lg[0][1])); c.moveTo(...ends[3]); c.lineTo(...Wp(...Lg[1][1]));
+    c.stroke();
+    // corps en bois
+    c.save(); c.translate(nx, ny); c.rotate(bodyR); c.globalAlpha = 0.9;
+    const wood = '#c9965c', dark = '#7a5230';
+    c.lineCap = 'round';
+    for (const seg of [...Lg, ...A]) { c.strokeStyle = wood; c.lineWidth = 4.6 * s; c.beginPath(); c.moveTo(...seg[0]); c.lineTo(...seg[1]); c.lineTo(...seg[2]); c.stroke();
+      c.fillStyle = dark; for (const j of seg) { c.beginPath(); c.arc(j[0], j[1], 2.4 * s, 0, TAU); c.fill(); } }
+    c.fillStyle = wood; c.strokeStyle = dark; c.lineWidth = 1.2 * s;
+    c.beginPath(); c.moveTo(-8 * s, 0); c.lineTo(8 * s, 0); c.lineTo(6 * s, 26 * s); c.lineTo(-6 * s, 26 * s); c.closePath(); c.fill(); c.stroke();
+    c.beginPath(); c.moveTo(-5 * s, 9 * s); c.lineTo(5 * s, 9 * s); c.stroke(); // ceinture
+    c.beginPath(); c.arc(0, -12 * s, 9.5 * s, 0, TAU); c.fill(); c.stroke();
+    // visage : deux yeux cousus et un sourire en fil
+    c.strokeStyle = '#2a1608'; c.lineWidth = 1.3 * s;
+    for (const ex of [-3.5, 3.5]) { c.beginPath(); c.moveTo((ex - 1.6) * s, -14.5 * s); c.lineTo((ex + 1.6) * s, -12 * s); c.moveTo((ex + 1.6) * s, -14.5 * s); c.lineTo((ex - 1.6) * s, -12 * s); c.stroke(); }
+    c.beginPath(); c.arc(0, -10.5 * s, 4 * s, 0.2, Math.PI - 0.2); c.stroke();
+    c.restore();
+  }
   // Un éclair : une ligne brisée du haut vers le bas.
   function bolt() { const pts = []; let x = rnd(FX.w * 0.2, FX.w * 0.9), y = 0; while (y < FX.h * rnd(0.45, 0.8)) { pts.push([x, y]); x += rnd(-40, 40); y += rnd(20, 50); } return pts; }
   // Une branche de cerisier en fleurs, dessinée une fois sur une toile à part (coin en haut à gauche).
