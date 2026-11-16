@@ -3366,3 +3366,14 @@ html.v2 body:has(#fire-pet) #vtoasts{right:100px}
 #chat .chat-m.with-av,#chat .chat-m.with-av.grp{padding-left:36px!important}
 #chat .chat-av{width:26px!important;height:26px!important;font-size:10px!important}
 .chat-cv-i .cv-av{width:24px;height:24px;font-size:9px}
+
+/* Défis : paliers et cases à valider dans l'ordre */
+.df-tiers{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 6px}
+.df-tier{padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:rgb(255 255 255 / 4%);color:inherit;font:inherit;font-weight:700;cursor:pointer}
+.df-tier.on{border-color:var(--fire1);background:color-mix(in srgb,var(--fire1) 16%,transparent)}
+.df-tier.done{color:#5fd39a}
+.df-tier.locked{opacity:.55}
+.df-lockmsg{padding:10px 12px;border-radius:10px;background:rgb(255 255 255 / 4%);font-weight:600}
+.df-group.locked{opacity:.5}
+.df-item.locked{cursor:not-allowed}
+.df-item.locked span{opacity:.7}

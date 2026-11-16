@@ -7559,52 +7559,125 @@
     draw();
   }
 
-  // ----- Défis d'une lane : à cocher, gardés sur cet ordinateur -----
+  // ----- Défis d'une lane : 4 paliers (Débutant → Pro), à valider dans l'ordre, gardés sur cet ordinateur -----
+  // Chaque palier : un défi commun à toutes les lanes, un défi propre à la lane, et les défis du carnet qui vont avec.
+  const DF_TIERS = [['deb', '🌱', 'Débutant'], ['int', '📘', 'Intermédiaire'], ['conf', '🔥', 'Confirmé'], ['pro', '👑', 'Pro']];
+  const DF_COMMON = {
+    deb: { titre: 'Les bases', sub: 'Sur tes 3 prochaines games', items: ['Je joue mes 3 games sans tilt : pas de flame dans le chat', 'Je place au moins une ward par back', 'Je regarde la minimap au moins toutes les 5 secondes', 'Je back avec de l’or pour un composant, pas avec 200 golds'] },
+    int: { titre: 'La régularité', sub: 'Sur 5 games', items: ['Moins de 6 morts par game sur 5 games', 'Une pink ward achetée à chaque back après 10 min', 'Je ping les sorts importants de mon adversaire (flash, R)', 'Je participe à au moins 2 drakes ou Herald par game'] },
+    conf: { titre: 'Le tempo', sub: 'Sur 5 games', items: ['Je connais les timers des drakes et du Nashor sans regarder', 'Je back sur les bons timings : wave crash, objectif à venir', 'Plus de 50 % de participation aux kills sur 5 games', 'Je joue 3 games en duo vocal et je call les objectifs'] },
+    pro: { titre: 'Le mental de pro', sub: 'Sur 10 games', items: ['Je fais la revue d’une de mes games dans FIRE et je note 3 erreurs', 'Je respecte mon plan de game même en étant derrière', 'Je finis 10 games sans tilt, quel que soit le résultat', 'J’applique un conseil du coach sur 5 games d’affilée'] },
+  };
+  const DF_LANE = {
+    top: { deb: ['Le top tranquille', ['Je last hit sans auto-attaquer la wave', 'Je garde ma TP pour revenir en lane ou pour un fight', 'Je recule quand le jungler adverse n’est pas visible', '50 CS à 10 min sur une game']],
+      int: ['Gérer la wave', ['Je freeze devant ma tour quand je suis derrière', 'Je slow push avant de back', 'Je regarde où est le jungler adverse avant de trade', '70 CS à 10 min sur une game']],
+      conf: ['La side lane', ['Je split push avec une ward devant moi', 'Je TP bot pour un drake au bon moment', 'Je bat mon adversaire en CS sur 3 games', 'Je prends une plate en plus avant 14 min']],
+      pro: ['Le top qui porte', ['80 CS à 10 min sur 3 games', 'Je crée une avance de 15 CS sur mon adversaire', 'Je force 2 joueurs à venir me défendre en side', 'Je gagne une game en ayant été en side toute la mid game']] },
+    jungle: { deb: ['Premier clear', ['Je fais mon clear complet sans mourir', 'Je prends le Scuttle quand il apparaît', 'Je smite les drakes et pas avant', 'Je ward la jungle adverse une fois par game']],
+      int: ['Le jungler utile', ['Je gank une lane qui a la prio', 'Je contre-gank quand je vois leur jungler', 'Je prends 2 drakes sur une game', 'Je track le jungler adverse et je le ping']],
+      conf: ['Le tempo de la jungle', ['Je finis mon premier clear avant 3:15', 'Je prends les larves avec la prio top ou mid', 'J’invade quand mes lanes ont la prio', 'Je fais 3 ganks réussis sur une game']],
+      pro: ['Le jungler qui gagne', ['Je contrôle 4 drakes ou la soul sur une game', 'Je vole un objectif avec le smite', 'Je finis une game avec plus de 60 % de KP', 'Je prévois mon pathing dès l’écran de chargement']] },
+    mid: { deb: ['Le mid propre', ['Je last hit sous ma tour sans perdre de CS', 'Je ping quand mon adversaire disparaît', 'Je recule quand je n’ai plus de vision', '60 CS à 10 min sur une game']],
+      int: ['La prio mid', ['Je push ma wave avant d’aller aider mon jungler', 'Je roam bot ou top après un push', 'Je gagne la prio sur 3 games', 'Je ward la rivière des deux côtés']],
+      conf: ['Le mid qui roam', ['Je fais un roam réussi avant 10 min', 'Je suis le premier sur la rivière à chaque drake', 'Je garde 8 CS/min sur une game', 'Je trade quand le jungler adverse est loin']],
+      pro: ['Le mid qui carry', ['Je fais un solo kill sur mon adversaire', 'Je finis une game avec 30 % des dégâts de mon équipe', 'Je crée une avance de 20 CS en lane', 'Je mène le call d’un Nashor']] },
+    adc: { deb: ['Le farm avant tout', ['60 CS à 10 min sur une game', 'Je reste derrière mon support dans les fights', 'Je back avec mon support quand c’est possible', 'Je ne meurs pas avant 10 min sur une game']],
+      int: ['La botlane', ['Je gère la wave avec mon support (push, freeze)', 'Je trade quand le support adverse est loin', 'Je prends la première tour bot sur une game', '75 CS à 10 min sur une game']],
+      conf: ['Le placement', ['Je tape la cible la plus proche dans les fights', 'Je finis un fight sans mourir sur 3 games', 'Je vais farmer une side lane safe après 15 min', '8 CS/min sur 3 games']],
+      pro: ['L’ADC qui carry', ['Je finis une game avec le plus de dégâts de la partie', 'Je survis à tous les fights d’une game', '9 CS/min sur une game', 'Je gagne une game où ma botlane a perdu la lane']] },
+    support: { deb: ['Le support présent', ['Une ward placée avant 3 min', 'J’achète une pink ward à chaque back', 'Je reste avec mon ADC en début de game', 'Je ping les sorts de la botlane adverse']],
+      int: ['La vision', ['Je change de trinket (oracle) quand c’est utile', 'Plus de 1,5 score de vision par minute sur une game', 'Je ward le drake 1 minute avant qu’il apparaisse', 'Je roam mid après un back de mon ADC']],
+      conf: ['L’engage et le peel', ['J’engage un fight gagnant au bon moment', 'Je protège mon carry dans 3 fights', 'Je nettoie les wards adverses autour du drake', 'Plus de 2 de vision par minute sur une game']],
+      pro: ['Le support qui gagne', ['Je call les objectifs pour toute l’équipe', 'Plus de 70 % de KP sur une game', 'Je prépare la vision du Nashor 1 minute avant', 'Je gagne une game avec plus de 2,5 de vision par minute']] },
+  };
+  // Défis du carnet rangés dans les paliers : le CS au début, la préparation ensuite, les fights après, le Boss final pour les pros.
+  const dfTierOf = (d) => d.boss ? 'pro' : /CS/i.test(d.titre) ? 'deb' : /Avant la game/i.test(d.titre) ? 'int' : 'conf';
+  function dfGroups(c) {
+    const carnet = (c.diapo && c.diapo.defis) || [];
+    const lane = DF_LANE[c.id] || DF_LANE[{ adc: 'adc', bot: 'adc', bottom: 'adc', middle: 'mid', utility: 'support' }[c.id]] || null;
+    return DF_TIERS.map(([t, ico, label]) => {
+      const groups = [];
+      const cm = DF_COMMON[t]; groups.push({ id: 'g-' + t, titre: cm.titre, sub: cm.sub, items: cm.items });
+      if (lane && lane[t]) groups.push({ id: 'l-' + t, titre: lane[t][0], sub: 'Défi de ta lane', items: lane[t][1] });
+      carnet.forEach((d, i) => { if (dfTierOf(d) === t) groups.push({ id: String(i), titre: d.titre, sub: [d.big, d.sub, d.niveau].filter(Boolean).join(' · '), items: d.items, boss: d.boss }); });
+      return { t, ico, label, groups };
+    });
+  }
   const defiKey = (c) => 'fire.defis.' + c.id;
   const defiCount = (c) => {
-    const ds = (c.diapo && c.diapo.defis) || [], done = load(defiKey(c), {});
+    const done = load(defiKey(c), {});
     let n = 0, ok = 0;
-    ds.forEach((d, i) => d.items.forEach((x, k) => { n++; if (done[i + ':' + k]) ok++; }));
+    dfGroups(c).forEach((T) => T.groups.forEach((g) => g.items.forEach((x, k) => { n++; if (done[g.id + ':' + k]) ok++; })));
     return { n, ok };
   };
   function defisCard(c) {
-    const ds = (c.diapo && c.diapo.defis) || [];
     const { n, ok } = defiCount(c);
+    const T = dfGroups(c);
+    const done = load(defiKey(c), {});
+    const cur = T.find((x) => !x.groups.every((g) => g.items.every((it, k) => done[g.id + ':' + k]))) || T[T.length - 1];
     return h('button', { class: 'diapo-card defis-card', onclick: () => openDefis(c) },
       h('div', { class: 'diapo-info' },
         h('div', { class: 'diapo-kick' }, '🎯 Défis'),
         h('div', { class: 'diapo-t' }, (c.diapo.quizTitre || '').replace(/^Quiz/, 'Défis') || 'Défis'),
-        h('p', { class: 'muted small' }, `${ds.length} défis et le Boss final, à cocher au fil de tes games.`),
+        h('p', { class: 'muted small' }, `4 paliers, de Débutant à Pro, à valider dans l’ordre. Palier en cours : ${cur.ico} ${cur.label}.`),
         h('div', { class: 'qz-bar' }, h('span', { style: `width:${n ? Math.round(ok / n * 100) : 0}%` })),
-        h('p', { class: 'small' }, `✅ ${ok} / ${n} cochés`),
+        h('p', { class: 'small' }, `✅ ${ok} / ${n} validés`),
         h('span', { class: 'diapo-go' }, '▶ Voir mes défis')));
   }
 
   function openDefis(c) {
-    const ds = (c.diapo && c.diapo.defis) || [];
     const body = h('div', { class: 'qz-body' });
     const close = () => { box.remove(); document.removeEventListener('keydown', key); if (S.section === 'guides') render(); };
     const key = (e) => { if (e.key === 'Escape') close(); };
+    let tab = null;
     const draw = () => {
       const done = load(defiKey(c), {});
+      const T = dfGroups(c);
+      const gDone = (g) => g.items.every((x, k) => done[g.id + ':' + k]);
+      const tDone = (t) => t.groups.every(gDone);
+      // Un palier s'ouvre quand le précédent est entièrement validé.
+      const open = T.map((t, i) => i === 0 || T.slice(0, i).every(tDone));
+      if (tab == null) { const k = T.findIndex((t, i) => open[i] && !tDone(t)); tab = k < 0 ? T.length - 1 : k; }
+      const cur = T[tab];
       const { n, ok } = defiCount(c);
+      // Dans un palier : chaque défi s'ouvre quand le précédent est validé, et chaque case quand la case du dessus est cochée.
+      let prevOk = open[tab];
+      const order = cur.groups.map((g) => g.id);
+      const setItem = (g, k, on) => {
+        const cur2 = load(defiKey(c), {});
+        if (on) cur2[g.id + ':' + k] = true;
+        else {
+          // Décocher une case décoche aussi tout ce qui vient après dans ce palier (il faut le revalider dans l'ordre).
+          let after = false;
+          for (const id of order) { const gg = cur.groups.find((x) => x.id === id); gg.items.forEach((x, kk) => { if (id === g.id && kk === k) after = true; if (after) delete cur2[id + ':' + kk]; }); }
+          T.slice(tab + 1).forEach((t2) => t2.groups.forEach((g2) => g2.items.forEach((x, kk) => delete cur2[g2.id + ':' + kk])));
+        }
+        save(defiKey(c), cur2); draw();
+      };
       body.replaceChildren(
-        h('div', { class: 'qz-meta muted small' }, `✅ ${ok} / ${n} cochés · gardé sur cet ordinateur`),
+        h('div', { class: 'qz-meta muted small' }, `✅ ${ok} / ${n} validés · gardé sur cet ordinateur`),
         h('div', { class: 'qz-bar' }, h('span', { style: `width:${n ? Math.round(ok / n * 100) : 0}%` })),
-        ...ds.map((d, i) => {
-          const all = d.items.every((x, k) => done[i + ':' + k]);
-          return h('div', { class: 'df-group' + (d.boss ? ' boss' : '') + (all ? ' done' : '') },
-            h('div', { class: 'df-head' }, h('span', { class: 'df-ico' }, d.boss ? '🏆' : '🎯'),
-              h('div', null, h('b', null, d.titre), h('div', { class: 'muted small' }, [d.big, d.sub].filter(Boolean).join(' · ') + (d.niveau ? (d.big || d.sub ? ' · ' : '') + d.niveau : ''))),
-              all ? h('span', { class: 'df-ok' }, d.boss ? 'Badge débloqué !' : 'Validé ✓') : null),
-            h('div', { class: 'df-items' }, d.items.map((x, k) => {
-              const id = i + ':' + k;
-              return h('label', { class: 'df-item' + (done[id] ? ' on' : '') },
-                h('input', { type: 'checkbox', checked: done[id] ? true : null, onchange: (e) => { const cur = load(defiKey(c), {}); if (e.target.checked) cur[id] = true; else delete cur[id]; save(defiKey(c), cur); draw(); } }),
+        h('div', { class: 'df-tiers' }, T.map((t, i) => h('button', { class: 'df-tier' + (i === tab ? ' on' : '') + (tDone(t) ? ' done' : '') + (open[i] ? '' : ' locked'), title: open[i] ? '' : 'Valide d’abord le palier ' + T[i - 1].label, onclick: () => { tab = i; draw(); } },
+          open[i] ? t.ico : '🔒', ' ', t.label, tDone(t) ? ' ✓' : ''))),
+        !open[tab] ? h('p', { class: 'df-lockmsg' }, `🔒 Valide tous les défis du palier ${T[tab - 1].label} pour débloquer celui-ci.`) : null,
+        ...cur.groups.map((g) => {
+          const gOpen = prevOk;
+          const all = gDone(g);
+          prevOk = prevOk && all;
+          let itemOk = gOpen;
+          return h('div', { class: 'df-group' + (g.boss ? ' boss' : '') + (all ? ' done' : '') + (gOpen ? '' : ' locked') },
+            h('div', { class: 'df-head' }, h('span', { class: 'df-ico' }, gOpen ? (g.boss ? '🏆' : cur.ico) : '🔒'),
+              h('div', null, h('b', null, g.titre), h('div', { class: 'muted small' }, g.sub || '')),
+              all ? h('span', { class: 'df-ok' }, g.boss ? 'Badge débloqué !' : 'Validé ✓') : !gOpen ? h('span', { class: 'muted small' }, 'Valide le défi du dessus') : null),
+            h('div', { class: 'df-items' }, g.items.map((x, k) => {
+              const id = g.id + ':' + k;
+              const can = itemOk; itemOk = itemOk && !!done[id];
+              return h('label', { class: 'df-item' + (done[id] ? ' on' : '') + (can ? '' : ' locked'), title: can ? '' : 'Coche d’abord la case du dessus' },
+                h('input', { type: 'checkbox', checked: done[id] ? true : null, disabled: can || done[id] ? null : true, onchange: (e) => setItem(g, k, e.target.checked) }),
                 h('span', null, x));
             })));
         }),
-        h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => { save(defiKey(c), {}); draw(); } }, '↺ Tout décocher'),
+        h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => { if (confirm('Tout décocher ? Tu repars du palier Débutant.')) { save(defiKey(c), {}); tab = null; draw(); } } }, '↺ Tout recommencer'),
           h('button', { class: 'btn-fire small-btn', onclick: close }, 'Fermer')));
     };
     const box = h('div', { class: 'dv qz', onclick: (e) => { if (e.target === box) close(); } },

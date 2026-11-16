@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.161",
+   "date": "2026-11-16",
+   "titre": "Défis en 4 paliers, à valider dans l’ordre",
+   "items": [
+    [
+     "new",
+     "🎯 Lanes et principes › Défis : 4 paliers, 🌱 Débutant, 📘 Intermédiaire, 🔥 Confirmé et 👑 Pro, avec de nouveaux défis pour chaque lane (top, jungle, mid, ADC, support) et un défi commun à tout le monde par palier. Les défis du carnet sont rangés dans le bon palier, le Boss final reste le dernier défi Pro."
+    ],
+    [
+     "new",
+     "Tout se valide dans l’ordre : une case se coche quand celle du dessus est cochée, un défi s’ouvre quand le précédent est validé, et un palier quand le précédent est terminé. Décocher une case décoche aussi ce qui vient après (il faut le revalider)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.160",
    "date": "2026-11-16",
    "titre": "Menu de profil à ton image, avatars dans la discussion",
