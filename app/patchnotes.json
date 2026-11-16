@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.140",
+   "date": "2026-11-16",
+   "titre": "Fond visible dans les Paramètres",
+   "items": [
+    [
+     "improve",
+     "Paramètres : le vrai fond de FIRE (thème, animations, skin, image ou vidéo) s’affiche en direct derrière la fenêtre. Tu vois le changement tout de suite, sans revenir en arrière."
+    ],
+    [
+     "improve",
+     "Les curseurs Flou et Assombrir changent le fond en direct pendant que tu les glisses."
+    ]
+   ]
+  },
+  {
    "v": "1.10.139",
    "date": "2026-11-16",
    "titre": "Fonds animés",

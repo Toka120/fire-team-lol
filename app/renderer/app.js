@@ -973,6 +973,10 @@
       h('span', { class: 'bgp-tag' }, 'Aperçu'));
   }
   function bgPreviewLive(k, v) {
+    // Le vrai fond (visible derrière les Paramètres) suit le curseur pendant qu'on le glisse.
+    const root = document.documentElement;
+    if (k === 'blur') root.style.setProperty('--ux-blur', `${v}px`);
+    if (k === 'dim') root.style.setProperty('--ux-dim', String(v / 100));
     const p = document.querySelector('.bgp');
     if (!p) return;
     if (k === 'blur') { p.style.setProperty('--bgp-blur', `${v * 0.5}px`); const l = document.querySelector('.bgp-blur-l'); if (l) l.textContent = `Flou : ${v} px`; }

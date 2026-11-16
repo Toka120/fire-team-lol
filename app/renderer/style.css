@@ -2825,19 +2825,11 @@ html[data-calm] .ann-ov,html[data-calm] .ann-box{animation:none}
 .vt-q.mine{background:rgba(57,197,138,.85);color:#06140d}
 .vc-hz{color:var(--muted);font-weight:500}
 /* Les paramètres portent le thème choisi : fond du thème (ou image de fond), couleur d'accent, police des titres. */
-html.v2[data-skin] .set-ovl{background:var(--tart),var(--bg);background-attachment:fixed}
-html.v2[data-skin] .set-content{background:transparent}
-html.v2[data-skin] .set-left{background:color-mix(in srgb,var(--panel) 88%,transparent);backdrop-filter:blur(10px)}
 html.v2[data-skin] .set-ovl .set-tab.on{background:color-mix(in srgb,var(--ta) 20%,var(--panel));color:var(--fg);box-shadow:inset 3px 0 0 var(--ta)}
 html.v2[data-skin] .set-ovl .set-tab:hover:not(.on){background:color-mix(in srgb,var(--ta) 9%,var(--panel2))}
 html.v2[data-skin] .set-ovl .set-title{font-family:var(--ttitle,inherit);background:linear-gradient(90deg,var(--ta),var(--tb,var(--ta)));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 html.v2[data-skin] .set-ovl .set-gt{color:var(--ta)}
 html.v2[data-skin] .set-ovl .set-sub.on{border-color:var(--ta);color:var(--fg)}
-html[data-uxbg] .set-ovl{background:transparent}
-html[data-uxbg] .set-ovl::before{content:'';position:fixed;inset:-40px;z-index:-1;background:var(--ux-bg) center/cover no-repeat;filter:blur(var(--ux-blur,6px))}
-html[data-uxbg] .set-ovl::after{content:'';position:fixed;inset:0;z-index:-1;background:rgb(0 0 0 / var(--ux-dim,.7));pointer-events:none}
-html[data-uxbg] .set-content{background:transparent}
-html[data-uxbg] .set-left{background:color-mix(in srgb,var(--panel) 80%,transparent);backdrop-filter:blur(10px)}
 
 /* ===== Salons : création façon Discord, forums, boîte à idées, annonces, conférence ===== */
 .cp-gt-act{display:inline-flex;gap:2px}
@@ -2916,3 +2908,10 @@ html[data-uxbg] .set-left{background:color-mix(in srgb,var(--panel) 80%,transpar
 #fire-fx{position:fixed;inset:0;z-index:0;pointer-events:none}
 body>section,body>#tip{position:relative;z-index:1}
 #fire-bgv{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;pointer-events:none;filter:blur(var(--ux-blur,0px));transform:scale(1.04)}
+/* Paramètres ouverts : l'application est cachée et la fenêtre est transparente, on voit en direct le vrai fond
+   (thème, animations, image ou vidéo) pendant qu'on le change. */
+html.set-open #app{visibility:hidden}
+html.set-open .set-ovl{background:transparent}
+html.set-open .set-left{background:color-mix(in srgb,var(--panel) 84%,transparent);backdrop-filter:blur(12px)}
+html.set-open .set-content{background:linear-gradient(90deg,color-mix(in srgb,var(--bg) 72%,transparent),color-mix(in srgb,var(--bg) 40%,transparent))}
+html.set-open .set-page{text-shadow:0 1px 2px rgb(0 0 0 / 35%)}
