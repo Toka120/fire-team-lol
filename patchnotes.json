@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.150",
+   "date": "2026-11-16",
+   "titre": "Le compagnon vit dans FIRE",
+   "items": [
+    [
+     "new",
+     "🐾 Ton compagnon chibi quitte ta carte de profil : il vit maintenant en bas à droite de FIRE. Il respire, cligne des yeux, suit ta souris du regard, s’endort quand tu ne fais rien (et se réveille quand tu reviens)."
+    ],
+    [
+     "new",
+     "Clique dessus : il saute, tourne, se tortille, envoie des cœurs ou te dit un petit mot (et attention au tournis si tu cliques trop vite 😵)."
+    ],
+    [
+     "new",
+     "Il réagit à ce qui se passe : nouveau message, début et fin de ta game (« GL HF ! », « GG ! »), puzzle réussi ou raté, clip enregistré, nouveau clip de l’équipe, nouvel objet équipé dans la boutique."
+    ],
+    [
+     "new",
+     "Choisis-le ou change-le dans la Boutique › Compagnon chibi (« Aucun » pour le ranger). Il n’apparaît que chez toi. Dans la Discussion, il se place un peu plus haut pour ne pas cacher le bouton d’envoi."
+    ]
+   ]
+  },
+  {
    "v": "1.10.149",
    "date": "2026-11-16",
    "titre": "Effet « Sourire » mieux placé",

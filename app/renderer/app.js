@@ -460,6 +460,7 @@
     if (!S.moi && !load('fire.moi.demande', false)) later(askWho);
     rdvStart();
     promoLater();
+    setTimeout(() => { try { petStart(); } catch (e) { console.error(e); } }, 1200);
     // Clips : ménage des vieux clips non gardés, et clips partagés par l'équipe.
     setTimeout(clipsPurge, 30000); setInterval(clipsPurge, 6 * 3600 * 1000);
     setTimeout(() => cfLoad(true), 15000); setInterval(() => cfLoad(true), 10 * 60000);
@@ -1154,7 +1155,7 @@
   ];
   const looks = () => UX.look || {};
   const shopRedraw = () => { if (S.section === 'boutique') { const y = $('view').scrollTop, w = window.scrollY; renderBoutique(); $('view').scrollTop = y; window.scrollTo(0, w); } else renderSettings(); };
-  const setLook = (k, v) => { const L = { ...looks() }; if (v == null || v === '') delete L[k]; else L[k] = v; setUx({ look: Object.keys(L).length ? L : null }); shopRedraw(); };
+  const setLook = (k, v) => { const L = { ...looks() }; if (v == null || v === '') delete L[k]; else L[k] = v; setUx({ look: Object.keys(L).length ? L : null }); shopRedraw(); petSync(); if (k !== 'pet') petReact('look'); };
   function shopCards() {
     const me = vocalMe();
     if (!me) return [uxCard('🛍️ Boutique FIRE', 'Choisis d’abord qui tu es pour personnaliser ton profil.', h('button', { class: 'btn-fire small-btn', onclick: askWho }, 'Qui es-tu ?'))];
@@ -1168,7 +1169,7 @@
     const name = (fx, font, grad) => h('span', { class: 'nm' + (grad ? ' nm-grad' : '') + (fx ? ' nm-' + fx : ''), style: (grad ? `--n1:${grad[0]};--n2:${grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (font && LOOK_FONT[font] ? `font-family:${LOOK_FONT[font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
     // L'aperçu : la carte de profil, une ligne de discussion, la liste des membres et la case du vocal, avec le look donné.
     const lname = (X) => h('span', { class: 'nm' + (X.grad ? ' nm-grad' : '') + (X.fx ? ' nm-' + X.fx : ''), style: (X.grad ? `--n1:${X.grad[0]};--n2:${X.grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (X.font && LOOK_FONT[X.font] ? `font-family:${LOOK_FONT[X.font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
-    const lav = (X, cls) => h('span', { class: 'vc-av ' + (cls || '') + (X.deco ? ' dk dk-' + X.deco : '') }, ini(me), decoExtra(X.deco), X.pet ? petEl(X.pet, 'pet-av') : null);
+    const lav = (X, cls) => h('span', { class: 'vc-av ' + (cls || '') + (X.deco ? ' dk dk-' + X.deco : '') }, ini(me), decoExtra(X.deco));
     const previewOf = (X, trying) => h('div', { class: 'shop-preview' + (trying ? ' trying' : '') },
       h('div', { class: 'prof-card pf-mini' + (X.card ? ' pf-themed' : ''), style: X.card ? `--pc1:${X.card[0]};--pc2:${X.card[1]}` : '' },
         X.pfx ? pfxEl(X.pfx) : null,
@@ -1193,7 +1194,7 @@
       sec('🎨 Dégradé de pseudo', 'Deux couleurs pour ton pseudo (sinon, ta couleur de Profil).', SHOP.grad.map(([v, l]) => item('grad', v, l, '', name(L.fx, L.font, v)))),
       sec('🔤 Police du pseudo', null, SHOP.font.map(([v, l]) => item('font', v, l, '', name(L.fx, v, L.grad)))),
       sec('💫 Décoration d’avatar', 'Autour de ton avatar dans le vocal et sur ta carte.', SHOP.deco.map(([v, l]) => item('deco', v, l, '', h('span', { class: 'vc-av shop-av' + (v ? ' dk dk-' + v : '') }, ini(me), decoExtra(v))))),
-      sec('🐾 Compagnon chibi', 'Une petite mascotte de FIRE à côté de ton avatar.', SHOP.pet.map(([v, l]) => item('pet', v, l, '', v ? petEl(v, 'shop-pet') : h('span', { class: 'muted' }, '—')))),
+      sec('🐾 Compagnon chibi', 'Il vit en bas à droite de ton FIRE : il bouge, réagit à ce qui se passe (messages, games, puzzles…) et quand tu cliques dessus. Il n’apparaît que chez toi.', SHOP.pet.map(([v, l]) => item('pet', v, l, '', v ? petEl(v, 'shop-pet') : h('span', { class: 'muted' }, '—')))),
       sec('🌠 Effet de profil', 'Une animation sur ta carte de profil.', SHOP.pfx.map(([v, l]) => item('pfx', v, l, '', h('div', { class: 'shop-pfx' }, v ? pfxEl(v) : null)))),
       sec('🏷️ Plaque de nom', 'Le fond derrière ton pseudo dans la liste des membres.', SHOP.plate.map(([v, l]) => item('plate', v, l, '', h('div', { class: 'cp-cv shop-plate' + (v ? ' plate pl-' + v : '') }, h('span', { class: 'chat-cv-l' }, vocalName(me)))))),
       sec('🃏 Thème de carte de profil', null, SHOP.card.map(([v, l]) => item('card', v, l, '', h('div', { class: 'shop-card' + (v ? ' pf-themed' : ''), style: v ? `--pc1:${v[0]};--pc2:${v[1]}` : '' })))),
@@ -2588,6 +2589,7 @@
     const daily = gpDaily();
     if (daily && daily.id === p.id && !sv.days[gpToday()]) sv.days[gpToday()] = { id: p.id, v };
     save('fire.puzzle', sv); renderNav();
+    petReact(v === 'P' ? 'win' : v === 'O' ? 'meh' : 'lose');
     actLog('app', v === 'P' ? 'Puzzle réussi' : 'Puzzle tenté');
     gpCheckSupply();
     renderGamePuzzle();
@@ -5399,7 +5401,7 @@
     if (!r) { vocalToast('Rien à enregistrer pour l’instant', false); return; }
     const res = await window.fire.clips.save(r.buf, {}).catch(() => null);
     try { FV().cue(true); } catch (e) { /* */ }
-    if (res && res.ok) { vocalToast(`Clip enregistré · ${r.seconds} s`, true); clipsRefresh(); }
+    if (res && res.ok) { vocalToast(`Clip enregistré · ${r.seconds} s`, true); clipsRefresh(); petReact('clip'); }
     else vocalToast('Clip impossible à enregistrer', false);
   }
   async function clipsRefresh() {
@@ -9552,8 +9554,85 @@
     const p = PETS[id]; if (!p) return null;
     const eyes = p[2] === true ? PET_EYES.replace(/#1b1020/g, '#5ff3ff').replace(/fill="#fff"/g, 'fill="#e0fdff"') : p[2] === 'low' ? PET_EYES.replace(/cy="27"/g, 'cy="34"').replace(/cy="25.6"/g, 'cy="32.6"').replace(/cy="32"/g, 'cy="38"').replace('M22.5 33 q2.5 2.2 5 0', 'M22.5 39 q2.5 2.2 5 0') : PET_EYES;
     const sp = h('span', { class: 'pet ' + (cls || ''), title: 'Compagnon : ' + p[0] });
-    sp.innerHTML = `<svg viewBox="0 0 50 50" aria-hidden="true">${p[1]}${eyes}</svg>`;
+    sp.innerHTML = `<svg viewBox="0 0 50 50" aria-hidden="true">${p[1]}<g class="pet-eyes">${eyes}</g></svg>`;
     return sp;
+  }
+  // ===== Compagnon : la mascotte choisie dans la boutique vit en bas à droite de l'app =====
+  // Il respire, cligne des yeux, regarde la souris, s'endort quand tu ne fais rien, et réagit aux clics
+  // et à ce qui se passe dans FIRE (nouveau message, début et fin de game, puzzle, clip, nouvel objet).
+  const PET = { el: null, id: '', bub: null, bubT: 0, act: 0, last: Date.now(), asleep: false, clicks: [], seen: { chat: 0, live: false, clips: 0 }, tick: 0 };
+  const PET_TALK = {
+    click: ['Coucou !', 'Hehe 😊', 'On lance une game ?', 'Tu veux un puzzle ?', 'Je suis là !', 'GG à toi !', 'On farm ? 🌾', 'Allez FIRE ! 🔥', 'Pense à ward 👁️', 'Back quand ta wave crash 😉'],
+    chat: ['💬 Nouveau message !', '💬 On te parle !'], start: ['GL HF ! 🍀', 'Bonne game ! 🔥', 'Je te regarde jouer 👀'], end: ['GG ! 🎉', 'Bien joué !', 'Une autre ? 😄'],
+    win: ['🔥 Réponse de pro !', 'Trop fort !', 'Bien vu ! 🧠'], meh: ['Pas mal !', 'Presque !'], lose: ['Oups… 😅', 'La prochaine sera la bonne !'],
+    clip: ['🎬 Beau clip !', 'Celui-là il faut le garder ⭐'], look: ['Ça te va bien ✨', 'Stylé ! 😎'], wake: ['Hein ? Je dormais pas !', 'Ah, te revoilà ! 👋'], clipfeed: ['🎬 Nouveau clip de l’équipe !'],
+  };
+  const pickOne = (l) => l[Math.floor(Math.random() * l.length)];
+  function petSync() {
+    const id = (looks().pet || '');
+    if (id === PET.id && (PET.el || !id)) return;
+    PET.id = id;
+    if (PET.el) { PET.el.remove(); PET.el = null; }
+    if (!id || !PETS[id]) return;
+    const body = petEl(id, 'pet-home');
+    body.removeAttribute('title');
+    PET.bub = h('div', { class: 'pet-bub', 'aria-live': 'polite' });
+    PET.el = h('div', { id: 'fire-pet', title: PETS[id][0] + ' : clique-moi !', role: 'button', tabindex: '0', 'aria-label': 'Compagnon ' + PETS[id][0],
+      onclick: (e) => { e.stopPropagation(); petClick(); }, onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); petClick(); } },
+      onmouseenter: () => { if (PET.asleep) petWake(); else petAnim('happy', 700); } },
+      PET.bub, h('div', { class: 'pet-shadow' }), body);
+    document.body.append(PET.el);
+    petAnim('hop', 600); setTimeout(() => petSay(pickOne(['Salut ! 👋', 'Coucou ' + (vocalMe() ? vocalName(vocalMe()) : '') + ' !'])), 400);
+  }
+  function petAnim(k, ms) { if (!PET.el) return; PET.el.classList.remove('a-hop', 'a-spin', 'a-wiggle', 'a-happy', 'a-dizzy'); void PET.el.offsetWidth; PET.el.classList.add('a-' + k); clearTimeout(PET.act); PET.act = setTimeout(() => PET.el && PET.el.classList.remove('a-' + k), ms || 800); }
+  function petSay(t, ms) { if (!PET.el || !t) return; PET.bub.textContent = t; PET.el.classList.add('talk'); clearTimeout(PET.bubT); PET.bubT = setTimeout(() => PET.el && PET.el.classList.remove('talk'), ms || 2600); }
+  function petWake() { PET.asleep = false; if (PET.el) PET.el.classList.remove('sleep'); petAnim('hop', 600); petSay(pickOne(PET_TALK.wake)); }
+  function petClick() {
+    PET.last = Date.now();
+    if (PET.asleep) { petWake(); return; }
+    const now = Date.now(); PET.clicks = PET.clicks.filter((x) => now - x < 1800).concat(now);
+    if (PET.clicks.length >= 5) { PET.clicks = []; petAnim('dizzy', 1600); petSay('@_@ Ça tourne…'); return; }
+    const k = pickOne(['hop', 'spin', 'wiggle', 'happy']);
+    petAnim(k, k === 'spin' ? 700 : 800);
+    if (k === 'happy') petHeart(); else petSay(pickOne(PET_TALK.click));
+  }
+  function petHeart() { if (!PET.el) return; for (let i = 0; i < 3; i++) { const c = h('i', { class: 'pet-heart', style: `left:${30 + i * 18}%;animation-delay:${i * 0.15}s` }, '💗'); PET.el.append(c); setTimeout(() => c.remove(), 1600); } }
+  function petReact(kind) {
+    if (!PET.el) return;
+    if (PET.asleep) { PET.asleep = false; PET.el.classList.remove('sleep'); }
+    const anim = { win: 'hop', start: 'hop', end: 'happy', look: 'spin', clip: 'hop', chat: 'wiggle', lose: 'wiggle', meh: 'wiggle', clipfeed: 'hop' }[kind] || 'hop';
+    petAnim(anim, 900); if (kind === 'win' || kind === 'end') petHeart();
+    petSay(pickOne(PET_TALK[kind] || PET_TALK.click));
+  }
+  function petLook(e) {
+    if (!PET.el) return;
+    PET.last = Date.now();
+    if (PET.asleep && e.type === 'keydown') petWake();
+    const r = PET.el.getBoundingClientRect(); const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2); const d = Math.hypot(dx, dy) || 1;
+    if (e.clientX != null) PET.el.style.setProperty('--lx', (dx / d * 1.6).toFixed(2) + 'px'), PET.el.style.setProperty('--ly', (dy / d * 1.2).toFixed(2) + 'px');
+  }
+  function petStart() {
+    petSync();
+    let raf = 0;
+    document.addEventListener('mousemove', (e) => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; petLook(e); }); }, { passive: true });
+    document.addEventListener('keydown', petLook, true);
+    PET.seen = { chat: chatUnread(), live: !!LIVE.mine, clips: cfUnseen() };
+    setInterval(() => {
+      petSync();
+      if (!PET.el) return;
+      // Ce qui se passe dans FIRE
+      const un = chatUnread(), lv = !!LIVE.mine, nc = cfUnseen();
+      if (un > PET.seen.chat) petReact('chat');
+      if (lv && !PET.seen.live) petReact('start');
+      if (!lv && PET.seen.live) petReact('end');
+      if (nc > PET.seen.clips) petReact('clipfeed');
+      PET.seen = { chat: un, live: lv, clips: nc };
+      // Endormi après 3 minutes sans souris ni clavier
+      const idle = Date.now() - PET.last;
+      if (!PET.asleep && idle > 180000) { PET.asleep = true; PET.el.classList.add('sleep'); }
+      // Petits gestes de temps en temps
+      if (!PET.asleep && ++PET.tick % 6 === 0 && Math.random() < 0.5) petAnim(pickOne(['hop', 'wiggle']), 800);
+    }, 2000);
   }
   const petOf = (slug) => ((statusOf(slug).look || {}).pet || '');
   const decoOf = (slug) => ((statusOf(slug).look || {}).deco || '');
@@ -9561,7 +9640,8 @@
   function avatarEl(slug, cls) {
     const d = decoOf(slug);
     const pet = petOf(slug);
-    return h('span', { class: 'vc-av ' + (cls || '') + (d ? ' dk dk-' + d : ''), title: vocalName(slug) }, ini(slug), decoExtra(d), pet ? petEl(pet, 'pet-av') : null);
+    void pet;
+    return h('span', { class: 'vc-av ' + (cls || '') + (d ? ' dk dk-' + d : ''), title: vocalName(slug) }, ini(slug), decoExtra(d));
   }
   function chatWhoIco(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 '; const p = S.players.find((x) => x.slug === slug); return p ? roleOf(p).ico + ' ' : ''; }
   function chatWho(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 ' + vocalName(slug); const p = S.players.find((x) => x.slug === slug); return (p ? roleOf(p).ico + ' ' : '') + vocalName(slug); }
