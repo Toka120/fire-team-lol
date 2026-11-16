@@ -558,6 +558,16 @@ async function lcuConnect() {
 }
 // Regarder la partie d'un coéquipier dans le mode spectateur officiel de LoL (le même que « Regarder » dans la liste d'amis).
 // Riot impose 3 minutes de délai : personne ne peut s'en servir pour tricher.
+// Les erreurs du client LoL emboîtent les messages (JSON dans du JSON) : on garde le plus précis.
+function deepMsg(d) {
+  let m = d && typeof d === 'object' ? (d.message || d.errorCode || JSON.stringify(d)) : String(d || '');
+  for (let i = 0; i < 4; i++) {
+    const k = m.lastIndexOf('"message"'); if (k < 0) break;
+    const mm = m.slice(k).match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/); if (!mm || !mm[1] || mm[1] === m) break;
+    m = mm[1].replace(/\\"/g, '"');
+  }
+  return m || 'sans détail';
+}
 ipcMain.handle('live:spectate', async (e, who) => {
   try {
     if (liveLast) return { ok: false, error: 'tu es déjà en game' };
@@ -583,17 +593,25 @@ ipcMain.handle('live:spectate', async (e, who) => {
     if (fr && st && !/inGame|spectating/i.test(st)) return { ok: false, error: `d'après le client LoL, ${gameName} n'est pas en partie en ce moment (${st === 'championSelect' ? 'sélection des champions' : st === 'outOfGame' ? 'hors partie' : st}).` };
     // 3) Les mêmes appels que le client : d'abord « Regarder » (puuid), puis par le nom.
     const tries = [];
-    if (puuid) tries.push(['launch', () => lcuReq('POST', '/lol-spectator/v1/spectate/launch', { allowObserveMode: 'ALL', dropInSpectateGameId: gameName, gameQueueType: '', puuid })]);
+    // Le bouton « Regarder » du client envoie aussi la file de la partie (gameQueueType), lue dans la liste d'amis.
+    const gq = (fr && fr.lol && String(fr.lol.gameQueueType || '')) || '';
+    if (puuid) {
+      tries.push(['launch', () => lcuReq('POST', '/lol-spectator/v1/spectate/launch', { allowObserveMode: 'ALL', dropInSpectateGameId: gameName, gameQueueType: gq, puuid })]);
+      if (full && full !== gameName) tries.push(['launch-id', () => lcuReq('POST', '/lol-spectator/v1/spectate/launch', { allowObserveMode: 'ALL', dropInSpectateGameId: full, gameQueueType: gq, puuid })]);
+      if (gq) tries.push(['launch-sans-file', () => lcuReq('POST', '/lol-spectator/v1/spectate/launch', { allowObserveMode: 'ALL', dropInSpectateGameId: gameName, gameQueueType: '', puuid })]);
+    }
     tries.push(['buddy', () => lcuReq('POST', '/lol-spectator/v1/buddy/spectate', [full])]);
     if (full !== gameName) tries.push(['buddy-nom', () => lcuReq('POST', '/lol-spectator/v1/buddy/spectate', [gameName])]);
     const errs = [];
     for (const [k, t] of tries) {
       const r = await t();
       if (r.status >= 200 && r.status < 300) return { ok: true };
-      const m = r.data && (r.data.message || r.data.errorCode);
-      errs.push(`${k} ${r.status || '—'}${m ? ' : ' + String(m).slice(0, 90) : ''}`);
+      errs.push(`${k} ${r.status || '—'} : ${deepMsg(r.data).slice(0, 220)}`);
     }
     const all = errs.join(' · ');
+    // Le client refuse souvent de lancer le spectateur depuis un salon ou une file d'attente.
+    const phase = await lcuGet('/lol-gameflow/v1/gameflow-phase').catch(() => null);
+    if (phase && /Lobby|Matchmaking|ReadyCheck|ChampSelect/.test(String(phase))) return { ok: false, error: `ton client LoL est ${/Lobby/.test(phase) ? 'dans un salon' : /ChampSelect/.test(phase) ? 'en sélection des champions' : 'en file d’attente'} : quitte-le, puis réessaie. Détail : ${all}` };
     if (/not.*spectat|GAME_NOT_FOUND|not found|no.*game/i.test(all) && !/RBAC/i.test(all)) return { ok: false, error: `${gameName} n'a pas de partie que Riot laisse regarder (personnalisée, entraînement, ou trop récente). Détail : ${all}` };
     if (/RBAC|access denied|403/i.test(all)) return { ok: false, error: `Riot refuse le spectateur pour ${gameName}${fr ? '' : ' (il n’est pas dans ta liste d’amis du client LoL)'}. Détail : ${all}` };
     return { ok: false, error: `le client LoL n'a pas lancé le spectateur. Détail : ${all}` };

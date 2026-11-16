@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.155",
+   "date": "2026-11-16",
+   "titre": "Spectateur : comme le bouton du client",
+   "items": [
+    [
+     "fix",
+     "Spectateur : FIRE envoie maintenant au client LoL la file de la partie (Solo/Duo, Flex…) lue dans ta liste d’amis, comme le bouton « Regarder » du client, et essaie aussi avec le Riot ID complet."
+    ],
+    [
+     "fix",
+     "Si ton client LoL est dans un salon, en file d’attente ou en sélection des champions, FIRE te le dit (il faut en sortir pour regarder). Les messages d’erreur de Riot sont maintenant affichés en entier, sans être coupés."
+    ]
+   ]
+  },
+  {
    "v": "1.10.154",
    "date": "2026-11-16",
    "titre": "Photo de profil",
