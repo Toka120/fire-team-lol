@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.159",
+   "date": "2026-11-16",
+   "titre": "Synergies de duo, elo des matchups, streams en plein écran",
+   "items": [
+    [
+     "new",
+     "🤝 Draft › Tier list : les synergies de duo de dpm.lol directement dans FIRE (ADC + Support, Jungle + Mid, Top + Jungle, Jungle + Support, Mid + Support), au rang choisi en haut de la tier list : le duo, le bonus de synergie, le taux de victoire et le nombre de parties. Choisis un champion pour ne voir que ses duos."
+    ],
+    [
+     "new",
+     "Matchups : choisis le rang (Fer, Bronze… Or, Or+… Maître+, ou tous les elos) à la place d’« Émeraude+ ». Taux de victoire, runes, build et ordre des compétences se rechargent pour ce rang seulement, sans charger les autres."
+    ],
+    [
+     "new",
+     "📺 Vocal : bouton ⛶ « Tous les streams en plein écran » : tous les partages d’écran en même temps, sans le menu ni le fond, aussi grands que possible en gardant leurs proportions (bandes noires si besoin). Clique sur un stream pour l’agrandir, re-clique (ou « Tous les streams ») pour revenir ; Échap pour quitter."
+    ],
+    [
+     "new",
+     "Mini-lecteur : quand tu regardes un stream et que tu changes de rubrique, il continue dans une petite fenêtre flottante (déplaçable). Clique dessus pour revenir au vocal, où il reprend sa taille normale ; ✕ pour la fermer."
+    ]
+   ]
+  },
+  {
    "v": "1.10.158",
    "date": "2026-11-16",
    "titre": "Menu de profil façon carte, spectateur expliqué",

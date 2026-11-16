@@ -4587,6 +4587,7 @@
     try { accVisit(sec); } catch (e) { /* */ }
     // Revenir dans « Puzzle du jour » depuis une autre rubrique ramène à la liste, pas au puzzle laissé en plan.
     if (sec === 'puzzle' && S.section !== 'puzzle') { GP.cur = null; GP.pick = null; }
+    setTimeout(() => { try { miniPlayer(); } catch (e) { /* */ } }, 0);
     if (sec !== S.section && S.section !== 'settings') S.prevSection = S.section;
     if (sec !== 'settings') setClose(true);
     if (sec !== 'web' && WEB.open) webClose(true);
@@ -5044,7 +5045,104 @@
     el.classList.toggle('mirror', !!mirror);
     return el;
   }
+  // ===== Streams en plein écran (tous en même temps) et mini-lecteur flottant =====
+  // Liste des partages d'écran visibles : le mien et ceux que je regarde.
+  function streamList() {
+    let v; try { v = FV().state(); } catch (e) { return []; }
+    if (!v || !v.on) return [];
+    const me = vocalMe();
+    const l = [];
+    if (v.screen) l.push({ key: 'me:screen', slug: me, stream: v.screen, mine: true });
+    (v.videos || []).filter((x) => x.kind === 'screen').forEach((x) => l.push({ key: x.slug + ':screen', slug: x.slug, stream: x.stream }));
+    return l;
+  }
+  const TH = { el: null, focus: null, timer: null, sig: '' };
+  // Grille qui donne la plus grande taille possible à chaque stream (16:9, bandes noires si besoin).
+  function thGrid(n, W, H) {
+    let best = { c: 1, a: 0 };
+    for (let c = 1; c <= n; c++) { const r = Math.ceil(n / c); const w = W / c, hh = H / r; const vw = Math.min(w, hh * 16 / 9); const a = vw * vw * 9 / 16; if (a > best.a) best = { c, a }; }
+    return best.c;
+  }
+  function theaterOpen() {
+    if (TH.el) return;
+    TH.focus = null; TH.sig = '';
+    TH.el = h('div', { id: 'vc-theater', tabindex: '-1' });
+    TH.el.addEventListener('keydown', (e) => { if (e.key === 'Escape') theaterClose(); });
+    document.body.append(TH.el);
+    (TH.el.requestFullscreen ? TH.el.requestFullscreen() : Promise.reject()).catch(() => {});
+    document.addEventListener('fullscreenchange', thFs);
+    theaterPaint(true);
+    TH.timer = setInterval(() => theaterPaint(false), 1000);
+    window.addEventListener('resize', thResize);
+  }
+  function thFs() { if (!document.fullscreenElement && TH.el) theaterClose(); }
+  function thResize() { theaterPaint(true); }
+  function theaterClose() {
+    clearInterval(TH.timer); TH.timer = null;
+    document.removeEventListener('fullscreenchange', thFs); window.removeEventListener('resize', thResize);
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    if (TH.el) { TH.el.querySelectorAll('video').forEach((v) => { v.srcObject = null; }); TH.el.remove(); TH.el = null; }
+    if (S.section === 'vocal') renderVocal();
+  }
+  function theaterPaint(force) {
+    if (!TH.el) return;
+    const all = streamList();
+    if (!all.length) { theaterClose(); return; }
+    if (TH.focus && !all.some((x) => x.key === TH.focus)) TH.focus = null;
+    const list = TH.focus ? all.filter((x) => x.key === TH.focus) : all;
+    const sig = list.map((x) => x.key + (x.stream && x.stream.id)).join('|') + '#' + (TH.focus || '');
+    if (!force && sig === TH.sig) return;
+    TH.sig = sig;
+    const W = window.innerWidth, H = window.innerHeight;
+    const cols = thGrid(list.length, W, H);
+    const old = new Map([...TH.el.querySelectorAll('.th-cell')].map((c) => [c.dataset.k, c]));
+    const cells = list.map((x) => {
+      let c = old.get(x.key);
+      if (!c) {
+        const vid = h('video', { autoplay: true, playsinline: true }); vid.muted = true; vid.srcObject = x.stream; vid.play().catch(() => {});
+        c = h('div', { class: 'th-cell', 'data-k': x.key, title: 'Clic : agrandir / revenir à tous les streams', onclick: () => { TH.focus = TH.focus === x.key ? null : x.key; theaterPaint(true); } },
+          vid, h('span', { class: 'th-name' }, (x.mine ? '🔴 Mon écran' : '📺 ' + vocalName(x.slug))));
+      } else { const vid = c.querySelector('video'); if (vid.srcObject !== x.stream) { vid.srcObject = x.stream; vid.play().catch(() => {}); } }
+      return c;
+    });
+    TH.el.style.setProperty('--cols', cols);
+    TH.el.replaceChildren(...[...cells, h('button', { class: 'th-x', title: 'Quitter le plein écran (Échap)', onclick: theaterClose }, '✕'),
+      TH.focus ? h('button', { class: 'th-back', onclick: () => { TH.focus = null; theaterPaint(true); } }, '⊞ Tous les streams') : null].filter(Boolean));
+    TH.el.querySelectorAll('video').forEach((v) => { if (v.paused) v.play().catch(() => {}); });
+  }
+  // Mini-lecteur : le stream que je regardais me suit en petite fenêtre quand je quitte le salon vocal.
+  const MINI = { el: null, key: null, closed: null, pos: null };
+  function miniPlayer() {
+    const inVocal = S.section === 'vocal';
+    const remote = streamList().filter((x) => !x.mine);
+    const pick = remote.find((x) => x.key === VX.focus) || remote.find((x) => x.key === MINI.key) || remote[0];
+    if (inVocal || !pick || TH.el || MINI.closed === pick.key) {
+      if (MINI.el) { MINI.el.querySelector('video').srcObject = null; MINI.el.remove(); MINI.el = null; }
+      if (inVocal) MINI.closed = null;
+      return;
+    }
+    if (!MINI.el) {
+      const vid = h('video', { autoplay: true, playsinline: true }); vid.muted = true;
+      MINI.el = h('div', { id: 'vc-mini', title: 'Clic : revenir au salon vocal' },
+        vid, h('div', { class: 'mini-bar' }, h('span', { class: 'mini-n' }), h('button', { class: 'mini-x', title: 'Fermer la petite fenêtre', onclick: (e) => { e.stopPropagation(); MINI.closed = MINI.key; miniPlayer(); } }, '✕')));
+      // Déplaçable à la souris ; un simple clic ramène au salon.
+      let drag = null;
+      MINI.el.addEventListener('pointerdown', (e) => { if (e.target.closest('.mini-x')) return; const r = MINI.el.getBoundingClientRect(); drag = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, moved: false }; MINI.el.setPointerCapture(e.pointerId); });
+      MINI.el.addEventListener('pointermove', (e) => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true; if (!drag.moved) return;
+        const l = Math.max(4, Math.min(window.innerWidth - MINI.el.offsetWidth - 4, drag.l + dx)), t = Math.max(4, Math.min(window.innerHeight - MINI.el.offsetHeight - 4, drag.t + dy));
+        MINI.pos = { l, t }; Object.assign(MINI.el.style, { left: l + 'px', top: t + 'px', right: 'auto', bottom: 'auto' }); });
+      MINI.el.addEventListener('pointerup', () => { const d = drag; drag = null; if (d && !d.moved) { VX.focus = MINI.key; save('fire.vocal.layout', 'focus'); go('vocal'); } });
+      if (MINI.pos) Object.assign(MINI.el.style, { left: MINI.pos.l + 'px', top: MINI.pos.t + 'px', right: 'auto', bottom: 'auto' });
+      document.body.append(MINI.el);
+    }
+    MINI.key = pick.key;
+    const vid = MINI.el.querySelector('video');
+    if (vid.srcObject !== pick.stream) { vid.srcObject = pick.stream; }
+    if (vid.paused) vid.play().catch(() => {});
+    MINI.el.querySelector('.mini-n').textContent = '📺 ' + vocalName(pick.slug);
+  }
   function vocalBar() {
+    try { miniPlayer(); } catch (e) { /* */ }
     let bar = document.getElementById('vbar');
     const v = FV().state();
     if (!v.on || S.section === 'vocal') { if (bar) bar.remove(); return; }
@@ -6269,6 +6367,7 @@
         gearBtn('cb'),
         h('button', { class: 'cb leave', title: `Quitter le salon (${keyTxt(K.join)})`, onclick: () => FV().leave() }, vi('phone'))),
       h('div', { class: 'vc-bar-r' },
+        screens.length ? h('button', { class: 'vc-more vc-theater-btn', title: 'Tous les streams en plein écran (sans le menu ni le fond)', onclick: theaterOpen }, '⛶') : null,
         h('div', { class: 'vm-wrap' },
           h('button', { class: 'vc-more' + (VX.more ? ' on' : ''), title: 'Plus d’options', onclick: (e) => { e.stopPropagation(); VX.more = !VX.more; VX.invOpen = false; renderVocal(); } }, vi('more')),
           VX.more ? vocalMenu(v) : null),
@@ -6405,11 +6504,12 @@
       const ll = `https://lolalytics.com/lol/${lolSlug(MU.a)}/vs/${lolSlug(MU.b)}/build/${MU.lane ? '?lane=' + MU.lane : ''}`;
       const link = (href, t, sub, cls) => h('a', { class: 'mu-link ' + (cls || ''), href, target: '_blank', rel: 'noopener' }, h('b', null, t), h('small', { class: 'muted' }, sub));
       // L'essentiel du matchup directement dans FIRE (LoLalytics, Émeraude+) ; le détail est replié.
-      const key = `${MU.a}|${MU.b}|${MU.lane}`;
+      const elo = MU.elo || load('fire.mu.elo', 'emerald_plus');
+      const key = `${MU.a}|${MU.b}|${MU.lane}|${elo}`;
       if (!MU.data) MU.data = {};
       if (!MU.data[key] && window.fire.matchup) {
         MU.data[key] = { loading: true };
-        window.fire.matchup(MU.a, MU.b, MU.lane).then((r) => { MU.data[key] = r || { ok: false }; }).catch((e) => { MU.data[key] = { ok: false, error: String(e) }; })
+        window.fire.matchup(MU.a, MU.b, MU.lane, elo).then((r) => { MU.data[key] = r || { ok: false }; }).catch((e) => { MU.data[key] = { ok: false, error: String(e) }; })
           .finally(() => { if (S.section === 'draft' && S.drTab === 'matchup') renderMatchups(); });
       }
       const M = MU.data[key] || {};
@@ -6425,7 +6525,11 @@
           h('div', { class: 'mu-top' },
             h('div', { class: 'mu-wr ' + verdict[0] }, h('b', null, pct(M.wr)), h('small', null, 'de victoires')),
             h('div', { class: 'mu-sum' }, h('b', null, verdict[1]),
-              h('small', { class: 'muted' }, `${(M.games || 0).toLocaleString('fr-FR')} parties · ${M.elo ? M.elo.replace('EMERALD+', 'Émeraude+') : 'Émeraude+'} · patch ${M.patch || '?'}`),
+              h('small', { class: 'muted' }, `${(M.games || 0).toLocaleString('fr-FR')} parties · `,
+                // Choix de l'elo : seul ce rang est chargé (winrate, runes, build et ordre des compétences suivent).
+                h('select', { class: 'inp mu-elo', title: 'Rang des parties analysées', onchange: (e) => { MU.elo = e.target.value; save('fire.mu.elo', MU.elo); renderMatchups(); } },
+                  [['all', 'Tous les elos'], ...TL_RANKS.flatMap((r) => [r, ...TL_PLUS.filter(([id]) => id === r[0] + '_plus')])].map(([id, l]) => h('option', { value: id, selected: elo === id ? true : null }, l))),
+                ` · patch ${M.patch || '?'}`),
               M.diff ? h('small', { class: M.diff.v >= 0 ? 'good' : 'bad' }, `${sign(M.diff.v)} pts par rapport à ses autres matchups`) : null)),
           buildBox(M.build, M.dd),
           muSkillGrid((M.more || {}).skills),
@@ -6634,12 +6738,36 @@
             h('span', { class: 'muted' }, r.games.toLocaleString('fr-FR')))));
       }
     }
-    // Synergies : le tableau « Synergy » de LoLalytics pour le champion choisi, ouvert dans FIRE.
-    const syn = D && D.data ? h('div', { class: 'card tl-syn' }, h('h3', null, '🤝 Synergies d’un champion'),
-      h('div', { class: 'row' }, h('select', { class: 'inp', onchange: (e) => { TL.syn = e.target.value; } }, h('option', { value: '' }, 'Choisis un champion…'),
-        (S.champList && S.champList.list ? S.champList.list : []).map((c) => h('option', { value: c.id, selected: TL.syn === c.id ? true : null }, c.name))),
-        h('button', { class: 'btn-fire small-btn', onclick: () => { if (!TL.syn) return; const slug = TL.syn === 'MonkeyKing' ? 'wukong' : TL.syn.toLowerCase().replace(/[^a-z0-9]/g, ''); webOpen(`https://lolalytics.com/lol/${slug}/build/${P.lane && P.lane !== 'all' ? '?lane=' + P.lane : ''}#synergy`); } }, 'Voir ses synergies')),
-      h('p', { class: 'muted small' }, 'Les meilleurs et pires coéquipiers du champion (taux de victoire ensemble, écart par rapport à la normale), lane par lane : onglet « Synergy » de la page LoLalytics.')) : null;
+    // Synergies de duo : le tableau « Synergy » de dpm.lol (rang choisi en haut), lu par FIRE à la demande.
+    const DUO_OPTS = [['BOTTOM_UTILITY', 'ADC + Support'], ['JUNGLE_MIDDLE', 'Jungle + Mid'], ['TOP_JUNGLE', 'Top + Jungle'], ['JUNGLE_UTILITY', 'Jungle + Support'], ['MIDDLE_UTILITY', 'Mid + Support']];
+    const DPM_T = { iron: 'iron', bronze: 'bronze', silver: 'silver', gold: 'gold', platinum: 'platinum', emerald: 'emerald', diamond: 'diamond', emerald_plus: 'emerald_plus', diamond_plus: 'diamond_plus', master: 'master_plus', grandmaster: 'master_plus', challenger: 'master_plus', master_plus: 'master_plus' };
+    const dt = DPM_T[P.elo] || 'emerald_plus';
+    const duo = TL.duo || 'BOTTOM_UTILITY';
+    const dk = dt + '|' + duo;
+    TL.duoData = TL.duoData || {};
+    if (window.fire.dpmDuo && !TL.duoData[dk]) {
+      TL.duoData[dk] = { loading: true };
+      window.fire.dpmDuo(dt, duo).then((r) => { TL.duoData[dk] = r || { ok: false }; }).catch((e) => { TL.duoData[dk] = { ok: false, error: String(e) }; })
+        .finally(() => { if (S.section === 'draft' && !typing()) render(); });
+    }
+    const DD = TL.duoData[dk] || {};
+    const synRows = DD.ok ? DD.rows.filter((r) => !TL.syn || r.a === TL.syn || r.b === TL.syn) : [];
+    const syn = h('div', { class: 'card tl-syn' }, h('h3', null, '🤝 Synergies de duo'),
+      h('div', { class: 'row tl-syn-f' },
+        h('div', { class: 'sal-chips' }, DUO_OPTS.map(([k, l]) => h('button', { class: 'chip' + (duo === k ? ' on' : ''), 'aria-pressed': String(duo === k), onclick: () => { TL.duo = k; render(); } }, l))),
+        h('select', { class: 'inp', onchange: (e) => { TL.syn = e.target.value; render(); } }, h('option', { value: '' }, 'Tous les champions'),
+          (S.champList && S.champList.list ? S.champList.list : []).map((c) => h('option', { value: c.id, selected: TL.syn === c.id ? true : null }, c.name)))),
+      DD.loading ? h('p', { class: 'muted' }, 'Lecture du tableau de dpm.lol…')
+        : !DD.ok ? h('p', { class: 'muted small' }, 'Synergies indisponibles pour l’instant' + (DD.error ? ` (${DD.error})` : '') + '.', ' ', h('button', { class: 'linkbtn small', onclick: () => { delete TL.duoData[dk]; render(); } }, 'Réessayer'))
+          : !synRows.length ? h('p', { class: 'muted small' }, 'Ce champion n’est pas dans les meilleures synergies de ce duo à ce rang.')
+            : h('div', { class: 'tl-syn-list' },
+              h('div', { class: 'tl-syn-r head' }, h('span', null, '#'), h('span', null, 'Duo'), h('span', null, 'Synergie'), h('span', null, 'Victoires'), h('span', null, 'Parties')),
+              synRows.map((r, i2) => h('div', { class: 'tl-syn-r' }, h('span', { class: 'muted' }, String(i2 + 1)),
+                h('span', { class: 'tl-syn-c' }, champIcon(r.a, 30), champIcon(r.b, 30), h('b', null, `${FC.champName(r.a)} & ${FC.champName(r.b)}`)),
+                h('span', { class: r.syn >= 0 ? 'good' : 'bad' }, h('b', null, `${r.syn > 0 ? '+' : ''}${fr(r.syn, 2)} %`)),
+                h('span', { class: r.wr >= 51 ? 'good' : r.wr < 49 ? 'bad' : '' }, `${fr(r.wr, 1)} %`),
+                h('span', { class: 'muted' }, (r.games || 0).toLocaleString('fr-FR'))))),
+      h('p', { class: 'muted small' }, `La synergie : ce que le duo gagne de plus ensemble par rapport à leurs taux de victoire habituels. Source : dpm.lol · ${({ emerald_plus: 'Émeraude+', diamond_plus: 'Diamant+', master_plus: 'Maître+' })[dt] || (TL_RANKS.find(([k]) => k === dt) || [0, dt])[1]}${DD.patch ? ' · patch ' + DD.patch : ''}${P.elo && !DPM_T[P.elo] ? ' (dpm.lol n’a pas ce regroupement d’elo : Émeraude+ affiché)' : ''}.`));
     const pt = (D && D.patches) || {};
     const ptTxt = pt.kr && pt.euw && pt.kr !== pt.euw ? `patch ${pt.kr} en Corée, ${pt.euw} en Europe` : `patch ${(pt[P.region]) || (D && D.patch) || '?'}`;
     const foot = D && D.maj ? h('p', { class: 'muted small' }, `Données : ${D.source || 'LoLalytics'} · ${ptTxt} · relevées le ${dateFr(D.maj)}, mises à jour chaque jour.`) : null;

@@ -924,11 +924,15 @@ async function otpDragon() {
 }
 // Matchup : la page publique LoLalytics du matchup, lue à la demande (gardée 6 h), pour l'afficher dans FIRE.
 const muCache = new Map();
-ipcMain.handle('matchup', async (e, a, b, lane) => {
+ipcMain.handle('matchup', async (e, a, b, lane, tier) => {
   const slug = (id) => (id === 'MonkeyKing' ? 'wukong' : String(id || '').toLowerCase().replace(/[^a-z0-9]/g, ''));
   const ln = ['top', 'jungle', 'middle', 'bottom', 'support'].includes(lane) ? lane : '';
   if (!slug(a) || !slug(b)) return { ok: false, error: 'champion manquant' };
-  const url = `https://lolalytics.com/lol/${slug(a)}/vs/${slug(b)}/build/${ln ? '?lane=' + ln : ''}`;
+  // Elo choisi dans FIRE (sinon Émeraude+, le choix par défaut de LoLalytics) : seulement ce rang est chargé.
+  const TIERS = ['all', 'iron', 'bronze', 'silver', 'gold', 'platinum', 'emerald', 'diamond', 'master', 'grandmaster', 'challenger', 'gold_plus', 'platinum_plus', 'emerald_plus', 'diamond_plus', 'master_plus'];
+  const tr = TIERS.includes(tier) && tier !== 'emerald_plus' ? tier : '';
+  const qs = [ln ? 'lane=' + ln : '', tr ? 'tier=' + tr : ''].filter(Boolean).join('&');
+  const url = `https://lolalytics.com/lol/${slug(a)}/vs/${slug(b)}/build/${qs ? '?' + qs : ''}`;
   const hit = muCache.get(url);
   const dd = await otpDragon();
   if (hit && Date.now() - hit.at < 6 * 3600e3) return { ...hit.r, dd, url };
@@ -939,6 +943,78 @@ ipcMain.handle('matchup', async (e, a, b, lane) => {
     if (out.ok) muCache.set(url, { at: Date.now(), r: out });
     return { ...out, dd, url };
   } catch (err) { return { ok: false, error: String((err && err.message) || err), dd, url }; }
+});
+// Lit le tableau « Synergy » de dpm.lol/tierlist/duo dans la page déjà ouverte : on règle les filtres
+// en cliquant (comme un joueur), puis on lit les lignes affichées.
+async function dpmDuoGrab(tierLabel, r1, r2) {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const lab = (x) => String(x.getAttribute('aria-label') || x.innerText || '').trim();
+  const rows = () => [...document.querySelectorAll('main div.grid.h-44')];
+  const read = () => rows().map((r) => {
+    const im = [...r.querySelectorAll('img')].map((i) => i.getAttribute('alt') || '');
+    const t = [...r.children].map((c) => c.innerText.trim()).filter(Boolean);
+    return im.length >= 2 ? { a: im[0], b: im[1], syn: t[1] || '', wr: t[2] || '', games: t[3] || '' } : null;
+  }).filter(Boolean);
+  const ready = async (sig) => { for (let i = 0; i < 60; i++) { const l = read(); if (l.length && JSON.stringify(l.slice(0, 3)) !== sig) return l; await sleep(300); } return read(); };
+  let cur = await ready('');
+  const sig0 = () => JSON.stringify(read().slice(0, 3));
+  // Rôles : deux groupes de boutons (Top, Jungle, Mid, Bot) puis (Top, Jungle, Mid, Support).
+  const roleBtns = () => [...document.querySelectorAll('main button')].filter((x) => ['Top', 'Jungle', 'Mid', 'Bot', 'Support'].includes(lab(x)));
+  const setRole = async (group, name) => {
+    const g = roleBtns(); const first = g.slice(0, 4), second = g.slice(4, 8);
+    const b = (group ? second : first).find((x) => lab(x) === name);
+    if (!b) return false;
+    const s = sig0(); b.click(); await sleep(400); cur = await ready(s); return true;
+  };
+  if (r1) await setRole(0, r1);
+  if (r2) await setRole(1, r2);
+  if (tierLabel) {
+    const tb = [...document.querySelectorAll('main button')].find((x) => /^(iron|bronze|silver|gold|platinum|emerald|diamond|master|grandmaster|challenger)\+?$/i.test(lab(x)));
+    if (tb && lab(tb) !== tierLabel) {
+      tb.click(); await sleep(500);
+      const opt = [...document.querySelectorAll('body *')].find((e) => e.children.length === 0 && e.textContent.trim() === tierLabel && !e.closest('main button'));
+      if (opt) { const s = sig0(); (opt.closest('button,a,[role=option],li') || opt).click(); await sleep(400); cur = await ready(s); }
+      else document.body.click();
+    }
+  }
+  const patch = (document.querySelector('main') || document.body).innerText.match(/\b(\d{2}\.\d{1,2})\b/);
+  return { url: location.href, patch: patch ? patch[1] : '', rows: read() };
+}
+
+// Synergies de duo (dpm.lol › Tierlist › Synergy) : la page publique est ouverte dans une fenêtre invisible
+// (rendu hors écran, comme un onglet normal), les filtres sont réglés en cliquant et on lit le tableau affiché.
+// Une seule page à la fois, gardée 6 h par rang et par duo.
+const DUO_TYPES = { BOTTOM_UTILITY: ['Bot', 'Support'], JUNGLE_MIDDLE: ['Jungle', 'Mid'], TOP_JUNGLE: ['Top', 'Jungle'], JUNGLE_UTILITY: ['Jungle', 'Support'], MIDDLE_UTILITY: ['Mid', 'Support'] };
+const DUO_TIERS = { iron: 'Iron', bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum', emerald: 'Emerald', diamond: 'Diamond', emerald_plus: 'Emerald+', diamond_plus: 'Diamond+', master_plus: 'Master+' };
+const duoCache = new Map();
+let duoQueue = Promise.resolve();
+ipcMain.handle('dpm:duo', (e, tier, duo) => {
+  const t = DUO_TIERS[tier] ? tier : 'emerald_plus';
+  const d = DUO_TYPES[duo] ? duo : 'BOTTOM_UTILITY';
+  const key = t + '|' + d;
+  const hit = duoCache.get(key);
+  if (hit && Date.now() - hit.at < 6 * 3600e3) return hit.r;
+  const run = async () => {
+    const again = duoCache.get(key); if (again && Date.now() - again.at < 6 * 3600e3) return again.r;
+    const win = new BrowserWindow({ show: false, width: 1280, height: 1400, webPreferences: { session: dpmSession(), offscreen: true, backgroundThrottling: false, contextIsolation: true, sandbox: true } });
+    win.webContents.setAudioMuted(true);
+    try {
+      await win.loadURL('https://dpm.lol/tierlist/duo').catch(() => { /* la page peut se recharger */ });
+      const [r1, r2] = DUO_TYPES[d];
+      const res = await Promise.race([
+        win.webContents.executeJavaScript(`(${dpmDuoGrab.toString()})(${JSON.stringify(DUO_TIERS[t])}, ${JSON.stringify(r1)}, ${JSON.stringify(r2)})`),
+        new Promise((ok) => setTimeout(() => ok(null), 45000)),
+      ]);
+      const num = (x) => { const n = parseFloat(String(x || '').replace(/\s/g, '').replace(',', '.').replace('%', '')); return Number.isFinite(n) ? n : null; };
+      const rows = (res && Array.isArray(res.rows) ? res.rows : []).slice(0, 60).map((x) => ({ a: String(x.a || '').slice(0, 30), b: String(x.b || '').slice(0, 30), syn: num(x.syn), wr: num(x.wr), games: parseInt(String(x.games || '').replace(/\D/g, ''), 10) || 0 })).filter((x) => x.a && x.b);
+      const r = rows.length ? { ok: true, tier: t, duo: d, patch: (res && res.patch) || '', rows, url: res.url } : { ok: false, error: 'tableau de dpm.lol vide ou pas encore chargé' };
+      if (r.ok) duoCache.set(key, { at: Date.now(), r });
+      return r;
+    } catch (err) { return { ok: false, error: String((err && err.message) || err) }; }
+    finally { try { win.destroy(); } catch (e2) { /* */ } }
+  };
+  const p = duoQueue.then(run, run); duoQueue = p.catch(() => {});
+  return p;
 });
 ipcMain.handle('otp', async () => {
   const [d, dd] = await Promise.all([remoteJson(OTP_URL, 'otp.json'), otpDragon()]);
