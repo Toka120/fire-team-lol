@@ -2912,3 +2912,7 @@ html[data-uxbg] .set-left{background:color-mix(in srgb,var(--panel) 80%,transpar
 .cb.hand.on{background:color-mix(in srgb,var(--fire1) 25%,var(--panel2));box-shadow:0 0 0 2px var(--fire1)}
 .vt-st.hand{background:rgba(245,165,36,.9);color:#1a1200}
 .fo-new>button,.fo-new .row,.fo-staff>button{align-self:flex-start;width:auto}
+/* Fond animé des thèmes : derrière l'application, au-dessus de l'image de fond */
+#fire-fx{position:fixed;inset:0;z-index:0;pointer-events:none}
+body>section,body>#tip{position:relative;z-index:1}
+#fire-bgv{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;pointer-events:none;filter:blur(var(--ux-blur,0px));transform:scale(1.04)}

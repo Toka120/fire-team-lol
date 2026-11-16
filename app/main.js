@@ -955,6 +955,24 @@ ipcMain.handle('ann:lus', (e, slugs) => coach.annonceLus(slugs));
 ipcMain.handle('staff:save', (e, note, who) => coach.staffNoteSave(note, who));
 ipcMain.handle('chat:delete', (e, id, who) => coach.chatDelete(id, who));
 ipcMain.handle('salons:save', (e, d) => coach.salonsSave(d || {}));
+// Fond d'écran vidéo : le fichier choisi par le joueur est copié dans le dossier de FIRE (rien n'est envoyé en ligne).
+const bgVidDir = () => app.getPath('userData');
+const bgVidFile = () => { try { const f = fs.readdirSync(bgVidDir()).find((x) => /^fond-video\.(mp4|webm|mov|m4v)$/i.test(x)); return f ? path.join(bgVidDir(), f) : null; } catch (e) { return null; } };
+ipcMain.handle('bgvid:get', () => { const f = bgVidFile(); return f ? require('url').pathToFileURL(f).href + '?v=' + Math.round(fs.statSync(f).mtimeMs) : null; });
+ipcMain.handle('bgvid:set', (e, data, ext) => {
+  ext = String(ext || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!['mp4', 'webm', 'mov', 'm4v'].includes(ext)) return { ok: false, error: 'format non pris en charge (MP4 ou WebM)' };
+  const buf = Buffer.from(data || []);
+  if (!buf.length) return { ok: false, error: 'fichier vide' };
+  if (buf.length > 500 * 1024 * 1024) return { ok: false, error: 'vidéo trop lourde (500 Mo au plus)' };
+  try {
+    const old = bgVidFile(); if (old) fs.unlinkSync(old);
+    const f = path.join(bgVidDir(), 'fond-video.' + ext);
+    fs.writeFileSync(f, buf);
+    return { ok: true, url: require('url').pathToFileURL(f).href + '?v=' + Date.now() };
+  } catch (err) { return { ok: false, error: String(err.message || err) }; }
+});
+ipcMain.handle('bgvid:clear', () => { const f = bgVidFile(); try { if (f) fs.unlinkSync(f); } catch (e) { /* */ } return true; });
 ipcMain.handle('forum:get', (e, id) => coach.forumGet(String(id || '')));
 ipcMain.handle('forum:op', (e, id, op) => coach.forumOp(String(id || ''), op && typeof op === 'object' ? op : {}));
 ipcMain.handle('chat:send', (e, m) => coach.chatSend(m || {}));

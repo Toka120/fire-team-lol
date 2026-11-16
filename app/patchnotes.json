@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.139",
+   "date": "2026-11-16",
+   "titre": "Fonds animés",
+   "items": [
+    [
+     "new",
+     "Les thèmes « ambiance » sont animés : pétales de cerisier qui tombent en tournoyant et branche en fleurs (Sakura), neige (Freljord), bulles et rayons de lumière (Abysses), pluie de code (Matrix), grille qui défile et soleil rétro (Synthwave), braises (Bagarre), étincelles hextech, particules chimiques (Arcane), poussière aspirée par le Néant (Void), orbes lumineux (Néon, RGB), flux de données (Futuriste) et vapeur (Café)."
+    ],
+    [
+     "new",
+     "Paramètres › Apparence › Thème : « Animations du fond » (Aucune, Légères, Normales, Beaucoup). Elles se mettent en pause pendant tes parties et quand FIRE est caché, et s’arrêtent avec « Réduire les animations »."
+    ],
+    [
+     "new",
+     "Fond d’écran « 🎬 Ma vidéo » : choisis une vidéo de ton PC (MP4 ou WebM, un live wallpaper par exemple). Elle tourne en boucle, sans le son, derrière FIRE, avec le flou et l’assombrissement réglables, et se met en pause pendant tes parties."
+    ]
+   ]
+  },
+  {
    "v": "1.10.138",
    "date": "2026-11-16",
    "titre": "Salons comme sur Discord, boîte à idées",

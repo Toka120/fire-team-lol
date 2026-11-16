@@ -30,6 +30,7 @@
     const th = THEMES.find((x) => x[0] === t);
     if (!t || t === 'fire' || !th) el.removeAttribute('data-theme'); else el.setAttribute('data-theme', t);
     if (th && th[6]) el.setAttribute('data-skin', '1'); else el.removeAttribute('data-skin');
+    try { applyFx(); } catch (e) { /* réglages pas encore chargés : appliqué juste après */ }
   };
   applyTheme(load('fire.theme', 'fire'));
   // Polices d'écriture et taille du texte choisies dans Paramètres (vides = celles du thème).
@@ -74,11 +75,39 @@
     let url = '';
     if (b.type === 'skin' && /^[A-Za-z]+$/.test(b.c || '')) url = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${b.c}_${Number(b.n) || 0}.jpg`;
     if (b.type === 'image') url = load('fire.uxbgimg', '') || '';
+    // Ma vidéo : lue en boucle, sans le son, derrière FIRE (fichier copié sur ce PC).
+    const vid = b.type === 'video' && load('fire.uxbgvid', '');
+    let ve = document.getElementById('fire-bgv');
+    if (vid) {
+      if (!ve) { ve = document.createElement('video'); ve.id = 'fire-bgv'; ve.muted = true; ve.loop = true; ve.autoplay = true; ve.playsInline = true; ve.setAttribute('aria-hidden', 'true'); document.body.prepend(ve); }
+      if (ve.getAttribute('src') !== vid) { ve.src = vid; ve.play().catch(() => {}); }
+      el.style.setProperty('--ux-blur', `${Math.max(0, Math.min(30, Number(b.blur) || 0))}px`); el.style.setProperty('--ux-dim', String(Math.max(0, Math.min(95, Number(b.dim) || 0)) / 100));
+      el.style.setProperty('--ux-bg', 'none'); el.setAttribute('data-uxbg', '1'); el.setAttribute('data-uxvid', '1');
+      return;
+    }
+    if (ve) { ve.pause(); ve.remove(); }
+    el.removeAttribute('data-uxvid');
     if (url) { el.style.setProperty('--ux-bg', `url("${url}")`); el.style.setProperty('--ux-blur', `${Math.max(0, Math.min(30, Number(b.blur) || 0))}px`); el.style.setProperty('--ux-dim', String(Math.max(0, Math.min(95, Number(b.dim) || 0)) / 100)); el.setAttribute('data-uxbg', '1'); }
     else { el.style.removeProperty('--ux-bg'); el.removeAttribute('data-uxbg'); }
   }
-  function setUx(patch) { UX = { ...UX, ...patch }; save('fire.ux', UX); applyFonts(); applyUx(); statusPush(); }
+  // Fond animé du thème (pétales, neige, bulles…) : coupé avec « Réduire les animations » ou « Animations du fond : aucune ».
+  const FX_LV = { off: 0, leger: 0.5, normal: 1, fort: 1.6 };
+  function applyFx() {
+    if (!window.FireFX) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const lv = UX.calm || reduce ? 0 : (FX_LV[UX.fx || 'normal'] ?? 1);
+    window.FireFX.set(load('fire.theme', 'fire'), lv);
+  }
+  function setUx(patch) { UX = { ...UX, ...patch }; save('fire.ux', UX); applyFonts(); applyUx(); applyFx(); statusPush(); }
   applyUx();
+  setTimeout(applyFx, 0);
+  // Pendant une partie, le fond animé se met en pause (rien ne doit prendre de la puissance au jeu).
+  setInterval(() => {
+    const inGame = typeof LIVE !== 'undefined' && !!LIVE.mine;
+    if (window.FireFX) window.FireFX.pause(inGame);
+    const v = document.getElementById('fire-bgv');
+    if (v) { if (inGame || document.hidden) { if (!v.paused) v.pause(); } else if (v.paused) v.play().catch(() => {}); }
+  }, 4000);
   // Notifications Windows : coupées pendant une partie (si choisi), aux heures calmes et en statut « Occupé » ; son au choix.
   const inQuiet = () => {
     if (!UX.quiet.on) return false;
@@ -966,15 +995,35 @@
       };
       img.src = URL.createObjectURL(f);
     } });
+    // Ma vidéo (MP4 ou WebM, un « live wallpaper » par exemple) : copiée dans le dossier de FIRE sur ce PC.
+    const vupload = h('input', { type: 'file', accept: 'video/mp4,video/webm,video/quicktime,.m4v', hidden: true, onchange: async (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f || !window.fire.bgVideo) return;
+      if (f.size > 500 * 1024 * 1024) { S.vidErr = 'Vidéo trop lourde (500 Mo au plus).'; renderSettings(); return; }
+      S.vidBusy = true; S.vidErr = ''; renderSettings();
+      const ext = (String(f.name).match(/\.([a-z0-9]+)$/i) || [])[1] || 'mp4';
+      const r = await window.fire.bgVideo.set(await f.arrayBuffer(), ext).catch((err) => ({ ok: false, error: String(err) }));
+      S.vidBusy = false;
+      if (r && r.ok) { save('fire.uxbgvid', r.url); setBg({ type: 'video', dim: Math.min(Number(UX.bg.dim) || 45, 60), blur: 0 }); }
+      else { S.vidErr = (r && r.error) || 'vidéo impossible à copier'; renderSettings(); }
+    } });
     const PRESET = ['#f5a524', '#ff5e3a', '#ff2bd6', '#9d5cff', '#579dff', '#00e5ff', '#2ee6c5', '#39c58a', '#ffd23d', '#ff4d6d'];
+    const FXS = { sakura: 'pétales de cerisier qui tombent', givre: 'neige', ocean: 'bulles et rayons de lumière', matrix: 'pluie de code', synthwave: 'grille qui défile et soleil rétro', bagarre: 'braises', hextech: 'étincelles hextech', arcane: 'particules chimiques', violet: 'poussière aspirée par le Néant', neon: 'orbes lumineux', rgb: 'orbes arc-en-ciel', futur: 'balayage et flux de données', cafe: 'vapeur et poussière dorée' };
+    const thNow = load('fire.theme', 'fire');
+    const fxCard = uxCard('✨ Animations du fond', FXS[thNow] ? `Avec ton thème : ${FXS[thNow]}. Elles se mettent en pause pendant tes parties et quand FIRE est caché.` : 'Choisis un thème « ambiance » (Sakura, Freljord, Matrix…) pour avoir un fond animé.',
+      uxSeg([['off', 'Aucune'], ['leger', 'Légères'], ['normal', 'Normales'], ['fort', 'Beaucoup']], UX.fx || 'normal', (v) => { setUx({ fx: v }); renderSettings(); }),
+      UX.calm ? h('p', { class: 'muted small' }, '« Réduire les animations » est activé (Accessibilité) : le fond reste immobile.') : null);
     return [
-      themeCard,
+      themeCard, fxCard,
       uxCard('🖌️ Couleur d’accent', 'Ta couleur pour les boutons, le menu et les liens, par-dessus le thème.',
         h('div', { class: 'row ux-acc' }, PRESET.map((c) => h('button', { class: 'acc-sw' + (UX.accent === c ? ' on' : ''), style: `background:${c}`, title: c, onclick: () => { setUx({ accent: c }); renderSettings(); } })),
           h('label', { class: 'acc-custom', title: 'Couleur personnalisée' }, '🎨', h('input', { type: 'color', value: UX.accent || '#f5a524', onchange: (e) => { setUx({ accent: e.target.value }); renderSettings(); } })),
           UX.accent ? h('button', { class: 'btn-ghost', onclick: () => { setUx({ accent: '' }); renderSettings(); } }, 'Couleur du thème') : null)),
       uxCard('🖼️ Fond d’écran', 'Un skin de LoL ou ta propre image derrière toute l’application.',
-        uxSeg([['none', 'Aucun'], ['skin', '🎨 Un skin de LoL'], ['image', '📁 Mon image']], b.type, (v) => { if (v === 'image' && !load('fire.uxbgimg', '')) { upload.click(); return; } setBg({ type: v }); }),
+        uxSeg([['none', 'Aucun'], ['skin', '🎨 Un skin de LoL'], ['image', '📁 Mon image']].concat(window.fire.bgVideo ? [['video', '🎬 Ma vidéo']] : []), b.type, (v) => { if (v === 'image' && !load('fire.uxbgimg', '')) { upload.click(); return; } if (v === 'video' && !load('fire.uxbgvid', '')) { vupload.click(); return; } setBg({ type: v }); }),
+        b.type === 'video' ? h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => vupload.click() }, '🎬 Changer de vidéo'), h('span', { class: 'muted small' }, 'Lue en boucle, sans le son, en pause pendant tes parties.')) : null,
+        S.vidBusy ? h('p', { class: 'muted small' }, '⏳ Copie de la vidéo…') : S.vidErr ? h('p', { class: 'bad small' }, '⚠ ' + S.vidErr) : null,
+        vupload,
         b.type === 'skin' ? skinPicker({ c: b.c, n: b.n }, (x) => setBg({ type: 'skin', c: x ? x.c : '', n: x ? x.n : 0 })) : null,
         b.type === 'image' ? h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => upload.click() }, '📁 Changer d’image')) : null,
         upload,
@@ -1167,7 +1216,7 @@
     // Comme Discord : plein écran, groupes et sous-menus à gauche, la page à droite, « Échap » pour fermer.
     const tab = SET_TABS.some(([k]) => k === S.setTab) ? S.setTab : 'compte';
     const [pWho, pStatus, pCard] = profilCards();
-    const [aTheme, aAccent, aBg, , aDisp] = appearanceCards(C.theme);
+    const [aTheme, aFx, aAccent, aBg, , aDisp] = appearanceCards(C.theme);
     const [cStream, cDm, cLive] = privacyCards();
     const [nDnd, nSon] = notifExtraCards();
     const sub = SET_SUB[tab] ? (SET_SUB[tab].some(([k]) => k === S.setSub) ? S.setSub : SET_SUB[tab][0][0]) : null;
@@ -1175,7 +1224,7 @@
       compte: () => [pWho, adminCard(), C.access],
       profil: () => ({ statut: [pStatus], carte: [pCard] }[sub]),
       confid: () => [cDm, cLive],
-      apparence: () => ({ theme: [aTheme], couleurs: [aAccent, aBg], affichage: [aDisp] }[sub]),
+      apparence: () => ({ theme: [aTheme, aFx], couleurs: [aAccent, aBg], affichage: [aDisp] }[sub]),
       texte: () => [fontCard()],
       access: () => accessCards(),
       voix: () => vocalCards(),
