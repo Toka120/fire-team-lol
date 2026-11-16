@@ -52,6 +52,7 @@
     astro: ['Astro', '<path d="M25 3 L31 17 L46 18 L34 28 L38 44 L25 35 L12 44 L16 28 L4 18 L19 17Z" fill="#ffd23d" stroke="#ffb02e" stroke-width="1.5" stroke-linejoin="round"/>'],
     drako: ['Drako', '<path d="M12 14 L8 4 L18 11 M38 14 L42 4 L32 11" fill="#7c5cff"/><ellipse cx="25" cy="28" rx="17" ry="16" fill="#9d7bff"/><path d="M6 26 L1 20 L6 31 Z M44 26 L49 20 L44 31Z" fill="#c4b0ff"/><ellipse cx="25" cy="38" rx="8" ry="4" fill="#c4b0ff"/>'],
     briar: ['Briar (chibi)', null, 'img:../assets/pets/briar.webp'],
+    orbes: ['Mage aux orbes (chibi)', null, 'img:../assets/pets/orbes.webp'],
     bulle: ['Bulle', '<circle cx="25" cy="26" r="19" fill="#7fe8ff" opacity=".85"/><circle cx="25" cy="26" r="19" fill="none" stroke="#fff" stroke-width="1.5" opacity=".7"/><ellipse cx="17" cy="15" rx="5" ry="3" fill="#fff" opacity=".7" transform="rotate(-30 17 15)"/>'],
   };
   // Boutique : effets de profil « sombres » dessinés en SVG (yeux, sourire, chauves-souris, ombres, toiles)

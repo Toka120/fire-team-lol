@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.171",
+   "date": "2026-11-16",
+   "titre": "Nouveau compagnon animé : la mage aux orbes",
+   "items": [
+    [
+     "new",
+     "Boutique › Compagnons : « Mage aux orbes (chibi) », animée. Elle respire, ses cheveux et sa chaîne d’orbes ondulent, et une lueur parcourt les volutes bleues. Comme Briar, elle vit en bas à droite de l’app et réagit à ce qui se passe dans FIRE."
+    ]
+   ]
+  },
+  {
    "v": "1.10.170",
    "date": "2026-11-16",
    "titre": "Synergies et counters d’un champion, comme sur dpm.lol",
