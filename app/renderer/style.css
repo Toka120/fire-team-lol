@@ -3382,10 +3382,17 @@ html.v2 body:has(#fire-pet) #vtoasts{right:100px}
 /* Ombre : à la lampe torche */
 .jeu-ombre.torch{position:relative}
 .jeu-ombre.torch img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.jeu-ombre.torch .om-dark{filter:brightness(.22) grayscale(.7) blur(3px)}
+.jeu-ombre.torch .om-dark{filter:brightness(var(--ob,.5)) saturate(.45) blur(var(--obl,6px));transform:scale(1.04)}
+.jeu-ombre.torch.lit .om-dark{filter:none;transform:none}
 .jeu-ombre.torch .om-light{-webkit-mask-image:radial-gradient(circle at var(--x,50%) var(--y,40%),#000 calc(var(--r) * .55),transparent var(--r));mask-image:radial-gradient(circle at var(--x,50%) var(--y,40%),#000 calc(var(--r) * .55),transparent var(--r));animation:omTorch 9s ease-in-out infinite;transition:-webkit-mask-image .4s}
 .jeu-ombre.torch.lit .om-light{-webkit-mask-image:none;mask-image:none;animation:none}
 @property --x{syntax:'<percentage>';inherits:true;initial-value:50%}
 @property --y{syntax:'<percentage>';inherits:true;initial-value:40%}
 @keyframes omTorch{0%{--x:30%;--y:25%}25%{--x:70%;--y:40%}50%{--x:45%;--y:70%}75%{--x:25%;--y:50%}100%{--x:30%;--y:25%}}
 html[data-calm] .jeu-ombre.torch .om-light{animation:none}
+
+/* Photo de profil : image dans le rond */
+.vc-av,.vb-p{position:relative}
+.vc-av .av-ph,.vb-p .av-ph{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:1;pointer-events:none}
+.vc-av.has-ph,.vb-p.has-ph{color:transparent!important}
+.vc-av .dk-top{z-index:2}

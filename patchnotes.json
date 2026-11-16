@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.163",
+   "date": "2026-11-16",
+   "titre": "Photo de profil fiable, Ombre plus lisible",
+   "items": [
+    [
+     "fix",
+     "Photo de profil : elle est maintenant affichée comme une vraie image dans le rond de l’avatar (avant, un fond qui pouvait ne pas s’afficher) : rond en haut à droite, menu de profil, carte de profil, vocal, discussion, boutique. Dans Paramètres › Profil, « ✓ Photo enregistrée » confirme qu’elle est bien prise en compte."
+    ],
+    [
+     "fix",
+     "Détente › Ombre : le reste de l’image n’est plus noir. On voit le splash en flou et un peu terne (on devine les formes et les couleurs), et la lampe torche montre une partie nette. Le flou diminue et l’image s’éclaircit un peu à chaque essai raté."
+    ]
+   ]
+  },
+  {
    "v": "1.10.162",
    "date": "2026-11-16",
    "titre": "Ombre à la lampe torche, bouton plein écran des streams",

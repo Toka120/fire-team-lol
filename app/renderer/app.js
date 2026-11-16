@@ -1052,11 +1052,11 @@
       uxCard('🪪 Ta carte de profil', 'Visible par l’équipe quand on clique sur ton nom dans la discussion.',
         h('div', { class: 'fld' }, h('span', null, 'Photo de profil'),
           h('div', { class: 'row ph-row' },
-            h('span', { class: 'vc-av ph-prev' + (UX.photo ? ' has-ph' : ''), style: UX.photo ? `background-image:url('${UX.photo}')` : null }, me ? ini(me) : '?'),
+            h('span', { class: 'vc-av ph-prev' + (UX.photo ? ' has-ph' : '') }, me ? ini(me) : '?', UX.photo ? h('img', { class: 'av-ph', src: UX.photo, alt: '' }) : null),
             h('label', { class: 'btn-fire small-btn ph-pick' }, UX.photo ? '🖼️ Changer la photo' : '🖼️ Choisir une photo',
               h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', hidden: true, onchange: async (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const d = await photoShrink(f); if (!d) { vocalToast('Image illisible, essaie un autre fichier.'); return; } setUx({ photo: d }); ST_CACHE.at = 0; actLog('profil', 'Nouvelle photo de profil'); renderSettings(); renderNav(); } })),
             UX.photo ? h('button', { class: 'btn-ghost', onclick: () => { setUx({ photo: '' }); ST_CACHE.at = 0; renderSettings(); renderNav(); } }, 'Retirer') : null),
-          h('small', { class: 'muted' }, 'Elle remplace tes initiales partout : discussion, vocal, carte de profil. Elle est recadrée en carré au centre et réduite.')),
+          h('small', { class: UX.photo ? 'good' : 'muted' }, UX.photo ? `✓ Photo enregistrée (${Math.round(UX.photo.length * 0.75 / 1024)} Ko) : elle remplace tes initiales partout (rond en haut à droite, discussion, vocal, carte de profil).` : 'Elle remplace tes initiales partout : discussion, vocal, carte de profil. Elle est recadrée en carré au centre et réduite.')),
         h('label', { class: 'fld' }, h('span', null, 'Ton nom dans FIRE (discussion, vocal, profil)'),
           h('div', { class: 'row' },
             h('input', { class: 'inp ux-nom', maxlength: 20, value: UX.nom || '', placeholder: me ? baseName(me) : 'Ton nom', onchange: (e) => {
@@ -1226,7 +1226,7 @@
     const name = (fx, font, grad) => h('span', { class: 'nm' + (grad ? ' nm-grad' : '') + (fx ? ' nm-' + fx : ''), style: (grad ? `--n1:${grad[0]};--n2:${grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (font && LOOK_FONT[font] ? `font-family:${LOOK_FONT[font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
     // L'aperçu : la carte de profil, une ligne de discussion, la liste des membres et la case du vocal, avec le look donné.
     const lname = (X) => h('span', { class: 'nm' + (X.grad ? ' nm-grad' : '') + (X.fx ? ' nm-' + X.fx : ''), style: (X.grad ? `--n1:${X.grad[0]};--n2:${X.grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (X.font && LOOK_FONT[X.font] ? `font-family:${LOOK_FONT[X.font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
-    const lav = (X, cls) => h('span', { class: 'vc-av ' + (cls || '') + (X.deco ? ' dk dk-' + X.deco : '') + (UX.photo ? ' has-ph' : ''), style: UX.photo ? `background-image:url('${UX.photo}')` : null }, ini(me), decoExtra(X.deco));
+    const lav = (X, cls) => h('span', { class: 'vc-av ' + (cls || '') + (X.deco ? ' dk dk-' + X.deco : '') + (UX.photo ? ' has-ph' : '') }, ini(me), UX.photo ? h('img', { class: 'av-ph', src: UX.photo, alt: '' }) : null, decoExtra(X.deco));
     const previewOf = (X, trying) => h('div', { class: 'shop-preview' + (trying ? ' trying' : '') },
       h('div', { class: 'prof-card pf-mini' + (X.card ? ' pf-themed' : ''), style: X.card ? `--pc1:${X.card[0]};--pc2:${X.card[1]}` : '' },
         X.pfx ? pfxEl(X.pfx) : null,
@@ -5166,7 +5166,7 @@
     const live = v.videos.length;
     bar.replaceChildren(
       h('button', { class: 'vb-go', title: 'Ouvrir le salon vocal', onclick: () => go('vocal') }, '🎙️ ', h('b', null, 'Vocal'), ' · ', String(ppl.length), live ? h('span', { class: 'vb-live' }, ' · 🔴 ' + live + ' en direct') : null),
-      h('span', { class: 'vb-ppl' }, ppl.map((s) => h('span', { class: 'vb-p' + (photoOf(s) ? ' has-ph' : ''), style: phStyle(s), 'data-vslug': s, title: vocalName(s) }, ini(s)))),
+      h('span', { class: 'vb-ppl' }, ppl.map((s) => h('span', { class: 'vb-p' + (photoOf(s) ? ' has-ph' : ''), 'data-vslug': s, title: vocalName(s) }, ini(s), phImg(photoOf(s))))),
       h('button', { class: 'vb-btn' + (v.mute ? ' off' : ''), title: (v.mute ? 'Réactiver le micro' : 'Couper le micro') + ` (${keyTxt(vkeys().mute)})`, onclick: () => FV().setMute(!v.mute) }, v.mute ? '🔇' : '🎤'),
       h('button', { class: 'vb-btn' + (v.deaf ? ' off' : ''), title: (v.deaf ? 'Réactiver le son' : 'Couper le son') + ` (${keyTxt(vkeys().deaf)})`, onclick: () => FV().setDeaf(!v.deaf) }, v.deaf ? '🔕' : '🎧'),
       h('button', { class: 'vb-btn leave', title: 'Quitter le salon', onclick: () => FV().leave() }, '📞'));
@@ -8947,7 +8947,7 @@
       const src = `${DD}/cdn/img/champion/loading/${t.id}_${r.skin ? r.skin.num : 0}.jpg`;
       const onerr = (e) => { if (r.skin && r.skin.num) { r.skin = { num: 0 }; e.target.src = `${DD}/cdn/img/champion/loading/${t.id}_0.jpg`; } };
       clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'Qui sort de l’ombre ?'),
-        h('div', { class: 'jeu-ombre torch' + (r.done ? ' lit' : ''), style: `--r:${R}px` },
+        h('div', { class: 'jeu-ombre torch' + (r.done ? ' lit' : ''), style: `--r:${R}px;--ob:${Math.min(0.8, 0.5 + wrong * 0.03).toFixed(2)};--obl:${Math.max(1.5, 6 - wrong * 0.4).toFixed(1)}px` },
           h('img', { class: 'om-dark', src, alt: '', onerror: onerr }),
           h('img', { class: 'om-light', src, alt: '', onerror: onerr })),
         h('p', { class: 'muted small' }, r.done ? (r.skin && r.skin.name ? r.skin.name : t.name) : R < 400 ? 'La lumière grandit à chaque essai raté.' : 'Presque en plein jour !'));
@@ -9989,10 +9989,13 @@
   const photoOf = (slug) => { const x = statusOf(slug).photo; return typeof x === 'string' && /^data:image\/(webp|jpeg|png);base64,/.test(x) ? x : ''; };
   const phStyle = (slug) => { const ph = slug ? photoOf(slug) : ''; return ph ? `background-image:url('${ph}')` : null; };
   // Petit avatar rond (listes, vocal) : la photo si le joueur en a mis une, sinon ses initiales.
-  const miniAv = (slug, cls) => h('span', { class: 'vc-av ' + (cls || 'mini') + (photoOf(slug) ? ' has-ph' : ''), style: phStyle(slug), title: vocalName(slug) }, ini(slug));
+  // La photo est une vraie image posée dans le rond (plus fiable qu'un fond CSS), les initiales restent dessous.
+  const phImg = (ph) => (ph ? h('img', { class: 'av-ph', src: ph, alt: '', draggable: 'false' }) : null);
+  const miniAv = (slug, cls) => { const ph = photoOf(slug); return h('span', { class: 'vc-av ' + (cls || 'mini') + (ph ? ' has-ph' : ''), title: vocalName(slug) }, ini(slug), phImg(ph)); };
   function avatarEl(slug, cls) {
     const d = decoOf(slug);
-    return h('span', { class: 'vc-av ' + (cls || '') + (d ? ' dk dk-' + d : '') + (photoOf(slug) ? ' has-ph' : ''), style: phStyle(slug), title: vocalName(slug) }, ini(slug), decoExtra(d));
+    const ph = photoOf(slug);
+    return h('span', { class: 'vc-av ' + (cls || '') + (d ? ' dk dk-' + d : '') + (ph ? ' has-ph' : ''), title: vocalName(slug) }, ini(slug), phImg(ph), decoExtra(d));
   }
   function chatWhoIco(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 '; const p = S.players.find((x) => x.slug === slug); return p ? roleOf(p).ico + ' ' : ''; }
   function chatWho(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 ' + vocalName(slug); const p = S.players.find((x) => x.slug === slug); return (p ? roleOf(p).ico + ' ' : '') + vocalName(slug); }
