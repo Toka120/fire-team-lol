@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.152",
+   "date": "2026-11-16",
+   "titre": "Nouvelle vidéo de la boutique, spectateur corrigé",
+   "items": [
+    [
+     "new",
+     "🎬 Nouvelle présentation de la Boutique en vidéo (avec le logo FIRE et de vrais objets de la boutique). Elle s’affiche une fois pour tout le monde, avec le son (bouton 🔊 pour le couper), « Passer » ou Échap pour la fermer, et à la fin « Aller à la boutique », « Plus tard » ou « Revoir »."
+    ],
+    [
+     "fix",
+     "Parties en direct : le bouton « Regarder … en spectateur » vise le joueur de FIRE vraiment présent dans la partie (par son nom en jeu), et plus le pseudo FIRE de celui qui envoie la partie. FIRE retrouve aussi son identifiant Riot pour lancer le mode spectateur."
+    ],
+    [
+     "fix",
+     "Si Riot refuse le spectateur (« RBAC: access denied »), FIRE l’explique en français : la partie doit avoir un peu plus de 3 minutes, et si ça bloque encore, il faut avoir le joueur en ami dans le client LoL."
+    ]
+   ]
+  },
+  {
    "v": "1.10.151",
    "date": "2026-11-16",
    "titre": "Les mises à jour ne ferment plus FIRE",

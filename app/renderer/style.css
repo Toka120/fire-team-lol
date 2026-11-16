@@ -3254,3 +3254,13 @@ html[data-calm] #fire-pet *{animation:none!important}
 body:has(#promo) #fire-pet,body:has(#ann-modal) #fire-pet{display:none}
 html.chat-page #fire-pet{bottom:96px}
 html.v2 body:has(#fire-pet) #vtoasts{right:100px}
+
+/* Présentation vidéo de la boutique */
+.promo-video{background:#000}
+.promo-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#07060f}
+.promo-mute{position:absolute;top:18px;right:118px;z-index:3;width:38px;height:36px;border-radius:999px;border:1px solid rgb(255 255 255 / 25%);background:rgb(0 0 0 / 30%);color:#fff;font-size:16px;cursor:pointer}
+.promo-video .promo-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgb(255 255 255 / 10%);z-index:3}
+.promo-video .promo-bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#ffb02e,#ff5e3a,#ff2bd6);animation:none}
+.promo-vend{position:absolute;left:50%;bottom:9%;z-index:3;display:flex;gap:12px;align-items:center;transform:translate(-50%,20px);opacity:0;pointer-events:none;transition:opacity .35s,transform .35s}
+.promo-video.ended .promo-vend{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.promo-video.ended .promo-vid{filter:brightness(.55) blur(2px);transition:filter .5s}

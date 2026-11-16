@@ -1046,7 +1046,30 @@
     ];
   }
   // ----- Présentation de la boutique (une seule fois, à l'ouverture) : une petite pub animée, puis « Aller à la boutique » -----
+  // Présentation de la boutique : la vidéo (assets/boutique.mp4). Si elle ne peut pas être lue, l'ancienne animation prend le relais.
   function promoShop(force) {
+    if (!force && (load('fire.promo.boutique3', false) || document.getElementById('promo') || document.getElementById('ann-modal'))) return;
+    save('fire.promo.boutique3', true); save('fire.promo.boutique2', true);
+    let gone = false;
+    const vid = h('video', { class: 'promo-vid', src: '../assets/boutique.mp4', autoplay: '', playsinline: '', preload: 'auto' });
+    const close = (goShop) => { if (gone) return; gone = true; try { vid.pause(); } catch (e) { /* */ } ov.classList.add('out'); setTimeout(() => ov.remove(), 450); document.removeEventListener('keydown', key, true); if (goShop) go('boutique'); };
+    const key = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(false); } };
+    const mute = h('button', { class: 'promo-mute', title: 'Couper / remettre le son', onclick: () => { vid.muted = !vid.muted; mute.textContent = vid.muted ? '🔇' : '🔊'; } }, '🔊');
+    const bar = h('i');
+    const endBox = h('div', { class: 'promo-vend' },
+      h('button', { class: 'promo-go', onclick: () => close(true) }, '🛍️ Aller à la boutique'),
+      h('button', { class: 'promo-later', onclick: () => close(false) }, 'Plus tard'),
+      h('button', { class: 'promo-later', onclick: () => { vid.currentTime = 0; vid.play().catch(() => {}); ov.classList.remove('ended'); } }, '↺ Revoir'));
+    const ov = h('div', { id: 'promo', class: 'promo promo-video', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'La Boutique FIRE' },
+      vid, h('button', { class: 'promo-skip', onclick: () => close(false) }, 'Passer ✕'), mute, endBox, h('div', { class: 'promo-bar' }, bar));
+    vid.addEventListener('timeupdate', () => { if (vid.duration) bar.style.width = (vid.currentTime / vid.duration * 100).toFixed(1) + '%'; });
+    vid.addEventListener('ended', () => ov.classList.add('ended'));
+    vid.addEventListener('error', () => { if (gone) return; gone = true; ov.remove(); document.removeEventListener('keydown', key, true); promoShopAnim(true); });
+    document.addEventListener('keydown', key, true);
+    document.body.append(ov);
+    vid.play().catch(() => { vid.muted = true; mute.textContent = '🔇'; vid.play().catch(() => {}); });
+  }
+  function promoShopAnim(force) {
     if (!force && (load('fire.promo.boutique2', false) || document.getElementById('promo') || document.getElementById('ann-modal'))) return;
     const me = vocalMe();
     const name = me ? vocalName(me) : 'Toi';
@@ -1118,9 +1141,9 @@
   window.FIRE_PROMO = () => promoShop(true); // pour revoir la présentation
   // Au lancement : une fois que FIRE est prêt, devant toi, et sans annonce ni partie en cours.
   function promoLater() {
-    if (load('fire.promo.boutique2', false)) return;
+    if (load('fire.promo.boutique3', false)) return;
     const tryShow = () => {
-      if (load('fire.promo.boutique2', false)) return;
+      if (load('fire.promo.boutique3', false)) return;
       const busy = document.getElementById('ann-modal') || document.hidden || !document.hasFocus() || (typeof LIVE !== 'undefined' && LIVE.mine) || !vocalMe() || document.querySelector('.who-pop, .lock:not([hidden])');
       if (busy) { setTimeout(tryShow, 5000); return; }
       promoShop();
@@ -3615,6 +3638,19 @@
   // Tous les noms Riot des joueurs de FIRE (compte actuel, anciens comptes, comptes Flex), en minuscules, avec et sans le #tag.
   function namesOf(p) { const l = [p.pseudo].concat((p.comptes || []).map((c) => c.pseudo), (p.comptes_flex || []).map((c) => c.pseudo)).filter(Boolean).map((x) => String(x).toLowerCase()); return l.concat(l.map((x) => x.split('#')[0])); }
   function ourNames() { return new Set(S.players.flatMap(namesOf)); }
+  function specTargets(g) {
+    const ours = ourNames();
+    const meP = S.players.find((p) => p.slug === vocalMe());
+    const mine = new Set(meP ? namesOf(meP) : []);
+    const isMine = (n) => mine.has(n.toLowerCase()) || mine.has(n.split('#')[0].toLowerCase());
+    const out = [];
+    for (const p of g.players || []) {
+      const n = String(p.n || ''); if (!n || isMine(n)) continue;
+      const sameAsSender = g.me && n.split('#')[0].toLowerCase() === String(g.me).split('#')[0].toLowerCase();
+      if (ours.has(n.toLowerCase()) || ours.has(n.split('#')[0].toLowerCase()) || sameAsSender) out.push({ n, puuid: sameAsSender ? g.puuid || '' : '' });
+    }
+    return out.slice(0, 5);
+  }
   function specView(g, slugs) {
     const v = (S.champList && S.champList.version) || '';
     const ours = ourNames();
@@ -3646,16 +3682,14 @@
     const vs = FV().state();
     const sharing = slugs.filter((x) => (vs.members || []).some((m) => m.slug === x && m.remote && m.remote.screen));
     const me = vocalMe();
-    const watchers = slugs.filter((x) => x !== me);
     const SPX = (LIVE.spx = LIVE.spx || {});
     const actions = h('div', { class: 'row sp-act' },
-      watchers.map((x) => { const pl = S.players.find((p) => p.slug === x); const cand = pl ? new Set(namesOf(pl)) : new Set();
-        const inGame = g.players.find((q) => cand.has(q.n.toLowerCase()) || cand.has(q.n.split('#')[0].toLowerCase()));
-        const nm = String(inGame ? inGame.n : (pl && pl.pseudo) || vocalName(x)).split('#')[0];
-        return h('button', { class: 'btn-fire small-btn', disabled: SPX[x] === '…' ? true : null, title: 'Ouvre le mode spectateur de League of Legends (le client LoL doit être ouvert). Riot impose 3 minutes de délai.', onclick: async () => {
-          SPX[x] = '…'; liveRefresh(true);
-          const r = await window.fire.live.spectate({ puuid: g.puuid || '', name: (g.players.find((p) => p.n.split('#')[0].toLowerCase() === nm.toLowerCase()) || {}).n || nm }).catch((e) => ({ ok: false, error: String(e) }));
-          SPX[x] = r && r.ok ? '✓ Le mode spectateur de LoL se lance…' : '⚠ ' + ((r && r.error) || 'impossible');
+      // Qui regarder : les joueurs de FIRE vraiment présents dans la partie (par leur nom en jeu), jamais le pseudo FIRE de celui qui envoie.
+      specTargets(g).map((tg) => { const nm = tg.n.split('#')[0]; const key = 'n:' + tg.n.toLowerCase();
+        return h('button', { class: 'btn-fire small-btn', disabled: SPX[key] === '…' ? true : null, title: 'Ouvre le mode spectateur de League of Legends (le client LoL doit être ouvert). Riot impose 3 minutes de délai.', onclick: async () => {
+          SPX[key] = '…'; liveRefresh(true);
+          const r = await window.fire.live.spectate({ puuid: tg.puuid || '', name: tg.n }).catch((e) => ({ ok: false, error: String(e) }));
+          SPX[key] = r && r.ok ? '✓ Le mode spectateur de LoL se lance…' : '⚠ ' + ((r && r.error) || 'impossible');
           liveRefresh(true);
         } }, `👁 Regarder ${nm} en spectateur`); }),
       sharing.map((x) => h('button', { class: 'btn-ghost', onclick: () => { go('vocal'); VX.focus = x + ':screen'; renderVocal(); } }, `📺 Voir l’écran de ${vocalName(x)}`)),

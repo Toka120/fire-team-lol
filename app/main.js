@@ -563,7 +563,9 @@ ipcMain.handle('live:spectate', async (e, who) => {
     if (liveLast) return { ok: false, error: 'tu es déjà en game' };
     const me = await lcuConnect();
     if (!me) return { ok: false, error: 'ouvre le client League of Legends (connecté) puis réessaie' };
-    const puuid = String((who && who.puuid) || '').slice(0, 100), name = String((who && who.name) || '').slice(0, 60);
+    let puuid = String((who && who.puuid) || '').slice(0, 100); const name = String((who && who.name) || '').slice(0, 60);
+    // Pas de puuid : on le demande au client LoL à partir du Riot ID (nom#tag).
+    if (!puuid && name.includes('#')) { try { const [gn, tl] = name.split('#'); const a = await lcuReq('GET', `/lol-summoner/v1/alias/lookup?gameName=${encodeURIComponent(gn)}&tagLine=${encodeURIComponent(tl)}`); if (a.status === 200 && a.data && a.data.puuid) puuid = String(a.data.puuid).slice(0, 100); } catch (err) { /* facultatif */ } }
     if (!puuid && !name) return { ok: false, error: 'partie introuvable' };
     // Le client attend une LISTE de noms (« summonerOrTeamNames ») : le Riot ID complet, puis le pseudo seul.
     const tries = [
@@ -576,6 +578,7 @@ ipcMain.handle('live:spectate', async (e, who) => {
     last = first || last;
     const msg = last && last.data && (last.data.message || last.data.errorCode);
     if (/not.*spectat|observ|GAME_NOT_FOUND|not found/i.test(String(msg || ''))) return { ok: false, error: 'cette partie ne peut pas être regardée (partie personnalisée, entraînement, ou moins de 3 minutes de jeu)' };
+    if (/RBAC|access denied|403/i.test(String(msg || '')) || (last && last.status === 403)) return { ok: false, error: `Riot n'ouvre pas encore cette partie en spectateur : réessaie quand elle aura un peu plus de 3 minutes. Si ça bloque encore, ajoute ${name.split('#')[0]} en ami dans le client LoL (le mode spectateur passe par la liste d'amis).` };
     return { ok: false, error: msg ? String(msg).slice(0, 160) : 'le client LoL a refusé (la partie a peut-être moins de 3 minutes)' };
   } catch (err) { return { ok: false, error: String(err && err.message || err) }; }
 });
