@@ -3183,6 +3183,13 @@
       el.classList.toggle('live', !!(it && it[4] === 'navlive'));
     }
   }
+  // Accueil : l'essentiel seulement (le menu de gauche a tout le reste) : la journée, ton objectif, ce qui t'attend,
+  // et tes 4 rubriques les plus utilisées.
+  const accVisits = () => load('fire.visits', {}) || {};
+  function accVisit(sec) {
+    if (!sec || ['accueil', 'settings', 'web'].includes(sec)) return;
+    const v = accVisits(); v[sec] = (v[sec] || 0) + 1; save('fire.visits', v);
+  }
   function renderAccueil() {
     const view = $('view');
     const items = S.navItems || [];
@@ -3190,28 +3197,55 @@
     const me = S.players.find((p) => p.slug === S.moi);
     const hr = new Date().getHours();
     const hello = hr < 6 ? 'Bonne nuit' : hr < 18 ? 'Salut' : 'Bonsoir';
-    const card = (id) => { const it = by[id]; if (!it) return null;
-      const ic = window.FIREV2 && window.FIREV2.icon ? window.FIREV2.icon('navigation.' + it[2]) : null;
-      return h('button', { class: 'acc-card', 'data-id': id, onclick: () => go(id) },
-        h('span', { class: 'acc-ico' }, ic || it[1]),
-        h('span', { class: 'acc-txt' }, h('b', null, it[2]), h('small', null, ACC_DESC[id] || '')),
-        h('span', { class: 'acc-badge', hidden: it[3] ? null : '' }, it[3] || ''),
-        h('span', { class: 'acc-go' }, '→')); };
-    const cats = ACC_CATS.map(([t, ico, sub, ids]) => { const cs = ids.map(card).filter(Boolean); return cs.length ? h('section', { class: 'acc-cat' },
-      h('div', { class: 'acc-ch' }, h('span', { class: 'acc-cico' }, ico), h('div', null, h('h2', null, t), h('small', { class: 'muted' }, sub))), h('div', { class: 'acc-grid' }, ...cs)) : null; }).filter(Boolean);
+    const icon = (id, fb) => { const it = by[id]; const ic = it && window.FIREV2 && window.FIREV2.icon ? window.FIREV2.icon('navigation.' + it[2]) : null; return ic || fb || (it ? it[1] : ''); };
+    const tile = (id, ico, title, main, sub, cls, onclick) => (by[id] || id === '_' ? h('button', { class: 'acc-w' + (cls ? ' ' + cls : ''), onclick: onclick || (() => go(id)) },
+      h('div', { class: 'acc-wh' }, h('span', { class: 'acc-wi' }, ico), h('span', null, title)), h('div', { class: 'acc-wm' }, main), sub ? h('div', { class: 'acc-ws' }, sub) : null) : null);
+    const ws = [];
+    // Objectif de la semaine
+    const d = me ? S.data[me.slug] : null;
+    const o = me && d ? objFor(me, d) : null;
+    if (o && o.target) ws.push(tile('stats', '🎯', 'Objectif de la semaine', h('span', null, h('b', { class: 'acc-big' }, `${o.done}/${o.target}`), ' games'),
+      h('div', null, h('div', { class: 'acc-bar' }, h('i', { style: `width:${o.pct || 0}%` })), h('small', null, o.reste ? `Encore ${o.reste} game${o.reste > 1 ? 's' : ''} sur ton pool d’ici dimanche` : '✅ Objectif atteint, bravo !')),
+      o.reste ? '' : 'done', () => { S.view = 'player'; S.player = me.slug; go('stats'); }));
+    // Prochain rendez-vous
+    const nx = rdvList().find((x) => x.end > Date.now() && x.at - Date.now() < 7 * 86400000);
+    if (nx) ws.push(tile('planning', nx.ico, 'Prochain rendez-vous', h('b', null, `${nx.short} ${rdvDay(nx)}${rdvH(new Date(nx.at).getHours())}`), h('small', null, (nx.at <= Date.now() ? 'En cours · ' : rdvIn(nx.at - Date.now()) + ' · ') + nx.what), nx.at - Date.now() < 3600000 ? 'hot' : '', () => rdvOpen(nx)));
+    // Discussion
+    const meV = vocalMe();
+    const un = chatUnread();
+    const last = meV ? CH.msgs.filter((m) => m.from !== meV && chatVisible(m, meV)).slice(-1)[0] : null;
+    if (by.chat) ws.push(tile('chat', '💬', 'Discussion', un ? h('b', null, `${un} message${un > 1 ? 's' : ''} non lu${un > 1 ? 's' : ''}`) : h('span', { class: 'muted' }, 'Tout est lu'),
+      last ? h('small', null, h('b', null, vocalName(last.from) + ' : '), last.text.length > 70 ? last.text.slice(0, 70) + '…' : last.text) : null, un ? 'hot' : '',
+      () => { if (last) CH.conv = chatConvOf(last, meV) || CH.conv; go('chat'); }));
+    // Parole du coach
+    const nf = unseen();
+    const lastF = (S.fiches || []).slice().sort((a, b) => (b.date || b.at || 0) > (a.date || a.at || 0) ? 1 : -1)[0];
+    if (by.coach && (nf.length || lastF)) ws.push(tile('coach', '📣', 'Parole du coach', nf.length ? h('b', null, `${nf.length} nouveauté${nf.length > 1 ? 's' : ''}`) : h('span', { class: 'muted' }, 'Rien de nouveau'),
+      (nf[0] || lastF) ? h('small', null, '« ' + String((nf[0] || lastF).titre || '').slice(0, 70) + ' »') : null, nf.length ? 'hot' : ''));
+    // Puzzle du jour
+    if (by.puzzle && window.FIRE_PUZZLES) { const done = !!(gpSave().days || {})[gpToday()]; ws.push(tile('puzzle', '🧩', 'Puzzle du jour', done ? h('span', null, '✅ Fait aujourd’hui') : h('b', null, 'Une situation t’attend'), done ? h('small', null, 'Reviens demain pour le suivant') : h('small', null, '1 minute pour t’entraîner à lire la partie'), done ? 'done' : 'hot')); }
+    // Clips de l'équipe
+    const nc = cfUnseen();
+    if (by.clips && nc) ws.push(tile('clips', '🎬', 'Clips de l’équipe', h('b', null, `${nc} nouveau${nc > 1 ? 'x' : ''} clip${nc > 1 ? 's' : ''}`), h('small', null, 'Like et commente ceux de tes coéquipiers'), 'hot', () => { CLB.tab = 'team'; go('clips'); }));
+    // Raccourcis : tes rubriques les plus utilisées (ou celles du début)
+    const v = accVisits();
+    const top = Object.keys(v).filter((id) => by[id] && id !== 'accueil').sort((a, b) => v[b] - v[a]).slice(0, 4);
+    for (const id of ['stats', 'draft', 'pool', 'jeux', 'vocal', 'planning']) if (top.length < 4 && by[id] && !top.includes(id)) top.push(id);
     const live = Object.keys(liveAll()).length;
     view.replaceChildren(...[
       h('header', { class: 'acc-hero' },
         h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE LoL'), h('h1', null, `${hello}${me ? ' ' + String(me.pseudo).split('#')[0] : ''} 👋`),
-          h('p', null, 'Tout FIRE en un coup d’œil : clique sur une rubrique pour y aller.'),
+          h('p', null, 'L’essentiel de ta journée. Tout le reste est dans le menu à gauche.'),
           h('div', { class: 'row acc-quick' },
             live ? h('button', { class: 'chip acc-live', onclick: () => go('stats') }, `🔴 ${live} coéquipier${live > 1 ? 's' : ''} en game`) : null,
             by.planning && planTodo() ? h('button', { class: 'chip', onclick: () => go('planning') }, `📅 ${planTodo()} réponse${planTodo() > 1 ? 's' : ''} au planning`) : null,
-            by.chat && chatUnread() ? h('button', { class: 'chip', onclick: () => go('chat') }, `💬 ${chatUnread()} message${chatUnread() > 1 ? 's' : ''}`) : null,
-            by.puzzle ? h('button', { class: 'chip', onclick: () => go('puzzle') }, '🧩 Puzzle du jour') : null,
             TWITCH.live && by.stream ? h('button', { class: 'chip acc-live', onclick: () => go('stream') }, '🟣 Toks42o est en live') : null))),
       SUB() || MOBILE && !S.plan ? null : todayPlanCard(),
-      ...cats].filter(Boolean));
+      ws.filter(Boolean).length ? h('div', { class: 'acc-ws-grid' }, ...ws.filter(Boolean)) : null,
+      top.length ? h('section', { class: 'acc-cat' }, h('div', { class: 'acc-ch' }, h('div', null, h('h2', null, 'Tes raccourcis'), h('small', { class: 'muted' }, 'Les rubriques que tu ouvres le plus'))),
+        h('div', { class: 'acc-grid acc-top' }, ...top.map((id) => { const it = by[id]; return h('button', { class: 'acc-card', 'data-id': id, onclick: () => go(id) },
+          h('span', { class: 'acc-ico' }, icon(id)), h('span', { class: 'acc-txt' }, h('b', null, it[2]), h('small', null, ACC_DESC[id] || '')),
+          h('span', { class: 'acc-badge', hidden: it[3] ? null : '' }, it[3] || ''), h('span', { class: 'acc-go' }, '→')); }))) : null].filter(Boolean));
   }
 
   // ----- Accueil des stats : le planning du jour (qui est là) et l'accès direct au coaching individuel -----
@@ -4186,6 +4220,7 @@
   function go(sec) {
     if (SUB() && !SUB_OK.has(sec)) sec = 'stats';
     if (MOBILE && MOBILE_OFF.has(sec)) sec = 'stats';
+    try { accVisit(sec); } catch (e) { /* */ }
     if (sec !== S.section && S.section !== 'settings') S.prevSection = S.section;
     if (sec !== 'settings') setClose(true);
     if (sec !== 'web' && WEB.open) webClose(true);

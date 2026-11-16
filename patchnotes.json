@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.142",
+   "date": "2026-11-16",
+   "titre": "Accueil plus simple",
+   "items": [
+    [
+     "improve",
+     "Accueil : seulement l’essentiel, le reste est dans le menu à gauche. Le planning du jour, ton objectif de la semaine (barre de progression), ton prochain rendez-vous, la discussion (messages non lus et le dernier message), les nouveautés du coach, le puzzle du jour et les nouveaux clips de l’équipe."
+    ],
+    [
+     "new",
+     "« Tes raccourcis » : les 4 rubriques que tu ouvres le plus, rien que pour toi."
+    ]
+   ]
+  },
+  {
    "v": "1.10.141",
    "date": "2026-11-16",
    "titre": "Clips : ménage, partage, likes et commentaires",
