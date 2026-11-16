@@ -4567,7 +4567,7 @@
             : ['Écrans', 'Fenêtres'].map((t, k) => {
               const part = L.filter((x) => x.screen === (k === 0));
               return part.length ? h('div', null, h('p', { class: 'muted small vc-pick-t' }, t), h('div', { class: 'vc-pick-grid' }, part.map((x) =>
-                h('button', { class: 'vc-src', onclick: () => { close(); FV().startScreen(x.id, load('fire.vocal.sharesound', false)); } }, h('img', { src: x.thumb, alt: '' }), h('span', null, x.name))))) : null;
+                h('button', { class: 'vc-src', onclick: () => { close(); FV().startScreen(x.id, load('fire.vocal.sharesound', false)); hzWarn(x.hz); } }, h('img', { src: x.thumb, alt: '' }), h('span', null, x.name, x.hz ? h('small', { class: 'vc-hz' }, ` · ${x.hz} Hz`) : null))))) : null;
             })));
     };
     paint(); document.body.append(box);
@@ -4629,7 +4629,12 @@
     if (!window.fire.screen) return FV().startScreen(null);
     const list = await window.fire.screen.sources().catch(() => []);
     const scr = list.find((x) => x.screen) || list[0];
-    if (scr) FV().startScreen(scr.id, load('fire.vocal.sharesound', false));
+    if (scr) { FV().startScreen(scr.id, load('fire.vocal.sharesound', false)); hzWarn(scr.hz); }
+  }
+  // Un partage ne peut pas avoir plus d'images/s que la fréquence de l'écran capturé (60 Hz → 60 images/s au maximum).
+  function hzWarn(hz) {
+    const want = (FV().state().cfg || {}).screenFps || 15;
+    if (hz && want > hz + 2) vocalToast(`Ton écran est en ${hz} Hz : ton partage ira jusqu’à ${hz} images/s, pas ${want}. Pour plus, il faut un écran plus rapide (réglé à 120 Hz ou plus dans Windows).`, false);
   }
   function keyAction(a) {
     const v = FV().state();
@@ -4728,7 +4733,12 @@
     setInterval(async () => {
       if (S.section !== 'vocal' || !FV().state().on || !document.querySelector('.vt-q')) return;
       const info = await FV().recvInfo().catch(() => ({}));
-      document.querySelectorAll('.vt-q').forEach((el) => { const i = info[el.dataset.q]; el.textContent = i && i.h ? `${i.h}p · ${i.fps} i/s` : ''; el.hidden = !(i && i.h); });
+      if (document.querySelector('.vt-q.mine') && FV().sendInfo) { const m = await FV().sendInfo().catch(() => null); if (m) info.__me = { ...m, mine: true }; }
+      document.querySelectorAll('.vt-q').forEach((el) => {
+        const i = info[el.dataset.q];
+        el.textContent = i && i.h ? (i.mine ? `Envoyé : ${i.h}p · ${i.fps} i/s` + (i.limit === 'cpu' ? ' · PC saturé' : i.limit === 'bandwidth' ? ' · connexion limitée' : '') : `${i.h}p · ${i.fps} i/s`) : '';
+        el.hidden = !(i && i.h);
+      });
     }, 3000);
     // Jauge du micro (et rendu remis à plus tard pendant qu'on règle un curseur).
     setInterval(() => {
@@ -5261,12 +5271,14 @@
             return h('button', { class: 'vs-preset' + (on ? ' on' : ''), onclick: (e) => { FV().setCfg({ screenRes: String(r), screenFps: f }); done(e); renderVocal(); } }, h('b', null, t), h('small', null, `${r}p · ${f} images/s`));
           })),
         field('Images par seconde', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ screenFps: Number(e.target.value) }); done(e); } },
-          [[15, 'Net · 15 images/s (texte, replays)'], [30, 'Fluide · 30 images/s'], [60, 'Ultra fluide · 60 images/s'], [120, 'Maximum · 120 images/s (fibre)']].map(([n, t]) =>
+          [[15, 'Net · 15 images/s (texte, replays)'], [30, 'Fluide · 30 images/s'], [60, 'Ultra fluide · 60 images/s'], [120, 'Maximum · 120 images/s (écran 120 Hz ou plus, et fibre)']].map(([n, t]) =>
             h('option', { value: n, selected: (c.screenFps || 15) === n ? true : null }, t)))),
         field('Définition', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ screenRes: e.target.value }); done(e); } },
           [['auto', 'Auto : baisse toute seule si mon PC rame (recommandé)'], ['1080', '1080p · la plus nette'], ['720', '720p · bien plus léger pour le PC et la connexion'], ['480', '480p · petit PC, petite connexion']].map(([k, t]) =>
             h('option', { value: k, selected: String(c.screenRes || 'auto') === k ? true : null }, t)))),
         h('p', { class: 'vs-hint' }, 'Pour un jeu, mieux vaut 60 images/s en 720p que 15 images/s en 1080p : c’est fluide et ça demande moins à ton PC. Ça change tout de suite, même en plein partage.'),
+        h('p', { class: 'vs-hint' }, '120 images/s : il faut que l’écran que tu partages soit réglé à 120 Hz ou plus dans Windows (un écran 60 Hz donne au plus 60 images/s), et le spectateur ne voit au-delà de 60 que si son écran à lui va aussi plus vite. ',
+          VX.hz ? h('b', null, `Tes écrans : ${VX.hz.map((d) => d.hz + ' Hz').join(', ')}.`) : null),
         h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Rejoindre au lancement de FIRE'), h('small', null, 'Tu arrives directement dans le salon.')),
           h('input', { type: 'checkbox', class: 'vs-tog', checked: load('fire.vocal.auto', false) ? true : null, onchange: (e) => { save('fire.vocal.auto', e.target.checked); done(e); } }))),
       ],
@@ -5295,6 +5307,8 @@
     if (!window.FireVoice || !window.Peer) { view.replaceChildren(h('div', { class: 'card' }, h('p', { class: 'bad' }, '⚠ Le module vocal n’est pas chargé. Réinstalle la dernière version de FIRE.'))); return; }
     const v = FV().state();
     const me = vocalMe();
+    // Fréquence des écrans (une fois) : expliquée dans les réglages du partage d'écran.
+    if (!VX.hzAsked && window.fire.win && window.fire.win.displays) { VX.hzAsked = true; window.fire.win.displays().then((l) => { VX.hz = (l || []).filter((d) => d.hz); }).catch(() => {}); }
     if (!me) { view.replaceChildren(h('div', { class: 'vc-lobby' }, h('div', { class: 'vc-lobby-in' }, h('h1', null, 'Salon vocal'), h('p', { class: 'muted' }, 'Choisis d’abord ton pseudo (en haut, « Qui es-tu ? ») pour entrer dans le salon.')))); return; }
     if (!VX.dev) { VX.dev = { mics: [], outs: [], cams: [] }; FV().devices().then((d) => { VX.dev = d; if (S.section === 'vocal') { if (typing()) VX.pending = true; else renderVocal(); } }); }
     const playerOf = (slug) => S.players.find((x) => x.slug === slug) || {};
@@ -5398,6 +5412,7 @@
       }
       if (t.pipCam) box.append(h('div', { class: 'vt-pip' }, vidEl(t.slug + ':cam', t.pipCam, t.mine)));
       if (t.kind === 'screen' && !t.mine) box.append(h('span', { class: 'vt-q', 'data-q': t.key }));
+      if (t.kind === 'screen' && t.mine) box.append(h('span', { class: 'vt-q mine', 'data-q': '__me', title: 'Ce que ton partage envoie vraiment à tes spectateurs' }));
       const so = (v.svol || {})[t.slug] || {};
       const sndOn = so.on == null ? v.cfg.streamSound !== false : so.on;
       const sndVol = so.vol ?? 0.8;

@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.137",
+   "date": "2026-11-16",
+   "titre": "Streams à 120 images/s",
+   "items": [
+    [
+     "fix",
+     "Stream bloqué à 59 images/s malgré « 120 images/s » : FIRE envoie bien 120 images/s, mais un écran réglé en 60 Hz n’en fournit que 60. FIRE te prévient maintenant quand ton écran est trop lent pour le réglage choisi, et la fenêtre « Que veux-tu montrer ? » affiche la fréquence de chaque écran (60 Hz, 144 Hz…)."
+    ],
+    [
+     "new",
+     "Sur ton propre partage d’écran, un badge montre ce qui part vraiment : « Envoyé : 1080p · 118 i/s », avec « PC saturé » ou « connexion limitée » si quelque chose freine."
+    ],
+    [
+     "improve",
+     "Un spectateur dont la connexion faiblit passe en 720p mais garde tous les images/s (120 compris). Avant, il était limité à 60."
+    ],
+    [
+     "improve",
+     "Réglages du partage : FIRE affiche la fréquence de tes écrans et explique ce qu’il faut pour 120 images/s (écran 120 Hz ou plus chez celui qui partage, et chez le spectateur pour les voir)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.136",
    "date": "2026-11-16",
    "titre": "Vocal pour tous les PC, Flex en duo, Seuf93",

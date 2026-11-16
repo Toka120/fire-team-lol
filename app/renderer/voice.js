@@ -430,7 +430,7 @@
   // Le spectateur choisit (Haute, Moyenne 720p, Faible connexion 480p) ou laisse en Auto : FIRE mesure alors
   // la connexion vers lui (débit disponible, retard, pertes) et baisse ou remonte la qualité tout seul.
   // On baisse d'abord la définition et le débit, pas les images/s : le jeu reste fluide même sur une petite connexion.
-  const QLV = [{ maxH: 4320, rate: Infinity, fps: Infinity }, { maxH: 720, rate: 2500000, fps: 60 }, { maxH: 480, rate: 1100000, fps: 60 }, { maxH: 360, rate: 550000, fps: 30 }];
+  const QLV = [{ maxH: 4320, rate: Infinity, fps: Infinity }, { maxH: 720, rate: 3000000, fps: Infinity }, { maxH: 480, rate: 1100000, fps: 60 }, { maxH: 360, rate: 550000, fps: 30 }];
   const QFIX = { high: 0, medium: 1, low: 2 };
   V.qlvl = {}; V.qbad = {}; V.qgood = {};
   function levelFor(slug) {
@@ -1051,6 +1051,17 @@
     hallSend: async (slug, msg) => { const dc = await link(slug); if (!dc) return false; try { dc.send(msg); return true; } catch (e) { return false; } },
     isOn: () => !!V.on,
     // Définition et images/s de chaque écran partagé que je reçois (affichées sur la vidéo).
+    // Ce que mon partage d'écran envoie vraiment (le meilleur de mes spectateurs).
+    sendInfo: async () => {
+      let best = null;
+      for (const [key, call] of Object.entries(V.vout)) {
+        if (!key.endsWith(':screen') || !call.peerConnection) continue;
+        try { const st = await call.peerConnection.getStats(); st.forEach((x) => { if (x.type === 'outbound-rtp' && x.kind === 'video' && (!best || (x.framesPerSecond || 0) > best.fps)) best = { h: x.frameHeight || 0, fps: Math.round(x.framesPerSecond || 0), limit: x.qualityLimitationReason || '' }; }); } catch (e) { /* */ }
+      }
+      const tr = V.screen && V.screen.getVideoTracks()[0];
+      let src = 0; try { src = Math.round((tr && tr.getSettings().frameRate) || 0); } catch (e) { /* */ }
+      return best ? { ...best, src, want: V.cfg.screenFps || 15 } : null;
+    },
     recvInfo: async () => {
       const out = {};
       for (const [key, v] of Object.entries(V.vin)) {

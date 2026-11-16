@@ -100,7 +100,7 @@ function winPrefs() { try { return { display: 'last', ...JSON.parse(fs.readFileS
 function saveWinPrefs(p) { try { fs.writeFileSync(winPath(), JSON.stringify(p)); } catch (e) { /* facultatif */ } }
 function displayList() {
   const prim = screen.getPrimaryDisplay().id;
-  return screen.getAllDisplays().map((d, i) => ({ id: String(d.id), n: i + 1, primary: d.id === prim, w: d.size.width, h: d.size.height, label: d.label || '' }));
+  return screen.getAllDisplays().map((d, i) => ({ id: String(d.id), n: i + 1, primary: d.id === prim, w: d.size.width, h: d.size.height, label: d.label || '', hz: Math.round(d.displayFrequency || 0) }));
 }
 // Fenêtre centrée sur un écran donné (taille d'origine, réduite si l'écran est petit).
 function boundsOn(d) {
@@ -311,7 +311,10 @@ const screenSources = () => desktopCapturer.getSources({ types: ['screen', 'wind
 ipcMain.handle('screen:sources', async () => {
   try {
     const list = await screenSources();
-    return list.filter((x) => x.name && !x.thumbnail.isEmpty()).map((x) => ({ id: x.id, name: x.name, screen: x.id.startsWith('screen:'), thumb: x.thumbnail.toDataURL() }));
+    // Fréquence de l'écran (Hz) : un partage ne peut pas avoir plus d'images/s que l'écran capturé.
+    const ds = screen.getAllDisplays(), prim = screen.getPrimaryDisplay();
+    const hzOf = (x) => { const d = ds.find((y) => String(y.id) === String(x.display_id)) || prim; return Math.round((d && d.displayFrequency) || 0); };
+    return list.filter((x) => x.name && !x.thumbnail.isEmpty()).map((x) => ({ id: x.id, name: x.name, screen: x.id.startsWith('screen:'), thumb: x.thumbnail.toDataURL(), hz: hzOf(x) }));
   } catch (e) { return []; }
 });
 // Son du PC sans le son de FIRE (voix du salon, sons, streams regardés), comme Discord : Windows sait
