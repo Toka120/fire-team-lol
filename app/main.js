@@ -2,6 +2,20 @@
 // Lit les stats des joueurs sur dpm.lol dans une fenêtre cachée, puis les affiche.
 
 const { app, BrowserWindow, WebContentsView, ipcMain, session, shell, Notification, Tray, Menu, desktopCapturer, globalShortcut, screen } = require('electron');
+// Les sites voient FIRE comme un Chrome normal. Avec la signature d'Electron, dpm.lol croyait être dans sa propre
+// application DPM et affichait « Connecte-toi à DPM » au lieu des stats.
+function cleanUA() {
+  try {
+    const ua = String(app.userAgentFallback || '').replace(/\s(?:Electron|fire[-\w ]*?)\/\S+/gi, '');
+    if (/Chrome\/\d/.test(ua)) app.userAgentFallback = ua;
+  } catch (e) { /* */ }
+}
+cleanUA();
+app.whenReady().then(() => {
+  cleanUA();
+  // Les sessions déjà créées gardent leur signature : on la nettoie aussi.
+  for (const p of ['persist:fire-web', 'persist:dpm']) { try { session.fromPartition(p).setUserAgent(app.userAgentFallback); } catch (e) { /* */ } }
+});
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');

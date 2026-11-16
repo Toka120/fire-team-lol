@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.175",
+   "date": "2026-11-16",
+   "titre": "Briar pour toute l’équipe, stats dpm.lol directes",
+   "items": [
+    [
+     "new",
+     "Briar (chibi) devient le compagnon de toute l’équipe : chacun l’a en bas à droite au prochain lancement s’il n’avait pas encore de compagnon. Une fois seulement : tu peux la changer ou l’enlever dans Boutique › Compagnons, FIRE ne la remettra pas."
+    ],
+    [
+     "fix",
+     "« Voir sur dpm.lol » ouvre maintenant directement les stats, et plus l’écran « Connecte-toi à DPM ». FIRE se présente aux sites comme un navigateur Chrome normal : dpm.lol croyait être dans sa propre application DPM."
+    ]
+   ]
+  },
+  {
    "v": "1.10.174",
    "date": "2026-11-16",
    "titre": "Briar encore plus mignonne",

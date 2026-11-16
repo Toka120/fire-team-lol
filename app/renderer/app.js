@@ -10117,6 +10117,9 @@
     if (e.clientX != null) PET.el.style.setProperty('--lx', (dx / d * 1.6).toFixed(2) + 'px'), PET.el.style.setProperty('--ly', (dy / d * 1.2).toFixed(2) + 'px');
   }
   function petStart() {
+    // Briar est le compagnon de toute l'équipe : chacun l'a au premier lancement s'il n'en avait pas encore,
+    // une seule fois (si on l'enlève ou qu'on en choisit un autre dans la Boutique, FIRE ne la remet pas).
+    if (!UX.petPicked) { const L = looks(); setUx({ petPicked: true, look: L.pet ? L : { ...L, pet: 'briar' } }); }
     petSync();
     let raf = 0;
     document.addEventListener('mousemove', (e) => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; petLook(e); }); }, { passive: true });
