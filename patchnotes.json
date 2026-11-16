@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.151",
+   "date": "2026-11-16",
+   "titre": "Les mises à jour ne ferment plus FIRE",
+   "items": [
+    [
+     "fix",
+     "Mises à jour : FIRE ne redémarre plus tout seul quand une nouvelle version est téléchargée (ceux qui étaient en vocal, en draft ou en coaching se faisaient déconnecter). La version s’installe quand tu fermes FIRE, ou tout de suite si tu cliques sur « Redémarrer maintenant »."
+    ]
+   ]
+  },
+  {
    "v": "1.10.150",
    "date": "2026-11-16",
    "titre": "Le compagnon vit dans FIRE",

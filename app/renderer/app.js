@@ -837,13 +837,9 @@
       node = h('span', null, `⬇ Nouvelle version ${u.version || ''} : téléchargement en cours… ${u.percent || 0} %`);
     } else if (u.auto && u.state === 'ready') {
       const now = h('button', { class: 'linkbtn', onclick: () => installNow(true) }, 'Redémarrer maintenant');
-      if (S.updLater) node = h('span', null, `✓ La version ${u.version} s'installera à la fermeture de FIRE LoL. `, now);
-      else {
-        startCountdown();
-        const paused = typing() || (S.draft && S.draft.busy);
-        node = h('span', null, `✓ Version ${u.version} prête : FIRE LoL redémarre ${S.updVoice ? 'à la fin de ton appel vocal' : S.updAway ? 'quand tu reviens sur FIRE' : paused ? 'dès que tu as fini d\'écrire' : `dans ${S.updLeft} s`} pour l'installer. `, now, ' · ',
-          h('button', { class: 'linkbtn', onclick: () => { S.updLater = true; stopCountdown(); renderUpdate(); } }, 'Plus tard'));
-      }
+      // Plus de redémarrage automatique : des membres travaillent dans FIRE (vocal, draft, coaching…) et se faisaient déconnecter.
+      // La mise à jour s'installe quand ils ferment FIRE, ou tout de suite s'ils cliquent sur « Redémarrer maintenant ».
+      node = h('span', null, `✓ La version ${u.version} est prête : elle s'installera quand tu fermeras FIRE LoL. `, now);
     } else if (!u.auto) node = updateNode();
     box.hidden = !node;
     box.replaceChildren(...(node ? [node] : []));
