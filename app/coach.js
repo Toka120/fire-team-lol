@@ -1365,6 +1365,8 @@ async function sendBug(b) {
   if (!where) return { ok: false, error: "le coach doit d'abord activer le jeton d'équipe (Paramètres › Réglages coach)" };
   const id = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14) + '-' + crypto.randomBytes(3).toString('hex');
   const rapport = { id, at: Date.now(), qui: str(b.qui, 60) || 'anonyme', slug: str(b.slug, 80), version: str(b.version, 20), section: str(b.section, 40), texte, images };
+  // Réponse du joueur à une réponse du staff : on garde ce à quoi il répond.
+  if (b.re) { rapport.re = str(b.re, 30); rapport.reTexte = str(b.reTexte, 400); rapport.reBy = str(b.reBy, 80); }
   try {
     const r = await ghPut(where.token, where.dir + id + '.json', seal(rapport, id), null, 'Rapport de bug ' + id, where.repo);
     if (!r.ok) return { ok: false, error: "GitHub n'a pas accepté l'envoi, réessaie" };

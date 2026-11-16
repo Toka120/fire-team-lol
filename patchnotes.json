@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.156",
+   "date": "2026-11-16",
+   "titre": "Menu de profil en haut à droite, répondre aux réponses de bug",
+   "items": [
+    [
+     "new",
+     "👤 Nouveau rond en haut à droite avec ta photo de profil et ton cadre d’avatar (et ton statut). Il ouvre un menu : ton statut en un clic (en ligne, occupé, absent, invisible), Voir mon profil, Modifier mon profil, Boutique, Apparence et thème, Voix et vidéo, Notifications, Tous les paramètres, Patch notes et Signaler un bug."
+    ],
+    [
+     "new",
+     "Paramètres et Patch notes quittent la barre de gauche (ils sont dans ce menu) : un peu plus de place pour le reste. La pastille d’une mise à jour ou de nouveautés s’affiche sur le rond."
+    ],
+    [
+     "new",
+     "🐞 Rapports de bug : quand le staff te répond, tu peux lui répondre à ton tour (« ↩ Répondre » sous sa réponse). Ta réponse arrive dans ses rapports reçus avec le message auquel tu réponds, et il reçoit une notification."
+    ]
+   ]
+  },
+  {
    "v": "1.10.155",
    "date": "2026-11-16",
    "titre": "Spectateur : comme le bouton du client",

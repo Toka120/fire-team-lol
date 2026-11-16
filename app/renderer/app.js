@@ -4778,6 +4778,7 @@
       list.map((x) => h('div', { class: 'bug-item' },
         h('div', { class: 'bug-meta' }, h('b', null, x.qui || 'anonyme'), h('span', { class: 'muted small' }, ` · v${x.version || '?'} · ${x.at ? dateLong(x.at) : ''}`),
           h('button', { class: 'btn-fire small-btn bug-done', onclick: () => { BR.open = BR.open === x.id ? null : x.id; BR.err = ''; if (!BR.txt[x.id]) BR.txt[x.id] = BR_DEF; render(); } }, BR.open === x.id ? 'Fermer' : '✉️ Répondre / Réglé')),
+        x.re ? h('p', { class: 'muted small bug-re' }, `↩ Répond à ${x.reBy ? vocalName(x.reBy) : 'la réponse du staff'} : « ${String(x.reTexte || '').slice(0, 160)}${String(x.reTexte || '').length > 160 ? '…' : ''} »`) : null,
         h('p', { class: 'bug-text' }, x.texte),
         (x.images || []).length ? h('div', { class: 'bug-imgs' }, x.images.map((src, i) => h('div', { class: 'bug-thumb' }, h('img', { src, alt: '', onclick: () => zoom(src, `${x.qui} · capture ${i + 1}`) })))) : null,
         (BR.sent[x.id] || []).map((t) => h('p', { class: 'small bug-sent' }, '✉️ Réponse envoyée : « ' + t + ' »')),
@@ -4851,6 +4852,25 @@
     setTimeout(bugRepCheck, 9000);
     BR.timer = setInterval(bugRepCheck, 10 * 60000);
   }
+  // Le joueur répond à une réponse du staff : ça repart dans les rapports reçus par le staff, avec le contexte.
+  const BRR = { open: null, txt: '', busy: false, err: '' };
+  async function bugRepAnswer(x) {
+    const texte = String(BRR.txt || '').trim();
+    if (texte.length < 2) { BRR.err = 'Écris ta réponse.'; render(); return; }
+    if (BRR.busy) return;
+    BRR.busy = true; BRR.err = ''; render();
+    const qui = bugWho();
+    let r;
+    try { r = await window.fire.bugs.send({ texte, images: [], qui: qui.name || 'anonyme', slug: qui.slug || S.moi || '', version: S.version, section: 'réponse', re: x.id, reTexte: String(x.texte || '').slice(0, 400), reBy: x.by || '' }); } catch (e) { r = { ok: false, error: String(e) }; }
+    BRR.busy = false;
+    if (r && r.ok) {
+      const mine = load('fire.bugrep.mine', {}); (mine[x.id] = mine[x.id] || []).push({ at: Date.now(), texte }); save('fire.bugrep.mine', mine);
+      BRR.open = null; BRR.txt = '';
+      try { if (x.by && x.by !== 'coach') FV().hallSend(x.by, { t: 'bugrep' }).catch(() => {}); } catch (e) { /* */ }
+      popup('📨 Réponse envoyée', 'Le staff la voit dans les rapports de bug reçus.', null);
+    } else BRR.err = '⚠ Non envoyé : ' + ((r && r.error) || 'erreur');
+    render();
+  }
   function bugRepCard() {
     const list = (BR.list || []).slice(0, 6);
     if (!list.length) return null;
@@ -4860,7 +4880,14 @@
         h('div', { class: 'bug-rep-top' }, h('span', { class: 'bug-rep-st ' + (x.statut === 'regle' ? 'ok' : 'info') }, x.statut === 'regle' ? '✅ Réglé' : '💬 Réponse'),
           h('b', null, vocalName(x.by)), h('span', { class: 'muted small' }, dateLong(x.at)), seen.includes(x.id) ? null : h('span', { class: 'bug-rep-new' }, 'Nouveau')),
         h('p', { class: 'bug-rep-txt' }, x.texte),
-        x.extrait ? h('p', { class: 'muted small bug-rep-ex' }, 'Ton rapport : « ' + (x.extrait.length > 140 ? x.extrait.slice(0, 140) + '…' : x.extrait) + ' »') : null)));
+        x.extrait ? h('p', { class: 'muted small bug-rep-ex' }, 'Ton rapport : « ' + (x.extrait.length > 140 ? x.extrait.slice(0, 140) + '…' : x.extrait) + ' »') : null,
+        (load('fire.bugrep.mine', {})[x.id] || []).map((m) => h('div', { class: 'bug-rep-me' }, h('b', null, '↩ Toi'), h('span', { class: 'muted small' }, ' · ' + dateLong(m.at)), h('p', null, m.texte))),
+        BRR.open === x.id ? (() => { const ta = h('textarea', { class: 'inp', rows: 3, maxlength: 2000, placeholder: 'Ta réponse au staff (ex. : ça marche, merci ! ou : le bug est revenu quand…)', oninput: (e) => { BRR.txt = e.target.value; } }); ta.value = BRR.txt;
+          setTimeout(() => ta.focus(), 30);
+          return h('div', { class: 'bug-reply' }, ta, BRR.err ? h('p', { class: 'bad small' }, BRR.err) : null,
+            h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', disabled: BRR.busy ? true : null, onclick: () => bugRepAnswer(x) }, BRR.busy ? 'Envoi…' : '📨 Envoyer ma réponse'),
+              h('button', { class: 'btn-ghost small-btn', onclick: () => { BRR.open = null; render(); } }, 'Annuler'))); })()
+          : h('button', { class: 'linkbtn small bug-rep-btn', onclick: () => { BRR.open = x.id; BRR.txt = ''; BRR.err = ''; render(); } }, '↩ Répondre'))));
     // Vu en ouvrant la page : la pastille disparaît (le « Nouveau » reste affiché jusqu'à la prochaine visite).
     const ids = list.map((x) => x.id).filter((id) => !seen.includes(id));
     if (ids.length) setTimeout(() => { save('fire.bugrep.vu', seen.concat(ids).slice(-100)); renderNav(); }, 1500);
@@ -6883,9 +6910,12 @@
     if (MOBILE) { const keep = items.filter(([id]) => !MOBILE_OFF.has(id)); items.length = 0; items.push(...keep); }
     S.navItems = items;
     if (S.section === 'accueil' && document.querySelector('.acc-grid') && !typing()) accBadges();
+    // Paramètres et Patch notes passent dans le menu de mon profil (rond en haut à droite) : la barre de gauche respire.
+    try { meBtn(items); } catch (e) { console.error(e); }
+    const shownNav = $('me-btn') ? items.filter(([id]) => id !== 'settings' && id !== 'patch') : items;
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
-    if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), items.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }
-    $('nav').replaceChildren(...items.map(([id, ico, label, badge, cls]) => b(id, ico + ' ' + label, badge, cls)));
+    if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), shownNav.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }
+    $('nav').replaceChildren(...shownNav.map(([id, ico, label, badge, cls]) => b(id, ico + ' ' + label, badge, cls)));
   }
 
   function pendingBanner() {
@@ -9939,6 +9969,55 @@
   const GAME_LIST = [['League of Legends', '⚔️'], ['TFT', '♟️'], ['Valorant', '🎯'], ['2XKO', '🥊'], ['Legends of Runeterra', '🃏'], ['Counter-Strike 2', '🔫'], ['Fortnite', '🏗️'], ['Rocket League', '🚗'],
     ['Apex Legends', '🪂'], ['Overwatch 2', '🛡️'], ['Minecraft', '⛏️'], ['EA Sports FC', '⚽'], ['Call of Duty', '🎖️'], ['Rainbow Six Siege', '🧨'], ['Genshin Impact', '🌸'], ['Elden Ring', '🗡️']];
   const gameIco = (g) => (GAME_LIST.find(([n]) => n === g) || [, '🎮'])[1];
+  // ===== Mon profil : rond en haut à droite (photo + cadre d'avatar), menu déroulant =====
+  const ME = { open: false, badges: {} };
+  function meBtn(items) {
+    const me = vocalMe();
+    let btn = $('me-btn');
+    if (!btn) {
+      const ref = $('refresh'); if (!ref || !ref.parentNode) return;
+      btn = h('button', { id: 'me-btn', class: 'me-btn', 'aria-haspopup': 'menu', 'aria-expanded': 'false', title: 'Mon profil et réglages', onclick: (e) => { e.stopPropagation(); meMenu(!ME.open); } });
+      ref.parentNode.insertBefore(btn, ref.nextSibling);
+      document.addEventListener('click', (e) => { if (ME.open && !e.target.closest('#me-menu, #me-btn')) meMenu(false); });
+      document.addEventListener('keydown', (e) => { if (ME.open && e.key === 'Escape') meMenu(false); });
+    }
+    const by = Object.fromEntries((items || []).map((x) => [x[0], x]));
+    ME.badges = { patch: (by.patch || [])[3] || null, settings: (by.settings || [])[3] || null };
+    const dot = ME.badges.patch || ME.badges.settings;
+    const st = me ? statusOf(me) : { st: 'offline' };
+    const k = st.game ? 'game' : (UX.status === 'invisible' ? 'invisible' : UX.status || 'online');
+    btn.replaceChildren(me ? avatarEl(me, 'me-av') : h('span', { class: 'vc-av me-av' }, '?'), h('i', { class: 'st-dot st-' + k }), dot ? h('span', { class: 'me-badge' }, String(dot)) : null);
+    if (ME.open) meMenu(true);
+  }
+  function meMenu(on) {
+    ME.open = !!on;
+    let m = $('me-menu'); const btn = $('me-btn');
+    if (btn) btn.setAttribute('aria-expanded', String(ME.open));
+    if (!ME.open) { if (m) m.remove(); return; }
+    if (!m) { m = h('div', { id: 'me-menu', class: 'me-menu', role: 'menu' }); document.body.append(m); }
+    const me = vocalMe();
+    const close = () => meMenu(false);
+    const it = (ico, label, fn, badge, cls) => h('button', { class: 'me-it' + (cls ? ' ' + cls : ''), role: 'menuitem', onclick: () => { close(); fn(); } }, h('span', { class: 'me-ico' }, ico), h('span', null, label), badge ? h('span', { class: 'nbadge' }, String(badge)) : null);
+    const stBtn = (k) => h('button', { class: 'me-st' + ((UX.status || 'online') === k ? ' on' : ''), title: ST_LABEL[k][1], onclick: () => { setUx({ status: k }); actLog('statut', 'Statut : ' + ST_LABEL[k][1]); renderNav(); meMenu(true); } }, ST_LABEL[k][0], h('small', null, ST_LABEL[k][1]));
+    const set = (tab, sub) => () => { S.setTab = tab; if (sub) S.setSub = sub; go('settings'); };
+    m.replaceChildren(...[
+      me ? h('div', { class: 'me-head' }, avatarEl(me, 'me-av big'), h('div', null, nameEl(me), h('small', { class: 'muted' }, LIVE.mine ? '🎮 En game' : ST_LABEL[UX.status || 'online'][0] + ' ' + ST_LABEL[UX.status || 'online'][1]))) : h('div', { class: 'me-head' }, h('button', { class: 'btn-fire small-btn', onclick: () => { close(); askWho(); } }, 'Qui es-tu ?')),
+      me ? h('div', { class: 'me-sts' }, ['online', 'busy', 'away', 'invisible'].map(stBtn)) : null,
+      h('div', { class: 'me-sep' }),
+      me ? it('👤', 'Voir mon profil', () => openProfile(me)) : null,
+      it('✏️', 'Modifier mon profil', set('profil', 'carte')),
+      it('🛍️', 'Boutique', () => go('boutique'), shopNew() ? 'NEW' : null),
+      it('🎨', 'Apparence et thème', set('apparence')),
+      it('🎙️', 'Voix et vidéo', set('voix')),
+      it('🔔', 'Notifications', set('notifs')),
+      h('div', { class: 'me-sep' }),
+      it('⚙️', 'Tous les paramètres', () => go('settings'), ME.badges.settings),
+      it('🆕', 'Patch notes', () => go('patch'), ME.badges.patch),
+      it('🐞', 'Signaler un bug', () => openBug()),
+      ME.badges.settings ? it('🔄', 'Mise à jour disponible', set('maj'), '1', 'me-upd') : null].filter(Boolean));
+    // Placé sous le bouton, aligné à droite
+    if (btn) { const r = btn.getBoundingClientRect(); m.style.top = Math.round(r.bottom + 8) + 'px'; m.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px'; }
+  }
   function openProfile(slug) {
     document.querySelectorAll('.prof-pop').forEach((x) => x.remove());
     const x = statusOf(slug);
@@ -10136,7 +10215,7 @@
   }
   function annHall(from, m) {
     if (m.t === 'ann' && m.f && typeof m.f === 'object') { annCheck(m.f); return; }
-    if (m.t === 'bugrep') { setTimeout(bugRepCheck, 3000); return; }
+    if (m.t === 'bugrep') { setTimeout(bugRepCheck, 3000); if (S.coachState && S.coachState.coach) setTimeout(() => { loadBugs(); if (notifPrefs().app) popup('🐞 Nouveau message sur un rapport de bug', `${vocalName(from)} a répondu : regarde dans Patch notes › Rapports de bug reçus.`, 'patch'); }, 4000); return; }
     if (m.t === 'forum') { forumHall(from, m); return; }
     if (m.t === 'clipfeed') { clipFeedHall(from, m); return; }
     if (m.t === 'annack' && !SUB() && window.fire.annonce) {
