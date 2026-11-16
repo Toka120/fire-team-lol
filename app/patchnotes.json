@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.160",
+   "date": "2026-11-16",
+   "titre": "Menu de profil à ton image, avatars dans la discussion",
+   "items": [
+    [
+     "new",
+     "Menu de profil : ton apparence couvre tout le menu, du haut en bas : ton thème de carte en fond et ton effet de profil partout. Avec « Sourire », plusieurs sourires de travers apparaissent chacun leur tour, avec leurs yeux, et des paires d’yeux s’ouvrent de temps en temps."
+    ],
+    [
+     "new",
+     "📸 Discussion : ta photo de profil (ou tes initiales) s’affiche à côté de tes messages et dans la liste des messages privés, comme sur Discord. Clique dessus pour ouvrir la carte de profil."
+    ],
+    [
+     "fix",
+     "Photo de profil : elle apparaît tout de suite partout après l’avoir changée (le rond en haut à droite compris), sans attendre."
+    ],
+    [
+     "fix",
+     "Le mot « null » ne s’affiche plus sous le rond de profil en haut (ni ailleurs dans FIRE)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.159",
    "date": "2026-11-16",
    "titre": "Synergies de duo, elo des matchups, streams en plein écran",

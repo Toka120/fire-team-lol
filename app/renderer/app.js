@@ -6,6 +6,11 @@
   const REFRESH_EVERY = 10 * 60 * 1000;
   const FETCH_DAYS = 31;
 
+  // Sécurité : un « null » ou « false » passé à replaceChildren/append ne s'affiche jamais comme du texte (« null » sous le profil).
+  for (const proto of [Element.prototype, DocumentFragment.prototype]) for (const m of ['replaceChildren', 'append', 'prepend']) {
+    const orig = proto[m]; if (!orig || orig.__fire) continue;
+    const f = function (...a) { return orig.apply(this, a.filter((x) => x != null && x !== false)); }; f.__fire = true; proto[m] = f;
+  }
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   // Thème de fond choisi dans Paramètres (appliqué dès le démarrage, écran du code compris).
   // [id, nom, fond, accent 1, accent 2, description, ambiance] : les « ambiances » ont leur fond, leur police et leurs effets (v2/themes.css).
@@ -57,12 +62,22 @@
   const WEB_SVG = '<svg viewBox="0 0 80 80"><g stroke="#cfcfd8" stroke-width=".8" fill="none" opacity=".55"><path d="M0 0 L80 80 M0 0 L80 30 M0 0 L30 80 M0 0 L80 55 M0 0 L55 80"/><path d="M0 18 Q10 10 18 0 M0 34 Q20 22 34 0 M0 52 Q30 34 52 0 M0 70 Q40 46 70 0"/></g></svg>';
   const WINGS_SVG = '<svg viewBox="0 0 200 110"><g fill="#121018" stroke="#6b5aa0" stroke-width="1.2"><path d="M98 60 C80 40 60 20 22 8 C30 20 26 30 8 34 C26 40 28 48 14 58 C32 60 36 68 26 80 C46 78 56 84 54 96 C70 86 82 78 98 70Z"/><path d="M102 60 C120 40 140 20 178 8 C170 20 174 30 192 34 C174 40 172 48 186 58 C168 60 164 68 174 80 C154 78 144 84 146 96 C130 86 118 78 102 70Z"/></g><g stroke="#9d8ad0" stroke-width=".9" opacity=".7" fill="none"><path d="M96 62 C70 44 46 30 20 12 M96 64 C70 52 40 44 12 36 M96 66 C72 62 44 62 18 58 M96 68 C76 72 52 78 30 80"/><path d="M104 62 C130 44 154 30 180 12 M104 64 C130 52 160 44 188 36 M104 66 C128 62 156 62 182 58 M104 68 C124 72 148 78 170 80"/></g></svg>';
   const HORNS_SVG = '<svg viewBox="0 0 100 40"><path d="M22 38 C14 26 12 12 24 2 C22 14 28 24 36 34Z" fill="#2a0a0a" stroke="#ff4d4d" stroke-width="1.4"/><path d="M78 38 C86 26 88 12 76 2 C78 14 72 24 64 34Z" fill="#2a0a0a" stroke="#ff4d4d" stroke-width="1.4"/></svg>';
-  function pfxEl(k) {
+  function pfxEl(k, opt) {
     const el = h('div', { class: 'pfx pfx-' + k, 'aria-hidden': 'true' });
     const add = (cls, html, style) => { const sp = h('span', { class: cls, style }); sp.innerHTML = html; el.append(sp); };
     if (k === 'regards') [[8, 18, 1, 0, '#7dff6a'], [62, 10, 0.8, 1.3, '#ff3b3b'], [20, 52, 0.7, 2.6, '#7dff6a'], [70, 46, 1.1, 0.7, '#b9ff3b'], [40, 76, 0.85, 3.4, '#ff3b3b'], [78, 80, 0.6, 2, '#7dff6a']]
       .forEach(([x, y, sc, dl, c]) => add('pf-eye', EYE_SVG(c), `left:${x}%;top:${y}%;--sc:${sc};animation-delay:${dl}s;--c:${c}`));
-    if (k === 'sourire') { add('pf-eye big', EYE_SVG('#d9ffe0'), 'left:calc(76% - 32px);top:22px;--sc:1.3;--c:#9dffb0'); add('pf-grin', GRIN_SVG, ''); }
+    if (k === 'sourire' && opt && opt.tall) {
+      // Grand espace (menu de profil) : plusieurs sourires de travers, avec leurs yeux, qui apparaissent chacun leur tour.
+      [[60, 4, 0, 0, 1], [6, 30, -14, 3, 0.8], [52, 55, 11, 6, 0.9], [10, 80, 8, 1.5, 0.7]].forEach(([x, y, rot, dl, sc]) => {
+        const g = h('span', { class: 'pf-face', style: `left:${x}%;top:${y}%;--rot:${rot}deg;--fs:${sc};animation-delay:${dl}s` });
+        const e1 = h('span', { class: 'pf-eye big' }); e1.innerHTML = EYE_SVG('#d9ffe0'); e1.style.cssText = `animation-delay:${dl}s;--c:#9dffb0`;
+        const g1 = h('span', { class: 'pf-grin' }); g1.innerHTML = GRIN_SVG; g1.style.cssText = `animation-delay:${dl}s`;
+        g.append(e1, g1); el.append(g);
+      });
+      // Des yeux seuls qui s'ouvrent de temps en temps.
+      [[30, 18, 0.7, 4.5, '#7dff6a'], [74, 40, 0.6, 7.5, '#ff3b3b'], [36, 66, 0.65, 2.2, '#7dff6a'], [80, 88, 0.55, 5.6, '#b9ff3b']].forEach(([x, y, sc, dl, c]) => add('pf-eye', EYE_SVG(c), `left:${x}%;top:${y}%;--sc:${sc};animation-delay:${dl}s;--c:${c}`));
+    } else if (k === 'sourire') { add('pf-eye big', EYE_SVG('#d9ffe0'), 'left:calc(76% - 32px);top:22px;--sc:1.3;--c:#9dffb0'); add('pf-grin', GRIN_SVG, ''); }
     if (k === 'chauves') [[10, 20, 1, 0], [70, 45, 0.7, -1.8], [35, 65, 0.9, -3.1], [55, 12, 0.55, -4.4], [85, 80, 0.8, -5.2]].forEach(([x, y, sc, dl]) => add('pf-bat', BAT_SVG, `left:${x}%;top:${y}%;--sc:${sc};animation-delay:${dl}s`));
     if (k === 'ombres') [[6, 0], [24, 1.2], [70, 0.6], [88, 2]].forEach(([x, dl]) => add('pf-tendril', TENDRIL_SVG, `left:${x}%;animation-delay:${dl}s`));
     if (k === 'toiles') { add('pf-web tl', WEB_SVG, ''); add('pf-web tr', WEB_SVG, ''); add('pf-spider', '<svg viewBox="0 0 20 20"><circle cx="10" cy="11" r="4" fill="#0a0a0a"/><circle cx="10" cy="6" r="2.6" fill="#0a0a0a"/><path d="M6 9 L1 6 M6 11 L0 11 M6 13 L1 17 M14 9 L19 6 M14 11 L20 11 M14 13 L19 17" stroke="#0a0a0a" stroke-width="1.2"/><circle cx="9" cy="5.6" r=".7" fill="#ff3b3b"/><circle cx="11" cy="5.6" r=".7" fill="#ff3b3b"/></svg>', ''); }
@@ -1039,8 +1054,8 @@
           h('div', { class: 'row ph-row' },
             h('span', { class: 'vc-av ph-prev' + (UX.photo ? ' has-ph' : ''), style: UX.photo ? `background-image:url('${UX.photo}')` : null }, me ? ini(me) : '?'),
             h('label', { class: 'btn-fire small-btn ph-pick' }, UX.photo ? '🖼️ Changer la photo' : '🖼️ Choisir une photo',
-              h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', hidden: true, onchange: async (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const d = await photoShrink(f); if (!d) { vocalToast('Image illisible, essaie un autre fichier.'); return; } setUx({ photo: d }); actLog('profil', 'Nouvelle photo de profil'); renderSettings(); } })),
-            UX.photo ? h('button', { class: 'btn-ghost', onclick: () => { setUx({ photo: '' }); renderSettings(); } }, 'Retirer') : null),
+              h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', hidden: true, onchange: async (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const d = await photoShrink(f); if (!d) { vocalToast('Image illisible, essaie un autre fichier.'); return; } setUx({ photo: d }); ST_CACHE.at = 0; actLog('profil', 'Nouvelle photo de profil'); renderSettings(); renderNav(); } })),
+            UX.photo ? h('button', { class: 'btn-ghost', onclick: () => { setUx({ photo: '' }); ST_CACHE.at = 0; renderSettings(); renderNav(); } }, 'Retirer') : null),
           h('small', { class: 'muted' }, 'Elle remplace tes initiales partout : discussion, vocal, carte de profil. Elle est recadrée en carré au centre et réduite.')),
         h('label', { class: 'fld' }, h('span', null, 'Ton nom dans FIRE (discussion, vocal, profil)'),
           h('div', { class: 'row' },
@@ -9934,7 +9949,8 @@
       if (day !== lastDay) { rows.push(h('div', { class: 'chat-day' }, day)); lastDay = day; last = null; }
       const grouped = last && last.from === m.from && m.at - last.at < 5 * 60000;
       const col = st(m.from).color;
-      rows.push(h('div', { class: 'chat-m' + (m.from === me ? ' mine' : '') + (grouped ? ' grp' : '') },
+      rows.push(h('div', { class: 'chat-m with-av' + (m.from === me ? ' mine' : '') + (grouped ? ' grp' : '') },
+        grouped ? null : h('span', { class: 'chat-av-w', onclick: () => openProfile(m.from) }, miniAv(m.from, 'chat-av')),
         grouped ? null : h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n', title: 'Voir sa carte de profil (clic droit : plus d’options)', onclick: () => openProfile(m.from), oncontextmenu: (e) => { if (m.from === vocalMe()) return; e.preventDefault(); personMenu({ slug: m.from }, e.clientX, e.clientY); } }, chatWhoIco(m.from), nameEl(m.from)), roleBadge(m.from), h('span', { class: 'muted' }, hm(m.at)),
           isStaff() && !m.to ? h('button', { class: 'chat-del', title: 'Supprimer ce message (modération)', onclick: () => chatModDelete(m) }, '🗑') : null),
         h('div', { class: 'chat-tx' }, m.text)));
@@ -9966,7 +9982,7 @@
   }
   function chatConvButtons(me, cls, full) {
     const btn = (id, ico, label, title, dot) => { const n = chatUnreadIn(id); const pl = dot && full ? plateOf(id) : ''; return h('button', { class: cls + (CH.conv === id ? ' on' : '') + (pl ? ' plate pl-' + pl : ''), title, onclick: () => chatConv(id), oncontextmenu: dot ? (e) => { e.preventDefault(); personMenu({ slug: id }, e.clientX, e.clientY); } : null },
-      h('span', { class: 'chat-cv-i' }, ico), h('span', { class: 'chat-cv-l' }, dot && full ? nameEl(id, label) : label), dot ? stDot(id) : null, n && CH.conv !== id ? h('span', { class: 'chat-cv-n' }, String(n)) : null); };
+      h('span', { class: 'chat-cv-i' }, dot && full ? miniAv(id, 'cv-av') : ico), h('span', { class: 'chat-cv-l' }, dot && full ? nameEl(id, label) : label), dot ? stDot(id) : null, n && CH.conv !== id ? h('span', { class: 'chat-cv-n' }, String(n)) : null); };
     const chans = CHANNELS.filter((x) => salonOk(x[4])).map(([id, ico, label, desc, m]) => {
       const t = (m && m.type) || 'texte';
       const b = btn(id, full ? (TYPE_ICO[t] || '#') : ico, full ? label : (t === 'texte' ? '#' : TYPE_ICO[t] + ' ') + label, desc, false);
@@ -10145,7 +10161,7 @@
     const dot = ME.badges.patch || ME.badges.settings;
     const st = me ? statusOf(me) : { st: 'offline' };
     const k = st.game ? 'game' : (UX.status === 'invisible' ? 'invisible' : UX.status || 'online');
-    btn.replaceChildren(me ? avatarEl(me, 'me-av') : h('span', { class: 'vc-av me-av' }, '?'), h('i', { class: 'st-dot st-' + k }), dot ? h('span', { class: 'me-badge' }, String(dot)) : null);
+    btn.replaceChildren(...[me ? avatarEl(me, 'me-av') : h('span', { class: 'vc-av me-av' }, '?'), h('i', { class: 'st-dot st-' + k }), dot ? h('span', { class: 'me-badge' }, String(dot)) : null].filter(Boolean));
     if (ME.open) meMenu(true);
   }
   function meMenu(on) {
@@ -10155,6 +10171,10 @@
     if (!ME.open) { if (m) m.remove(); return; }
     if (!m) { m = h('div', { id: 'me-menu', class: 'me-menu', role: 'menu' }); document.body.append(m); }
     const me = vocalMe();
+    // Tout le menu prend mon apparence : thème de carte en fond et effet de profil du haut en bas.
+    const LK = looks();
+    m.className = 'me-menu' + (LK.card ? ' pf-themed' : '') + (LK.pfx ? ' has-pfx' : '');
+    if (LK.card) m.style.cssText = `--pc1:${LK.card[0]};--pc2:${LK.card[1]}`; else m.style.cssText = '';
     const close = () => meMenu(false);
     const it = (ico, label, fn, badge, cls) => h('button', { class: 'me-it' + (cls ? ' ' + cls : ''), role: 'menuitem', onclick: () => { close(); fn(); } }, h('span', { class: 'me-ico' }, ico), h('span', null, label), badge ? h('span', { class: 'nbadge' }, String(badge)) : null);
     const stBtn = (k) => h('button', { class: 'me-st' + ((UX.status || 'online') === k ? ' on' : ''), title: ST_LABEL[k][1], onclick: () => { setUx({ status: k }); actLog('statut', 'Statut : ' + ST_LABEL[k][1]); renderNav(); meMenu(true); } }, ST_LABEL[k][0], h('small', null, ST_LABEL[k][1]));
@@ -10163,7 +10183,6 @@
       me ? (() => { const L = looks();
         // En-tête comme ma carte de profil : bannière, thème de carte, effet de profil, cadre d'avatar, plaque de nom.
         return h('button', { class: 'me-head me-card' + (L.card ? ' pf-themed' : ''), style: L.card ? `--pc1:${L.card[0]};--pc2:${L.card[1]}` : null, title: 'Voir mon profil', onclick: () => { close(); openProfile(me); } },
-          L.pfx ? pfxEl(L.pfx) : null,
           h('div', { class: 'me-ban', style: UX.banner ? banStyle(UX.banner, 280, 62) : null }),
           h('div', { class: 'me-row' }, avatarEl(me, 'me-av big'),
             h('div', { class: 'me-nm' }, h('div', { class: L.plate ? 'plate pl-' + L.plate : '' }, nameEl(me)),
@@ -10182,6 +10201,7 @@
       it('🆕', 'Patch notes', () => go('patch'), ME.badges.patch),
       it('🐞', 'Signaler un bug', () => openBug()),
       ME.badges.settings ? it('🔄', 'Mise à jour disponible', set('maj'), '1', 'me-upd') : null].filter(Boolean));
+    if (LK.pfx) { const fx = pfxEl(LK.pfx, { tall: true }); fx.classList.add('me-pfx'); m.prepend(fx); }
     // Placé sous le bouton, aligné à droite
     if (btn) { const r = btn.getBoundingClientRect(); m.style.top = Math.round(r.bottom + 8) + 'px'; m.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px'; }
   }

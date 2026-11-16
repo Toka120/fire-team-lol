@@ -3345,3 +3345,24 @@ html.v2 body:has(#fire-pet) #vtoasts{right:100px}
 #vc-mini:hover .mini-bar{opacity:1}
 #vc-mini .mini-n{color:#fff;font-size:12.5px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #vc-mini .mini-x{border:0;background:rgb(0 0 0 / 50%);color:#fff;width:24px;height:24px;border-radius:50%;cursor:pointer}
+
+/* Menu de profil : mon apparence sur tout le menu */
+.me-menu{position:fixed}
+.me-menu.pf-themed{background:linear-gradient(170deg,var(--pc1),var(--pc2))}
+.me-menu .me-pfx{position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit}
+.me-menu > :not(.me-pfx){position:relative;z-index:1}
+.me-menu.has-pfx .me-it:hover,.me-menu.has-pfx .me-st:hover{background:rgb(255 255 255 / 10%)}
+.me-menu .me-card{background:rgb(0 0 0 / 25%)}
+.me-menu .me-card.pf-themed{background:linear-gradient(160deg,rgb(0 0 0 / 15%),rgb(0 0 0 / 35%))}
+.pf-face{position:absolute;width:42%;transform:rotate(var(--rot,0deg)) scale(var(--fs,1));transform-origin:center;opacity:.9;animation:pfGrinFade 9s ease-in-out infinite}
+.pf-face .pf-eye.big{position:relative;display:block;width:44%;margin:0 auto;left:auto;top:auto;opacity:1;animation:none}
+.pf-face .pf-eye.big svg{animation:pfBlink 4.5s infinite}
+.pf-face .pf-grin{position:relative;display:block;left:auto;right:auto;top:auto;margin-top:2px;opacity:1;animation:none}
+/* Avatars dans la discussion */
+.chat-m.with-av{position:relative;padding-left:46px!important}
+.chat-m.with-av.grp{padding-left:46px!important}
+.chat-av-w{position:absolute;left:2px;top:5px;cursor:pointer}
+.chat-av{width:34px!important;height:34px!important;font-size:12px!important;flex:none}
+#chat .chat-m.with-av,#chat .chat-m.with-av.grp{padding-left:36px!important}
+#chat .chat-av{width:26px!important;height:26px!important;font-size:10px!important}
+.chat-cv-i .cv-av{width:24px;height:24px;font-size:9px}
