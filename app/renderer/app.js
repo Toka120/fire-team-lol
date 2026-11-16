@@ -5634,6 +5634,7 @@
     syncKeys(true);
   }
   async function saveClip() {
+    if (typeof LIVE !== 'undefined' && noClipGame(LIVE.mine)) { vocalToast('Pas de clip en partie personnalisée', false); return; }
     actLog('clip', 'Clip instantané enregistré');
     if (!window.FireClips) return;
     const st = FireClips.state();
@@ -5693,7 +5694,10 @@
   const AC_OBJ = { DragonKill: 'Dragon', BaronKill: 'Nashor', HeraldKill: 'Héraut', HordeKill: 'Larves du Néant', AtakhanKill: 'Atakhan' };
   const AC_DRAG = { Fire: 'infernal', Earth: 'de montagne', Water: 'océanique', Air: 'des nuages', Hextech: 'hextech', Chemtech: 'chemtech', Elder: 'ancestral' };
   const AC_MULTI = { 2: 'Double kill', 3: 'Triple kill', 4: 'Quadra kill', 5: 'PENTAKILL' };
+  // Parties personnalisées et outil d'entraînement : jamais de clip (ni automatique, ni à la main).
+  const noClipGame = (g) => !!g && ((g.queue && (g.queue.custom || [0, 3100].includes(Number(g.queue.id)))) || /PRACTICETOOL|TUTORIAL/.test(String(g.mode || '')));
   function autoClipCheck(g) {
+    if (noClipGame(g)) return;
     const key = (g.players || []).map((p) => p.n).sort().join('|');
     const evs = g.events || [];
     if (AC.game !== key) { AC.game = key; AC.seen = new Set(evs.map((e) => e.id)); AC.lastKA = -999; return; } // ce qui s'est passé avant l'ouverture de FIRE n'est pas filmé

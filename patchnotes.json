@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.166",
+   "date": "2026-11-16",
+   "titre": "Pas de clips en partie personnalisée",
+   "items": [
+    [
+     "fix",
+     "Clips : plus aucun clip pendant les parties personnalisées et l’outil d’entraînement, ni automatique (kills, objectifs…), ni avec le raccourci (FIRE affiche « Pas de clip en partie personnalisée »)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.165",
    "date": "2026-11-16",
    "titre": "Recherche et filtre multi-kills dans les clips",
