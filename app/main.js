@@ -276,6 +276,9 @@ async function adblockWeb() {
     catch (e) { const buf = await fs.promises.readFile(cache).catch(() => null); if (buf) blocker = ElectronBlocker.deserialize(new Uint8Array(buf)); }
     if (!blocker) throw new Error('listes indisponibles');
     try { blocker.updateFromDiff({ added: AD_HOSTS.map((h) => '||' + h + '^$third-party') }); } catch (e) { /* */ }
+    // YouTube : certaines règles des listes (scripts anti-pub) cassent le lecteur dans FIRE (écran noir, la vidéo ne se lance pas).
+    // On laisse YouTube tranquille pour que les vidéos des matchups et des guides marchent toujours.
+    try { blocker.updateFromDiff({ added: ['@@||youtube.com^$document', '@@||youtube-nocookie.com^$document', '@@||googlevideo.com^', '@@||ytimg.com^', '@@||ggpht.com^'] }); } catch (e) { /* */ }
     blocker.enableBlockingInSession(s);
   } catch (e) {
     try { adFallback(s); } catch (x) { /* */ }
@@ -283,7 +286,7 @@ async function adblockWeb() {
 }
 function blockAdsWeb(wc) {
   const css = AD_CSS;
-  wc.on('dom-ready', () => { wc.insertCSS(css, { cssOrigin: 'user' }).catch(() => {}); });
+  wc.on('dom-ready', () => { if (isYt(wc.getURL())) return; wc.insertCSS(css, { cssOrigin: 'user' }).catch(() => {}); });
   hideAdSlots(wc);
 }
 function blockAds() {
@@ -293,13 +296,14 @@ function blockAds() {
     cb({ cancel: !!host && isAdHost(host) });
   });
 }
+const isYt = (u) => /^https:\/\/([\w-]+\.)*(youtube\.com|youtube-nocookie\.com)\//.test(String(u || ''));
 function hideAdSlots(wc) {
   wc.on('did-frame-finish-load', (e, isMain, pid, rid) => {
-    if (isMain) return;
+    if (isMain || isYt(wc.getURL())) return;
     try {
       const { webFrameMain } = require('electron');
       const f = webFrameMain.fromId(pid, rid);
-      if (f && /^https:\/\//.test(f.url)) f.executeJavaScript(`(() => { const s = document.createElement('style'); s.textContent = ${JSON.stringify(AD_CSS)}; (document.head || document.documentElement).append(s); })()`).catch(() => {});
+      if (f && /^https:\/\//.test(f.url) && !isYt(f.url)) f.executeJavaScript(`(() => { const s = document.createElement('style'); s.textContent = ${JSON.stringify(AD_CSS)}; (document.head || document.documentElement).append(s); })()`).catch(() => {});
     } catch (e) { /* cadre fermé entre-temps */ }
   });
 }

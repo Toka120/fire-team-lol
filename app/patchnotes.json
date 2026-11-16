@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.167",
+   "date": "2026-11-16",
+   "titre": "Les vidéos YouTube se lancent dans FIRE",
+   "items": [
+    [
+     "fix",
+     "Navigateur de FIRE : les vidéos YouTube (vidéos des matchups, guides de champion, recherches) se lancent de nouveau. Le bloqueur de pubs cassait le lecteur de YouTube (écran noir) : il laisse maintenant YouTube tranquille. Il continue de bloquer les pubs sur les autres sites."
+    ]
+   ]
+  },
+  {
    "v": "1.10.166",
    "date": "2026-11-16",
    "titre": "Pas de clips en partie personnalisée",
