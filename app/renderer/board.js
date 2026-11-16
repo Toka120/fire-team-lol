@@ -8,7 +8,20 @@
   const B = {
     open: false, bg: { k: 'map' }, items: [], cur: null, tool: 'pen', color: '#F5A524', tok: { team: 'b', role: 'T' }, ward: 'y',
     drag: null, opts: null, el: null, cv: null, ctx: null, map: null, mapTried: false, streams: {}, vids: {}, raf: 0, lastSend: 0,
+    down: new Set(), showTw: (() => { try { return localStorage.getItem('fire.board.tours') !== '0'; } catch (e) { return true; } })(),
   };
+  // Bâtiments de la Faille (coordonnées du jeu, comme dans la Revue) : tours, inhibiteurs, Nexus.
+  // Bleu (nous) en bas à gauche, rouge en haut à droite. Gomme sur un bâtiment : détruit / remis, pour tout le salon.
+  const TW = {
+    T1_L_03: [981, 10441], T1_L_02: [1512, 6699], T1_L_01: [1169, 4287], T1_C_05: [5846, 6396], T1_C_04: [5048, 4812], T1_C_03: [3651, 3696], T1_C_01: [1748, 2270], T1_C_02: [2177, 1807],
+    T1_R_03: [10504, 1029], T1_R_02: [6919, 1483], T1_R_01: [4281, 1253],
+    T2_L_03: [4318, 13875], T2_L_02: [7943, 13411], T2_L_01: [10481, 13650], T2_C_05: [8955, 8510], T2_C_04: [9767, 10113], T2_C_03: [11134, 11207], T2_C_01: [13052, 12612], T2_C_02: [12611, 13084],
+    T2_R_03: [13866, 4505], T2_R_02: [13327, 8226], T2_R_01: [13624, 10572] };
+  const INH = { I1_L: [1171, 3571], I1_C: [3203, 3208], I1_R: [3452, 1236], I2_L: [11261, 13676], I2_C: [11598, 11667], I2_R: [13604, 11316] };
+  const NEX = { N1: [1551, 1659], N2: [13243, 13235] };
+  const BUILD = [].concat(Object.entries(TW).map(([id, c]) => ({ id, k: 't', blue: id[1] === '1', c })), Object.entries(INH).map(([id, c]) => ({ id, k: 'i', blue: id[1] === '1', c })),
+    Object.entries(NEX).map(([id, c]) => ({ id, k: 'n', blue: id[1] === '1', c }))).map((b) => ({ ...b, x: b.c[0] / 14870, y: 1 - b.c[1] / 14870 }));
+  const BIDS = new Set(BUILD.map((b) => b.id));
   const COLORS = [['#F5A524', 'Or'], ['#579DFF', 'Bleu'], ['#EF6670', 'Rouge'], ['#F2F4F7', 'Blanc'], ['#39C58A', 'Vert']];
   const ROLES = [['T', 'Top'], ['J', 'Jungle'], ['M', 'Mid'], ['A', 'ADC'], ['S', 'Support']];
   const uid = () => Math.random().toString(36).slice(2, 10);
@@ -75,6 +88,7 @@
     }
     const u = Math.min(f.w, f.h) / 100; // unité : 1 % de la zone
     const P = (p) => [f.x + p[0] * f.w, f.y + p[1] * f.h];
+    if (B.bg.k !== 'screen' && B.showTw) drawBuildings(c, P, u);
     const all = B.cur ? B.items.filter((x) => x.id !== B.cur.id).concat(B.cur) : B.items;
     for (const it of all) {
       c.save();
@@ -113,6 +127,54 @@
       c.restore();
     }
   }
+  function drawBuildings(c, P, u) {
+    for (const b of BUILD) {
+      const [x, y] = P([b.x, b.y]);
+      const dead = B.down.has(b.id);
+      const col = b.blue ? '#579DFF' : '#EF6670';
+      c.save();
+      c.globalAlpha = dead ? 0.8 : 1;
+      c.shadowColor = 'rgba(0,0,0,.65)'; c.shadowBlur = 4;
+      c.strokeStyle = '#0B0D10'; c.lineWidth = Math.max(1.5, u * 0.35);
+      if (b.k === 't') {
+        // Tour : petite tour crénelée vue de dessus (carré + créneaux).
+        const r = Math.max(5, u * 1.45);
+        c.fillStyle = dead ? '#5b6270' : col;
+        c.beginPath();
+        c.moveTo(x - r, y + r); c.lineTo(x - r, y - r * 0.55); c.lineTo(x - r * 0.55, y - r * 0.55); c.lineTo(x - r * 0.55, y - r);
+        c.lineTo(x - r * 0.18, y - r); c.lineTo(x - r * 0.18, y - r * 0.55); c.lineTo(x + r * 0.18, y - r * 0.55); c.lineTo(x + r * 0.18, y - r);
+        c.lineTo(x + r * 0.55, y - r); c.lineTo(x + r * 0.55, y - r * 0.55); c.lineTo(x + r, y - r * 0.55); c.lineTo(x + r, y + r); c.closePath();
+        c.fill(); c.shadowBlur = 0; c.stroke();
+        if (!dead) { c.fillStyle = 'rgba(255,255,255,.55)'; c.fillRect(x - r * 0.28, y - r * 0.05, r * 0.56, r * 0.6); }
+      } else if (b.k === 'i') {
+        // Inhibiteur : anneau.
+        const r = Math.max(5, u * 1.35);
+        c.fillStyle = dead ? '#5b6270' : col;
+        c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); c.shadowBlur = 0; c.stroke();
+        c.fillStyle = '#0B0D10'; c.beginPath(); c.arc(x, y, r * 0.45, 0, Math.PI * 2); c.fill();
+      } else {
+        // Nexus : grand losange.
+        const r = Math.max(8, u * 2.4);
+        c.fillStyle = dead ? '#5b6270' : col;
+        c.beginPath(); c.moveTo(x, y - r); c.lineTo(x + r, y); c.lineTo(x, y + r); c.lineTo(x - r, y); c.closePath(); c.fill(); c.shadowBlur = 0; c.stroke();
+        c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.moveTo(x, y - r * 0.4); c.lineTo(x + r * 0.4, y); c.lineTo(x, y + r * 0.4); c.lineTo(x - r * 0.4, y); c.closePath(); c.fill();
+      }
+      if (dead) {
+        const r = Math.max(5, u * 1.3);
+        c.globalAlpha = 1; c.strokeStyle = '#F2F4F7'; c.lineWidth = Math.max(2, u * 0.45); c.lineCap = 'round';
+        c.beginPath(); c.moveTo(x - r, y - r); c.lineTo(x + r, y + r); c.moveTo(x + r, y - r); c.lineTo(x - r, y + r); c.stroke();
+      }
+      c.restore();
+    }
+  }
+  function hitBuilding(p) {
+    if (B.bg.k === 'screen' || !B.showTw) return null;
+    const f = frame(), u = Math.min(f.w, f.h) / 100;
+    let best = null, bd = Math.max(10, u * 2.2);
+    for (const b of BUILD) { const d = Math.hypot((b.x - p[0]) * f.w, (b.y - p[1]) * f.h); if (d < bd) { bd = d; best = b; } }
+    return best;
+  }
+  function setDown(id, on) { if (!BIDS.has(id)) return; if (on) B.down.add(id); else B.down.delete(id); draw(); if (B.el) toolbar(); }
   function loop() {
     B.raf = 0;
     if (!B.open || !B.el || !B.el.isConnected) return;
@@ -149,7 +211,13 @@
     // Avec l'outil Pion ou Ward, cliquer sur un pion ou une ward existante le déplace.
     const grab = (B.tool === 'tok' || B.tool === 'ward') && hit(p, true);
     if (grab) { B.drag = grab; return; }
-    if (B.tool === 'erase') { const it = hit(p); if (it) { remove(it.id); send({ op: 'del', id: it.id }); } return; }
+    if (B.tool === 'erase') {
+      const it = hit(p);
+      if (it) { remove(it.id); send({ op: 'del', id: it.id }); return; }
+      const b = hitBuilding(p);
+      if (b) { const on = !B.down.has(b.id); setDown(b.id, on); send({ op: 'tw', id: b.id, on }); }
+      return;
+    }
     if (B.tool === 'pen' || B.tool === 'arrow') { B.cur = { id: uid(), k: B.tool, c: B.color, by: me(), pts: [p] }; draw(); return; }
     if (B.tool === 'tok') { const it = { id: uid(), k: 'tok', team: B.tok.team, role: B.tok.role, x: p[0], y: p[1], by: me() }; add(it); send({ op: 'add', it }); return; }
     if (B.tool === 'ward') { const it = { id: uid(), k: 'ward', c: B.ward, x: p[0], y: p[1], by: me() }; add(it); send({ op: 'add', it }); }
@@ -205,17 +273,20 @@
     if (m.op === 'add' && valid(m.it)) { m.it.by = from; add(m.it); return; }
     if (m.op === 'del') { remove(m.id); return; }
     if (m.op === 'mov') { const it = B.items.find((x) => x.id === m.id); if (it && isFinite(m.x) && isFinite(m.y)) { it.x = clamp(m.x); it.y = clamp(m.y); draw(); } return; }
-    if (m.op === 'clear') { B.items = []; draw(); return; }
+    if (m.op === 'clear') { B.items = []; B.down.clear(); draw(); if (B.el) toolbar(); return; }
+    if (m.op === 'tw' && typeof m.id === 'string') { setDown(m.id, !!m.on); return; }
+    if (m.op === 'twreset') { B.down.clear(); draw(); if (B.el) toolbar(); return; }
     // Arrivée dans le salon : on reçoit le tableau tel qu'il est.
     if (m.op === 'full') {
       if (Array.isArray(m.items)) for (const it of m.items) if (valid(it) && !B.items.some((x) => x.id === it.id)) B.items.push(it);
       if (m.open && !B.open) { B.open = true; if (m.bg) B.bg = m.bg; changed(); }
+      if (Array.isArray(m.down)) for (const id of m.down.slice(0, 40)) if (BIDS.has(id)) B.down.add(id);
       draw(); kick();
     }
   }
   function peerReady(slug) {
-    if (!B.open && !B.items.length) return;
-    send({ op: 'full', open: B.open, bg: B.bg, items: B.items.slice(-300) }, slug);
+    if (!B.open && !B.items.length && !B.down.size) return;
+    send({ op: 'full', open: B.open, bg: B.bg, items: B.items.slice(-300), down: [...B.down] }, slug);
   }
 
   // ---------- Interface ----------
@@ -232,21 +303,24 @@
     bar.replaceChildren(...[
       h('div', { class: 'tb-grp' },
         tb('pen', 'Crayon', 'Dessin libre'), tb('arrow', 'Flèche', 'Trace une flèche'), tb('tok', 'Pion', 'Place un pion (puis glisse-le pour le déplacer)'),
-        tb('ward', 'Ward', 'Place une ward'), tb('erase', 'Gomme', 'Clique sur un dessin pour l’effacer')),
+        tb('ward', 'Ward', 'Place une ward'), tb('erase', 'Gomme', 'Clique sur un dessin pour l’effacer, ou sur une tour pour la marquer détruite (encore une fois pour la remettre)')),
       B.tool === 'pen' || B.tool === 'arrow' ? h('div', { class: 'tb-grp' }, COLORS.map(([c, n]) => h('button', { class: 'tb-col' + (B.color === c ? ' on' : ''), title: n, style: `--c:${c}`, onclick: () => { B.color = c; toolbar(); } }))) : null,
       B.tool === 'tok' ? h('div', { class: 'tb-grp' },
         h('button', { class: 'tb-btn team b' + (B.tok.team === 'b' ? ' on' : ''), onclick: () => { B.tok.team = 'b'; toolbar(); } }, 'Nous'),
         h('button', { class: 'tb-btn team r' + (B.tok.team === 'r' ? ' on' : ''), onclick: () => { B.tok.team = 'r'; toolbar(); } }, 'Eux'),
         ROLES.map(([r, n]) => h('button', { class: 'tb-btn role' + (B.tok.role === r ? ' on' : ''), title: n, onclick: () => { B.tok.role = r; toolbar(); } }, r))) : null,
       B.tool === 'ward' ? h('div', { class: 'tb-grp' },
-        h('button', { class: 'tb-btn' + (B.ward === 'y' ? ' on' : ''), onclick: () => { B.ward = 'y'; toolbar(); } }, 'Ward'),
-        h('button', { class: 'tb-btn' + (B.ward === 'p' ? ' on' : ''), onclick: () => { B.ward = 'p'; toolbar(); } }, 'Pink')) : null,
+        h('button', { class: 'tb-btn' + (B.ward === 'y' ? ' on' : ''), title: 'Ward jaune (balise invisible)', onclick: () => { B.ward = 'y'; toolbar(); } }, 'Jaune'),
+        h('button', { class: 'tb-btn' + (B.ward === 'p' ? ' on' : ''), title: 'Balise de contrôle (pink)', onclick: () => { B.ward = 'p'; toolbar(); } }, 'Pink')) : null,
+      B.bg.k !== 'screen' ? h('div', { class: 'tb-grp' },
+        h('button', { class: 'tb-btn' + (B.showTw ? ' on' : ''), title: 'Afficher les tours, inhibiteurs et Nexus sur la carte (juste pour toi)', onclick: () => { B.showTw = !B.showTw; try { localStorage.setItem('fire.board.tours', B.showTw ? '1' : '0'); } catch (e) { /* */ } toolbar(); draw(); } }, 'Tours'),
+        B.down.size ? h('button', { class: 'tb-btn', title: 'Remettre toutes les tours debout, pour tout le salon', onclick: () => { B.down.clear(); draw(); toolbar(); send({ op: 'twreset' }); } }, `Remettre les tours (${B.down.size})`) : null) : null,
       h('div', { class: 'tb-grp end' },
         h('select', { class: 'tb-bg', title: 'Fond du tableau', onchange: (e) => setBg(e.target.value === 'map' ? { k: 'map' } : { k: 'screen', key: e.target.value }) },
           h('option', { value: 'map', selected: B.bg.k === 'map' ? '' : null }, 'Carte de la Faille'),
           sources.map((k) => h('option', { value: k, selected: B.bg.k === 'screen' && B.bg.key === k ? '' : null }, 'Écran de ' + (B.opts.name(k.split(':')[0]))))),
         h('button', { class: 'tb-btn', title: 'Annuler ton dernier dessin', onclick: undo }, 'Annuler'),
-        h('button', { class: 'tb-btn', title: 'Effacer tout le tableau, pour tout le salon', onclick: () => { B.items = []; draw(); send({ op: 'clear' }); } }, 'Tout effacer'),
+        h('button', { class: 'tb-btn', title: 'Effacer tout le tableau, pour tout le salon', onclick: () => { B.items = []; B.down.clear(); draw(); toolbar(); send({ op: 'clear' }); } }, 'Tout effacer'),
         h('button', { class: 'tb-btn', title: 'Fermer le tableau pour tout le salon', onclick: close }, 'Fermer')),
     ].filter(Boolean));
   }
@@ -280,7 +354,7 @@
   function open() {
     B.open = true; ensureEl(); toolbar();
     send({ op: 'open', bg: shareBg(B.bg) });
-    send({ op: 'full', open: true, bg: shareBg(B.bg), items: B.items.slice(-300) });
+    send({ op: 'full', open: true, bg: shareBg(B.bg), items: B.items.slice(-300), down: [...B.down] });
     changed(); kick();
   }
   function close() { B.open = false; send({ op: 'close' }); changed(); }
@@ -301,7 +375,7 @@
       if (B.el && Object.keys(B.streams).sort().join() !== before) toolbar();
       kick();
     },
-    reset() { B.open = false; B.items = []; B.cur = null; B.drag = null; B.bg = { k: 'map' }; },
+    reset() { B.open = false; B.items = []; B.down.clear(); B.cur = null; B.drag = null; B.bg = { k: 'map' }; },
     items: () => B.items.slice(),
   };
 }());

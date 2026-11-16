@@ -4209,7 +4209,7 @@
     b.busy = true; b.msg = ''; render();
     const me = S.players.find((x) => x.slug === S.moi);
     let r;
-    try { r = await window.fire.bugs.send({ texte: b.texte, images: b.images, qui: me ? me.pseudo : 'anonyme', version: S.version, section: S.prevSection || '' }); } catch (e) { r = { ok: false, error: String(e) }; }
+    try { r = await window.fire.bugs.send({ texte: b.texte, images: b.images, qui: me ? me.pseudo : (coachOf(S.moi) ? coachOf(S.moi).pseudo : 'anonyme'), slug: S.moi || '', version: S.version, section: S.prevSection || '' }); } catch (e) { r = { ok: false, error: String(e) }; }
     b.busy = false;
     if (r && r.ok) { S.bug = { open: false, texte: '', images: [], busy: false, msg: '', ok: true }; popup('🐞 Rapport envoyé', 'Merci ! Le coach a bien reçu ton rapport de bug.', null); }
     else b.msg = '⚠ Envoi impossible : ' + ((r && r.error) || 'erreur inconnue');
@@ -4256,9 +4256,94 @@
       S.bugsLoading && !S.bugs ? h('p', { class: 'muted' }, 'Chargement…') : !list.length ? h('p', { class: 'muted small' }, 'Aucun rapport pour le moment. 👍') : null,
       list.map((x) => h('div', { class: 'bug-item' },
         h('div', { class: 'bug-meta' }, h('b', null, x.qui || 'anonyme'), h('span', { class: 'muted small' }, ` · v${x.version || '?'} · ${x.at ? dateLong(x.at) : ''}`),
-          h('button', { class: 'btn-ghost bug-done', onclick: async (e) => { e.target.disabled = true; const r = await window.fire.bugs.close(x.id); if (r && r.ok) { S.bugs = S.bugs.filter((y) => y.id !== x.id); } else S.bugsErr = (r && r.error) || 'erreur'; render(); } }, '✓ Réglé')),
+          h('button', { class: 'btn-fire small-btn bug-done', onclick: () => { BR.open = BR.open === x.id ? null : x.id; BR.err = ''; if (!BR.txt[x.id]) BR.txt[x.id] = BR_DEF; render(); } }, BR.open === x.id ? 'Fermer' : '✉️ Répondre / Réglé')),
         h('p', { class: 'bug-text' }, x.texte),
-        (x.images || []).length ? h('div', { class: 'bug-imgs' }, x.images.map((src, i) => h('div', { class: 'bug-thumb' }, h('img', { src, alt: '', onclick: () => zoom(src, `${x.qui} · capture ${i + 1}`) })))) : null)));
+        (x.images || []).length ? h('div', { class: 'bug-imgs' }, x.images.map((src, i) => h('div', { class: 'bug-thumb' }, h('img', { src, alt: '', onclick: () => zoom(src, `${x.qui} · capture ${i + 1}`) })))) : null,
+        (BR.sent[x.id] || []).map((t) => h('p', { class: 'small bug-sent' }, '✉️ Réponse envoyée : « ' + t + ' »')),
+        BR.open === x.id ? bugReplyBox(x) : null)));
+  }
+  // ----- Réponses aux rapports : le coach écrit, la personne reçoit une notification -----
+  const BR = { open: null, txt: {}, busy: false, err: '', sent: {}, list: null, timer: null };
+  const BR_DEF = 'Merci pour ton rapport 🙏 Le problème est réglé : mets FIRE à jour (Paramètres › Mises à jour) si ce n’est pas déjà fait.';
+  const bugSlug = (x) => x.slug || ((S.players.find((p) => p.pseudo === x.qui) || (S.coachs || []).find((c) => c.pseudo === x.qui) || {}).slug) || '';
+  function bugReplyBox(x) {
+    const slug = bugSlug(x);
+    if (!slug) return h('div', { class: 'bug-reply' }, h('p', { class: 'muted small' }, 'On ne sait pas qui a envoyé ce rapport (envoyé sans pseudo) : impossible de lui répondre.'),
+      h('button', { class: 'btn-ghost small-btn', onclick: () => bugSend(x, null, 'regle') }, '✓ Marquer réglé sans répondre'));
+    const ta = h('textarea', { class: 'inp', rows: 3, maxlength: 2000, oninput: (e) => { BR.txt[x.id] = e.target.value; } });
+    ta.value = BR.txt[x.id] || '';
+    return h('div', { class: 'bug-reply' },
+      h('div', { class: 'small muted' }, `Réponse à ${x.qui} : il reçoit une notification dans FIRE.`), ta,
+      BR.err ? h('p', { class: 'bad small' }, BR.err) : null,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn-fire small-btn', disabled: BR.busy ? true : null, onclick: () => bugSend(x, slug, 'regle') }, BR.busy ? 'Envoi…' : '✅ Envoyer : c’est réglé'),
+        h('button', { class: 'btn-ghost small-btn', disabled: BR.busy ? true : null, title: 'Le rapport reste dans la liste (ex. : tu as besoin de plus de détails)', onclick: () => bugSend(x, slug, 'info') }, '💬 Envoyer sans fermer'),
+        h('span', { class: 'spacer' }),
+        h('button', { class: 'linkbtn small', disabled: BR.busy ? true : null, onclick: () => bugSend(x, null, 'regle') }, 'Retirer sans répondre')));
+  }
+  async function bugSend(x, slug, statut) {
+    if (BR.busy) return;
+    const texte = String(BR.txt[x.id] || '').trim();
+    if (slug && !texte) { BR.err = 'Écris une réponse.'; render(); return; }
+    BR.busy = true; BR.err = ''; render();
+    let r;
+    try {
+      r = slug ? await window.fire.bugs.reply({ slug, bug: x.id, texte, statut, by: vocalMe() || S.moi || 'coach', extrait: String(x.texte || '').slice(0, 300), version: S.version })
+        : await window.fire.bugs.close(x.id);
+    } catch (e) { r = { ok: false, error: String(e) }; }
+    BR.busy = false;
+    if (r && r.ok) {
+      if (slug) { try { FV().hallSend(slug, { t: 'bugrep' }).catch(() => {}); } catch (e) { /* */ } actLog('bug', statut === 'regle' ? 'Bug réglé et réponse envoyée' : 'Réponse à un rapport de bug'); }
+      if (statut === 'regle') { S.bugs = (S.bugs || []).filter((y) => y.id !== x.id); BR.open = null; }
+      else { (BR.sent[x.id] = BR.sent[x.id] || []).push(texte.length > 80 ? texte.slice(0, 80) + '…' : texte); BR.txt[x.id] = ''; }
+      if (r.warn) S.bugsErr = r.warn;
+      popup(slug ? '✉️ Réponse envoyée' : '✓ Rapport retiré', slug ? `${x.qui} va recevoir une notification.` : 'Le rapport n’est plus dans la liste.', null);
+    } else BR.err = 'Non envoyé : ' + ((r && r.error) || 'erreur');
+    render();
+  }
+  // Côté joueur : les réponses du coach à mes rapports.
+  const bugRepSeen = () => load('fire.bugrep.vu', []);
+  const bugRepUnseen = () => (BR.list || []).filter((x) => !bugRepSeen().includes(x.id)).length;
+  async function bugRepCheck() {
+    if (!S.moi || SUB() || !window.fire.bugs || !window.fire.bugs.replies) return;
+    let r;
+    try { r = await window.fire.bugs.replies(S.moi); } catch (e) { return; }
+    if (!r || !r.ok) return;
+    const first = BR.list === null;
+    BR.list = r.list || [];
+    const known = load('fire.bugrep.notif', null);
+    const ids = BR.list.map((x) => x.id);
+    save('fire.bugrep.notif', ids.slice(0, 60));
+    // Première fois sur ce PC : seulement les réponses de la semaine pas encore vues.
+    const fresh = BR.list.filter((x) => (known === null ? !bugRepSeen().includes(x.id) && Date.now() - x.at < 7 * 86400000 : !known.includes(x.id)));
+    for (const x of fresh.slice(0, 2).reverse()) {
+      const title = x.statut === 'regle' ? '✅ Ton bug est réglé' : '💬 Réponse à ton rapport de bug';
+      const body = `${vocalName(x.by)} : ${x.texte.length > 160 ? x.texte.slice(0, 160) + '…' : x.texte}`;
+      const p = notifPrefs();
+      if (p.app) popup(title, body, 'patch');
+      if (p.on && window.fire.notify) deskNotify({ title, body, section: 'patch' }).catch(() => {});
+    }
+    if (fresh.length || first) { renderNav(); if (S.section === 'patch' && !typing()) render(); }
+  }
+  function bugRepStart() {
+    if (BR.timer) return;
+    setTimeout(bugRepCheck, 9000);
+    BR.timer = setInterval(bugRepCheck, 10 * 60000);
+  }
+  function bugRepCard() {
+    const list = (BR.list || []).slice(0, 6);
+    if (!list.length) return null;
+    const seen = bugRepSeen();
+    const card = h('div', { class: 'card bug-reps' }, h('h2', null, '📬 Réponses à tes rapports de bug'),
+      list.map((x) => h('div', { class: 'bug-rep' + (seen.includes(x.id) ? '' : ' new') },
+        h('div', { class: 'bug-rep-top' }, h('span', { class: 'bug-rep-st ' + (x.statut === 'regle' ? 'ok' : 'info') }, x.statut === 'regle' ? '✅ Réglé' : '💬 Réponse'),
+          h('b', null, vocalName(x.by)), h('span', { class: 'muted small' }, dateLong(x.at)), seen.includes(x.id) ? null : h('span', { class: 'bug-rep-new' }, 'Nouveau')),
+        h('p', { class: 'bug-rep-txt' }, x.texte),
+        x.extrait ? h('p', { class: 'muted small bug-rep-ex' }, 'Ton rapport : « ' + (x.extrait.length > 140 ? x.extrait.slice(0, 140) + '…' : x.extrait) + ' »') : null)));
+    // Vu en ouvrant la page : la pastille disparaît (le « Nouveau » reste affiché jusqu'à la prochaine visite).
+    const ids = list.map((x) => x.id).filter((id) => !seen.includes(id));
+    if (ids.length) setTimeout(() => { save('fire.bugrep.vu', seen.concat(ids).slice(-100)); renderNav(); }, 1500);
+    return card;
   }
 
   // ----- Patchs officiels de League of Legends (leagueoflegends.com, en français) -----
@@ -5947,6 +6032,7 @@
     view.replaceChildren(...[
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🆕'), h('div', null, h('h1', { class: 'title' }, 'Patch notes'),
         h('p', { class: 'muted' }, `Tout ce qui change dans FIRE : les versions de l'app et chaque mise à jour du contenu (diapos, quiz, guides…). Tu as la v${S.version}.`))),
+      bugRepCard(),
       bugCard(),
       S.coachState.coach ? bugInbox() : null,
       h('h2', { class: 'team-h' }, '📜 Les versions'),
@@ -5967,7 +6053,7 @@
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['accueil', '🏠', 'Accueil'], ['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips'], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['apprendre', '🎓', 'Apprendre en jouant'], ['puzdraft', '🧩', 'Puzzles de draft', pzDue() ? '!' : null], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
-      ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(annMine() ? [['annonces', '📢', 'Annonces']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
+      ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(annMine() ? [['annonces', '📢', 'Annonces']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', bugRepUnseen() ? String(bugRepUnseen()) : patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     if (MOBILE) { const keep = items.filter(([id]) => !MOBILE_OFF.has(id)); items.length = 0; items.push(...keep); }
     S.navItems = items;
@@ -8861,6 +8947,7 @@
   }
   function annHall(from, m) {
     if (m.t === 'ann' && m.f && typeof m.f === 'object') { annCheck(m.f); return; }
+    if (m.t === 'bugrep') { setTimeout(bugRepCheck, 3000); return; }
     if (m.t === 'annack' && !SUB() && window.fire.annonce) {
       const p = S.players.find((x) => x.slug === from);
       if (!p || !isSub(p)) return;
@@ -8971,6 +9058,7 @@
     setTimeout(subPush, 20000);
     if (FV().onRemp) FV().onRemp(subRecv);
     annStart();
+    bugRepStart();
     if (window.fire.parties && window.fire.parties.onNew) window.fire.parties.onNew((id) => { setTimeout(() => rvAutoShare(id), 25000); RV.list = null; if (S.section === 'revue' && !RV.g) renderRevue(); vocalToast('🎞️ Partie enregistrée : revois-la dans Outils › Revue de parties', true); });
     // Statut : envoyé tout de suite, puis chaque minute ; les cartes reçues sont gardées.
     setTimeout(statusPush, 4000);

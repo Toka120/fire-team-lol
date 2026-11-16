@@ -820,7 +820,7 @@
     if (m.t === 'chat' && m.msg && L.onChat && m.msg.from === from) L.onChat(m.msg);
     if (m.t === 'remp' && m.box && L.onRemp) { L.onRemp(from, m.box); return; }
     // Annonce du créateur (vérifiée par sa signature) et accusés de lecture des remplaçants.
-    if ((m.t === 'ann' || m.t === 'annack' || m.t === 'annok') && L.onAnn) { L.onAnn(from, m); return; }
+    if ((m.t === 'ann' || m.t === 'annack' || m.t === 'annok' || m.t === 'bugrep') && L.onAnn) { L.onAnn(from, m); return; }
     // Revue en direct (une partie revue ensemble, synchronisée) : jamais vers ni depuis les remplaçants.
     if (m.t === 'rv' && L.onRv && !(L.noChat && L.noChat.has(from))) { L.onRv(from, m); return; }
     // Commande de modération (déplacer, rendre muet, déconnecter, exclure…) : FIRE vérifie qui l'envoie avant d'obéir.

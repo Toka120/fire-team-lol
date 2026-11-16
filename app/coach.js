@@ -1191,7 +1191,7 @@ async function sendBug(b) {
   const where = await bugRepo();
   if (!where) return { ok: false, error: "le coach doit d'abord activer le jeton d'équipe (Paramètres › Réglages coach)" };
   const id = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14) + '-' + crypto.randomBytes(3).toString('hex');
-  const rapport = { id, at: Date.now(), qui: str(b.qui, 60) || 'anonyme', version: str(b.version, 20), section: str(b.section, 40), texte, images };
+  const rapport = { id, at: Date.now(), qui: str(b.qui, 60) || 'anonyme', slug: str(b.slug, 80), version: str(b.version, 20), section: str(b.section, 40), texte, images };
   try {
     const r = await ghPut(where.token, where.dir + id + '.json', seal(rapport, id), null, 'Rapport de bug ' + id, where.repo);
     if (!r.ok) return { ok: false, error: "GitHub n'a pas accepté l'envoi, réessaie" };
@@ -1227,6 +1227,30 @@ async function closeBug(id) {
     if (!d.ok) throw new Error('GitHub a refusé la suppression (' + d.status + ')');
     return { ok: true };
   } catch (e) { return { ok: false, error: String(e.message || e) }; }
+}
+
+// Réponses aux rapports de bug : le coach répond, la personne reçoit une notification dans son FIRE.
+// Un petit fichier par membre (chiffré avec le code d'équipe), écrit par le coach, lu par la personne.
+const bugRepPath = (slug) => 'bugs/reponses/' + crypto.createHash('sha256').update(String(slug)).digest('hex').slice(0, 24) + '.json';
+async function bugReply(o) {
+  if (!coachState().coach) return { ok: false, error: 'réservé au coach' };
+  o = o || {};
+  const slug = str(o.slug, 80), texte = str(o.texte, 2000);
+  if (!slug) return { ok: false, error: 'on ne sait pas qui a envoyé ce rapport' };
+  if (!texte) return { ok: false, error: 'écris une réponse' };
+  const statut = o.statut === 'info' ? 'info' : 'regle';
+  const rep = { id: Date.now().toString(36) + crypto.randomBytes(3).toString('hex'), bug: str(o.bug, 30), at: Date.now(), by: str(o.by, 80), texte, statut, extrait: str(o.extrait, 300), version: str(o.version, 20) };
+  try {
+    await teamWrite(bugRepPath(slug), (d) => ({ slug, list: [rep].concat(d && Array.isArray(d.list) ? d.list : []).slice(0, 30) }), 'Réponse à un rapport de bug');
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+  if (statut === 'regle' && rep.bug) { const c = await closeBug(rep.bug); if (!c.ok) return { ok: true, rep, warn: 'réponse envoyée, mais le rapport n’a pas pu être retiré : ' + c.error }; }
+  return { ok: true, rep };
+}
+async function bugReplies(slug) {
+  slug = String(slug || '').slice(0, 80);
+  if (!slug) return { ok: true, list: [] };
+  try { const d = await teamRead(bugRepPath(slug)); return { ok: true, list: d && Array.isArray(d.list) ? d.list : [] }; }
+  catch (e) { return { ok: false, error: String((e && e.message) || e), list: [] }; }
 }
 
 // ---------- Revue de parties partagée avec l'équipe (dépôt de données, chiffré avec le code d'équipe) ----------
@@ -1506,4 +1530,4 @@ async function revueNote(id, note, del) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 
-module.exports = { annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

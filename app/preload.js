@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld('fire', {
   screen: { sources: call('screen:sources'), pick: call('screen:pick'), ownAudio: call('screen:ownAudio') },
   keys: { set: call('keys:set'), on: (cb) => ipcRenderer.on('keys:hit', (e, a) => cb(a)) },
   lcu: { draft: call('lcu:draft'), runes: call('lcu:runes'), import: call('lcu:import'), stats: call('lcu:stats') },
-  bugs: { send: call('bug:send'), list: call('bug:list'), close: call('bug:close') },
+  bugs: { send: call('bug:send'), list: call('bug:list'), close: call('bug:close'), reply: call('bug:reply'), replies: call('bug:replies') },
   hash: call('hash'),
   version: call('version'),
   fetchPlayer: call('dpm:fetch'),

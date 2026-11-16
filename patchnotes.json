@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "1.10.135",
+   "date": "2026-11-16",
+   "titre": "Réponses aux bugs, tours sur le tableau tactique",
+   "items": [
+    [
+     "new",
+     "Rapports de bug : le coach peut répondre à chaque rapport (« ✅ C’est réglé » ou « 💬 Envoyer sans fermer » pour demander des détails). La personne reçoit une notification dans FIRE et sur Windows."
+    ],
+    [
+     "new",
+     "Patch notes › « 📬 Réponses à tes rapports de bug » : les réponses du coach avec ton rapport d’origine. Une pastille sur Patch notes signale une nouvelle réponse."
+    ],
+    [
+     "new",
+     "Vocal › Tableau tactique : les tours, inhibiteurs et Nexus des deux équipes sont placés sur la carte (bleu en bas, rouge en haut)."
+    ],
+    [
+     "new",
+     "Gomme sur une tour, un inhibiteur ou un Nexus : il est marqué détruit pour tout le salon (encore un clic pour le remettre). « Remettre les tours » remet tout debout ; le bouton « Tours » les cache sur ton écran."
+    ],
+    [
+     "improve",
+     "Tableau tactique : « Ward » s’appelle maintenant « Jaune » à côté de « Pink », pour ne plus avoir deux boutons « Ward »."
+    ]
+   ]
+  },
+  {
    "v": "1.10.134",
    "date": "2026-11-14",
    "titre": "Paramètres : on reste où on est",

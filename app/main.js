@@ -957,6 +957,8 @@ ipcMain.handle('planning:save', (e, action) => coach.savePlanning(action || {}))
 ipcMain.handle('bug:send', (e, b) => coach.sendBug(b || {}));
 ipcMain.handle('bug:list', () => coach.listBugs());
 ipcMain.handle('bug:close', (e, id) => coach.closeBug(id));
+ipcMain.handle('bug:reply', (e, o) => coach.bugReply(o && typeof o === 'object' ? o : {}));
+ipcMain.handle('bug:replies', (e, slug) => coach.bugReplies(String(slug || '')));
 ipcMain.handle('champions', () => coach.champions());
 ipcMain.handle('jeux:data', () => jeux.data());
 ipcMain.handle('jeux:lore', (e, slug) => jeux.lore(slug));
