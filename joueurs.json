@@ -32,7 +32,7 @@
     "data": "0WhK6ZLW0V/s+xh29cUhrQ+uVXu2BRo7ztCYqW/jXbY="
   },
   "data_repo": "Toka120/fire-lol-data",
-  "derniere_version": "1.10.135",
+  "derniere_version": "1.10.136",
   "objectif": {
     "debut": "2026-10-31",
     "games": 20,
@@ -42,14 +42,15 @@
     {
       "role": "Top",
       "role_id": "top",
-      "pseudo": "lebrésilien#931",
+      "pseudo": "Seuf93#EUW",
       "slug": "lebr%C3%A9silien%20-931",
       "comptes_flex": [
         {
           "pseudo": "Seuf93#EUW",
           "slug": "Seuf93-EUW",
           "dpm": "https://dpm.lol/Seuf93-EUW",
-          "note": "compte de lebrésilien pour la Flex et le 5c5"
+          "jusqu_au": "2026-11-16T02:00",
+          "note": "avant le 16/11 à 2h : Seuf93 servait seulement pour la Flex et le 5c5"
         }
       ],
       "pool_ids": [
@@ -60,12 +61,27 @@
       ],
       "pool": "Renekton · Zaahen · Gwen · Yone",
       "tableau": "",
-      "dpm": "https://dpm.lol/lebr%C3%A9silien%20-931",
+      "dpm": "https://dpm.lol/Seuf93-EUW",
       "puuid": "dgZW-YImN2kdzaa-9fiJ7dT7A4-LAu6FTsA0jacL7RVTbhaEiWxjzmRmvkzlj6GjAhwpeubS1MGDdA",
       "bandeau": {
         "texte": "🛡️ Le pilier",
         "theme": "ruby"
-      }
+      },
+      "comptes": [
+        {
+          "pseudo": "lebrésilien#931",
+          "slug": "lebr%C3%A9silien%20-931",
+          "puuid": "dgZW-YImN2kdzaa-9fiJ7dT7A4-LAu6FTsA0jacL7RVTbhaEiWxjzmRmvkzlj6GjAhwpeubS1MGDdA",
+          "jusqu_au": "2026-11-16T02:00"
+        },
+        {
+          "pseudo": "Seuf93#EUW",
+          "slug": "Seuf93-EUW",
+          "depuis": "2026-11-16T02:00"
+        }
+      ],
+      "duo_flex": true,
+      "duo_flex_note": "Platine : ne peut pas jouer en Solo/Duo avec l'équipe. Ses Flex à deux (2 joueurs FIRE dans la même équipe) comptent dans les games de la semaine, pour lui et pour son coéquipier."
     },
     {
       "role": "Jungle",
