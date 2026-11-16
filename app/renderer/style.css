@@ -3138,7 +3138,7 @@ html[data-calm] .pet{animation:none}
 .pf-eye.big svg{animation:pfBlink 4.5s infinite}
 @keyframes pfEyes{0%,8%{opacity:0}16%,70%{opacity:1}80%,100%{opacity:0}}
 @keyframes pfBlink{0%,40%,46%,100%{transform:scaleY(1)}43%{transform:scaleY(.06)}}
-.pf-grin{position:absolute;left:18%;right:18%;top:52%;filter:drop-shadow(0 0 8px #9dffb0);opacity:.95;animation:pfGrinFade 9s ease-in-out infinite}
+.pf-grin{position:absolute;left:56%;right:4%;top:48px;filter:drop-shadow(0 0 8px #9dffb0);opacity:.95;animation:pfGrinFade 9s ease-in-out infinite}
 .pf-grin svg{width:100%;height:auto;display:block}
 @keyframes pfGrinFade{0%,10%{opacity:0;transform:scale(.92)}25%,75%{opacity:.95;transform:none}90%,100%{opacity:0;transform:scale(1.04)}}
 .pf-bat{position:absolute;width:46px;transform:scale(var(--sc,1));animation:pfBat 7s linear infinite}
@@ -3196,9 +3196,10 @@ html[data-calm] .pf-eye,html[data-calm] .pf-eye svg,html[data-calm] .pf-grin,htm
 .acc-shop-prev .vc-av{width:38px;height:38px;font-size:13px;position:relative;z-index:1}
 .acc-shop-prev .nm{position:relative;z-index:4;font-weight:700}
 .acc-shop-prev .pfx{left:auto;width:48%}
-.acc-shop-prev .pf-eye{width:26px}.acc-shop-prev .pf-eye.big{width:30px;top:8%!important}
-.acc-shop-prev .pf-grin{top:44%}
-.shop-packprev .pf-eye.big,.shop-pfx .pf-eye.big{width:34px}
+.acc-shop-prev .pf-eye{width:26px}.acc-shop-prev .pf-eye.big{width:30px;top:4px!important;left:calc(76% - 15px)!important}
+.acc-shop-prev .pf-grin{top:20px}
+.shop-packprev .pf-eye.big,.shop-pfx .pf-eye.big{width:34px;top:8px!important;left:calc(76% - 17px)!important}
+.shop-packprev .pf-grin,.shop-pfx .pf-grin{top:28px}
 .promo-dark .promo-ban{background:radial-gradient(90% 120% at 80% 0%,rgb(40 90 50 / 55%),transparent 60%),linear-gradient(160deg,#06120a,#000)!important}
 .promo-dark{box-shadow:0 0 60px rgb(125 255 106 / 18%),0 20px 60px rgb(0 0 0 / 70%)}
 .promo-dark .prof-av-wrap{overflow:visible}

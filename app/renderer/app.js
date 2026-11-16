@@ -62,7 +62,7 @@
     const add = (cls, html, style) => { const sp = h('span', { class: cls, style }); sp.innerHTML = html; el.append(sp); };
     if (k === 'regards') [[8, 18, 1, 0, '#7dff6a'], [62, 10, 0.8, 1.3, '#ff3b3b'], [20, 52, 0.7, 2.6, '#7dff6a'], [70, 46, 1.1, 0.7, '#b9ff3b'], [40, 76, 0.85, 3.4, '#ff3b3b'], [78, 80, 0.6, 2, '#7dff6a']]
       .forEach(([x, y, sc, dl, c]) => add('pf-eye', EYE_SVG(c), `left:${x}%;top:${y}%;--sc:${sc};animation-delay:${dl}s;--c:${c}`));
-    if (k === 'sourire') { add('pf-eye big', EYE_SVG('#d9ffe0'), 'left:28%;top:34%;--sc:1.6;--c:#9dffb0'); add('pf-grin', GRIN_SVG, ''); }
+    if (k === 'sourire') { add('pf-eye big', EYE_SVG('#d9ffe0'), 'left:calc(76% - 32px);top:22px;--sc:1.3;--c:#9dffb0'); add('pf-grin', GRIN_SVG, ''); }
     if (k === 'chauves') [[10, 20, 1, 0], [70, 45, 0.7, -1.8], [35, 65, 0.9, -3.1], [55, 12, 0.55, -4.4], [85, 80, 0.8, -5.2]].forEach(([x, y, sc, dl]) => add('pf-bat', BAT_SVG, `left:${x}%;top:${y}%;--sc:${sc};animation-delay:${dl}s`));
     if (k === 'ombres') [[6, 0], [24, 1.2], [70, 0.6], [88, 2]].forEach(([x, dl]) => add('pf-tendril', TENDRIL_SVG, `left:${x}%;animation-delay:${dl}s`));
     if (k === 'toiles') { add('pf-web tl', WEB_SVG, ''); add('pf-web tr', WEB_SVG, ''); add('pf-spider', '<svg viewBox="0 0 20 20"><circle cx="10" cy="11" r="4" fill="#0a0a0a"/><circle cx="10" cy="6" r="2.6" fill="#0a0a0a"/><path d="M6 9 L1 6 M6 11 L0 11 M6 13 L1 17 M14 9 L19 6 M14 11 L20 11 M14 13 L19 17" stroke="#0a0a0a" stroke-width="1.2"/><circle cx="9" cy="5.6" r=".7" fill="#ff3b3b"/><circle cx="11" cy="5.6" r=".7" fill="#ff3b3b"/></svg>', ''); }

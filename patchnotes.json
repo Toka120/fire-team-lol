@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.149",
+   "date": "2026-11-16",
+   "titre": "Effet « Sourire » mieux placé",
+   "items": [
+    [
+     "fix",
+     "Effet de profil « Sourire » : les yeux et le sourire apparaissent en haut à droite de la carte, dans l’espace libre, et ne passent plus sur ton pseudo (carte de profil, aperçu de la boutique et bloc de l’Accueil)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.148",
    "date": "2026-11-16",
    "titre": "Thème Pantins",
