@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.178",
+   "date": "2026-11-17",
+   "titre": "Nouveau compagnon : le Mécano",
+   "items": [
+    [
+     "new",
+     "Boutique › Compagnons : « Mécano (chibi) », le petit pilote dans son robot. Il fait coucou de la patte, ses oreilles bougent et frétillent, il cligne des yeux, a les joues roses, et son robot respire. Les tuyaux fument et des étoiles et des cœurs scintillent autour de lui."
+    ]
+   ]
+  },
+  {
    "v": "1.10.177",
    "date": "2026-11-16",
    "titre": "Croco : des yeux tout neufs",

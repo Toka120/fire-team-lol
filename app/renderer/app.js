@@ -54,6 +54,7 @@
     briar: ['Briar (chibi)', null, 'img:../assets/pets/briar.webp'],
     orbes: ['Mage aux orbes (chibi)', null, 'img:../assets/pets/orbes.webp'],
     croco: ['Croco (chibi)', null, 'img:../assets/pets/croco.webp'],
+    meca: ['Mécano (chibi)', null, 'img:../assets/pets/meca.webp'],
     bulle: ['Bulle', '<circle cx="25" cy="26" r="19" fill="#7fe8ff" opacity=".85"/><circle cx="25" cy="26" r="19" fill="none" stroke="#fff" stroke-width="1.5" opacity=".7"/><ellipse cx="17" cy="15" rx="5" ry="3" fill="#fff" opacity=".7" transform="rotate(-30 17 15)"/>'],
   };
   // Boutique : effets de profil « sombres » dessinés en SVG (yeux, sourire, chauves-souris, ombres, toiles)
