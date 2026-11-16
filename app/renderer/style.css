@@ -3402,3 +3402,5 @@ html[data-calm] .jeu-ombre.torch .om-light{animation:none}
 .jeu-skin .inp{flex:1;min-width:220px}
 .jeu-skin.ok{border-color:#5fd39a}
 .jeu-skin.ko{border-color:rgb(239 90 90 / 60%)}
+.clb-search{gap:6px;flex-wrap:wrap;align-items:center;margin:-2px 0 10px}
+.clb-q{flex:1;min-width:240px;max-width:420px}

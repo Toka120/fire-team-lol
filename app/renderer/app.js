@@ -5950,7 +5950,13 @@
     const others = v.on && v.members.some((m) => m.ok);
     const upd = (patch) => { save('fire.clips', { ...c, ...patch }); clipsApply().then(() => renderClipsPage()); renderClipsPage(); };
     const champs = [...new Set(CL.list.map((x) => x.meta && x.meta.champ).filter(Boolean))].sort();
-    const list = CL.list.filter((x) => (CLB.filter === 'tous' || (CLB.filter === 'auto' ? x.meta && x.meta.auto : clipKind(x) === CLB.filter)) && (!CLB.champ || (x.meta && x.meta.champ) === CLB.champ));
+    // Nombre de kills du clip, d'après son titre (« Double kill », « Triple kill », « PENTAKILL », « 3 kills », « Kill »).
+    const killsOf = (x) => { const t = String(clipTitle(x) || ''); return /penta/i.test(t) ? 5 : /quadra/i.test(t) ? 4 : /triple/i.test(t) ? 3 : /double/i.test(t) ? 2 : (+((t.match(/(\d+)\s*kills/i) || [])[1]) || (/\bkill\b/i.test(t) ? 1 : 0)); };
+    const qn = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const q = qn(CLB.q).trim();
+    const list = CL.list.filter((x) => (CLB.filter === 'tous' || (CLB.filter === 'auto' ? x.meta && x.meta.auto : clipKind(x) === CLB.filter)) && (!CLB.champ || (x.meta && x.meta.champ) === CLB.champ)
+      && (!CLB.kills || (CLB.kills === 1 ? killsOf(x) === 1 : killsOf(x) >= CLB.kills && (CLB.kills === 5 || killsOf(x) === CLB.kills)))
+      && (!q || qn([clipTitle(x), x.meta && x.meta.champ && FC.champName(x.meta.champ), x.meta && x.meta.mode, x.meta && x.meta.from].filter(Boolean).join(' ')).includes(q)));
     const sel = CL.list.find((x) => x.path === CL.sel);
     const mb = (b) => (b / 1048576).toFixed(1).replace('.', ',') + ' Mo';
     const when = (t) => new Date(t).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -5990,6 +5996,13 @@
       champs.length ? h('select', { class: 'inp clb-champ', onchange: (e) => { CLB.champ = e.target.value; renderClipsPage(); } }, h('option', { value: '' }, 'Tous les champions'),
         champs.map((x) => h('option', { value: x, selected: CLB.champ === x ? true : null }, FC.champName(x)))) : null,
       CL.list.length && !CLM.on ? h('button', { class: 'btn-ghost clm-go', title: 'Ou Ctrl + clic sur un clip', onclick: () => { CLM.on = true; renderClipsPage(); } }, '☑ Sélectionner') : null);
+    // Recherche et filtre par nombre de kills (kill, double, triple, quadra, penta).
+    const KF = [[1, '⚔️ 1 kill'], [2, '✌️ Double'], [3, '🔥 Triple'], [4, '💥 Quadra'], [5, '👑 Penta']];
+    const kfN = (k) => CL.list.filter((x) => (k === 1 ? killsOf(x) === 1 : k === 5 ? killsOf(x) >= 5 : killsOf(x) === k)).length;
+    const search = CL.list.length ? h('div', { class: 'row clb-search' },
+      h('input', { class: 'inp clb-q', type: 'search', placeholder: '🔎 Rechercher un clip (titre, champion, mode…)', value: CLB.q || '', oninput: (e) => { CLB.q = e.target.value; CLB.n = 24; clearTimeout(CLB.qT); CLB.qT = setTimeout(() => { const pos = e.target.selectionStart; renderClipsPage(); const i = document.querySelector('.clb-q'); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch (er) { /* */ } } }, 200); } }),
+      KF.map(([k, l]) => { const n = kfN(k); return n || CLB.kills === k ? h('button', { class: 'chip', 'aria-pressed': String(CLB.kills === k), onclick: () => { CLB.kills = CLB.kills === k ? 0 : k; CLB.n = 24; renderClipsPage(); } }, `${l} · ${n}`) : null; }),
+      CLB.q || CLB.kills ? h('button', { class: 'linkbtn small', onclick: () => { CLB.q = ''; CLB.kills = 0; renderClipsPage(); } }, '✕ Effacer') : null) : null;
     const player = sel ? h('div', { class: 'card clb-player' },
       h('video', { src: sel.url, controls: '', autoplay: '', preload: 'auto' }),
       h('div', { class: 'clb-ph' }, sel.meta && sel.meta.champ ? champIcon(sel.meta.champ, 32) : null,
@@ -6023,7 +6036,7 @@
       : h('div', { class: 'card' }, h('p', { class: 'muted' }, CL.list.length ? 'Aucun clip avec ce filtre.' : c.on ? `Aucun clip pour l’instant. Lance une game : ${c.auto !== false ? 'tes kills, assists et objectifs seront filmés tout seuls, et ' : ''}${keyTxt(vkeys().clip)} garde les ${c.seconds} dernières secondes.` : 'Active l’enregistrement continu ci-dessus pour que FIRE filme tes meilleurs moments.'));
     // Les clips supprimés entre-temps ne restent pas sélectionnés
     for (const p of [...CLM.pick]) if (!CL.list.some((x) => x.path === p)) CLM.pick.delete(p);
-    view.replaceChildren(...[hero, tabs, cfg, player, filters, CLM.on ? clmBar(list) : null, grid,
+    view.replaceChildren(...[hero, tabs, cfg, player, filters, search, CLM.on ? clmBar(list) : null, grid,
       list.length > CLB.n ? h('div', { class: 'more-row' }, h('button', { class: 'btn-ghost', onclick: () => { CLB.n += 24; renderClipsPage(); } }, `Voir plus (${list.length - CLB.n})`)) : null].filter(Boolean));
   }
 
