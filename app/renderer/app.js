@@ -371,6 +371,14 @@
     }, 60 * 1000);
     if (!S.moi && !load('fire.moi.demande', false)) later(askWho);
     rdvStart();
+    // Nouvelle semaine (lundi 0h) : l'objectif repart à zéro tout de suite, même si FIRE est resté ouvert tout le week-end.
+    S.weekMon = mondayOf(todayYmd());
+    setInterval(() => {
+      const mon = mondayOf(todayYmd());
+      if (mon === S.weekMon) return;
+      S.weekMon = mon; applyWeek();
+      if (['stats', 'accueil', 'pool'].includes(S.section) && !typing()) render(); else renderNav();
+    }, 60000);
   }
 
   function wire() {
@@ -430,6 +438,7 @@
         // Les membres acceptés (et ma demande en attente) ne sont pas dans joueurs.json : on les garde.
         S.players = c.joueurs.slice();
         membresMerge(load('fire.membres', []));
+        try { markDuoFlex(); } catch (e) { /* données pas encore là */ }
         S.coachs = Array.isArray(c.coachs) ? c.coachs : [];
         S.cfgObj = (c.objectif && c.objectif.debut) ? c.objectif : null;
         applyWeek();
@@ -2882,10 +2891,15 @@
   // Un joueur peut changer de compte : « comptes » liste ses comptes, chacun avec ses dates.
   // Un ancien compte (jusqu_au) garde toutes ses games jusqu'à ce jour inclus, le nouveau (depuis) compte à partir de ce jour.
   // L'identité du joueur (slug) ne change pas : planning, pools, objectifs et réglages restent les siens.
-  const accountsOf = (p) => (Array.isArray(p.comptes) && p.comptes.length ? p.comptes : [{ slug: p.slug, puuid: p.puuid || null, pseudo: p.pseudo }]);
+  // L'identifiant Riot d'un compte : joueurs.json, sinon celui retrouvé par dpm.lol et gardé sur ce PC.
+  const accPu = (c) => c.puuid || (load('fire.puuids', {}) || {})[c.slug] || null;
+  const accountsOf = (p) => (Array.isArray(p.comptes) && p.comptes.length ? p.comptes.map((c) => (c.puuid ? c : { ...c, puuid: accPu(c) })) : [{ slug: p.slug, puuid: p.puuid || null, pseudo: p.pseudo }]);
   const curAccount = (p) => { const a = accountsOf(p); return a.find((c) => !c.jusqu_au) || a[a.length - 1]; };
   const dayMs = (ymd) => new Date(ymd + 'T00:00:00').getTime();
-  const inAccount = (c, t) => !(c.depuis && t < dayMs(c.depuis)) && !(c.jusqu_au && t >= dayMs(c.jusqu_au) + 86400000);
+  // « 2026-11-15 » : le jour entier ; « 2026-11-16T02:00 » : à l'heure près (heure de Paris).
+  const switchMs = (x, end) => (/T\d{2}:\d{2}/.test(x) ? new Date(x).getTime() : dayMs(x) + (end ? 86400000 : 0));
+  const switchTxt = (x) => (/T\d{2}:\d{2}/.test(x) ? `${dateFr(x.slice(0, 10))} à ${Number(x.slice(11, 13))}h${x.slice(14, 16) === '00' ? '' : x.slice(14, 16)}` : dateFr(x));
+  const inAccount = (c, t) => !(c.depuis && t < switchMs(c.depuis)) && !(c.jusqu_au && t >= switchMs(c.jusqu_au, true));
   function mergeChamps(lists) {
     const by = {};
     const W = ['kda', 'kills', 'deaths', 'assists', 'csm', 'gpm', 'dpm', 'kp', 'goldDiff'];
@@ -2911,6 +2925,7 @@
     for (const c of accs) {
       let r;
       try { r = await window.fire.fetchPlayer({ slug: c.slug, puuid: c.puuid || null }, fetchDays()); } catch (e) { r = { ok: false, error: String(e) }; }
+      if (r && r.ok && r.puuid && !c.puuid) { const pm = load('fire.puuids', {}) || {}; if (pm[c.slug] !== r.puuid) { pm[c.slug] = r.puuid; save('fire.puuids', pm); } }
       const old = prev[c.slug];
       if (r && r.ok) {
         ok = true;
@@ -2961,6 +2976,7 @@
         if (res && res.ok && res.puuid && !p.puuid) { const m = load('fire.puuids', {}) || {}; if (m[p.slug] !== res.puuid) { m[p.slug] = res.puuid; save('fire.puuids', m); } }
         if (res && res.ok) {
           S.data[p.slug] = { matches: res.matches, champs: res.champs, rank: res.rank, record: res.record, at: res.at, acc: res.acc };
+          markDuoFlex();
           save('fire.data', S.data);
           S.status[p.slug] = { state: 'ok', at: res.at };
         } else {
@@ -2974,7 +2990,9 @@
     S.refreshing = false;
     S.lastRefresh = Date.now();
     $('refresh').disabled = false;
+    markDuoFlex(); save('fire.data', S.data);
     renderStatus();
+    if (S.section === 'stats' && !typing()) render();
     if (S.section === 'settings' && !typing()) renderSettings();
     loadTeam();
   }
@@ -3391,7 +3409,7 @@
   // ----- Stats de l'équipe : les flex jouées ensemble -----
   // Un joueur avec plusieurs comptes apparaît une fois par compte (même slug) : ses flex sont reconnues sur chacun.
   // Comptes de chaque joueur pour les stats d'équipe. « comptes_flex » : un compte joué seulement en Flex / 5c5
-  // (ex. Seuf93 pour lebrésilien) ; ses games sont lues à part (S.data['team:<slug>']) et ne comptent pas dans son Solo/Duo.
+  // (ex. Seuf93 pour lebrésilien avant qu'il n'en fasse son compte principal) ; ses games sont lues à part (S.data['team:<slug>']) et ne comptent pas dans son Solo/Duo.
   const flexAccs = (p) => (Array.isArray(p.comptes_flex) ? p.comptes_flex : []).filter((c) => c && c.slug);
   const teamRoster = () => S.players.filter((p) => p.slug).flatMap((p) => accountsOf(p).filter((c) => c.puuid).map((c) => ({ slug: p.slug, pseudo: p.pseudo, puuid: c.puuid, role_id: p.role_id }))
     .concat(flexAccs(p).map((c) => ({ slug: p.slug, pseudo: p.pseudo, role_id: p.role_id, dataKey: 'team:' + c.slug, puuid: c.puuid || (load('fire.puuids', {}) || {})[c.slug] || ((S.data['team:' + c.slug] || {}).puuid) || null })).filter((c) => c.puuid)));
@@ -3400,10 +3418,42 @@
       let r; try { r = await window.fire.fetchPlayer({ slug: c.slug, pseudo: c.pseudo, puuid: c.puuid || (load('fire.puuids', {}) || {})[c.slug] || null }, fetchDays()); } catch (e) { r = null; }
       if (!r || !r.ok) continue;
       if (r.puuid) { const m = load('fire.puuids', {}) || {}; if (m[c.slug] !== r.puuid) { m[c.slug] = r.puuid; save('fire.puuids', m); } }
-      S.data['team:' + c.slug] = { matches: (r.matches || []).filter((m) => m.q === 440 || m.q === 710).map((m) => ({ ...m, pu: r.puuid || c.puuid })), at: r.at, puuid: r.puuid || c.puuid };
+      S.data['team:' + c.slug] = { matches: (r.matches || []).filter((m) => (m.q === 440 || m.q === 710) && inAccount(c, m.t)).map((m) => ({ ...m, pu: r.puuid || c.puuid })), at: r.at, puuid: r.puuid || c.puuid };
     }
   }
   const shortName = (p) => String(p || '').split('#')[0];
+  // Flex en duo avec un joueur qui ne peut pas jouer en Solo/Duo avec l'équipe (écart de rang : « duo_flex » dans joueurs.json).
+  // Quand ils ne sont que 2 joueurs FIRE dans la Flex, et dans la même équipe, la game compte comme une game de la semaine
+  // pour les deux (m.dx). Si elle n'est que dans les games Flex à part de ce joueur, on l'ajoute à ses games (m.dxi).
+  function markDuoFlex() {
+    const players = S.players.filter((p) => p.slug);
+    const dfx = new Set(players.filter((p) => p.duo_flex).map((p) => p.slug));
+    const by = {};
+    const add = (slug, m) => { if (!m || m.q !== 440 || !m.id) return; const g = (by[m.id] = by[m.id] || { w: {}, ms: [] }); g.w[slug] = !!m.win; g.ms.push([slug, m]); };
+    for (const p of players) {
+      const d = S.data[p.slug];
+      if (d && Array.isArray(d.matches)) { d.matches = d.matches.filter((m) => !m.dxi); d.matches.forEach((m) => { if (m.dx) delete m.dx; add(p.slug, m); }); }
+      for (const c of flexAccs(p)) { const t = S.data['team:' + c.slug]; if (t && Array.isArray(t.matches)) t.matches.forEach((m) => add(p.slug, m)); }
+    }
+    if (!dfx.size) return 0;
+    let n = 0;
+    for (const [id, g] of Object.entries(by)) {
+      // Les joueurs FIRE de son côté (même résultat) : lui + un seul coéquipier = un duo.
+      const lead = Object.keys(g.w).find((x) => dfx.has(x));
+      if (!lead) continue;
+      const slugs = Object.keys(g.w).filter((x) => g.w[x] === g.w[lead]);
+      if (slugs.length !== 2) continue;
+      n++;
+      for (const slug of slugs) {
+        const d = S.data[slug]; if (!d) continue;
+        d.matches = d.matches || [];
+        const own = d.matches.find((m) => String(m.id) === String(id));
+        if (own) own.dx = 1;
+        else { const src = g.ms.find(([x]) => x === slug); if (src) { d.matches.push({ ...src[1], dx: 1, dxi: 1 }); d.matches.sort((a, b) => b.t - a.t); } }
+      }
+    }
+    return n;
+  }
 
   // Repère les flex communes dans l'historique déjà lu, puis demande à dpm.lol le détail de celles qu'on n'a pas encore.
   async function loadTeam() {
@@ -3442,6 +3492,7 @@
       if (r.team) S.teamGames = r.team;
       S.teamState = 'ok'; S.teamAt = r.at;
       S.sharedAt = r.at; S.sharedBy = r.by || '';
+      markDuoFlex();
       save('fire.data', S.data);
     } else list.forEach((p) => { S.status[p.slug] = S.data[p.slug] ? { state: 'ok', at: S.data[p.slug].at } : { state: 'error', error: (r && r.error) || 'stats indisponibles' }; });
     S.refreshing = false; S.lastRefresh = Date.now(); $('refresh').disabled = false;
@@ -3665,8 +3716,8 @@
         h('p', { class: 'muted small' }, S.more ? `${cap(periodLabel(p))} · ${pl(s.games, 'game', 'games')} · stats dpm.lol de ${hm(d.at)} · ${lastGame(d) || 'aucune game Solo/Duo'} · ` : `${cap(periodLabel(p))} · ${pl(s.games, 'game', 'games')} · `,
           h('a', { href: 'https://dpm.lol/' + curAccount(p).slug, target: '_blank' }, 'voir sur dpm.lol')),
         accountsOf(p).length > 1 ? h('p', { class: 'muted small' }, '🔁 ', accountsOf(p).map((c) => c.jusqu_au
-          ? h('span', null, 'ancien compte ', h('a', { href: 'https://dpm.lol/' + c.slug, target: '_blank' }, c.pseudo || decodeURIComponent(c.slug)), ` (games jusqu’au ${dateFr(c.jusqu_au)})`)
-          : h('span', null, 'compte actuel ', h('a', { href: 'https://dpm.lol/' + c.slug, target: '_blank' }, c.pseudo || decodeURIComponent(c.slug)), c.depuis ? ` (depuis le ${dateFr(c.depuis)})` : '')).reduce((a, x, i) => (i ? a.concat(' · ', x) : [x]), [])) : null,
+          ? h('span', null, 'ancien compte ', h('a', { href: 'https://dpm.lol/' + c.slug, target: '_blank' }, c.pseudo || decodeURIComponent(c.slug)), ` (games jusqu’au ${switchTxt(c.jusqu_au)})`)
+          : h('span', null, 'compte actuel ', h('a', { href: 'https://dpm.lol/' + c.slug, target: '_blank' }, c.pseudo || decodeURIComponent(c.slug)), c.depuis ? ` (depuis le ${switchTxt(c.depuis)})` : '')).reduce((a, x, i) => (i ? a.concat(' · ', x) : [x]), [])) : null,
         S.more ? h('p', { class: 'lead' }, FC.lead(p, s)) : null,
         progress(obj, S.more),
         S.coachState.coach && S.obj && !p.temp ? bonusCtl(p) : null,
@@ -3861,7 +3912,7 @@
     return h('article', { class: 'match ' + (g.win ? 'win' : 'loss'), id: 'match-' + g.id },
       h('div', { class: 'mhead' }, h('span', { class: 'mchamp' }, champIcon(champIdFromName(g.champ_id), 44), h('span', { class: 'champ' }, g.champion)), h('span', { class: 'pill ' + (g.win ? 'good' : 'bad') }, g.win ? 'Victoire' : 'Défaite')),
       h('div', null, h('span', { class: 'catpill c-' + g.cat }, g.cat === 'oblig' ? (g.maitrise ? '🎯⭐ Obligatoire et maîtrisé' : '🎯 Obligatoire') : g.cat === 'maitrise' ? '⭐ Maîtrisé' : g.cat === 'travail' ? '🛠️ À travailler' : '❔ Hors pool')),
-      h('div', { class: 'muted small mvs' }, 'contre ', g.adv_id ? champIcon(champIdFromName(g.adv_id), 22) : null, ` ${g.adversaire} · ${g.heure} · ${g.duree}${g.lane && g.lane !== R.lane ? ' · en ' + g.lane : ''}`),
+      h('div', { class: 'muted small mvs' }, 'contre ', g.adv_id ? champIcon(champIdFromName(g.adv_id), 22) : null, ` ${g.adversaire} · ${g.heure} · ${g.duree}${g.lane && g.lane !== R.lane ? ' · en ' + g.lane : ''}`, g.flex ? h('span', { class: 'dx-tag', title: 'Flex jouée à deux avec un coéquipier qui ne peut pas jouer en Solo/Duo avec l’équipe : elle compte dans les games de la semaine.' }, 'Flex en duo') : null),
       h('div', { class: 'kda' }, h('span', { class: 'k' }, `${g.kills} / ${g.morts} / ${g.assists}`), h('span', { class: 'muted small' }, `KDA ${fr(g.kda, 2)}`)),
       h('div', { class: 'mstats' },
         sup ? stat('KP %', g.kp, s.kp, f1) : stat('CS/min', g.cs_min, s.cs_min, f1),
@@ -5195,13 +5246,27 @@
       video: [h('section', { class: 'vs-sec' }, h('h3', null, vi('cam'), 'Caméra et écran'),
         field('Caméra', sel('cam', D.cams, 'Caméra par défaut', 'Caméra')),
         field('Qualité des streams que je regarde', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ recvQ: e.target.value }); done(e); } },
-          [['auto', 'Auto : s’adapte à ma connexion (recommandé)'], ['high', 'Haute : la meilleure image possible'], ['medium', 'Moyenne : 720p, 30 images/s max'], ['low', 'Petite connexion : 480p, très peu de retard']].map(([k, t]) =>
+          [['auto', 'Auto : s’adapte à ma connexion (recommandé)'], ['high', 'Haute : la meilleure image possible'], ['medium', 'Moyenne : 720p, toujours fluide'], ['low', 'Petite connexion : 480p, toujours fluide, très peu de retard']].map(([k, t]) =>
             h('option', { value: k, selected: (c.recvQ || 'auto') === k ? true : null }, t)))),
         h('p', { class: 'vs-hint' }, 'Chaque spectateur reçoit sa propre image : la qualité baisse seulement pour toi si ta connexion est petite, pas pour les autres.'),
         sw('streamSound', 'Entendre le son des streams', 'Quand quelqu’un partage le son de son PC. Tu peux aussi le couper stream par stream (bouton 🔊 sur la vidéo).'),
-        field('Qualité de mon partage d’écran', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ screenFps: Number(e.target.value) }); done(e); } },
+        field('Ma connexion internet', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ net: e.target.value }); done(e); } },
+          [['auto', 'Auto (recommandé)'], ['fibre', 'Fibre : je peux envoyer beaucoup'], ['moyenne', 'ADSL, 4G ou Wi-Fi moyen'], ['petite', 'Petite connexion : tout est allégé']].map(([k, t]) =>
+            h('option', { value: k, selected: (c.net || 'auto') === k ? true : null }, t)))),
+        h('p', { class: 'vs-hint' }, 'Petite connexion : ta voix et ton partage d’écran prennent beaucoup moins de débit, l’image reste fluide (la définition baisse). Pour la voix, ça s’applique à ta prochaine arrivée dans un salon.'),
+        h('h4', { class: 'vs-h4' }, 'Mon partage d’écran'),
+        h('div', { class: 'vs-presets' },
+          [['Petit PC ou petite connexion', 480, 60], ['Fluide et léger', 720, 60], ['Haute qualité', 1080, 60], ['Texte et replays', 1080, 15]].map(([t, r, f]) => {
+            const on = String(c.screenRes || 'auto') === String(r) && (c.screenFps || 15) === f;
+            return h('button', { class: 'vs-preset' + (on ? ' on' : ''), onclick: (e) => { FV().setCfg({ screenRes: String(r), screenFps: f }); done(e); renderVocal(); } }, h('b', null, t), h('small', null, `${r}p · ${f} images/s`));
+          })),
+        field('Images par seconde', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ screenFps: Number(e.target.value) }); done(e); } },
           [[15, 'Net · 15 images/s (texte, replays)'], [30, 'Fluide · 30 images/s'], [60, 'Ultra fluide · 60 images/s'], [120, 'Maximum · 120 images/s (fibre)']].map(([n, t]) =>
             h('option', { value: n, selected: (c.screenFps || 15) === n ? true : null }, t)))),
+        field('Définition', h('select', { class: 'inp', onchange: (e) => { FV().setCfg({ screenRes: e.target.value }); done(e); } },
+          [['auto', 'Auto : baisse toute seule si mon PC rame (recommandé)'], ['1080', '1080p · la plus nette'], ['720', '720p · bien plus léger pour le PC et la connexion'], ['480', '480p · petit PC, petite connexion']].map(([k, t]) =>
+            h('option', { value: k, selected: String(c.screenRes || 'auto') === k ? true : null }, t)))),
+        h('p', { class: 'vs-hint' }, 'Pour un jeu, mieux vaut 60 images/s en 720p que 15 images/s en 1080p : c’est fluide et ça demande moins à ton PC. Ça change tout de suite, même en plein partage.'),
         h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Rejoindre au lancement de FIRE'), h('small', null, 'Tu arrives directement dans le salon.')),
           h('input', { type: 'checkbox', class: 'vs-tog', checked: load('fire.vocal.auto', false) ? true : null, onchange: (e) => { save('fire.vocal.auto', e.target.checked); done(e); } }))),
       ],
@@ -5270,6 +5335,7 @@
             h('button', { class: 'vc-ghost', title: 'Mes clips', onclick: openClips }, vi('clip'), 'Clips'),
             gearBtn('vc-ghost icon')),
           v.err ? h('p', { class: 'bad' }, '⚠ ' + v.err, ' ', h('button', { class: 'linkbtn small', onclick: () => FV().clearErr() }, 'OK')) : null,
+          !v.err && v.note ? h('p', { class: 'vs-note' }, '💡 ' + v.note, ' ', h('button', { class: 'linkbtn small', onclick: () => FV().clearErr() }, 'OK')) : null,
           h('p', { class: 'vc-kbd-hint' }, h('kbd', null, keyTxt(K.join)), ' pour rejoindre ou quitter, même en jeu'))),
       drawer].filter(Boolean));
       return;

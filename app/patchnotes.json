@@ -1,6 +1,45 @@
 {
  "versions": [
   {
+   "v": "1.10.136",
+   "date": "2026-11-16",
+   "titre": "Vocal pour tous les PC, Flex en duo, Seuf93",
+   "items": [
+    [
+     "new",
+     "Vocal › Réglages › Caméra et streaming : 4 préréglages de partage d’écran (Petit PC ou petite connexion 480p 60 i/s, Fluide et léger 720p 60 i/s, Haute qualité 1080p 60 i/s, Texte et replays). Images/s et définition se règlent aussi à part, et ça change tout de suite, même en plein partage."
+    ],
+    [
+     "new",
+     "« Ma connexion internet » (Auto, Fibre, ADSL/4G/Wi-Fi moyen, Petite connexion) : sur une petite connexion, ta voix et ton partage d’écran prennent beaucoup moins de débit."
+    ],
+    [
+     "improve",
+     "Petite connexion chez un spectateur : FIRE baisse la définition et le débit, mais garde les 60 images/s (avant, il descendait à 30 puis 20 images/s). Un palier de plus (360p) pour les toutes petites connexions."
+    ],
+    [
+     "improve",
+     "Définition « Auto » : si ton PC n’arrive plus à encoder ton écran, FIRE passe tout seul en 720p puis en 480p pour garder l’image fluide (et te le dit)."
+    ],
+    [
+     "improve",
+     "Moins de débit utilisé en 720p et 480p (le débit suit la définition), donc plus de place pour la voix et les autres spectateurs."
+    ],
+    [
+     "new",
+     "Objectif de la semaine : les Flex jouées à deux avec Seuf93 (Platine, il ne peut pas jouer en Solo/Duo avec l’équipe) comptent comme des games de la semaine, pour lui et pour son coéquipier. Il faut être seulement 2 joueurs FIRE dans la même équipe. Elles sont marquées « Flex en duo »."
+    ],
+    [
+     "improve",
+     "lebrésilien s’appelle maintenant Seuf93 partout. Ses stats sont lues sur Seuf93 depuis le lundi 16 novembre à 2h, l’historique d’avant reste celui de lebrésilien."
+    ],
+    [
+     "fix",
+     "Objectif de la semaine : il repart à zéro dès lundi 0h même si FIRE est resté ouvert sans internet tout le week-end."
+    ]
+   ]
+  },
+  {
    "v": "1.10.135",
    "date": "2026-11-16",
    "titre": "Réponses aux bugs, tours sur le tableau tactique",

@@ -9,7 +9,7 @@
   'use strict';
   const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }];
   const CFG_KEY = 'fire.vocal.cfg', VOL_KEY = 'fire.vocal.vols', LMUTE_KEY = 'fire.vocal.lmute';
-  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, clarity: true, keys: true, vad: 'auto', recvQ: 'auto', streamSound: true, duck: true, duckAmt: 0.5, ec: true, agc: false, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15 };
+  const DEF = { mic: '', out: '', cam: '', ns: true, ai: true, clarity: true, keys: true, vad: 'auto', recvQ: 'auto', streamSound: true, duck: true, duckAmt: 0.5, ec: true, agc: false, hp: true, gain: 1, gate: 20, outVol: 1, sounds: true, screenFps: 15, screenRes: 'auto', net: 'auto' };
   const rd = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   const wr = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* plein */ } };
 
@@ -417,11 +417,20 @@
   // Réglage de l'envoi vidéo, recalculé quand le nombre de spectateurs change.
   // Chaque spectateur reçoit sa propre copie (et son propre encodage) : à plusieurs, on partage un budget
   // d'envoi et on baisse un peu la définition, sinon la connexion sature et l'image prend du retard et saccade.
-  const UP_BUDGET = 9000000;
+  // Ma connexion (réglage « Ma connexion internet ») : budget d'envoi total pour tous les spectateurs,
+  // et débit de la voix. Une petite connexion garde une image fluide en baissant la définition.
+  const NET = { fibre: { up: 14000000, voice: 64000, music: 128000 }, auto: { up: 9000000, voice: 64000, music: 128000 },
+    moyenne: { up: 4000000, voice: 40000, music: 96000 }, petite: { up: 1800000, voice: 28000, music: 64000 } };
+  const net = () => NET[V.cfg.net] || NET.auto;
+  // Définition envoyée : choisie par celui qui partage (petit PC : 720p ou 480p = beaucoup moins de calcul).
+  // En Auto, FIRE part en 1080p et descend tout seul si le PC n'arrive plus à encoder.
+  const RES = { auto: 1080, 1080: 1080, 720: 720, 480: 480 };
+  const resMax = () => (V.cfg.screenRes === 'auto' || !V.cfg.screenRes ? (V.autoRes || 1080) : (RES[V.cfg.screenRes] || 1080));
   // Qualité par spectateur : chacun reçoit sa propre copie, on l'adapte donc à SA connexion.
   // Le spectateur choisit (Haute, Moyenne 720p, Faible connexion 480p) ou laisse en Auto : FIRE mesure alors
   // la connexion vers lui (débit disponible, retard, pertes) et baisse ou remonte la qualité tout seul.
-  const QLV = [{ maxH: 4320, rate: Infinity, fps: Infinity }, { maxH: 720, rate: 1800000, fps: 30 }, { maxH: 480, rate: 650000, fps: 20 }];
+  // On baisse d'abord la définition et le débit, pas les images/s : le jeu reste fluide même sur une petite connexion.
+  const QLV = [{ maxH: 4320, rate: Infinity, fps: Infinity }, { maxH: 720, rate: 2500000, fps: 60 }, { maxH: 480, rate: 1100000, fps: 60 }, { maxH: 360, rate: 550000, fps: 30 }];
   const QFIX = { high: 0, medium: 1, low: 2 };
   V.qlvl = {}; V.qbad = {}; V.qgood = {};
   function levelFor(slug) {
@@ -431,8 +440,13 @@
   function videoPlan(kind, slug) {
     const fps = kind === 'cam' ? 24 : (V.cfg.screenFps || 15);
     const viewers = Math.max(1, Object.keys(V.vout).filter((k) => k.endsWith(':' + kind)).length);
-    const want = kind === 'cam' ? 450000 : fps >= 120 ? 8000000 : fps >= 60 ? 5000000 : fps >= 30 ? 3000000 : 1800000;
-    let rate = Math.max(kind === 'cam' ? 250000 : 1200000, Math.min(want, Math.floor(UP_BUDGET / viewers)));
+    const tr0 = kind === 'screen' && V.screen && V.screen.getVideoTracks()[0];
+    const capH = Math.min(resMax(), (tr0 && tr0.getSettings && tr0.getSettings().height) || 1080);
+    // Débit utile selon la définition : 720p60 ≈ 3 Mb/s, 480p60 ≈ 1,5 Mb/s (au lieu de 5 Mb/s en 1080p60).
+    const resF = capH <= 480 ? 0.32 : capH <= 720 ? 0.6 : 1;
+    const want = kind === 'cam' ? 450000 : Math.round((fps >= 120 ? 8000000 : fps >= 60 ? 5000000 : fps >= 30 ? 3000000 : 1800000) * resF);
+    const floor = kind === 'cam' ? 150000 : Math.min(1200000, Math.round(net().up * 0.5));
+    let rate = Math.max(floor, Math.min(want, Math.floor(net().up / viewers)));
     let scale = kind === 'cam' ? 1 : viewers >= 4 ? 2 : viewers >= 3 ? 1.5 : 1;
     let mfps = fps;
     const lv = QLV[levelFor(slug)];
@@ -440,6 +454,7 @@
       const tr = V.screen && V.screen.getVideoTracks()[0];
       const srcH = (tr && tr.getSettings && tr.getSettings().height) || 1080;
       if (srcH / scale > lv.maxH) scale = srcH / lv.maxH;
+      if (srcH / scale > resMax()) scale = srcH / resMax();
       rate = Math.min(rate, lv.rate); mfps = Math.min(fps, lv.fps);
     } else if (levelFor(slug) >= 2) { rate = 200000; scale = 1.5; }
     // Jeu en direct : on garde la fluidité (images/s) ; texte et replays à 15 images/s : on garde la netteté.
@@ -467,15 +482,16 @@
       if (Date.now() - call.__t0 < 12000) continue;
       const q = (V.conns[slug] && V.conns[slug].remote && V.conns[slug].remote.q) || 'auto';
       if (q !== 'auto') continue;
-      let avail = 0, rtt = 0, lost = 0, limit = '';
+      let avail = 0, rtt = 0, lost = 0, limit = '', sentH = 0;
       try {
         const st = await call.peerConnection.getStats();
         st.forEach((x) => {
           if (x.type === 'candidate-pair' && x.nominated && x.state === 'succeeded') { avail = x.availableOutgoingBitrate || avail; rtt = x.currentRoundTripTime || rtt; }
           if (x.type === 'remote-inbound-rtp' && x.kind === 'video') { lost = x.fractionLost || 0; rtt = Math.max(rtt, x.roundTripTime || 0); }
-          if (x.type === 'outbound-rtp' && x.kind === 'video') limit = x.qualityLimitationReason || '';
+          if (x.type === 'outbound-rtp' && x.kind === 'video') { limit = x.qualityLimitationReason || ''; sentH = x.frameHeight || sentH; }
         });
       } catch (e) { continue; }
+      cpuWatch(limit === 'cpu');
       const lv = V.qlvl[slug] || 0;
       const plan = videoPlan('screen', slug);
       const bad = (avail && avail < plan.rate * 0.6 && limit === 'bandwidth') || rtt > 0.35 || lost > 0.05;
@@ -483,9 +499,32 @@
       const good = lv > 0 && avail > Math.min(up.rate === Infinity ? 4000000 : up.rate, 4000000) * 1.5 && rtt < 0.15 && lost < 0.01 && limit !== 'bandwidth';
       V.qbad[slug] = bad ? (V.qbad[slug] || 0) + 1 : 0;
       V.qgood[slug] = good ? (V.qgood[slug] || 0) + 1 : 0;
-      if (V.qbad[slug] >= 3 && lv < 2) { V.qlvl[slug] = lv + 1; V.qbad[slug] = 0; tuneSender(call, 'screen', slug); }
+      if (V.qbad[slug] >= 3 && lv < QLV.length - 1) { V.qlvl[slug] = lv + 1; V.qbad[slug] = 0; tuneSender(call, 'screen', slug); }
       else if (V.qgood[slug] >= 6) { V.qlvl[slug] = lv - 1; V.qgood[slug] = 0; tuneSender(call, 'screen', slug); }
     }
+  }
+  // Petit PC : l'encodage sature le processeur (image qui saccade pour tout le monde).
+  // En Auto, on baisse la définition envoyée (1080p → 720p → 480p) ; sinon on le signale une fois.
+  V.cpuBad = 0;
+  function cpuWatch(bad) {
+    V.cpuBad = bad ? V.cpuBad + 1 : Math.max(0, V.cpuBad - 1);
+    if (V.cpuBad < 4 || !V.screen) return;
+    V.cpuBad = 0;
+    if (V.cfg.screenRes === 'auto' || !V.cfg.screenRes) {
+      const cur = V.autoRes || 1080;
+      if (cur <= 480) return;
+      V.autoRes = cur > 720 ? 720 : 480;
+      applyRes(); retune('screen');
+      V.note = `Ton PC avait du mal à envoyer ton écran : FIRE est passé en ${V.autoRes}p pour garder l’image fluide.`; emit();
+    } else if (!V.cpuTold) {
+      V.cpuTold = true;
+      V.note = 'Ton PC a du mal à envoyer ton écran : choisis une définition plus petite (720p ou 480p) dans Réglages › Caméra et écran.'; emit();
+    }
+  }
+  function applyRes() {
+    if (!V.screen) return;
+    const hMax = resMax();
+    V.screen.getVideoTracks().forEach((t) => t.applyConstraints({ frameRate: { ideal: V.cfg.screenFps || 15, max: V.cfg.screenFps || 15 }, height: { max: hMax }, width: { max: Math.round(hMax * 16 / 9) } }).catch(() => {}));
   }
   setInterval(() => { if (V.on && V.screen) adapt(); }, 2000);
   function capBitrate(call, kind) {
@@ -500,7 +539,7 @@
     try {
       const pt = (sdp.match(/a=rtpmap:(\d+) opus\/48000/i) || [])[1];
       if (!pt) return sdp;
-      const want = { maxaveragebitrate: music ? 128000 : 64000, useinbandfec: 1, usedtx: 0, maxplaybackrate: 48000 };
+      const want = { maxaveragebitrate: music ? net().music : net().voice, useinbandfec: 1, usedtx: 0, maxplaybackrate: 48000 };
       if (music) { want.stereo = 1; want['sprop-stereo'] = 1; }
       const re = new RegExp('a=fmtp:' + pt + ' ([^\r\n]*)');
       if (!re.test(sdp)) return sdp.replace(new RegExp('(a=rtpmap:' + pt + ' opus/48000[^\r\n]*)'), '$1\r\na=fmtp:' + pt + ' ' + Object.entries(want).map(([k, v]) => k + '=' + v).join(';'));
@@ -591,7 +630,9 @@
       const fs = window.fire && window.fire.screen;
       const audio = !!withAudio && !!fs;
       const fps = V.cfg.screenFps || 15;
-      const video = { frameRate: { ideal: fps, max: fps }, width: { max: 1920 }, height: { max: 1080 } };
+      V.autoRes = 0; V.cpuBad = 0; V.cpuTold = false;
+      const hMax = resMax();
+      const video = { frameRate: { ideal: fps, max: fps }, width: { max: Math.round(hMax * 16 / 9) }, height: { max: hMax } };
       // Le son du PC est capté SANS le son de FIRE (voix du salon, sons de l'app, streams regardés) : piste séparée,
       // comme Discord. Windows trop ancien : on retombe sur « tout le son du PC » et on le signale.
       const own = audio && fs.ownAudio ? await fs.ownAudio().catch(() => false) : false;
@@ -770,10 +811,13 @@
     }
     if (V.cam && c.cam !== old.cam) { stopCam(); startCam(); }
     // Qualité du partage changée en plein partage : on l'applique tout de suite.
-    if (V.screen && c.screenFps !== old.screenFps) {
-      V.screen.getVideoTracks().forEach((t) => { t.contentHint = c.screenFps > 20 ? 'motion' : 'detail'; t.applyConstraints({ frameRate: { ideal: c.screenFps, max: c.screenFps } }).catch(() => {}); });
+    if (V.screen && (c.screenFps !== old.screenFps || c.screenRes !== old.screenRes)) {
+      if (c.screenRes !== old.screenRes) { V.autoRes = 0; V.cpuTold = false; }
+      V.screen.getVideoTracks().forEach((t) => { t.contentHint = c.screenFps > 20 ? 'motion' : 'detail'; });
+      applyRes();
       retune('screen');
     }
+    if (c.net !== old.net) { retune('screen'); retune('cam'); }
     emit();
   }
   // « Tester mon micro » : tu t'entends (avec les réglages), même hors du salon.
@@ -998,7 +1042,7 @@
   window.FireVoice = {
     join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, setStreamSound, requestSound, addScreenSound, watchStream,
     onSoundRequest: (f) => { V.onSndReq = f; }, appSend, liveSend, statusSend, modSend, onMod: (f) => { L.onMod = f; }, onApp: (f) => { V.onApp = f; }, onPeer: (f) => { V.onPeer = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
-    clearErr: () => { V.err = ''; emit(); },
+    clearErr: () => { V.err = ''; V.note = ''; emit(); },
     onRemp: (f) => { L.onRemp = f; },
     onAnn: (f) => { L.onAnn = f; },
     onRv: (f) => { L.onRv = f; },
@@ -1038,7 +1082,7 @@
     _vad: { voicing, vadStep, state: VAD, reset: () => { Object.assign(VAD, { run: 0, nf: -70, me: -30, learned: 0, lastVoice: -1e9 }); V.gateUntil = 0; } },
     onChange: (f) => V.listeners.push(f),
     state: () => ({
-      on: V.on, joining: V.joining, err: V.err, me: V.me, mute: V.mute, deaf: V.deaf, monitor: V.monitor,
+      on: V.on, joining: V.joining, err: V.err, note: V.note || '', me: V.me, mute: V.mute, deaf: V.deaf, monitor: V.monitor,
       cfg: Object.assign({}, V.cfg), vols: Object.assign({}, V.vols), lmute: Object.assign({}, V.lmute), speaking: Object.assign({}, V.speaking),
       cam: V.cam, screen: V.screen, ai: !!AI.node,
       members: Object.entries(V.conns).map(([s, k]) => ({ slug: s, ok: !!k.out, remote: k.remote || {} })),

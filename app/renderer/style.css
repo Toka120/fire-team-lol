@@ -2813,3 +2813,12 @@ html[data-calm] .ann-ov,html[data-calm] .ann-box{animation:none}
 .bug-rep-new{font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--fire2);color:#fff}
 .bug-rep-txt{margin:2px 0;white-space:pre-wrap;overflow-wrap:anywhere}
 .bug-rep-ex{margin:0;font-style:italic}
+/* Vocal : préréglages du partage d'écran */
+.vs-h4{margin:14px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.vs-presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:10px}
+.vs-preset{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font:inherit;cursor:pointer}
+.vs-preset:hover{border-color:var(--muted)}
+.vs-preset.on{border-color:var(--fire1);background:rgba(245,165,36,.12)}
+.vs-preset small{color:var(--muted);font-size:12px}
+.vs-note{color:var(--fg);background:color-mix(in srgb,var(--fire2) 12%,transparent);border:1px solid color-mix(in srgb,var(--fire2) 40%,var(--line));border-radius:10px;padding:8px 12px}
+.dx-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:6px;font-size:11px;font-weight:700;background:rgba(87,157,255,.16);color:#8fb8ff}

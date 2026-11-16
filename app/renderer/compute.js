@@ -47,7 +47,7 @@
     const maitrise = new Set(player.maitrise_ids || []);
     const travail = new Set(player.travail_ids || []);
     return (matches || [])
-      .filter((m) => m.q === 420 && m.t >= start && (!end || m.t < end))
+      .filter((m) => (m.q === 420 || m.dx) && m.t >= start && (!end || m.t < end))
       .sort((a, b) => a.t - b.t)
       .map((m) => {
         const min = Math.max(1, m.d / 60);
@@ -61,7 +61,7 @@
           maitrise: maitrise.has(m.championName), travail: travail.has(m.championName),
           cat: pool.has(m.championName) ? 'oblig' : maitrise.has(m.championName) ? 'maitrise' : travail.has(m.championName) ? 'travail' : 'autre',
           adversaire: m.opponentChampionName ? champName(m.opponentChampionName) : '—', adv_id: m.opponentChampionName || null,
-          win: !!m.win, duree: `${Math.floor(m.d / 60)}:${pad(m.d % 60)}`,
+          flex: !!m.dx, win: !!m.win, duree: `${Math.floor(m.d / 60)}:${pad(m.d % 60)}`,
           kills: num(m.kills) || 0, morts: num(m.deaths) || 0, assists: num(m.assists) || 0,
           kda: r1(((num(m.kills) || 0) + (num(m.assists) || 0)) / Math.max(1, num(m.deaths) || 0), 2),
           kp: num(m.killParticipation) == null ? null : r1(m.killParticipation),
