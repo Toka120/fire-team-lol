@@ -1004,7 +1004,9 @@
     L.liveBusy = true;
     try {
       const others = L.ids.filter((x) => x !== L.me);
-      await Promise.all(others.map(async (x) => { const dc = await link(x); if (dc) { try { dc.send({ t: 'live', g }); } catch (e) { if (L.links[x] === dc) delete L.links[x]; try { dc.close(); } catch (er) { /* */ } } } }));
+      // Un coéquipier injoignable ne doit pas bloquer les envois suivants (avant : la partie restait figée chez les autres).
+      const within = (pr, ms) => Promise.race([pr, new Promise((ok) => setTimeout(() => ok(null), ms))]);
+      await Promise.all(others.map(async (x) => { const dc = await within(link(x), 4000); if (dc) { try { dc.send({ t: 'live', g }); } catch (e) { if (L.links[x] === dc) delete L.links[x]; try { dc.close(); } catch (er) { /* */ } } } }));
     } finally { L.liveBusy = false; }
   }
   const lid = (slug) => L.prefix + 'hall' + slug.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);

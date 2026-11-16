@@ -3608,6 +3608,8 @@
       liveRefresh();
     });
     try { FV().onChange(() => liveRefresh()); } catch (e) { /* */ }
+    // Toutes les 5 s : « figée depuis… » et les parties qui ne donnent plus de nouvelles se mettent à jour même sans message.
+    setInterval(() => { if (document.querySelector('.live-sec')) liveRefresh(true); }, 5000);
   }
   function liveRefresh(force) {
     const all = liveAll();
@@ -3620,8 +3622,11 @@
     if (S.section === 'stats' && S.view === 'hub' && !typing()) {
       const cur = document.querySelector('.live-sec');
       const next = liveSection();
-      if (cur && next) { LIVE.gone = 0; morph(cur, next); }
-      else if (cur && !next) { if (++LIVE.gone >= 3) { LIVE.gone = 0; cur.remove(); } } // parti : on attend 3 mises à jour avant de l'enlever (pas de clignotement)
+      if (cur && next) { LIVE.gone = 0; morph(cur, next); clearTimeout(LIVE.tickT); LIVE.tickT = setTimeout(() => liveRefresh(true), 5000); }
+      else if (cur && !next) { // plus de partie : on attend 12 s (une coupure d'un instant ne fait pas clignoter), puis on l'enlève
+        if (!LIVE.gone) LIVE.gone = Date.now();
+        if (Date.now() - LIVE.gone > 12000) { LIVE.gone = 0; cur.remove(); } else { clearTimeout(LIVE.goneT); LIVE.goneT = setTimeout(() => liveRefresh(true), 4000); }
+      }
       else if (next) render();
     }
   }
@@ -3688,7 +3693,7 @@
       specTargets(g).map((tg) => { const nm = tg.n.split('#')[0]; const key = 'n:' + tg.n.toLowerCase();
         return h('button', { class: 'btn-fire small-btn', disabled: SPX[key] === '…' ? true : null, title: 'Ouvre le mode spectateur de League of Legends (le client LoL doit être ouvert). Riot impose 3 minutes de délai.', onclick: async () => {
           SPX[key] = '…'; liveRefresh(true);
-          const r = await window.fire.live.spectate({ puuid: tg.puuid || '', name: tg.n }).catch((e) => ({ ok: false, error: String(e) }));
+          const r = await window.fire.live.spectate({ puuid: tg.puuid || '', name: tg.n, names: tg.names || [] }).catch((e) => ({ ok: false, error: String(e) }));
           SPX[key] = r && r.ok ? '✓ Le mode spectateur de LoL se lance…' : '⚠ ' + ((r && r.error) || 'impossible');
           liveRefresh(true);
         } }, `👁 Regarder ${nm} en spectateur`); }),
@@ -3728,6 +3733,9 @@
         h('small', { class: 'muted' }, `${n} joueur${n > 1 ? 's' : ''} de FIRE${games.length > 1 ? ` · ${games.length} parties` : ''}`)),
       games.map(({ key, g, slugs }) => {
         const open = LIVE.open[key] != null ? LIVE.open[key] : games.length === 1;
+        // Partie figée : le temps de jeu n'avance plus (pause, chargement, ou le FIRE du joueur ne suit plus).
+        const ss = (LIVE.seen = LIVE.seen || {})[key] || {}; if (ss.time !== g.time) LIVE.seen[key] = { time: g.time, at: Date.now() };
+        const still = Math.round((Date.now() - LIVE.seen[key].at) / 1000);
         const mine = g.players.filter(isOurs);
         const names = slugs.map((x) => (S.players.find((p) => p.slug === x) || {}).pseudo || vocalName(x)).map((x) => String(x).split('#')[0]);
         return h('div', { class: 'card lv-card' + (open ? ' open' : ''), 'data-k': key },
@@ -3737,12 +3745,21 @@
             h('span', { class: 'lv-ours' }, (mine.length ? mine : g.players.filter((p) => p.n === g.me)).map((p) => h('span', { class: 'lv-o' }, champIcon(p.c, 22), h('b', null, p.n.split('#')[0]), h('small', { class: 'muted' }, ` ${p.k}/${p.d}/${p.a}`))),
               !mine.length ? h('b', null, names.join(', ')) : null),
             h('span', { class: 'muted lv-time' }, mmss(g.time)),
+            still > 25 ? h('span', { class: 'lv-stale', title: 'Le temps de jeu n’avance plus : partie en pause, écran de chargement, ou le FIRE du joueur ne suit plus.' }, `⏸ figée depuis ${still < 90 ? still + ' s' : Math.round(still / 60) + ' min'}`) : null,
             h('span', { class: 'lv-chev' }, open ? 'Masquer ▴' : 'Détails ▾')),
           open ? specView(g, slugs) : null);
       }),
       bare.length ? h('div', { class: 'card lv-card lv-bare' }, h('div', { class: 'lv-head' }, h('span', { class: 'lv-live' }, 'EN GAME'),
         h('b', null, bare.map((p) => String(p.pseudo || '').split('#')[0]).join(', ')),
-        h('span', { class: 'muted small' }, 'Le détail de la partie arrive dès que leur FIRE l’envoie (FIRE ouvert chez eux, « Montrer ma partie » activé).'))) : null);
+        h('span', { class: 'muted small' }, 'Le détail de la partie arrive dès que leur FIRE l’envoie (FIRE ouvert chez eux, « Montrer ma partie » activé).')),
+        h('div', { class: 'row sp-act' }, bare.map((p) => { const key = 'b:' + p.slug; const SPX = (LIVE.spx = LIVE.spx || {}); const nm = String(p.pseudo || '').split('#')[0];
+          return h('button', { class: 'btn-fire small-btn', disabled: SPX[key] === '…' ? true : null, onclick: async () => {
+            SPX[key] = '…'; liveRefresh(true);
+            const names = [p.pseudo].concat((p.comptes || []).filter((c) => !c.jusqu_au || c.jusqu_au > new Date().toISOString().slice(0, 16)).map((c) => c.pseudo), (p.comptes_flex || []).map((c) => c.pseudo)).filter(Boolean);
+            const r = await window.fire.live.spectate({ name: names[0], names }).catch((e) => ({ ok: false, error: String(e) }));
+            SPX[key] = r && r.ok ? '✓ Le mode spectateur de LoL se lance…' : '⚠ ' + ((r && r.error) || 'impossible'); liveRefresh(true);
+          } }, `👁 Regarder ${nm} en spectateur`); }),
+          bare.map((p) => (LIVE.spx || {})['b:' + p.slug]).filter((t) => t && t !== '…').slice(-1).map((t) => h('small', { class: t.startsWith('⚠') ? 'bad' : 'good' }, t)))) : null);
   }
 
   const isSub = (p) => !!(p.remplacant || /rempla|bench|suppl/i.test(p.role || ''));

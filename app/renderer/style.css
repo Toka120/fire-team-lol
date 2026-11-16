@@ -3264,3 +3264,5 @@ html.v2 body:has(#fire-pet) #vtoasts{right:100px}
 .promo-vend{position:absolute;left:50%;bottom:9%;z-index:3;display:flex;gap:12px;align-items:center;transform:translate(-50%,20px);opacity:0;pointer-events:none;transition:opacity .35s,transform .35s}
 .promo-video.ended .promo-vend{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 .promo-video.ended .promo-vid{filter:brightness(.55) blur(2px);transition:filter .5s}
+.lv-stale{font-size:12px;font-weight:700;color:#ffc24b;padding:2px 8px;border-radius:999px;background:rgb(255 194 75 / 12%)}
+.lv-bare .sp-act{margin-top:8px}

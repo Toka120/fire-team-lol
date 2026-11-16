@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.153",
+   "date": "2026-11-16",
+   "titre": "Spectateur et parties en direct plus fiables",
+   "items": [
+    [
+     "fix",
+     "Spectateur : FIRE passe maintenant par ta liste d’amis du client LoL, comme le bouton « Regarder » du client : il prend le bon identifiant du joueur, vérifie qu’il est bien en partie, puis lance le mode spectateur. En cas de refus, le message donne le détail de la réponse de Riot."
+    ],
+    [
+     "new",
+     "Bouton « Regarder … en spectateur » aussi pour les coéquipiers en game dont FIRE n’envoie pas le détail de la partie (avec tous leurs comptes)."
+    ],
+    [
+     "fix",
+     "Parties en direct : une partie qui ne donne plus de nouvelles disparaît au bout de quelques secondes au lieu de rester figée, et « ⏸ figée depuis… » s’affiche quand le temps de jeu n’avance plus (pause, chargement, ou FIRE du joueur qui ne suit plus)."
+    ],
+    [
+     "fix",
+     "Envoi de ta partie à l’équipe : un coéquipier injoignable ne bloque plus les envois suivants (c’est ce qui pouvait figer une partie à 1:30 chez les autres). Le joueur en game doit avoir cette version pour en profiter."
+    ]
+   ]
+  },
+  {
    "v": "1.10.152",
    "date": "2026-11-16",
    "titre": "Nouvelle vidéo de la boutique, spectateur corrigé",
