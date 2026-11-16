@@ -620,7 +620,7 @@
   function rdvList() {
     if (!S.plan) return [];
     const p = rdvPrefs(), t = todayYmd(), from = addDays(t, -1), lim = addDays(t, 2), out = [];
-    if (p.team) for (const [d, j] of Object.entries(S.plan.jours || {})) {
+    if (p.team && !SUB() && !meSub()) for (const [d, j] of Object.entries(S.plan.jours || {})) {
       if (d < from || d > lim) continue;
       const mine = S.moi ? ((S.plan.reponses || {})[d] || {})[S.moi] : null;
       if (mine && mine.statut === 'absent') continue;
@@ -3190,8 +3190,20 @@
     if (!sec || ['accueil', 'settings', 'web'].includes(sec)) return;
     const v = accVisits(); v[sec] = (v[sec] || 0) + 1; save('fire.visits', v);
   }
+  // Accueil personnalisé (sur ce PC) : blocs cachés et rubriques épinglées, dans l'ordre choisi.
+  const ACC_W = [['plan', '📅', 'Planning du jour'], ['obj', '🎯', 'Objectif de la semaine'], ['rdv', '⏰', 'Prochain rendez-vous'], ['chat', '💬', 'Discussion'], ['coach', '📣', 'Parole du coach'], ['puzzle', '🧩', 'Puzzle du jour'], ['clips', '🎬', 'Clips de l’équipe']];
+  const accPrefs = () => ({ pins: null, hide: [], ...load('fire.acc', {}) });
+  const accSave = (patch) => { save('fire.acc', { ...accPrefs(), ...patch }); renderAccueil(); };
+  const ACCE = { edit: false };
+  function accPin(id, on) {
+    const A = accPrefs(); let pins = A.pins ? A.pins.slice() : null;
+    if (!pins) { pins = []; }
+    pins = pins.filter((x) => x !== id); if (on) pins.push(id);
+    accSave({ pins: pins.slice(0, 16) });
+  }
   function renderAccueil() {
     const view = $('view');
+    const A = accPrefs(), hid = new Set(A.hide || []);
     const items = S.navItems || [];
     const by = Object.fromEntries(items.map((x) => [x[0], x]));
     const me = S.players.find((p) => p.slug === S.moi);
@@ -3204,48 +3216,63 @@
     // Objectif de la semaine
     const d = me ? S.data[me.slug] : null;
     const o = me && d ? objFor(me, d) : null;
-    if (o && o.target) ws.push(tile('stats', '🎯', 'Objectif de la semaine', h('span', null, h('b', { class: 'acc-big' }, `${o.done}/${o.target}`), ' games'),
+    if (o && o.target && !hid.has('obj')) ws.push(tile('stats', '🎯', 'Objectif de la semaine', h('span', null, h('b', { class: 'acc-big' }, `${o.done}/${o.target}`), ' games'),
       h('div', null, h('div', { class: 'acc-bar' }, h('i', { style: `width:${o.pct || 0}%` })), h('small', null, o.reste ? `Encore ${o.reste} game${o.reste > 1 ? 's' : ''} sur ton pool d’ici dimanche` : '✅ Objectif atteint, bravo !')),
       o.reste ? '' : 'done', () => { S.view = 'player'; S.player = me.slug; go('stats'); }));
     // Prochain rendez-vous
     const nx = rdvList().find((x) => x.end > Date.now() && x.at - Date.now() < 7 * 86400000);
-    if (nx) ws.push(tile('planning', nx.ico, 'Prochain rendez-vous', h('b', null, `${nx.short} ${rdvDay(nx)}${rdvH(new Date(nx.at).getHours())}`), h('small', null, (nx.at <= Date.now() ? 'En cours · ' : rdvIn(nx.at - Date.now()) + ' · ') + nx.what), nx.at - Date.now() < 3600000 ? 'hot' : '', () => rdvOpen(nx)));
+    if (nx && !hid.has('rdv')) ws.push(tile('planning', nx.ico, 'Prochain rendez-vous', h('b', null, `${nx.short} ${rdvDay(nx)}${rdvH(new Date(nx.at).getHours())}`), h('small', null, (nx.at <= Date.now() ? 'En cours · ' : rdvIn(nx.at - Date.now()) + ' · ') + nx.what), nx.at - Date.now() < 3600000 ? 'hot' : '', () => rdvOpen(nx)));
     // Discussion
     const meV = vocalMe();
     const un = chatUnread();
     const last = meV ? CH.msgs.filter((m) => m.from !== meV && chatVisible(m, meV)).slice(-1)[0] : null;
-    if (by.chat) ws.push(tile('chat', '💬', 'Discussion', un ? h('b', null, `${un} message${un > 1 ? 's' : ''} non lu${un > 1 ? 's' : ''}`) : h('span', { class: 'muted' }, 'Tout est lu'),
+    if (by.chat && !hid.has('chat')) ws.push(tile('chat', '💬', 'Discussion', un ? h('b', null, `${un} message${un > 1 ? 's' : ''} non lu${un > 1 ? 's' : ''}`) : h('span', { class: 'muted' }, 'Tout est lu'),
       last ? h('small', null, h('b', null, vocalName(last.from) + ' : '), last.text.length > 70 ? last.text.slice(0, 70) + '…' : last.text) : null, un ? 'hot' : '',
       () => { if (last) CH.conv = chatConvOf(last, meV) || CH.conv; go('chat'); }));
     // Parole du coach
     const nf = unseen();
     const lastF = (S.fiches || []).slice().sort((a, b) => (b.date || b.at || 0) > (a.date || a.at || 0) ? 1 : -1)[0];
-    if (by.coach && (nf.length || lastF)) ws.push(tile('coach', '📣', 'Parole du coach', nf.length ? h('b', null, `${nf.length} nouveauté${nf.length > 1 ? 's' : ''}`) : h('span', { class: 'muted' }, 'Rien de nouveau'),
+    if (by.coach && (nf.length || lastF) && !hid.has('coach')) ws.push(tile('coach', '📣', 'Parole du coach', nf.length ? h('b', null, `${nf.length} nouveauté${nf.length > 1 ? 's' : ''}`) : h('span', { class: 'muted' }, 'Rien de nouveau'),
       (nf[0] || lastF) ? h('small', null, '« ' + String((nf[0] || lastF).titre || '').slice(0, 70) + ' »') : null, nf.length ? 'hot' : ''));
     // Puzzle du jour
-    if (by.puzzle && window.FIRE_PUZZLES) { const done = !!(gpSave().days || {})[gpToday()]; ws.push(tile('puzzle', '🧩', 'Puzzle du jour', done ? h('span', null, '✅ Fait aujourd’hui') : h('b', null, 'Une situation t’attend'), done ? h('small', null, 'Reviens demain pour le suivant') : h('small', null, '1 minute pour t’entraîner à lire la partie'), done ? 'done' : 'hot')); }
+    if (by.puzzle && window.FIRE_PUZZLES && !hid.has('puzzle')) { const done = !!(gpSave().days || {})[gpToday()]; ws.push(tile('puzzle', '🧩', 'Puzzle du jour', done ? h('span', null, '✅ Fait aujourd’hui') : h('b', null, 'Une situation t’attend'), done ? h('small', null, 'Reviens demain pour le suivant') : h('small', null, '1 minute pour t’entraîner à lire la partie'), done ? 'done' : 'hot')); }
     // Clips de l'équipe
     const nc = cfUnseen();
-    if (by.clips && nc) ws.push(tile('clips', '🎬', 'Clips de l’équipe', h('b', null, `${nc} nouveau${nc > 1 ? 'x' : ''} clip${nc > 1 ? 's' : ''}`), h('small', null, 'Like et commente ceux de tes coéquipiers'), 'hot', () => { CLB.tab = 'team'; go('clips'); }));
+    if (by.clips && nc && !hid.has('clips')) ws.push(tile('clips', '🎬', 'Clips de l’équipe', h('b', null, `${nc} nouveau${nc > 1 ? 'x' : ''} clip${nc > 1 ? 's' : ''}`), h('small', null, 'Like et commente ceux de tes coéquipiers'), 'hot', () => { CLB.tab = 'team'; go('clips'); }));
     // Raccourcis : tes rubriques les plus utilisées (ou celles du début)
     const v = accVisits();
-    const top = Object.keys(v).filter((id) => by[id] && id !== 'accueil').sort((a, b) => v[b] - v[a]).slice(0, 4);
-    for (const id of ['stats', 'draft', 'pool', 'jeux', 'vocal', 'planning']) if (top.length < 4 && by[id] && !top.includes(id)) top.push(id);
+    const pinned = Array.isArray(A.pins);
+    let top = pinned ? A.pins.filter((id) => by[id]) : Object.keys(v).filter((id) => by[id] && id !== 'accueil').sort((a, b) => v[b] - v[a]).slice(0, 4);
+    if (!pinned) for (const id of ['stats', 'draft', 'pool', 'jeux', 'vocal', 'planning']) if (top.length < 4 && by[id] && !top.includes(id)) top.push(id);
+    // Mode « Personnaliser » : blocs affichés et rubriques épinglées.
+    const editor = ACCE.edit ? h('div', { class: 'card acc-edit' },
+      h('div', { class: 'row acc-edit-h' }, h('h2', null, '✏️ Personnaliser mon accueil'), h('span', { class: 'spacer' }), h('button', { class: 'btn-fire small-btn', onclick: () => { ACCE.edit = false; renderAccueil(); } }, 'Terminé')),
+      h('p', { class: 'muted small' }, 'Blocs affichés :'),
+      h('div', { class: 'sal-chips' }, ACC_W.map(([k, ico, l]) => { const on = !hid.has(k); return h('button', { class: 'chip' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick: () => accSave({ hide: on ? [...hid, k] : [...hid].filter((x) => x !== k) }) }, (on ? '✓ ' : '') + ico + ' ' + l); })),
+      h('p', { class: 'muted small' }, pinned ? `Rubriques épinglées (${top.length}) : clique pour épingler ou retirer, dans l’ordre où tu les veux.` : 'Rubriques épinglées : pour l’instant FIRE montre celles que tu ouvres le plus. Clique pour choisir les tiennes.'),
+      h('div', { class: 'sal-chips' }, items.filter(([id]) => id !== 'accueil' && id !== 'settings').map((it) => { const id = it[0]; const i = pinned ? A.pins.indexOf(id) : -1;
+        return h('button', { class: 'chip' + (i >= 0 ? ' on' : ''), 'aria-pressed': String(i >= 0), onclick: () => accPin(id, i < 0) }, i >= 0 ? `📌${i + 1} ` : '', it[1] + ' ' + it[2]); })),
+      h('div', { class: 'row' }, pinned ? h('button', { class: 'linkbtn small', onclick: () => accSave({ pins: null }) }, '↺ Revenir aux rubriques les plus utilisées') : null,
+        hid.size ? h('button', { class: 'linkbtn small', onclick: () => accSave({ hide: [] }) }, '↺ Réafficher tous les blocs') : null)) : null;
+    const move = (id, d) => { const l = A.pins.slice(); const i = l.indexOf(id); const j = i + d; if (i < 0 || j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; accSave({ pins: l }); };
     const live = Object.keys(liveAll()).length;
     view.replaceChildren(...[
       h('header', { class: 'acc-hero' },
         h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE LoL'), h('h1', null, `${hello}${me ? ' ' + String(me.pseudo).split('#')[0] : ''} 👋`),
           h('p', null, 'L’essentiel de ta journée. Tout le reste est dans le menu à gauche.'),
+          h('button', { class: 'btn-ghost small-btn acc-cust', title: 'Choisir ce qui s’affiche sur ton accueil', onclick: () => { ACCE.edit = !ACCE.edit; renderAccueil(); } }, ACCE.edit ? 'Fermer' : '✏️ Personnaliser'),
           h('div', { class: 'row acc-quick' },
             live ? h('button', { class: 'chip acc-live', onclick: () => go('stats') }, `🔴 ${live} coéquipier${live > 1 ? 's' : ''} en game`) : null,
             by.planning && planTodo() ? h('button', { class: 'chip', onclick: () => go('planning') }, `📅 ${planTodo()} réponse${planTodo() > 1 ? 's' : ''} au planning`) : null,
             TWITCH.live && by.stream ? h('button', { class: 'chip acc-live', onclick: () => go('stream') }, '🟣 Toks42o est en live') : null))),
-      SUB() || MOBILE && !S.plan ? null : todayPlanCard(),
+      editor,
+      SUB() || (MOBILE && !S.plan) || hid.has('plan') ? null : todayPlanCard(),
       ws.filter(Boolean).length ? h('div', { class: 'acc-ws-grid' }, ...ws.filter(Boolean)) : null,
-      top.length ? h('section', { class: 'acc-cat' }, h('div', { class: 'acc-ch' }, h('div', null, h('h2', null, 'Tes raccourcis'), h('small', { class: 'muted' }, 'Les rubriques que tu ouvres le plus'))),
-        h('div', { class: 'acc-grid acc-top' }, ...top.map((id) => { const it = by[id]; return h('button', { class: 'acc-card', 'data-id': id, onclick: () => go(id) },
+      top.length ? h('section', { class: 'acc-cat' }, h('div', { class: 'acc-ch' }, h('div', null, h('h2', null, pinned ? '📌 Épinglé' : 'Tes raccourcis'), h('small', { class: 'muted' }, pinned ? 'Les rubriques que tu as choisies' : 'Les rubriques que tu ouvres le plus · « Personnaliser » pour choisir les tiennes'))),
+        h('div', { class: 'acc-grid acc-top' }, ...top.map((id, k) => { const it = by[id]; return h('div', { class: 'acc-pin' }, h('button', { class: 'acc-card', 'data-id': id, onclick: () => go(id) },
           h('span', { class: 'acc-ico' }, icon(id)), h('span', { class: 'acc-txt' }, h('b', null, it[2]), h('small', null, ACC_DESC[id] || '')),
-          h('span', { class: 'acc-badge', hidden: it[3] ? null : '' }, it[3] || ''), h('span', { class: 'acc-go' }, '→')); }))) : null].filter(Boolean));
+          h('span', { class: 'acc-badge', hidden: it[3] ? null : '' }, it[3] || ''), h('span', { class: 'acc-go' }, '→')),
+          ACCE.edit && pinned ? h('div', { class: 'acc-pin-act' }, h('button', { title: 'Avant', disabled: k === 0 ? true : null, onclick: () => move(id, -1) }, '←'), h('button', { title: 'Après', disabled: k === top.length - 1 ? true : null, onclick: () => move(id, 1) }, '→'), h('button', { title: 'Retirer de l’accueil', onclick: () => accPin(id, false) }, '✕')) : null); }))) : null].filter(Boolean));
   }
 
   // ----- Accueil des stats : le planning du jour (qui est là) et l'accès direct au coaching individuel -----
@@ -3257,7 +3284,7 @@
     const goCoach = () => { S.planTab = 'coachs'; S.planWeek = mondayOf(t); go('planning'); };
     const coachBtn = (S.coachs || []).length ? h('button', { class: 'btn-fire small-btn tp-coach', onclick: (e) => { e.stopPropagation(); goCoach(); } }, '🎓 Prendre un créneau de coaching individuel') : null;
     if (!P) return coachBtn ? h('div', { class: 'row tp-row' }, coachBtn) : null;
-    const roster = S.players.filter((x) => x.slug);
+    const roster = S.players.filter((x) => x.slug && !isSub(x));
     if (!j) {
       const next = Object.keys(P.jours || {}).filter((d) => d > t).sort()[0];
       return h('div', { class: 'card tp-card none', tabindex: '0', onclick: goPlan },
@@ -8463,10 +8490,12 @@
   }
 
   // Jours à venir (14 jours) où je n'ai pas encore répondu : pastille dans le menu (+ demandes de créneaux à traiter pour un coach).
+  // Remplaçant (même avec le code d'équipe) : il voit le planning de l'équipe 1 mais n'y répond pas.
+  const meSub = () => { const p = S.players.find((x) => x.slug === S.moi); return !!(p && isSub(p)); };
   function planTodo() {
     if (!S.plan || SUB()) return 0;
     const t = todayYmd(), lim = addDays(t, 14);
-    const team = S.moi && !isCoachUser() ? Object.keys(S.plan.jours).filter((d) => d >= t && d <= lim && !((S.plan.reponses[d] || {})[S.moi])).length : 0;
+    const team = S.moi && !isCoachUser() && !meSub() ? Object.keys(S.plan.jours).filter((d) => d >= t && d <= lim && !((S.plan.reponses[d] || {})[S.moi])).length : 0;
     return team + coachPending();
   }
   function coachPending() { return S.coachState.coach ? resaList().filter((x) => x.st === 'attente').length : 0; }
@@ -8494,7 +8523,7 @@
     const days = weekDays(mon);
     // Le coach et le chef d'équipe (code chef activé sur ce PC) peuvent modifier le planning.
     const coach = S.coachState.coach || S.coachState.chef;
-    const roster = S.players.filter((x) => x.slug);
+    const roster = S.players.filter((x) => x.slug && !isSub(x)); // les remplaçants voient le planning de l'équipe 1 mais n'y sont pas
     const tabC = S.planTab === 'coachs';
     const pend = coachPending();
     const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, tabC ? '🎓' : '🗓️'),
@@ -8511,6 +8540,7 @@
 
     nodes.push(h('div', { class: 'row me-row' }, h('label', { class: 'fld-inline' }, '👤 Je suis ', meSelect()),
       !S.moi ? h('span', { class: 'muted small' }, '← choisis ton pseudo pour répondre') : null,
+      S.moi && meSub() ? h('span', { class: 'muted small' }, '👀 Planning de l’équipe 1 et du coach : tu peux le consulter, mais tu n’y réponds pas.') : null,
       S.moi && !planCanWrite() ? h('span', { class: 'muted small' }, "Les réponses s'ouvriront dès que le coach aura activé le jeton d'équipe.") : null));
 
     const nav = h('div', { class: 'row plan-nav' },
@@ -8536,7 +8566,7 @@
       const mine = S.moi ? rep[S.moi] : null;
       const type = PLAN_TYPES.find((x) => x[0] === j.type) || PLAN_TYPES[0];
       const full = cnt.present >= 5;
-      const btns = S.moi && !past && S.players.some((x) => x.slug === S.moi) ? h('div', { class: 'plan-me' }, h('span', { class: 'muted small' }, 'Moi : '),
+      const btns = S.moi && !past && S.players.some((x) => x.slug === S.moi && !isSub(x)) ? h('div', { class: 'plan-me' }, h('span', { class: 'muted small' }, 'Moi : '),
         Object.entries(PLAN_ST).map(([k, v]) => h('button', { class: 'plan-btn ' + v.cls, 'aria-pressed': String(!!(mine && mine.statut === k)), disabled: planCanWrite() ? null : true,
           onclick: () => answer(d, S.moi, mine && mine.statut === k ? null : k) }, v.ico + ' ' + v.txt))) : null;
       const people = h('div', { class: 'plan-people' }, roster.map((p) => {

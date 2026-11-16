@@ -2951,3 +2951,14 @@ html.set-open .set-page{text-shadow:0 1px 2px rgb(0 0 0 / 35%)}
 .acc-bar{height:6px;border-radius:6px;background:var(--line,#ffffff1a);overflow:hidden;margin:6px 0}
 .acc-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--fire2,#ffb44d),var(--fire1,#ff6b3d))}
 .acc-w.done .acc-bar i{background:#3ecf8e}
+.acc-hero-txt{position:relative}
+.acc-cust{position:absolute;top:0;right:0;z-index:2}
+.acc-edit{display:flex;flex-direction:column;gap:10px}
+.acc-edit-h{align-items:center}
+.acc-edit-h h2{margin:0}
+.acc-edit .chip.on{border-color:var(--fire1);background:color-mix(in srgb,var(--fire1) 16%,transparent);color:var(--fg)}
+.acc-pin{position:relative}
+.acc-pin .acc-card{width:100%}
+.acc-pin-act{position:absolute;left:10px;bottom:-12px;display:flex;gap:4px;z-index:2}
+.acc-pin-act button{width:28px;height:24px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer;font-size:12px}
+.acc-pin-act button:disabled{opacity:.35;cursor:default}

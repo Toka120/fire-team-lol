@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.143",
+   "date": "2026-11-16",
+   "titre": "Accueil à ta façon, planning de l’équipe 1",
+   "items": [
+    [
+     "new",
+     "Accueil › « ✏️ Personnaliser » : chacun choisit les blocs affichés (planning du jour, objectif, rendez-vous, discussion, coach, puzzle, clips) et épingle les rubriques qu’il veut, dans l’ordre voulu (← → pour déplacer, ✕ pour retirer)."
+    ],
+    [
+     "improve",
+     "Planning d’équipe : les remplaçants n’y apparaissent plus. C’est le planning des entraînements du coach et de l’équipe 1 : ils peuvent le voir, mais ne peuvent pas répondre, et ne reçoivent ni pastille ni rappel pour ces séances."
+    ]
+   ]
+  },
+  {
    "v": "1.10.142",
    "date": "2026-11-16",
    "titre": "Accueil plus simple",
