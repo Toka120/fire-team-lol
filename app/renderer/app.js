@@ -4582,6 +4582,7 @@
   const pourLabel = (p) => (!p || p === 'tous') ? "Toute l'équipe" : String(p).split(/\s+/).map((r) => (FC.ROLES[r] ? FC.ROLES[r].label : r)).join(' et ');
 
   function go(sec) {
+    if (sec !== 'vocal' && window.FireStreams) FireStreams.close();
     if (SUB() && !SUB_OK.has(sec)) sec = 'stats';
     if (MOBILE && MOBILE_OFF.has(sec)) sec = 'stats';
     try { accVisit(sec); } catch (e) { /* */ }
@@ -5120,6 +5121,11 @@
     if (VX.picker) paint();
   }
   function fullscreen(el) { (el.requestFullscreen ? el.requestFullscreen() : Promise.reject()).catch(() => {}); }
+  function sharedScreens(v) {
+    if (!v.on) return [];
+    return (v.screen ? [{ key: 'me:screen', name: 'Ton écran', stream: v.screen }] : [])
+      .concat(v.videos.filter((x) => x.kind === 'screen').map((x) => ({ key: x.slug + ':screen', name: 'Écran de ' + vocalName(x.slug), stream: x.stream })));
+  }
   // Icônes du salon (traits fins, comme dans les apps de voix).
   const VICO = {
     mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
@@ -5223,6 +5229,7 @@
       if (window.FireClips && !!v.on !== !!VX.prevIn) FireClips.setMic(v.on ? FV().micStream() : null);
       VX.prevIn = v.on ? now : null;
       const sig = vocalSig(v);
+      if (window.FireStreams && FireStreams.active) FireStreams.sync(sharedScreens(v));
       if (sig !== VX.sig) {
         VX.sig = sig;
         renderNav();
@@ -6269,6 +6276,7 @@
         gearBtn('cb'),
         h('button', { class: 'cb leave', title: `Quitter le salon (${keyTxt(K.join)})`, onclick: () => FV().leave() }, vi('phone'))),
       h('div', { class: 'vc-bar-r' },
+        screens.length && window.FireStreams ? h('button', { class: 'vc-streams-full', title: 'Tous les partages en plein écran', onclick: () => FireStreams.open(sharedScreens(FV().state())) }, vi('full'), 'Plein écran') : null,
         h('div', { class: 'vm-wrap' },
           h('button', { class: 'vc-more' + (VX.more ? ' on' : ''), title: 'Plus d’options', onclick: (e) => { e.stopPropagation(); VX.more = !VX.more; VX.invOpen = false; renderVocal(); } }, vi('more')),
           VX.more ? vocalMenu(v) : null),
