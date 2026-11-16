@@ -30,6 +30,20 @@
     ['galaxie', 'Galaxie', '#06041a', '#c49bff', '#ff9fe0', 'Une galaxie spirale qui tourne lentement', 1],
     ['fire', 'FIRE', '#0f0d0c', '#ff5e3a', '#ffb02e', 'Le thème d’origine', 0], ['bleu', 'Bleu', '#0a1430', '#508cff', '#8fb6ff', '', 0], ['rouge', 'Rouge', '#1f0709', '#f0283c', '#ff8a8a', '', 0],
     ['vert', 'Vert', '#061a0f', '#3cdc78', '#a6f0c2', '', 0], ['jaune', 'Jaune', '#1c1606', '#ffcd28', '#ffe58a', '', 0], ['noir', 'Noir', '#000000', '#8a8a8a', '#d0d0d0', '', 0], ['gris', 'Gris', '#1b1c1f', '#6b6f78', '#b5b9c2', '', 0]];
+  // Compagnons chibi : des petites mascottes originales de FIRE, dessinées en SVG.
+  const PET_EYES = '<ellipse cx="19" cy="27" rx="3.2" ry="4" fill="#1b1020"/><ellipse cx="31" cy="27" rx="3.2" ry="4" fill="#1b1020"/><circle cx="20.2" cy="25.6" r="1.2" fill="#fff"/><circle cx="32.2" cy="25.6" r="1.2" fill="#fff"/><ellipse cx="14.5" cy="32" rx="3" ry="1.8" fill="#ff7aa8" opacity=".55"/><ellipse cx="35.5" cy="32" rx="3" ry="1.8" fill="#ff7aa8" opacity=".55"/><path d="M22.5 33 q2.5 2.2 5 0" stroke="#1b1020" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+  const PETS = {
+    flammi: ['Flammi', '<defs><linearGradient id="pf1" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff3b1f"/><stop offset=".6" stop-color="#ff9a1f"/><stop offset="1" stop-color="#ffe27a"/></linearGradient></defs><path d="M25 3 C30 12 41 15 40 30 C40 40 33 46 25 46 C17 46 10 40 10 30 C10 22 16 20 17 12 C21 17 23 12 25 3Z" fill="url(#pf1)"/>'],
+    givro: ['Givro', '<rect x="8" y="10" width="34" height="34" rx="9" fill="#bfeaff"/><rect x="8" y="10" width="34" height="34" rx="9" fill="none" stroke="#fff" stroke-width="2" opacity=".7"/><path d="M13 16 l6 0" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/>'],
+    slimy: ['Slimy', '<path d="M6 40 C6 22 14 10 25 10 C36 10 44 22 44 40 C44 44 40 45 37 43 C34 46 30 46 27 44 C23 46 18 46 15 43 C11 45 6 44 6 40Z" fill="#5fe08a"/><ellipse cx="18" cy="17" rx="4" ry="2.5" fill="#fff" opacity=".5"/>'],
+    boo: ['Boo', '<path d="M9 44 L9 22 C9 12 16 6 25 6 C34 6 41 12 41 22 L41 44 L36 40 L31 44 L25 40 L19 44 L14 40Z" fill="#f4f1ff"/><path d="M9 44 L9 22 C9 12 16 6 25 6" fill="none" stroke="#d8d0ff" stroke-width="1.5"/>'],
+    neko: ['Neko', '<path d="M9 18 L12 4 L20 13 L30 13 L38 4 L41 18 C44 24 44 40 25 44 C6 40 6 24 9 18Z" fill="#ff8fd6"/><path d="M13 9 l3 5 M37 9 l-3 5" stroke="#ffd0ef" stroke-width="2"/>'],
+    robo: ['Robo', '<line x1="25" y1="4" x2="25" y2="10" stroke="#9fb3c8" stroke-width="2"/><circle cx="25" cy="4" r="2.5" fill="#22e6ff"/><rect x="8" y="10" width="34" height="32" rx="8" fill="#c9d6e3"/><rect x="12" y="18" width="26" height="16" rx="5" fill="#2a3a4d"/>', true],
+    shroom: ['Champi', '<rect x="16" y="26" width="18" height="18" rx="7" fill="#fff1dc"/><path d="M5 27 C5 13 15 6 25 6 C35 6 45 13 45 27 Z" fill="#e8434f"/><circle cx="17" cy="15" r="3" fill="#fff"/><circle cx="31" cy="12" r="2.5" fill="#fff"/><circle cx="37" cy="21" r="2.2" fill="#fff"/>', 'low'],
+    astro: ['Astro', '<path d="M25 3 L31 17 L46 18 L34 28 L38 44 L25 35 L12 44 L16 28 L4 18 L19 17Z" fill="#ffd23d" stroke="#ffb02e" stroke-width="1.5" stroke-linejoin="round"/>'],
+    drako: ['Drako', '<path d="M12 14 L8 4 L18 11 M38 14 L42 4 L32 11" fill="#7c5cff"/><ellipse cx="25" cy="28" rx="17" ry="16" fill="#9d7bff"/><path d="M6 26 L1 20 L6 31 Z M44 26 L49 20 L44 31Z" fill="#c4b0ff"/><ellipse cx="25" cy="38" rx="8" ry="4" fill="#c4b0ff"/>'],
+    bulle: ['Bulle', '<circle cx="25" cy="26" r="19" fill="#7fe8ff" opacity=".85"/><circle cx="25" cy="26" r="19" fill="none" stroke="#fff" stroke-width="1.5" opacity=".7"/><ellipse cx="17" cy="15" rx="5" ry="3" fill="#fff" opacity=".7" transform="rotate(-30 17 15)"/>'],
+  };
   const applyTheme = (t) => {
     const el = document.documentElement;
     const th = THEMES.find((x) => x[0] === t);
@@ -405,6 +419,7 @@
     }, 60 * 1000);
     if (!S.moi && !load('fire.moi.demande', false)) later(askWho);
     rdvStart();
+    promoLater();
     // Clips : ménage des vieux clips non gardés, et clips partagés par l'équipe.
     setTimeout(clipsPurge, 30000); setInterval(clipsPurge, 6 * 3600 * 1000);
     setTimeout(() => cfLoad(true), 15000); setInterval(() => cfLoad(true), 10 * 60000);
@@ -965,6 +980,79 @@
         me ? h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => openProfile(me) }, '👀 Voir ma carte')) : h('p', { class: 'muted small' }, 'Choisis d’abord qui tu es.')),
     ];
   }
+  // ----- Présentation de la boutique (une seule fois, à l'ouverture) : une petite pub animée, puis « Aller à la boutique » -----
+  function promoShop(force) {
+    if (!force && (load('fire.promo.boutique', false) || document.getElementById('promo') || document.getElementById('ann-modal'))) return;
+    const me = vocalMe();
+    const name = me ? vocalName(me) : 'Toi';
+    const ini2 = me ? ini(me) : 'FI';
+    save('fire.promo.boutique', true);
+    let i = 0, timer = null;
+    const FXL = [['rainbow', 'Arc-en-ciel'], ['feu', 'En feu'], ['neon', 'Néon'], ['or', 'Or massif'], ['givre', 'Givre'], ['glitch', 'Glitch']];
+    const DKL = [['flammes', 'Flammes'], ['neon', 'Anneau néon'], ['couronne', 'Couronne'], ['arc', 'Arc-en-ciel'], ['void', 'Néant'], ['petales', 'Sakura']];
+    const PFL = [['petales', 'Pétales'], ['confettis', 'Confettis'], ['etoiles', 'Étoiles'], ['braises', 'Braises'], ['neige', 'Neige'], ['coeurs', 'Cœurs']];
+    const cycle = (el, list, fn) => { let k = 0; fn(el, list[0]); return setInterval(() => { k = (k + 1) % list.length; fn(el, list[k]); }, 900); };
+    const loops = [];
+    const close = (goShop) => {
+      clearTimeout(timer); loops.forEach(clearInterval);
+      ov.classList.add('out'); setTimeout(() => ov.remove(), 450);
+      document.removeEventListener('keydown', key, true);
+      if (goShop) { S.setTab = 'boutique'; go('settings'); }
+    };
+    const key = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(false); } if (e.key === 'ArrowRight') next(); };
+    const nm = h('span', { class: 'nm promo-nm', 'data-t': name }, name);
+    const nmLab = h('small', { class: 'promo-lab' });
+    const av = h('span', { class: 'vc-av promo-av' }, ini2);
+    const avLab = h('small', { class: 'promo-lab' });
+    const pfx = h('div', { class: 'pfx' });
+    const pfLab = h('small', { class: 'promo-lab' });
+    const scenes = [
+      h('div', { class: 'promo-sc s1' }, h('div', { class: 'promo-kick' }, '✨ Nouveau dans FIRE'), h('h1', { class: 'promo-title' }, 'La Boutique FIRE'),
+        h('p', { class: 'promo-sub' }, 'Personnalise ton profil comme jamais.'), h('div', { class: 'promo-free' }, '100 % gratuit')),
+      h('div', { class: 'promo-sc s2' }, h('div', { class: 'promo-kick' }, 'Ton pseudo'), h('div', { class: 'promo-big' }, nm), nmLab, h('p', { class: 'promo-sub' }, 'Effets, dégradés et polices : tout le monde les voit dans la discussion et le vocal.')),
+      h('div', { class: 'promo-sc s3' }, h('div', { class: 'promo-kick' }, 'Ton avatar'), h('div', { class: 'promo-big' }, av), avLab, h('p', { class: 'promo-sub' }, 'Des décorations animées autour de ton avatar.')),
+      h('div', { class: 'promo-sc s4' }, h('div', { class: 'promo-kick' }, 'Ta carte de profil'),
+        h('div', { class: 'promo-card prof-card pf-themed', style: '--pc1:#3a1020;--pc2:#120a22' }, pfx, h('div', { class: 'prof-ban promo-ban' }),
+          h('div', { class: 'prof-av-wrap' }, h('span', { class: 'vc-av prof-av dk dk-neon' }, ini2)), h('div', { class: 'prof-body' }, h('div', { class: 'prof-name plate pl-neon' }, h('span', { class: 'nm nm-rainbow', 'data-t': name }, name)), h('small', { class: 'muted' }, 'Effets de profil, plaques de nom, thèmes de carte'))),
+        pfLab),
+      h('div', { class: 'promo-sc s5' }, h('div', { class: 'promo-kick' }, 'Prêt ?'), h('h1', { class: 'promo-title' }, 'Équipe-toi.'), h('p', { class: 'promo-sub' }, 'Plus de 60 objets à essayer, gratuits, équipés en un clic.'),
+        h('button', { class: 'promo-go', onclick: () => close(true) }, '🛍️ Aller à la boutique'),
+        h('button', { class: 'promo-later', onclick: () => close(false) }, 'Plus tard')),
+    ];
+    const dots = h('div', { class: 'promo-dots' }, scenes.map((_, k) => h('button', { class: 'promo-dot', 'aria-label': 'Partie ' + (k + 1), onclick: () => show(k) })));
+    const stage = h('div', { class: 'promo-stage' }, ...scenes);
+    const ov = h('div', { id: 'promo', class: 'promo', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'La Boutique FIRE' },
+      h('div', { class: 'promo-bg' }, h('i', { class: 'promo-orb a' }), h('i', { class: 'promo-orb b' }), h('i', { class: 'promo-orb c' }), h('div', { class: 'pfx pfx-etoiles' })),
+      h('button', { class: 'promo-skip', onclick: () => close(false) }, 'Passer ✕'),
+      stage, dots, h('div', { class: 'promo-bar' }, h('i')));
+    function show(k) {
+      i = k; clearTimeout(timer);
+      scenes.forEach((sc, j) => sc.classList.toggle('on', j === k));
+      [...dots.children].forEach((d, j) => d.classList.toggle('on', j === k));
+      const bar = ov.querySelector('.promo-bar i'); bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = k < scenes.length - 1 ? 'promoBar 3.4s linear forwards' : 'none';
+      if (k < scenes.length - 1) timer = setTimeout(next, 3400);
+      else setTimeout(() => { const b = ov.querySelector('.promo-go'); if (b) b.focus(); }, 300);
+    }
+    function next() { if (i < scenes.length - 1) show(i + 1); }
+    loops.push(cycle(nm, FXL, (el, [k, l]) => { el.className = 'nm promo-nm nm-' + k; nmLab.textContent = l; }));
+    loops.push(cycle(av, DKL, (el, [k, l]) => { el.className = 'vc-av promo-av dk dk-' + k; el.replaceChildren(ini2, ...(k === 'couronne' ? [h('i', { class: 'dk-top' }, '👑')] : [])); avLab.textContent = l; }));
+    loops.push(cycle(pfx, PFL, (el, [k, l]) => { el.className = 'pfx pfx-' + k; pfLab.textContent = l; }));
+    document.addEventListener('keydown', key, true);
+    document.body.append(ov);
+    show(0);
+  }
+  window.FIRE_PROMO = () => promoShop(true); // pour revoir la présentation
+  // Au lancement : une fois que FIRE est prêt, devant toi, et sans annonce ni partie en cours.
+  function promoLater() {
+    if (load('fire.promo.boutique', false)) return;
+    const tryShow = () => {
+      if (load('fire.promo.boutique', false)) return;
+      const busy = document.getElementById('ann-modal') || document.hidden || !document.hasFocus() || (typeof LIVE !== 'undefined' && LIVE.mine) || !vocalMe() || document.querySelector('.who-pop, .lock:not([hidden])');
+      if (busy) { setTimeout(tryShow, 5000); return; }
+      promoShop();
+    };
+    setTimeout(tryShow, 6000);
+  }
   // ----- Boutique FIRE : tout est gratuit, on équipe et on déséquipe en un clic -----
   const SHOP = {
     fx: [['', 'Aucun', 'Le pseudo simple'], ['shine', 'Brillance', 'Un reflet qui passe'], ['neon', 'Néon', 'Il brille dans le noir'], ['rainbow', 'Arc-en-ciel', 'Toutes les couleurs, en mouvement'], ['feu', 'En feu', 'Des flammes qui dansent'], ['givre', 'Givre', 'Glacé et scintillant'], ['glitch', 'Glitch', 'Un bug… voulu'], ['pulse', 'Pulsation', 'Il bat comme un cœur'], ['or', 'Or massif', 'Doré et brillant']],
@@ -973,6 +1061,7 @@
     deco: [['', 'Aucune'], ['flammes', 'Flammes'], ['neon', 'Anneau néon'], ['arc', 'Arc-en-ciel'], ['petales', 'Sakura'], ['givre', 'Givre'], ['hextech', 'Hextech'], ['couronne', 'Couronne'], ['void', 'Néant'], ['eclair', 'Éclair'], ['coeurs', 'Cœurs']],
     pfx: [['', 'Aucun'], ['petales', 'Pétales'], ['neige', 'Neige'], ['etincelles', 'Étincelles'], ['braises', 'Braises'], ['etoiles', 'Étoiles'], ['confettis', 'Confettis'], ['bulles', 'Bulles'], ['coeurs', 'Cœurs']],
     plate: [['', 'Aucune'], ['aube', 'Aube'], ['ocean', 'Océan'], ['foret', 'Forêt'], ['nuit', 'Nuit'], ['lave', 'Lave'], ['neon', 'Néon'], ['or', 'Or'], ['glace', 'Glace'], ['sakura', 'Sakura'], ['matrix', 'Matrix'], ['galaxie', 'Galaxie']],
+    pet: [['', 'Aucun'], ...Object.entries(PETS).map(([k, v]) => [k, v[0]])],
     card: [[null, 'Selon le thème'], [['#3a1020', '#120a22'], 'Pourpre'], [['#0b2a3a', '#06121c'], 'Abysses'], [['#2a1a05', '#120a02'], 'Ambre'], [['#0d2a18', '#04100a'], 'Forêt'], [['#2a0b2a', '#0b0a2a'], 'Néon'], [['#1d1d2e', '#0a0a12'], 'Nuit'], [['#3a2a10', '#101820'], 'Hextech']],
   };
   const looks = () => UX.look || {};
@@ -982,25 +1071,37 @@
     if (!me) return [uxCard('🛍️ Boutique FIRE', 'Choisis d’abord qui tu es pour personnaliser ton profil.', h('button', { class: 'btn-fire small-btn', onclick: askWho }, 'Qui es-tu ?'))];
     const L = looks();
     const same = (a, b) => JSON.stringify(a || null) === JSON.stringify(b || null);
-    const item = (k, val, label, desc, prev) => { const on = same(L[k] || (k === 'grad' || k === 'card' ? null : ''), val); return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => setLook(k, val) },
+    // Essayer : survoler (ou sélectionner au clavier) un objet l'affiche tout de suite sur l'aperçu, sans l'équiper.
+    const tryOn = (k, val) => { const P = document.querySelector('.shop-preview'); if (P) P.replaceWith(previewOf(val === undefined ? L : { ...L, [k]: val || undefined }, val !== undefined)); };
+    const item = (k, val, label, desc, prev) => { const on = same(L[k] || (k === 'grad' || k === 'card' ? null : ''), val); return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => setLook(k, val),
+      onmouseenter: () => tryOn(k, val), onfocus: () => tryOn(k, val), onmouseleave: () => tryOn(k, undefined), onblur: () => tryOn(k, undefined) },
       h('div', { class: 'shop-prev' }, prev), h('b', null, label), desc ? h('small', { class: 'muted' }, desc) : null, h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); };
     const name = (fx, font, grad) => h('span', { class: 'nm' + (grad ? ' nm-grad' : '') + (fx ? ' nm-' + fx : ''), style: (grad ? `--n1:${grad[0]};--n2:${grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (font && LOOK_FONT[font] ? `font-family:${LOOK_FONT[font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
-    const preview = h('div', { class: 'shop-preview' },
-      h('div', { class: 'prof-card pf-mini' + (L.card ? ' pf-themed' : ''), style: L.card ? `--pc1:${L.card[0]};--pc2:${L.card[1]}` : '' },
-        L.pfx ? h('div', { class: 'pfx pfx-' + L.pfx }) : null,
+    // L'aperçu : la carte de profil, une ligne de discussion, la liste des membres et la case du vocal, avec le look donné.
+    const lname = (X) => h('span', { class: 'nm' + (X.grad ? ' nm-grad' : '') + (X.fx ? ' nm-' + X.fx : ''), style: (X.grad ? `--n1:${X.grad[0]};--n2:${X.grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (X.font && LOOK_FONT[X.font] ? `font-family:${LOOK_FONT[X.font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
+    const lav = (X, cls) => h('span', { class: 'vc-av ' + (cls || '') + (X.deco ? ' dk dk-' + X.deco : '') }, ini(me), X.deco === 'couronne' ? h('i', { class: 'dk-top' }, '👑') : X.deco === 'coeurs' ? h('i', { class: 'dk-top' }, '💞') : X.deco === 'eclair' ? h('i', { class: 'dk-top' }, '⚡') : null, X.pet ? petEl(X.pet, 'pet-av') : null);
+    const previewOf = (X, trying) => h('div', { class: 'shop-preview' + (trying ? ' trying' : '') },
+      h('div', { class: 'prof-card pf-mini' + (X.card ? ' pf-themed' : ''), style: X.card ? `--pc1:${X.card[0]};--pc2:${X.card[1]}` : '' },
+        X.pfx ? h('div', { class: 'pfx pfx-' + X.pfx }) : null,
         h('div', { class: 'prof-ban', style: UX.banner ? `background-image:url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${UX.banner.c}_${UX.banner.n}.jpg')` : '' }),
-        h('div', { class: 'prof-av-wrap' }, avatarEl(me, 'prof-av')),
-        h('div', { class: 'prof-body' }, h('div', { class: 'prof-name' + (L.plate ? ' plate pl-' + L.plate : '') }, nameEl(me)), h('small', { class: 'muted' }, UX.bio || 'Ta carte de profil, comme les autres la voient'))),
-      h('div', { class: 'shop-side' }, h('p', { class: 'muted small' }, 'Dans la discussion :'), h('div', { class: 'chat-m' }, h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n' }, chatWhoIco(me), nameEl(me)), h('span', { class: 'muted' }, ' 21:30')), h('div', { class: 'chat-tx' }, 'On lance une flex ? 🔥')),
-        h('p', { class: 'muted small' }, 'Dans la liste des membres :'), h('div', { class: 'cp-cv' + (L.plate ? ' plate pl-' + L.plate : '') }, h('span', { class: 'chat-cv-i' }, '🙂'), h('span', { class: 'chat-cv-l' }, nameEl(me)))));
+        h('div', { class: 'prof-av-wrap' }, lav(X, 'prof-av')),
+        h('div', { class: 'prof-body' }, h('div', { class: 'prof-name' + (X.plate ? ' plate pl-' + X.plate : '') }, lname(X)), h('small', { class: 'muted' }, UX.bio || 'Ta carte de profil, comme les autres la voient'))),
+      h('div', { class: 'shop-side' },
+        trying ? h('span', { class: 'shop-try' }, '👀 Essai : clique pour l’équiper') : h('span', { class: 'shop-try eq' }, '✓ Ce que tu portes'),
+        h('p', { class: 'muted small' }, 'Dans la discussion :'), h('div', { class: 'chat-m' }, h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n' }, chatWhoIco(me), lname(X)), h('span', { class: 'muted' }, ' 21:30')), h('div', { class: 'chat-tx' }, 'On lance une flex ? 🔥')),
+        h('p', { class: 'muted small' }, 'Dans la liste des membres :'), h('div', { class: 'cp-cv' + (X.plate ? ' plate pl-' + X.plate : '') }, h('span', { class: 'chat-cv-i' }, '🙂'), h('span', { class: 'chat-cv-l' }, lname(X))),
+        h('p', { class: 'muted small' }, 'Dans le vocal :'), h('div', { class: 'shop-vt' }, lav(X, 'shop-vt-av'), h('span', { class: 'shop-vt-n' }, lname(X)))));
+    const preview = previewOf(L, false);
     const sec = (title, sub, list) => uxCard(title, sub, h('div', { class: 'shop-grid' }, list));
     return [
-      uxCard('🛍️ Boutique FIRE', 'Comme la boutique de Discord, mais tout est gratuit. Ce que tu équipes, tes coéquipiers le voient dans la discussion, le vocal et sur ta carte de profil.', preview,
-        h('div', { class: 'row' }, h('button', { class: 'linkbtn small', onclick: () => { setUx({ look: null }); renderSettings(); } }, '↺ Tout déséquiper'))),
+      preview,
+      uxCard('🛍️ Boutique FIRE', 'Comme la boutique de Discord, mais tout est gratuit. Survole un objet pour l’essayer sur l’aperçu, clique pour l’équiper. Tes coéquipiers voient ce que tu portes dans la discussion, le vocal et sur ta carte de profil.',
+        h('div', { class: 'row' }, h('button', { class: 'linkbtn small', onclick: () => { setUx({ look: null }); renderSettings(); } }, '↺ Tout déséquiper'), h('button', { class: 'linkbtn small', onclick: () => { setClose(true); promoShop(true); } }, '▶ Revoir la présentation'))),
       sec('✨ Effet de pseudo', 'Il s’anime partout où ton pseudo apparaît.', SHOP.fx.map(([v, l, d]) => item('fx', v, l, d, name(v, L.font, L.grad)))),
       sec('🎨 Dégradé de pseudo', 'Deux couleurs pour ton pseudo (sinon, ta couleur de Profil).', SHOP.grad.map(([v, l]) => item('grad', v, l, '', name(L.fx, L.font, v)))),
       sec('🔤 Police du pseudo', null, SHOP.font.map(([v, l]) => item('font', v, l, '', name(L.fx, v, L.grad)))),
       sec('💫 Décoration d’avatar', 'Autour de ton avatar dans le vocal et sur ta carte.', SHOP.deco.map(([v, l]) => item('deco', v, l, '', h('span', { class: 'vc-av shop-av' + (v ? ' dk dk-' + v : '') }, ini(me), v === 'couronne' ? h('i', { class: 'dk-top' }, '👑') : v === 'coeurs' ? h('i', { class: 'dk-top' }, '💞') : v === 'eclair' ? h('i', { class: 'dk-top' }, '⚡') : null)))),
+      sec('🐾 Compagnon chibi', 'Une petite mascotte de FIRE à côté de ton avatar.', SHOP.pet.map(([v, l]) => item('pet', v, l, '', v ? petEl(v, 'shop-pet') : h('span', { class: 'muted' }, '—')))),
       sec('🌠 Effet de profil', 'Une animation sur ta carte de profil.', SHOP.pfx.map(([v, l]) => item('pfx', v, l, '', h('div', { class: 'shop-pfx' }, v ? h('div', { class: 'pfx pfx-' + v }) : null)))),
       sec('🏷️ Plaque de nom', 'Le fond derrière ton pseudo dans la liste des membres.', SHOP.plate.map(([v, l]) => item('plate', v, l, '', h('div', { class: 'cp-cv shop-plate' + (v ? ' plate pl-' + v : '') }, h('span', { class: 'chat-cv-l' }, vocalName(me)))))),
       sec('🃏 Thème de carte de profil', null, SHOP.card.map(([v, l]) => item('card', v, l, '', h('div', { class: 'shop-card' + (v ? ' pf-themed' : ''), style: v ? `--pc1:${v[0]};--pc2:${v[1]}` : '' })))),
@@ -9218,11 +9319,20 @@
     if (L.font && LOOK_FONT[L.font]) style += `font-family:${LOOK_FONT[L.font]};`;
     return h('span', { class: cls, style, 'data-t': text || vocalName(slug) }, text || vocalName(slug));
   }
+  function petEl(id, cls) {
+    const p = PETS[id]; if (!p) return null;
+    const eyes = p[2] === true ? PET_EYES.replace(/#1b1020/g, '#5ff3ff').replace(/fill="#fff"/g, 'fill="#e0fdff"') : p[2] === 'low' ? PET_EYES.replace(/cy="27"/g, 'cy="34"').replace(/cy="25.6"/g, 'cy="32.6"').replace(/cy="32"/g, 'cy="38"').replace('M22.5 33 q2.5 2.2 5 0', 'M22.5 39 q2.5 2.2 5 0') : PET_EYES;
+    const sp = h('span', { class: 'pet ' + (cls || ''), title: 'Compagnon : ' + p[0] });
+    sp.innerHTML = `<svg viewBox="0 0 50 50" aria-hidden="true">${p[1]}${eyes}</svg>`;
+    return sp;
+  }
+  const petOf = (slug) => ((statusOf(slug).look || {}).pet || '');
   const decoOf = (slug) => ((statusOf(slug).look || {}).deco || '');
   const plateOf = (slug) => ((statusOf(slug).look || {}).plate || '');
   function avatarEl(slug, cls) {
     const d = decoOf(slug);
-    return h('span', { class: 'vc-av ' + (cls || '') + (d ? ' dk dk-' + d : ''), title: vocalName(slug) }, ini(slug), d === 'couronne' ? h('i', { class: 'dk-top' }, '👑') : d === 'coeurs' ? h('i', { class: 'dk-top' }, '💞') : d === 'eclair' ? h('i', { class: 'dk-top' }, '⚡') : null);
+    const pet = petOf(slug);
+    return h('span', { class: 'vc-av ' + (cls || '') + (d ? ' dk dk-' + d : ''), title: vocalName(slug) }, ini(slug), d === 'couronne' ? h('i', { class: 'dk-top' }, '👑') : d === 'coeurs' ? h('i', { class: 'dk-top' }, '💞') : d === 'eclair' ? h('i', { class: 'dk-top' }, '⚡') : null, pet ? petEl(pet, 'pet-av') : null);
   }
   function chatWhoIco(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 '; const p = S.players.find((x) => x.slug === slug); return p ? roleOf(p).ico + ' ' : ''; }
   function chatWho(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 ' + vocalName(slug); const p = S.players.find((x) => x.slug === slug); return (p ? roleOf(p).ico + ' ' : '') + vocalName(slug); }

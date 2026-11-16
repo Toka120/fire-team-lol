@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "1.10.146",
+   "date": "2026-11-16",
+   "titre": "Voix plus naturelle, présentation de la boutique, compagnons",
+   "items": [
+    [
+     "fix",
+     "Vocal : on n’entend plus les voix « comme dans une boîte de conserve ». Il y avait deux réductions de bruit l’une sur l’autre (celle de Windows/Chrome et l’IA de FIRE) : quand l’IA tourne, l’autre est maintenant coupée. Le filtre « Voix claire » est plus doux (la voix garde son corps), l’anti-réverbération ne baisse plus la voix entre les syllabes, et l’anti-clavier n’étouffe plus les « s » et les « t ». Chacun doit avoir cette version pour que sa voix change."
+    ],
+    [
+     "new",
+     "Présentation animée de la Boutique FIRE à l’ouverture (une seule fois, quand tu n’es pas en partie), avec un bouton « Aller à la boutique ». Tu peux la revoir depuis la boutique."
+    ],
+    [
+     "new",
+     "Boutique : survole un objet pour l’essayer tout de suite sur l’aperçu (carte de profil, discussion, liste des membres et vocal), qui reste visible pendant que tu fais défiler. Clique pour l’équiper."
+    ],
+    [
+     "new",
+     "🐾 Compagnons chibi : 10 petites mascottes de FIRE (Flammi, Givro, Slimy, Boo, Neko, Robo, Champi, Astro, Drako, Bulle) qui se tiennent à côté de ton avatar, dans le vocal et sur ta carte de profil."
+    ]
+   ]
+  },
+  {
    "v": "1.10.145",
    "date": "2026-11-16",
    "titre": "Paramètres : plus de sauts",

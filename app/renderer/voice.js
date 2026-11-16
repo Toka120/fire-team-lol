@@ -49,13 +49,13 @@
       V.ctx = c;
       const g = V.g = {};
       g.master = c.createGain(); g.master.gain.value = V.cfg.outVol; g.master.connect(c.destination);
-      g.hp = c.createBiquadFilter(); g.hp.type = 'highpass'; g.hp.frequency.value = V.cfg.hp ? 90 : 1; g.hp.Q.value = 0.54;
-      g.hp2 = c.createBiquadFilter(); g.hp2.type = 'highpass'; g.hp2.frequency.value = V.cfg.hp ? 90 : 1; g.hp2.Q.value = 1.31;
+      g.hp = c.createBiquadFilter(); g.hp.type = 'highpass'; g.hp.frequency.value = V.cfg.hp ? 75 : 1; g.hp.Q.value = 0.54;
+      g.hp2 = c.createBiquadFilter(); g.hp2.type = 'highpass'; g.hp2.frequency.value = V.cfg.hp ? 75 : 1; g.hp2.Q.value = 1.31;
       g.fxIn = c.createGain(); g.fxOut = c.createGain();
       // Voix claire : -4 dB vers 250 Hz (résonance de la pièce, voix « dans un carton »), +3 dB vers 3 kHz (articulation),
       // coupe au-dessus de 15 kHz (souffle), puis compression douce pour un niveau régulier et un limiteur anti-saturation.
-      g.mud = c.createBiquadFilter(); g.mud.type = 'peaking'; g.mud.frequency.value = 250; g.mud.Q.value = 1.1;
-      g.pres = c.createBiquadFilter(); g.pres.type = 'peaking'; g.pres.frequency.value = 3000; g.pres.Q.value = 0.9;
+      g.mud = c.createBiquadFilter(); g.mud.type = 'peaking'; g.mud.frequency.value = 300; g.mud.Q.value = 1.4;
+      g.pres = c.createBiquadFilter(); g.pres.type = 'peaking'; g.pres.frequency.value = 3500; g.pres.Q.value = 0.8;
       g.air = c.createBiquadFilter(); g.air.type = 'lowpass'; g.air.frequency.value = 15000; g.air.Q.value = 0.7;
       g.comp = c.createDynamicsCompressor(); g.comp.knee.value = 8; g.comp.attack.value = 0.005; g.comp.release.value = 0.18;
       g.makeup = c.createGain();
@@ -77,8 +77,9 @@
     return V.ctx;
   }
   function clarity(g, on) {
-    g.mud.gain.value = on ? -4 : 0; g.pres.gain.value = on ? 3 : 0; g.air.frequency.value = on ? 15000 : 22000;
-    g.comp.threshold.value = on ? -26 : 0; g.comp.ratio.value = on ? 3.5 : 1; g.makeup.gain.value = on ? 1.6 : 1;
+    // Doux : -1,5 dB vers 300 Hz et +1,5 dB vers 3,5 kHz. Plus fort, la voix perdait son corps et sonnait « en boîte de conserve ».
+    g.mud.gain.value = on ? -1.5 : 0; g.pres.gain.value = on ? 1.5 : 0; g.air.frequency.value = on ? 16000 : 22000;
+    g.comp.threshold.value = on ? -24 : 0; g.comp.ratio.value = on ? 2.2 : 1; g.makeup.gain.value = on ? 1.35 : 1;
   }
   // Anti-clavier et anti-réverbération (voice-fx.js), branchés entre le filtre anti-souffle et la voix claire.
   const FX = { node: null, loading: null };
@@ -122,7 +123,9 @@
     audioCtx();
     const c = V.cfg;
     const raw = await navigator.mediaDevices.getUserMedia({ video: false, audio: {
-      deviceId: c.mic ? { exact: c.mic } : undefined, echoCancellation: c.ec, noiseSuppression: c.ns, autoGainControl: c.agc, channelCount: 1 } });
+      // Deux réductions de bruit l'une sur l'autre (celle du navigateur + l'IA RNNoise) donnent une voix métallique,
+      // « en boîte de conserve » : quand l'IA tourne, celle du navigateur est coupée.
+      deviceId: c.mic ? { exact: c.mic } : undefined, echoCancellation: c.ec, noiseSuppression: c.ns && !(c.ai && AI.failed !== true && V.ctx && V.ctx.sampleRate === 48000), autoGainControl: c.agc, channelCount: 1 } });
     if (V.rawSrc) { try { V.rawSrc.disconnect(); } catch (e) { /* */ } }
     if (V.raw) V.raw.getTracks().forEach((t) => t.stop());
     V.raw = raw; V.rawSrc = V.ctx.createMediaStreamSource(raw);
@@ -138,7 +141,7 @@
     const simd = WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11]));
     AI.loading = Promise.all([xhrBuf(simd ? 'vendor/rnnoise_simd.wasm' : 'vendor/rnnoise.wasm'), V.ctx.audioWorklet.addModule('vendor/rnnoise-worklet.js')])
       .then(([wasm]) => { AI.wasm = wasm; AI.ready = true; wireMic(); })
-      .catch(() => { AI.ready = false; });
+      .catch(() => { AI.ready = false; AI.failed = true; if (V.raw && V.cfg.ns) openMic().catch(() => {}); }); // sans IA : on reprend la réduction du navigateur
     return AI.loading;
   }
   // Branche le micro sur la chaîne, avec ou sans l'IA selon le réglage.
@@ -795,7 +798,7 @@
     const old = V.cfg; V.cfg = Object.assign({}, old, patch); wr(CFG_KEY, V.cfg);
     const c = V.cfg;
     if (V.g) {
-      V.g.inGain.gain.value = c.gain; V.g.master.gain.value = c.outVol; V.g.hp.frequency.value = c.hp ? 90 : 1; V.g.hp2.frequency.value = c.hp ? 90 : 1;
+      V.g.inGain.gain.value = c.gain; V.g.master.gain.value = c.outVol; V.g.hp.frequency.value = c.hp ? 75 : 1; V.g.hp2.frequency.value = c.hp ? 75 : 1;
       if (c.clarity !== old.clarity) clarity(V.g, c.clarity);
       if (FX.node && (c.keys !== old.keys || c.clarity !== old.clarity)) FX.node.port.postMessage({ keys: c.keys, dry: c.clarity });
       if (c.out !== old.out && V.ctx.setSinkId) V.ctx.setSinkId(c.out || '').catch(() => {});
@@ -806,7 +809,7 @@
     if (c.recvQ !== old.recvQ) broadcast();
     if (c.streamSound !== old.streamSound || c.duck !== old.duck || c.duckAmt !== old.duckAmt) applyStreamGains();
     if (V.g && c.vad !== old.vad) V.g.delay.delayTime.value = c.vad === 'off' ? 0 : 0.08;
-    if (V.raw && (c.mic !== old.mic || c.ns !== old.ns || c.ec !== old.ec || c.agc !== old.agc)) {
+    if (V.raw && (c.mic !== old.mic || c.ns !== old.ns || c.ec !== old.ec || c.agc !== old.agc || c.ai !== old.ai)) {
       try { await openMic(); } catch (e) { V.err = 'ce micro ne répond pas'; }
     }
     if (V.cam && c.cam !== old.cam) { stopCam(); startCam(); }
@@ -956,7 +959,8 @@
   // Boutique FIRE (gratuite) : effets de pseudo, décorations… seulement des valeurs connues.
   const LOOK = { fx: ['shine', 'neon', 'rainbow', 'feu', 'givre', 'glitch', 'pulse', 'or'], font: ['cinzel', 'orbitron', 'bangers', 'fredoka', 'press', 'marker', 'bebas', 'mono'],
     deco: ['flammes', 'neon', 'arc', 'petales', 'givre', 'hextech', 'couronne', 'void', 'eclair', 'coeurs'], pfx: ['petales', 'neige', 'etincelles', 'braises', 'etoiles', 'confettis', 'bulles', 'coeurs'],
-    plate: ['aube', 'ocean', 'foret', 'nuit', 'lave', 'neon', 'or', 'glace', 'sakura', 'matrix', 'galaxie'] };
+    plate: ['aube', 'ocean', 'foret', 'nuit', 'lave', 'neon', 'or', 'glace', 'sakura', 'matrix', 'galaxie'],
+    pet: ['flammi', 'givro', 'slimy', 'boo', 'neko', 'robo', 'shroom', 'astro', 'drako', 'bulle'] };
   function cleanLook(l) {
     if (!l || typeof l !== 'object') return null;
     const hex = (c) => (/^#[0-9a-fA-F]{6}$/.test(c || '') ? c : '');
