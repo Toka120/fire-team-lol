@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.173",
+   "date": "2026-11-16",
+   "titre": "La mage aux orbes parle",
+   "items": [
+    [
+     "new",
+     "Compagnon « Mage aux orbes » : elle ouvre la bouche dans un grand sourire puis la referme, en plus de cligner des yeux et de faire flotter ses orbes."
+    ]
+   ]
+  },
+  {
    "v": "1.10.172",
    "date": "2026-11-16",
    "titre": "La mage aux orbes prend vie",
