@@ -5059,6 +5059,35 @@
       h('button', { class: 'vb-btn leave', title: 'Quitter le salon', onclick: () => FV().leave() }, '📞'));
     vocalSpeak();
   }
+  // ----- Partage qui suit une application (client LoL → partie, plusieurs fenêtres de Dofus…) -----
+  const FOL = { on: false, group: null, hwnd: '', bound: false };
+  const LOL_PROCS = ['leagueclientux', 'leagueclient', 'league of legends'];
+  async function followStart(srcId) {
+    followStop();
+    const fs = window.fire && window.fire.screen;
+    if (!load('fire.vocal.follow', true) || !fs || !fs.follow || !/^window:\d+:/.test(String(srcId || ''))) return;
+    if (!FV().state().screen) return;
+    const hwnd = String(srcId).split(':')[1];
+    const name = String(await fs.proc(hwnd).catch(() => '') || '').toLowerCase();
+    if (!name) return;
+    FOL.group = LOL_PROCS.includes(name) ? LOL_PROCS : [name];
+    FOL.hwnd = hwnd; FOL.on = true;
+    if (!FOL.bound) { FOL.bound = true; fs.onFg(followFg); }
+    fs.follow(true);
+  }
+  function followStop() { if (FOL.on) { FOL.on = false; try { window.fire.screen.follow(false); } catch (e) { /* */ } } }
+  async function followFg(x) {
+    if (!FOL.on) return;
+    if (!FV().state().screen) { followStop(); return; }
+    const name = String(x.name || '').toLowerCase();
+    if (!FOL.group.includes(name) || x.hwnd === FOL.hwnd) return;
+    // Le jeu met un instant à afficher sa fenêtre : on réessaie quelques fois.
+    for (let i = 0; i < 4; i++) {
+      if (!FOL.on) return;
+      if (await FV().switchScreen(`window:${x.hwnd}:0`)) { FOL.hwnd = x.hwnd; vocalToast(`📺 Le partage suit : ${x.name}`, true); return; }
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  }
   async function openScreenPicker() {
     VX.picker = { list: null };
     const box = h('div', { class: 'vc-pick', onclick: (e) => { if (e.target === box) close(); } });
@@ -5071,12 +5100,14 @@
           ? '⚠ Ton Windows est trop ancien pour séparer les pistes : les voix du salon passeront aussi dans le son partagé. Mets Windows à jour (Windows 10 22H2 ou Windows 11) pour les retirer.'
           : 'Le son du jeu, d’une vidéo… sans l’appel : les voix du salon et les sons de FIRE ne sont pas envoyés, comme sur Discord.')),
           h('input', { type: 'checkbox', class: 'vs-tog', checked: load('fire.vocal.sharesound', false) ? true : null, onchange: (e) => save('fire.vocal.sharesound', e.target.checked) })),
+        h('label', { class: 'vs-sw vc-pick-snd' }, h('span', null, h('b', null, '🎯 Suivre l’application (comme OBS)'), h('small', null, 'Pour une fenêtre : si une autre fenêtre du même programme passe devant (le jeu qui se lance depuis le client LoL, un autre personnage sur Dofus…), le partage passe dessus tout seul.')),
+          h('input', { type: 'checkbox', class: 'vs-tog', checked: load('fire.vocal.follow', true) ? true : null, onchange: (e) => save('fire.vocal.follow', e.target.checked) })),
         !L ? h('p', { class: 'muted' }, 'Recherche des écrans et des fenêtres…')
           : !L.length ? h('p', { class: 'bad' }, '⚠ Aucun écran trouvé (autorise la capture d’écran dans Windows si besoin).')
             : ['Écrans', 'Fenêtres'].map((t, k) => {
               const part = L.filter((x) => x.screen === (k === 0));
               return part.length ? h('div', null, h('p', { class: 'muted small vc-pick-t' }, t), h('div', { class: 'vc-pick-grid' }, part.map((x) =>
-                h('button', { class: 'vc-src', onclick: () => { close(); FV().startScreen(x.id, load('fire.vocal.sharesound', false)); hzWarn(x.hz); } }, h('img', { src: x.thumb, alt: '' }), h('span', null, x.name, x.hz ? h('small', { class: 'vc-hz' }, ` · ${x.hz} Hz`) : null))))) : null;
+                h('button', { class: 'vc-src', onclick: async () => { close(); await FV().startScreen(x.id, load('fire.vocal.sharesound', false)); hzWarn(x.hz); followStart(x.id); } }, h('img', { src: x.thumb, alt: '' }), h('span', null, x.name, x.hz ? h('small', { class: 'vc-hz' }, ` · ${x.hz} Hz`) : null))))) : null;
             })));
     };
     paint(); document.body.append(box);

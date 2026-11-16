@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.157",
+   "date": "2026-11-16",
+   "titre": "Le partage d’écran suit l’application, comme OBS",
+   "items": [
+    [
+     "new",
+     "🎯 Partage d’écran « Suivre l’application (comme OBS) » (activé par défaut, réglable dans la fenêtre de choix) : quand tu partages une fenêtre et qu’une autre fenêtre du même programme passe devant, le partage passe dessus tout seul, sans couper. Exemples : tu montres le client LoL, la partie se lance → le partage montre la partie, puis revient au client à la fin. Sur Dofus avec plusieurs personnages, chaque fenêtre que tu mets devant est montrée."
+    ],
+    [
+     "new",
+     "Le son du PC partagé continue pendant le changement de fenêtre, et un petit message « 📺 Le partage suit : … » te dit ce qui est montré."
+    ]
+   ]
+  },
+  {
    "v": "1.10.156",
    "date": "2026-11-16",
    "titre": "Menu de profil en haut à droite, répondre aux réponses de bug",

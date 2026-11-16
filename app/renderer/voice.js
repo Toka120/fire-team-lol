@@ -650,8 +650,31 @@
       try { iso = !!(at && at.getSettings().restrictOwnAudio); } catch (e) { /* ancien moteur */ }
       V.screenMix = !!at && !iso;
       st.getVideoTracks().forEach((t) => { t.contentHint = fps > 20 ? 'motion' : 'detail'; t.onended = stopScreen; });
-      V.screen = st; V.screenSrc = sourceId; shareAll('screen'); broadcast(); emit();
+      V.screen = st; V.screenSrc = sourceId; V.screenVideo = video; shareAll('screen'); broadcast(); emit();
     } catch (e) { if (!(e && e.name === 'AbortError')) { V.err = 'partage d’écran impossible'; emit(); } }
+  }
+  // Changer de fenêtre sans couper le partage (suivre une application, comme OBS) : seule l'image change,
+  // le son du PC continue, et les coéquipiers ne voient qu'un changement d'image.
+  async function switchScreen(sourceId) {
+    if (!V.screen || !sourceId || sourceId === V.screenSrc || V.switching) return false;
+    const fs = window.fire && window.fire.screen; if (!fs) return false;
+    V.switching = true;
+    try {
+      await fs.pick(sourceId, false);
+      const st = await navigator.mediaDevices.getDisplayMedia({ audio: false, video: V.screenVideo || { frameRate: { ideal: 15, max: 15 } } });
+      const nv = st.getVideoTracks()[0]; if (!nv) return false;
+      const old = V.screen.getVideoTracks()[0];
+      nv.contentHint = old ? old.contentHint : 'detail'; nv.onended = stopScreen;
+      for (const [key, call] of Object.entries(V.vout)) {
+        if (!key.endsWith(':screen')) continue;
+        const pc = call && call.peerConnection; if (!pc) continue;
+        for (const snd of pc.getSenders()) if (snd.track && snd.track.kind === 'video') { try { await snd.replaceTrack(nv); } catch (e) { /* */ } }
+      }
+      if (old) { old.onended = null; old.stop(); }
+      V.screen = new MediaStream([nv, ...V.screen.getAudioTracks()]);
+      V.screenSrc = sourceId; emit();
+      return true;
+    } catch (e) { return false; } finally { V.switching = false; }
   }
   function stopScreen() {
     if (!V.screen) return;
@@ -1063,7 +1086,7 @@
   }
 
   window.FireVoice = {
-    join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, cue, setStreamSound, requestSound, addScreenSound, watchStream,
+    join, leave, setMute, setDeaf, setVol, setLocalMute, setCfg, setMonitor, devices, startCam, stopCam, startScreen, stopScreen, switchScreen, cue, setStreamSound, requestSound, addScreenSound, watchStream,
     onSoundRequest: (f) => { V.onSndReq = f; }, appSend, liveSend, statusSend, modSend, onMod: (f) => { L.onMod = f; }, onApp: (f) => { V.onApp = f; }, onPeer: (f) => { V.onPeer = f; }, lobby, invite, chatSend, onChat: (f) => { L.onChat = f; },
     clearErr: () => { V.err = ''; V.note = ''; emit(); },
     onRemp: (f) => { L.onRemp = f; },

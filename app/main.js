@@ -323,6 +323,33 @@ ipcMain.handle('screen:sources', async () => {
 const winBuild = () => { const b = Number(String(require('os').release()).split('.')[2]); return Number.isFinite(b) ? b : 0; };
 ipcMain.handle('screen:ownAudio', () => process.platform === 'win32' && winBuild() >= 19045);
 ipcMain.handle('screen:pick', (e, id, audio) => { screenPick = typeof id === 'string' ? { id, audio: !!audio } : null; return true; });
+// Partage « comme OBS » : suivre une application. Quand une autre fenêtre du même programme passe au premier plan
+// (le jeu qui se lance depuis le client LoL, un autre personnage sur Dofus…), le partage passe dessus tout seul.
+// On lit seulement quelle fenêtre est au premier plan et le nom de son programme (comme le fait la barre des tâches) :
+// aucune ouverture du processus du jeu, rien n'est lu dedans.
+const FG_CS = 'Add-Type -TypeDefinition \'using System;using System.Runtime.InteropServices;public class FireFg{[DllImport("user32.dll")]public static extern IntPtr GetForegroundWindow();[DllImport("user32.dll")]public static extern uint GetWindowThreadProcessId(IntPtr h,out uint p);}\';';
+const procName = (pidExpr) => `$n='';try{$n=(Get-Process -Id ${pidExpr} -ErrorAction Stop).ProcessName}catch{};`;
+ipcMain.handle('screen:proc', (e, hwnd) => new Promise((ok) => {
+  if (process.platform !== 'win32' || !/^\d+$/.test(String(hwnd))) return ok('');
+  const cmd = FG_CS + `$p=0;[void][FireFg]::GetWindowThreadProcessId([IntPtr]${hwnd},[ref]$p);` + procName('$p') + '$n';
+  require('child_process').execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true, timeout: 10000 }, (err, out) => ok(String(out || '').trim()));
+}));
+let fgProc = null;
+function fgStop() { if (fgProc) { try { fgProc.kill(); } catch (e) { /* */ } fgProc = null; } }
+ipcMain.handle('screen:follow', (e, on) => {
+  fgStop();
+  if (!on || process.platform !== 'win32') return false;
+  const cmd = FG_CS + '$last=0;while($true){$h=[FireFg]::GetForegroundWindow();if([int64]$h -ne $last){$last=[int64]$h;$p=0;[void][FireFg]::GetWindowThreadProcessId($h,[ref]$p);' + procName('$p') + '[Console]::Out.WriteLine("$([int64]$h)|$n");[Console]::Out.Flush()};Start-Sleep -Milliseconds 600}';
+  fgProc = require('child_process').spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true });
+  let buf = '';
+  fgProc.stdout.on('data', (d) => {
+    buf += d.toString(); const lines = buf.split(/\r?\n/); buf = lines.pop();
+    for (const l of lines) { const [hw, name] = l.split('|'); if (/^\d+$/.test(hw || '') && mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('screen:fg', { hwnd: hw, name: String(name || '').trim() }); }
+  });
+  fgProc.on('exit', () => { fgProc = null; });
+  return true;
+});
+app.on('will-quit', fgStop);
 function screenShare() {
   session.defaultSession.setDisplayMediaRequestHandler((req, cb) => {
     const fromApp = /^file:\/\//.test((req.frame && req.frame.url) || req.securityOrigin || '');
