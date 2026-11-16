@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.162",
+   "date": "2026-11-16",
+   "titre": "Ombre à la lampe torche, bouton plein écran des streams",
+   "items": [
+    [
+     "fix",
+     "Détente › Ombre : fini l’écran tout noir puis la révélation d’un coup. L’image reste sombre et floue (on devine les formes), et un rond de lumière se promène dessus comme une lampe torche : il grandit à chaque essai raté, jusqu’au plein jour."
+    ],
+    [
+     "new",
+     "Vocal : le bouton « ⛶ Plein écran » est bien visible à droite de la barre dès qu’il y a un partage d’écran : tous les streams en même temps, sans le menu ni le fond, aussi grands que possible en gardant leurs proportions. Clic sur un stream pour l’agrandir, Échap pour sortir."
+    ]
+   ]
+  },
+  {
    "v": "1.10.161",
    "date": "2026-11-16",
    "titre": "Défis en 4 paliers, à valider dans l’ordre",

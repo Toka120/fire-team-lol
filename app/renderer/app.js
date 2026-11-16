@@ -6382,7 +6382,7 @@
         gearBtn('cb'),
         h('button', { class: 'cb leave', title: `Quitter le salon (${keyTxt(K.join)})`, onclick: () => FV().leave() }, vi('phone'))),
       h('div', { class: 'vc-bar-r' },
-        screens.length ? h('button', { class: 'vc-more vc-theater-btn', title: 'Tous les streams en plein écran (sans le menu ni le fond)', onclick: theaterOpen }, '⛶') : null,
+        screens.length ? h('button', { class: 'vc-theater-btn', title: 'Tous les streams en plein écran, sans le menu ni le fond (clic sur un stream pour l’agrandir, Échap pour sortir)', onclick: theaterOpen }, '⛶ Plein écran') : null,
         h('div', { class: 'vm-wrap' },
           h('button', { class: 'vc-more' + (VX.more ? ' on' : ''), title: 'Plus d’options', onclick: (e) => { e.stopPropagation(); VX.more = !VX.more; VX.invOpen = false; renderVocal(); } }, vi('more')),
           VX.more ? vocalMenu(v) : null),
@@ -8941,15 +8941,16 @@
         h('p', { class: 'muted small' }, r.done ? 'Tous les emojis sont révélés.' : n < 4 ? `Un emoji de plus après ${2 * n} essais ratés (encore ${2 * n - wrong}). Ils vont du plus subtil au plus évident, parfois en rébus.` : 'Tous les emojis sont là !'));
     }
     if (mode === 'ombre') {
-      // Le champion sort de l'ombre : très sombre au début, il s'éclaire à chaque essai.
-      // Un palier de lumière tous les 2 essais ratés, en partant de presque noir : plein jour seulement vers 16 essais.
-      const L = [[0.09, 1.5, 1], [0.13, 1.45, 1], [0.18, 1.4, 1], [0.24, 1.32, 1], [0.32, 1.25, 1], [0.42, 1.18, 0.8], [0.55, 1.12, 0.5], [0.72, 1.06, 0.2], [0.9, 1, 0]];
-      const step = Math.floor(wrong / 2);
-      const [br, ct, gs] = r.done ? [1, 1, 0] : L[Math.min(step, L.length - 1)];
+      // Le champion sort de l'ombre, à la lampe torche : l'image reste sombre et floue, et un rond de lumière se promène dessus.
+      // Le rond grandit à chaque essai raté (pas d'écran noir au départ, pas de révélation d'un coup).
+      const R = r.done ? 600 : Math.min(400, 45 + wrong * 24);
+      const src = `${DD}/cdn/img/champion/loading/${t.id}_${r.skin ? r.skin.num : 0}.jpg`;
+      const onerr = (e) => { if (r.skin && r.skin.num) { r.skin = { num: 0 }; e.target.src = `${DD}/cdn/img/champion/loading/${t.id}_0.jpg`; } };
       clue = h('div', { class: 'card jeu-clue' }, h('h3', null, 'Qui sort de l’ombre ?'),
-        h('div', { class: 'jeu-ombre' }, h('img', { src: `${DD}/cdn/img/champion/loading/${t.id}_${r.skin ? r.skin.num : 0}.jpg`, alt: '',
-          style: `filter:grayscale(${gs}) brightness(${br}) contrast(${ct})`, onerror: (e) => { if (r.skin && r.skin.num) { r.skin = { num: 0 }; e.target.src = `${DD}/cdn/img/champion/loading/${t.id}_0.jpg`; } } })),
-        h('p', { class: 'muted small' }, r.done ? (r.skin && r.skin.name ? r.skin.name : t.name) : step < L.length - 1 ? `Il s’éclaire un peu tous les 2 essais ratés (prochain palier dans ${2 - (wrong % 2)}).` : 'Plein jour !'));
+        h('div', { class: 'jeu-ombre torch' + (r.done ? ' lit' : ''), style: `--r:${R}px` },
+          h('img', { class: 'om-dark', src, alt: '', onerror: onerr }),
+          h('img', { class: 'om-light', src, alt: '', onerror: onerr })),
+        h('p', { class: 'muted small' }, r.done ? (r.skin && r.skin.name ? r.skin.name : t.name) : R < 400 ? 'La lumière grandit à chaque essai raté.' : 'Presque en plein jour !'));
     }
     if (mode === 'passif') {
       const blur = r.done ? 0 : Math.max(0, 14 - 3 * wrong);
