@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.172",
+   "date": "2026-11-16",
+   "titre": "La mage aux orbes prend vie",
+   "items": [
+    [
+     "new",
+     "Compagnon « Mage aux orbes » : les orbes sont maintenant détachées du personnage. Chacune flotte sur sa propre trajectoire, tourne sur elle-même et brille. La mage se balance, respire, ses cheveux ondulent et elle cligne des yeux."
+    ]
+   ]
+  },
+  {
    "v": "1.10.171",
    "date": "2026-11-16",
    "titre": "Nouveau compagnon animé : la mage aux orbes",
