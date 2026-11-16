@@ -23,6 +23,11 @@
     ['violet', 'Void', '#0b0614', '#9d5cff', '#ff5cc8', 'Le Néant : violet profond et magenta', 1],
     ['matrix', 'Matrix', '#020803', '#39ff6a', '#b6ffb0', 'Vert terminal, police machine, lignes de code', 1],
     ['rgb', 'Gamer RGB', '#08080d', '#ff3d6e', '#3dd8ff', 'Arc-en-ciel animé, comme un clavier gamer', 1],
+    ['aurore', 'Aurore boréale', '#03101a', '#2effaa', '#b06eff', 'Rideaux de lumière verts et violets dans un ciel étoilé', 1],
+    ['nuit', 'Nuit étoilée', '#070b1c', '#ffe7a3', '#7aa2ff', 'Lune, étoiles qui scintillent et étoiles filantes', 1],
+    ['orage', 'Orage', '#070a10', '#9fc0ff', '#e6edf7', 'Pluie battante et éclairs dans la nuit', 1],
+    ['lucioles', 'Lucioles', '#04100a', '#d6ff6e', '#3ecf8e', 'Une forêt la nuit, des lucioles qui s’allument', 1],
+    ['galaxie', 'Galaxie', '#06041a', '#c49bff', '#ff9fe0', 'Une galaxie spirale qui tourne lentement', 1],
     ['fire', 'FIRE', '#0f0d0c', '#ff5e3a', '#ffb02e', 'Le thème d’origine', 0], ['bleu', 'Bleu', '#0a1430', '#508cff', '#8fb6ff', '', 0], ['rouge', 'Rouge', '#1f0709', '#f0283c', '#ff8a8a', '', 0],
     ['vert', 'Vert', '#061a0f', '#3cdc78', '#a6f0c2', '', 0], ['jaune', 'Jaune', '#1c1606', '#ffcd28', '#ffe58a', '', 0], ['noir', 'Noir', '#000000', '#8a8a8a', '#d0d0d0', '', 0], ['gris', 'Gris', '#1b1c1f', '#6b6f78', '#b5b9c2', '', 0]];
   const applyTheme = (t) => {
@@ -912,7 +917,7 @@
   // ----- Paramètres façon Discord : catégories à gauche, réglages à droite -----
   // Comme Discord : des groupes (titres gris) et leurs sous-menus ; certaines pages ont des onglets en haut.
   const SET_GROUPS = [
-    ['Paramètres utilisateur', [['compte', '🪪', 'Mon compte'], ['profil', '👤', 'Profil'], ['confid', '🔒', 'Confidentialité']]],
+    ['Paramètres utilisateur', [['compte', '🪪', 'Mon compte'], ['profil', '👤', 'Profil'], ['boutique', '🛍️', 'Boutique'], ['confid', '🔒', 'Confidentialité']]],
     ['Application', [['apparence', '🎨', 'Apparence'], ['texte', '🔤', 'Polices et texte'], ['access', '♿', 'Accessibilité'], ['voix', '🎙️', 'Voix et vidéo'],
       ['notifs', '🔔', 'Notifications'], ['raccourcis', '⌨️', 'Raccourcis clavier'], ['streamer', '📺', 'Mode streamer'], ['ouverture', '🚀', 'Ouverture de FIRE'], ['avance', '⚙️', 'Avancé']]],
     ['FIRE LoL', [['nouveautes', '🆕', 'Nouveautés'], ['maj', '🔄', 'Mises à jour'], ['bug', '🐞', 'Signaler un bug'], ['apropos', 'ℹ️', 'À propos']]],
@@ -958,6 +963,47 @@
           }),
             h('input', { class: 'inp pf-other', placeholder: 'Autre jeu… (Entrée)', maxlength: 24, onkeydown: (e) => { if (e.key === 'Enter' && e.target.value.trim()) { const l = new Set(UX.games || []); if (l.size < 8) l.add(e.target.value.trim().slice(0, 24)); setUx({ games: [...l] }); renderSettings(); } } }))),
         me ? h('div', { class: 'row' }, h('button', { class: 'btn-ghost', onclick: () => openProfile(me) }, '👀 Voir ma carte')) : h('p', { class: 'muted small' }, 'Choisis d’abord qui tu es.')),
+    ];
+  }
+  // ----- Boutique FIRE : tout est gratuit, on équipe et on déséquipe en un clic -----
+  const SHOP = {
+    fx: [['', 'Aucun', 'Le pseudo simple'], ['shine', 'Brillance', 'Un reflet qui passe'], ['neon', 'Néon', 'Il brille dans le noir'], ['rainbow', 'Arc-en-ciel', 'Toutes les couleurs, en mouvement'], ['feu', 'En feu', 'Des flammes qui dansent'], ['givre', 'Givre', 'Glacé et scintillant'], ['glitch', 'Glitch', 'Un bug… voulu'], ['pulse', 'Pulsation', 'Il bat comme un cœur'], ['or', 'Or massif', 'Doré et brillant']],
+    font: [['', 'Normale'], ['cinzel', 'Cinzel'], ['orbitron', 'Orbitron'], ['bangers', 'Bangers'], ['fredoka', 'Fredoka'], ['press', 'Rétro 8-bit'], ['marker', 'Feutre'], ['bebas', 'Bebas'], ['mono', 'Code']],
+    grad: [[null, 'Aucun'], [['#ff5e3a', '#ffb02e'], 'FIRE'], [['#ff2bd6', '#22e6ff'], 'Néon'], [['#ff8fb8', '#b8a6ff'], 'Sakura'], [['#2effaa', '#4aa8ff'], 'Aurore'], [['#ffd23d', '#ff7a1f'], 'Soleil'], [['#c49bff', '#ff9fe0'], 'Galaxie'], [['#8fd8ff', '#ffffff'], 'Glace'], [['#39ff6a', '#b6ffb0'], 'Matrix'], [['#c8aa6e', '#0ac8b9'], 'Hextech'], [['#ff3b1f', '#9d5cff'], 'Lave']],
+    deco: [['', 'Aucune'], ['flammes', 'Flammes'], ['neon', 'Anneau néon'], ['arc', 'Arc-en-ciel'], ['petales', 'Sakura'], ['givre', 'Givre'], ['hextech', 'Hextech'], ['couronne', 'Couronne'], ['void', 'Néant'], ['eclair', 'Éclair'], ['coeurs', 'Cœurs']],
+    pfx: [['', 'Aucun'], ['petales', 'Pétales'], ['neige', 'Neige'], ['etincelles', 'Étincelles'], ['braises', 'Braises'], ['etoiles', 'Étoiles'], ['confettis', 'Confettis'], ['bulles', 'Bulles'], ['coeurs', 'Cœurs']],
+    plate: [['', 'Aucune'], ['aube', 'Aube'], ['ocean', 'Océan'], ['foret', 'Forêt'], ['nuit', 'Nuit'], ['lave', 'Lave'], ['neon', 'Néon'], ['or', 'Or'], ['glace', 'Glace'], ['sakura', 'Sakura'], ['matrix', 'Matrix'], ['galaxie', 'Galaxie']],
+    card: [[null, 'Selon le thème'], [['#3a1020', '#120a22'], 'Pourpre'], [['#0b2a3a', '#06121c'], 'Abysses'], [['#2a1a05', '#120a02'], 'Ambre'], [['#0d2a18', '#04100a'], 'Forêt'], [['#2a0b2a', '#0b0a2a'], 'Néon'], [['#1d1d2e', '#0a0a12'], 'Nuit'], [['#3a2a10', '#101820'], 'Hextech']],
+  };
+  const looks = () => UX.look || {};
+  const setLook = (k, v) => { const L = { ...looks() }; if (v == null || v === '') delete L[k]; else L[k] = v; setUx({ look: Object.keys(L).length ? L : null }); renderSettings(); };
+  function shopCards() {
+    const me = vocalMe();
+    if (!me) return [uxCard('🛍️ Boutique FIRE', 'Choisis d’abord qui tu es pour personnaliser ton profil.', h('button', { class: 'btn-fire small-btn', onclick: askWho }, 'Qui es-tu ?'))];
+    const L = looks();
+    const same = (a, b) => JSON.stringify(a || null) === JSON.stringify(b || null);
+    const item = (k, val, label, desc, prev) => { const on = same(L[k] || (k === 'grad' || k === 'card' ? null : ''), val); return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => setLook(k, val) },
+      h('div', { class: 'shop-prev' }, prev), h('b', null, label), desc ? h('small', { class: 'muted' }, desc) : null, h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); };
+    const name = (fx, font, grad) => h('span', { class: 'nm' + (grad ? ' nm-grad' : '') + (fx ? ' nm-' + fx : ''), style: (grad ? `--n1:${grad[0]};--n2:${grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (font && LOOK_FONT[font] ? `font-family:${LOOK_FONT[font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
+    const preview = h('div', { class: 'shop-preview' },
+      h('div', { class: 'prof-card pf-mini' + (L.card ? ' pf-themed' : ''), style: L.card ? `--pc1:${L.card[0]};--pc2:${L.card[1]}` : '' },
+        L.pfx ? h('div', { class: 'pfx pfx-' + L.pfx }) : null,
+        h('div', { class: 'prof-ban', style: UX.banner ? `background-image:url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${UX.banner.c}_${UX.banner.n}.jpg')` : '' }),
+        h('div', { class: 'prof-av-wrap' }, avatarEl(me, 'prof-av')),
+        h('div', { class: 'prof-body' }, h('div', { class: 'prof-name' + (L.plate ? ' plate pl-' + L.plate : '') }, nameEl(me)), h('small', { class: 'muted' }, UX.bio || 'Ta carte de profil, comme les autres la voient'))),
+      h('div', { class: 'shop-side' }, h('p', { class: 'muted small' }, 'Dans la discussion :'), h('div', { class: 'chat-m' }, h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n' }, chatWhoIco(me), nameEl(me)), h('span', { class: 'muted' }, ' 21:30')), h('div', { class: 'chat-tx' }, 'On lance une flex ? 🔥')),
+        h('p', { class: 'muted small' }, 'Dans la liste des membres :'), h('div', { class: 'cp-cv' + (L.plate ? ' plate pl-' + L.plate : '') }, h('span', { class: 'chat-cv-i' }, '🙂'), h('span', { class: 'chat-cv-l' }, nameEl(me)))));
+    const sec = (title, sub, list) => uxCard(title, sub, h('div', { class: 'shop-grid' }, list));
+    return [
+      uxCard('🛍️ Boutique FIRE', 'Comme la boutique de Discord, mais tout est gratuit. Ce que tu équipes, tes coéquipiers le voient dans la discussion, le vocal et sur ta carte de profil.', preview,
+        h('div', { class: 'row' }, h('button', { class: 'linkbtn small', onclick: () => { setUx({ look: null }); renderSettings(); } }, '↺ Tout déséquiper'))),
+      sec('✨ Effet de pseudo', 'Il s’anime partout où ton pseudo apparaît.', SHOP.fx.map(([v, l, d]) => item('fx', v, l, d, name(v, L.font, L.grad)))),
+      sec('🎨 Dégradé de pseudo', 'Deux couleurs pour ton pseudo (sinon, ta couleur de Profil).', SHOP.grad.map(([v, l]) => item('grad', v, l, '', name(L.fx, L.font, v)))),
+      sec('🔤 Police du pseudo', null, SHOP.font.map(([v, l]) => item('font', v, l, '', name(L.fx, v, L.grad)))),
+      sec('💫 Décoration d’avatar', 'Autour de ton avatar dans le vocal et sur ta carte.', SHOP.deco.map(([v, l]) => item('deco', v, l, '', h('span', { class: 'vc-av shop-av' + (v ? ' dk dk-' + v : '') }, ini(me), v === 'couronne' ? h('i', { class: 'dk-top' }, '👑') : v === 'coeurs' ? h('i', { class: 'dk-top' }, '💞') : v === 'eclair' ? h('i', { class: 'dk-top' }, '⚡') : null)))),
+      sec('🌠 Effet de profil', 'Une animation sur ta carte de profil.', SHOP.pfx.map(([v, l]) => item('pfx', v, l, '', h('div', { class: 'shop-pfx' }, v ? h('div', { class: 'pfx pfx-' + v }) : null)))),
+      sec('🏷️ Plaque de nom', 'Le fond derrière ton pseudo dans la liste des membres.', SHOP.plate.map(([v, l]) => item('plate', v, l, '', h('div', { class: 'cp-cv shop-plate' + (v ? ' plate pl-' + v : '') }, h('span', { class: 'chat-cv-l' }, vocalName(me)))))),
+      sec('🃏 Thème de carte de profil', null, SHOP.card.map(([v, l]) => item('card', v, l, '', h('div', { class: 'shop-card' + (v ? ' pf-themed' : ''), style: v ? `--pc1:${v[0]};--pc2:${v[1]}` : '' })))),
     ];
   }
   // Aperçu du fond d'écran : une mini-FIRE (menu, cartes) par-dessus l'image, avec le flou et l'assombrissement choisis.
@@ -1015,7 +1061,7 @@
       else { S.vidErr = (r && r.error) || 'vidéo impossible à copier'; renderSettings(); }
     } });
     const PRESET = ['#f5a524', '#ff5e3a', '#ff2bd6', '#9d5cff', '#579dff', '#00e5ff', '#2ee6c5', '#39c58a', '#ffd23d', '#ff4d6d'];
-    const FXS = { sakura: 'pétales de cerisier qui tombent', givre: 'neige', ocean: 'bulles et rayons de lumière', matrix: 'pluie de code', synthwave: 'grille qui défile et soleil rétro', bagarre: 'braises', hextech: 'étincelles hextech', arcane: 'particules chimiques', violet: 'poussière aspirée par le Néant', neon: 'orbes lumineux', rgb: 'orbes arc-en-ciel', futur: 'balayage et flux de données', cafe: 'vapeur et poussière dorée' };
+    const FXS = { aurore: 'aurore boréale qui ondule', nuit: 'étoiles filantes et lune', orage: 'pluie et éclairs', lucioles: 'lucioles dans la forêt', galaxie: 'galaxie qui tourne', sakura: 'pétales de cerisier qui tombent', givre: 'neige', ocean: 'bulles et rayons de lumière', matrix: 'pluie de code', synthwave: 'grille qui défile et soleil rétro', bagarre: 'braises', hextech: 'étincelles hextech', arcane: 'particules chimiques', violet: 'poussière aspirée par le Néant', neon: 'orbes lumineux', rgb: 'orbes arc-en-ciel', futur: 'balayage et flux de données', cafe: 'vapeur et poussière dorée' };
     const thNow = load('fire.theme', 'fire');
     const fxCard = uxCard('✨ Animations du fond', FXS[thNow] ? `Avec ton thème : ${FXS[thNow]}. Elles se mettent en pause pendant tes parties et quand FIRE est caché.` : 'Choisis un thème « ambiance » (Sakura, Freljord, Matrix…) pour avoir un fond animé.',
       uxSeg([['off', 'Aucune'], ['leger', 'Légères'], ['normal', 'Normales'], ['fort', 'Beaucoup']], UX.fx || 'normal', (v) => { setUx({ fx: v }); renderSettings(); }),
@@ -1231,6 +1277,7 @@
       compte: () => [pWho, adminCard(), C.access],
       profil: () => ({ statut: [pStatus], carte: [pCard] }[sub]),
       confid: () => [cDm, cLive],
+      boutique: () => shopCards(),
       apparence: () => ({ theme: [aTheme, aFx], couleurs: [aAccent, aBg], affichage: [aDisp] }[sub]),
       texte: () => [fontCard()],
       access: () => accessCards(),
@@ -5716,7 +5763,7 @@
       if (t.stream) box.append(vidEl(t.kind === 'screen' ? t.key : t.slug + ':cam', t.stream, t.mine && t.kind === 'person'));
       else {
         if (f) box.append(h('div', { class: 'vt-bg', style: `background-image:url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${f.champ}_${f.skin}.jpg')` }));
-        box.append(h('div', { class: 'vc-av' }, ini(t.slug)));
+        box.append(avatarEl(t.slug));
       }
       if (t.pipCam) box.append(h('div', { class: 'vt-pip' }, vidEl(t.slug + ':cam', t.pipCam, t.mine)));
       if (t.kind === 'screen' && !t.mine) box.append(h('span', { class: 'vt-q', 'data-q': t.key }));
@@ -9156,6 +9203,23 @@
     if (d.toDateString() === y.toDateString()) return 'Hier';
     return cap(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }));
   }
+  // Boutique FIRE (gratuite, comme la boutique d'Orbes de Discord) : pseudo, décoration d'avatar, effet de profil, plaque de nom.
+  const LOOK_FONT = { cinzel: "'Cinzel', Georgia, serif", orbitron: "'Orbitron', sans-serif", bangers: "'Bangers', cursive", fredoka: "'Fredoka', sans-serif", press: "'Press Start 2P', monospace", marker: "'Permanent Marker', cursive", bebas: "'Bebas Neue', sans-serif", mono: "'JetBrains Mono', monospace" };
+  function nameEl(slug, text) {
+    const x = statusOf(slug), L = x.look || {};
+    let style = '', cls = 'nm';
+    if (L.grad) { style += `--n1:${L.grad[0]};--n2:${L.grad[1]};`; cls += ' nm-grad'; } else if (x.color) style += `color:${x.color};`;
+    if (L.fx) cls += ' nm-' + L.fx;
+    if (L.font && LOOK_FONT[L.font]) style += `font-family:${LOOK_FONT[L.font]};`;
+    return h('span', { class: cls, style, 'data-t': text || vocalName(slug) }, text || vocalName(slug));
+  }
+  const decoOf = (slug) => ((statusOf(slug).look || {}).deco || '');
+  const plateOf = (slug) => ((statusOf(slug).look || {}).plate || '');
+  function avatarEl(slug, cls) {
+    const d = decoOf(slug);
+    return h('span', { class: 'vc-av ' + (cls || '') + (d ? ' dk dk-' + d : ''), title: vocalName(slug) }, ini(slug), d === 'couronne' ? h('i', { class: 'dk-top' }, '👑') : d === 'coeurs' ? h('i', { class: 'dk-top' }, '💞') : d === 'eclair' ? h('i', { class: 'dk-top' }, '⚡') : null);
+  }
+  function chatWhoIco(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 '; const p = S.players.find((x) => x.slug === slug); return p ? roleOf(p).ico + ' ' : ''; }
   function chatWho(slug) { const c = coachOf(slug); if (c || slug === 'coach') return '🎓 ' + vocalName(slug); const p = S.players.find((x) => x.slug === slug); return (p ? roleOf(p).ico + ' ' : '') + vocalName(slug); }
   // Les conversations : les salons, puis un message privé avec chaque membre (joueurs et coachs).
   function chatPeople(me) {
@@ -9185,7 +9249,7 @@
       const grouped = last && last.from === m.from && m.at - last.at < 5 * 60000;
       const col = st(m.from).color;
       rows.push(h('div', { class: 'chat-m' + (m.from === me ? ' mine' : '') + (grouped ? ' grp' : '') },
-        grouped ? null : h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n', style: col ? `color:${col}` : '', title: 'Voir sa carte de profil (clic droit : plus d’options)', onclick: () => openProfile(m.from), oncontextmenu: (e) => { if (m.from === vocalMe()) return; e.preventDefault(); personMenu({ slug: m.from }, e.clientX, e.clientY); } }, chatWho(m.from)), roleBadge(m.from), h('span', { class: 'muted' }, hm(m.at)),
+        grouped ? null : h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n', title: 'Voir sa carte de profil (clic droit : plus d’options)', onclick: () => openProfile(m.from), oncontextmenu: (e) => { if (m.from === vocalMe()) return; e.preventDefault(); personMenu({ slug: m.from }, e.clientX, e.clientY); } }, chatWhoIco(m.from), nameEl(m.from)), roleBadge(m.from), h('span', { class: 'muted' }, hm(m.at)),
           isStaff() && !m.to ? h('button', { class: 'chat-del', title: 'Supprimer ce message (modération)', onclick: () => chatModDelete(m) }, '🗑') : null),
         h('div', { class: 'chat-tx' }, m.text)));
       last = m;
@@ -9215,8 +9279,8 @@
     if (c.inp.placeholder !== ph) c.inp.placeholder = ph;
   }
   function chatConvButtons(me, cls, full) {
-    const btn = (id, ico, label, title, dot) => { const n = chatUnreadIn(id); return h('button', { class: cls + (CH.conv === id ? ' on' : ''), title, onclick: () => chatConv(id), oncontextmenu: dot ? (e) => { e.preventDefault(); personMenu({ slug: id }, e.clientX, e.clientY); } : null },
-      h('span', { class: 'chat-cv-i' }, ico), h('span', { class: 'chat-cv-l' }, label), dot ? stDot(id) : null, n && CH.conv !== id ? h('span', { class: 'chat-cv-n' }, String(n)) : null); };
+    const btn = (id, ico, label, title, dot) => { const n = chatUnreadIn(id); const pl = dot && full ? plateOf(id) : ''; return h('button', { class: cls + (CH.conv === id ? ' on' : '') + (pl ? ' plate pl-' + pl : ''), title, onclick: () => chatConv(id), oncontextmenu: dot ? (e) => { e.preventDefault(); personMenu({ slug: id }, e.clientX, e.clientY); } : null },
+      h('span', { class: 'chat-cv-i' }, ico), h('span', { class: 'chat-cv-l' }, dot && full ? nameEl(id, label) : label), dot ? stDot(id) : null, n && CH.conv !== id ? h('span', { class: 'chat-cv-n' }, String(n)) : null); };
     const chans = CHANNELS.filter((x) => salonOk(x[4])).map(([id, ico, label, desc, m]) => {
       const t = (m && m.type) || 'texte';
       const b = btn(id, full ? (TYPE_ICO[t] || '#') : ico, full ? label : (t === 'texte' ? '#' : TYPE_ICO[t] + ' ') + label, desc, false);
@@ -9326,12 +9390,12 @@
     try {
       if (!FV() || !FV().statusSend || !vocalMe()) return;
       if (UX.status === 'invisible') { FV().statusSend(null); return; }
-      FV().statusSend({ st: UX.status, game: !!(LIVE.mine), bio: UX.bio || '', color: UX.color || '', banner: UX.banner || null, dm: UX.dm || 'all', games: UX.games || [] });
+      FV().statusSend({ st: UX.status, game: !!(LIVE.mine), bio: UX.bio || '', color: UX.color || '', banner: UX.banner || null, dm: UX.dm || 'all', games: UX.games || [], look: UX.look || null });
     } catch (e) { /* hall pas prêt */ }
   }
   const ST_CACHE = { at: 0, st: {}, prof: {} };
   function statusOf(slug) {
-    if (slug === vocalMe()) return { st: UX.status === 'invisible' ? 'invisible' : UX.status, game: !!LIVE.mine, bio: UX.bio, color: UX.color, banner: UX.banner, dm: UX.dm, games: UX.games || [] };
+    if (slug === vocalMe()) return { st: UX.status === 'invisible' ? 'invisible' : UX.status, game: !!LIVE.mine, bio: UX.bio, color: UX.color, banner: UX.banner, dm: UX.dm, games: UX.games || [], look: UX.look || null };
     // Lus au plus deux fois par seconde (FV().state() et le stockage local coûtent cher appelés pour chaque nom).
     if (!ST_CACHE.at || Date.now() - ST_CACHE.at > 500) { let st = {}; try { st = (FV() && FV().state().statuses) || {}; } catch (e) { /* */ } ST_CACHE.st = st; ST_CACHE.prof = load('fire.profiles', {}) || {}; ST_CACHE.at = Date.now(); }
     const live = ST_CACHE.st[slug] || null;
@@ -9345,7 +9409,7 @@
       if (!Object.keys(st).length) return;
       const all = load('fire.profiles', {}) || {};
       let ch = false;
-      for (const [k, x] of Object.entries(st)) { const v = { bio: x.bio || '', color: x.color || '', banner: x.banner || null, dm: x.dm || 'all', games: x.games || [] }; if (JSON.stringify(all[k]) !== JSON.stringify(v)) { all[k] = v; ch = true; } }
+      for (const [k, x] of Object.entries(st)) { const v = { bio: x.bio || '', color: x.color || '', banner: x.banner || null, dm: x.dm || 'all', games: x.games || [], look: x.look || null }; if (JSON.stringify(all[k]) !== JSON.stringify(v)) { all[k] = v; ch = true; } }
       if (ch) save('fire.profiles', all);
     } catch (e) { /* */ }
   }
@@ -9402,10 +9466,12 @@
         : h('p', { class: 'muted small' }, 'Pas encore de games classées ce split.')) : null;
     const games = (x.games || []).filter(Boolean);
     const box = h('div', { class: 'prof-pop', onclick: (e) => { if (e.target === box) close(); } },
-      h('div', { class: 'prof-card pf-wide' },
+      h('div', { class: 'prof-card pf-wide' + ((x.look || {}).card ? ' pf-themed' : ''), style: (x.look || {}).card ? `--pc1:${x.look.card[0]};--pc2:${x.look.card[1]}` : '' },
+        (x.look || {}).pfx ? h('div', { class: 'pfx pfx-' + x.look.pfx, 'aria-hidden': 'true' }) : null,
         h('div', { class: 'prof-ban', style: banner ? `background-image:url('${banner}')` : '' }),
+        h('div', { class: 'prof-av-wrap' }, avatarEl(slug, 'prof-av')),
         h('div', { class: 'prof-body' },
-          h('div', { class: 'prof-name', style: x.color ? `color:${x.color}` : '' }, vocalName(slug), stDot(slug), roleBadge(slug)),
+          h('div', { class: 'prof-name' + (plateOf(slug) ? ' plate pl-' + plateOf(slug) : '') }, nameEl(slug), stDot(slug), roleBadge(slug)),
           h('div', { class: 'muted small' }, (p ? (p.role || roleOf(p).label) + ' · ' : coachOf(slug) ? 'Coach · ' : '') + (x.game ? '🎮 En game' : (ST_LABEL[x.st] || ST_LABEL.offline).join(' '))),
           x.bio ? h('p', { class: 'prof-bio' }, x.bio) : null,
           games.length ? h('div', { class: 'pf-games' }, h('small', { class: 'muted' }, 'Ses jeux'), h('div', { class: 'pf-gl' }, games.map((g) => h('span', { class: 'pf-g' }, gameIco(g) + ' ' + g)))) : null,
@@ -9415,6 +9481,7 @@
             canDm ? h('button', { class: 'btn-fire small-btn', onclick: () => { close(); CH.conv = slug; go('chat'); } }, '💬 Message privé') : slug !== me ? h('span', { class: 'muted small' }, '🔒 Ne reçoit pas de messages privés') : null,
             p ? h('button', { class: 'btn-ghost', onclick: () => { close(); go('stats'); openPlayer(slug); } }, '📊 Toutes ses stats') : null,
             slug === me ? h('button', { class: 'btn-ghost', onclick: () => { close(); S.setTab = 'profil'; S.setSub = 'carte'; go('settings'); } }, '✏️ Modifier mon profil') : null,
+            slug === me ? h('button', { class: 'btn-ghost', onclick: () => { close(); S.setTab = 'boutique'; go('settings'); } }, '🛍️ Boutique') : null,
             h('button', { class: 'btn-ghost', onclick: close }, 'Fermer')))));
     document.body.append(box);
   }

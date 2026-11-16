@@ -170,7 +170,84 @@
         }
       },
     },
+    aurore: {
+      n: 70,
+      make() { return { x: rnd(0, FX.w), y: rnd(0, FX.h * 0.7), r: rnd(0.4, 1.4), tw: rnd(0, TAU) }; },
+      step(p, dt) { p.tw += dt * 1.5; return true; },
+      draw(c, p) { c.globalAlpha = 0.2 + 0.4 * (1 + Math.sin(p.tw)) / 2; c.fillStyle = '#e8fff6'; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill(); },
+      bg(c, t) {
+        // Rideaux de lumière qui ondulent
+        const bands = [['46,255,170', 0.16, 0.22], ['80,200,255', 0.12, 0.3], ['190,110,255', 0.09, 0.38]];
+        bands.forEach(([col, a, yy], k) => {
+          c.globalAlpha = 1;
+          for (let x = 0; x <= FX.w; x += 6) {
+            const y = FX.h * yy + Math.sin(x / 180 + t * 0.4 + k) * 40 + Math.sin(x / 70 + t * 0.9 + k * 2) * 12;
+            const hgt = 120 + Math.sin(x / 120 + t * 0.6 + k) * 60;
+            const g = c.createLinearGradient(0, y - hgt, 0, y + 30);
+            g.addColorStop(0, `rgba(${col},0)`); g.addColorStop(0.7, `rgba(${col},${a * (0.6 + 0.4 * Math.sin(x / 50 + t + k))})`); g.addColorStop(1, `rgba(${col},0)`);
+            c.fillStyle = g; c.fillRect(x, y - hgt, 6, hgt + 30);
+          }
+        });
+      },
+    },
+    nuit: {
+      n: 120,
+      make() { return { x: rnd(0, FX.w), y: rnd(0, FX.h), r: rnd(0.4, 1.6), tw: rnd(0, TAU), sp: rnd(0.6, 2) }; },
+      step(p, dt) { p.tw += dt * p.sp; return true; },
+      draw(c, p) { c.globalAlpha = 0.25 + 0.6 * (1 + Math.sin(p.tw)) / 2; c.fillStyle = '#fff8e0'; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill(); },
+      bg(c, t, dt) {
+        // Étoiles filantes de temps en temps
+        const E = FX.extra;
+        E.st = E.st || [];
+        if (Math.random() < dt * 0.25) E.st.push({ x: rnd(FX.w * 0.2, FX.w), y: rnd(0, FX.h * 0.4), v: rnd(500, 800), age: 0 });
+        E.st = E.st.filter((s) => (s.age += dt) < 1.2);
+        for (const s of E.st) {
+          const x = s.x - s.v * s.age, y = s.y + s.v * 0.45 * s.age, a = Math.max(0, 1 - s.age / 1.2);
+          const g = c.createLinearGradient(x, y, x + 120, y - 54); g.addColorStop(0, `rgba(255,248,224,${a})`); g.addColorStop(1, 'rgba(255,248,224,0)');
+          c.globalAlpha = 1; c.strokeStyle = g; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 120, y - 54); c.stroke();
+        }
+        // Lune
+        const mx = FX.w * 0.85, my = FX.h * 0.16, r = Math.min(FX.w, FX.h) * 0.06;
+        const g = c.createRadialGradient(mx, my, r * 0.2, mx, my, r * 3); g.addColorStop(0, 'rgba(255,240,200,.25)'); g.addColorStop(1, 'rgba(255,240,200,0)');
+        c.globalAlpha = 1; c.fillStyle = g; c.beginPath(); c.arc(mx, my, r * 3, 0, TAU); c.fill();
+        c.fillStyle = 'rgba(255,244,214,.85)'; c.beginPath(); c.arc(mx, my, r, 0, TAU); c.fill();
+        c.fillStyle = 'rgba(10,12,30,.9)'; c.beginPath(); c.arc(mx + r * 0.42, my - r * 0.2, r * 0.9, 0, TAU); c.fill();
+      },
+    },
+    orage: {
+      n: 160,
+      make(fresh) { return { x: rnd(-100, FX.w), y: fresh ? rnd(0, FX.h) : rnd(-60, -10), len: rnd(10, 22), v: rnd(700, 1000) }; },
+      step(p, dt) { p.y += p.v * dt; p.x += p.v * 0.18 * dt; return p.y < FX.h + 30; },
+      draw(c, p) { c.globalAlpha = 0.28; c.strokeStyle = '#bcd7ff'; c.lineWidth = 1; c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x + p.len * 0.18, p.y + p.len); c.stroke(); },
+      bg(c, t, dt) {
+        const E = FX.extra;
+        if (!E.flash && Math.random() < dt * 0.12) { E.flash = 1; E.bolt = bolt(); }
+        if (E.flash) {
+          E.flash -= dt * 2.2;
+          c.globalAlpha = Math.max(0, E.flash) * 0.18; c.fillStyle = '#dfe9ff'; c.fillRect(0, 0, FX.w, FX.h);
+          if (E.flash > 0.45) { c.globalAlpha = Math.min(1, E.flash); c.strokeStyle = '#eef4ff'; c.lineWidth = 2.2; c.shadowColor = '#9fc0ff'; c.shadowBlur = 18; c.beginPath(); E.bolt.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke(); c.shadowBlur = 0; }
+          if (E.flash <= 0) E.flash = 0;
+        }
+      },
+    },
+    lucioles: {
+      n: 38,
+      make() { return { x: rnd(0, FX.w), y: rnd(FX.h * 0.25, FX.h), vx: rnd(-12, 12), vy: rnd(-10, 10), ph: rnd(0, TAU), sp: rnd(0.8, 2) }; },
+      step(p, dt, t) { p.ph += dt * p.sp; p.vx += rnd(-6, 6) * dt; p.vy += rnd(-6, 6) * dt; p.vx = Math.max(-18, Math.min(18, p.vx)); p.vy = Math.max(-14, Math.min(14, p.vy)); p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.x < -10) p.x = FX.w + 10; if (p.x > FX.w + 10) p.x = -10; if (p.y < FX.h * 0.15) p.vy = Math.abs(p.vy); if (p.y > FX.h + 10) p.vy = -Math.abs(p.vy); return true; },
+      draw(c, p) { const a = Math.max(0, Math.sin(p.ph)); const g = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, 14); g.addColorStop(0, `rgba(220,255,120,${a * 0.9})`); g.addColorStop(1, 'rgba(220,255,120,0)'); c.globalAlpha = 1; c.fillStyle = g; c.beginPath(); c.arc(p.x, p.y, 14, 0, TAU); c.fill(); },
+      bg(c) { const g = c.createLinearGradient(0, FX.h * 0.6, 0, FX.h); g.addColorStop(0, 'rgba(20,60,30,0)'); g.addColorStop(1, 'rgba(20,60,30,.35)'); c.globalAlpha = 1; c.fillStyle = g; c.fillRect(0, 0, FX.w, FX.h); },
+    },
+    galaxie: {
+      n: 220,
+      make() { const a = rnd(0, TAU), d = Math.pow(Math.random(), 0.6) * Math.max(FX.w, FX.h) * 0.6; return { a: a + d / 140, d, r: rnd(0.4, 1.6), col: pick(['#ffffff', '#cfd8ff', '#ffd6f5', '#b8a6ff', '#9fe8ff']), sp: 0.02 + 18 / (d + 60) }; },
+      step(p, dt) { p.a += p.sp * dt; return true; },
+      draw(c, p) { const x = FX.w / 2 + Math.cos(p.a) * p.d, y = FX.h / 2 + Math.sin(p.a) * p.d * 0.45; c.globalAlpha = 0.75; c.fillStyle = p.col; c.beginPath(); c.arc(x, y, p.r, 0, TAU); c.fill(); },
+      bg(c, t) { const g = c.createRadialGradient(FX.w / 2, FX.h / 2, 0, FX.w / 2, FX.h / 2, Math.min(FX.w, FX.h) * 0.5); g.addColorStop(0, 'rgba(255,214,245,.18)'); g.addColorStop(0.4, 'rgba(140,110,255,.08)'); g.addColorStop(1, 'rgba(140,110,255,0)'); c.globalAlpha = 1; c.fillStyle = g; c.fillRect(0, 0, FX.w, FX.h); },
+    },
   };
+  // Un éclair : une ligne brisée du haut vers le bas.
+  function bolt() { const pts = []; let x = rnd(FX.w * 0.2, FX.w * 0.9), y = 0; while (y < FX.h * rnd(0.45, 0.8)) { pts.push([x, y]); x += rnd(-40, 40); y += rnd(20, 50); } return pts; }
   // Une branche de cerisier en fleurs, dessinée une fois sur une toile à part (coin en haut à gauche).
   function branch() {
     const cv = document.createElement('canvas'); cv.width = FX.w; cv.height = FX.h;

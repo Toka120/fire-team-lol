@@ -953,6 +953,20 @@
     };
   }
   // Statut et petite carte de profil d'un coéquipier (Paramètres › Mon profil) : seulement des champs connus et courts.
+  // Boutique FIRE (gratuite) : effets de pseudo, décorations… seulement des valeurs connues.
+  const LOOK = { fx: ['shine', 'neon', 'rainbow', 'feu', 'givre', 'glitch', 'pulse', 'or'], font: ['cinzel', 'orbitron', 'bangers', 'fredoka', 'press', 'marker', 'bebas', 'mono'],
+    deco: ['flammes', 'neon', 'arc', 'petales', 'givre', 'hextech', 'couronne', 'void', 'eclair', 'coeurs'], pfx: ['petales', 'neige', 'etincelles', 'braises', 'etoiles', 'confettis', 'bulles', 'coeurs'],
+    plate: ['aube', 'ocean', 'foret', 'nuit', 'lave', 'neon', 'or', 'glace', 'sakura', 'matrix', 'galaxie'] };
+  function cleanLook(l) {
+    if (!l || typeof l !== 'object') return null;
+    const hex = (c) => (/^#[0-9a-fA-F]{6}$/.test(c || '') ? c : '');
+    const two = (a) => (Array.isArray(a) && hex(a[0]) && hex(a[1]) ? [a[0], a[1]] : null);
+    const o = {};
+    for (const k of Object.keys(LOOK)) if (LOOK[k].includes(l[k])) o[k] = l[k];
+    if (two(l.grad)) o.grad = two(l.grad);
+    if (two(l.card)) o.card = two(l.card);
+    return Object.keys(o).length ? o : null;
+  }
   function cleanStatus(x) {
     if (!x || typeof x !== 'object') return null;
     const str = (v, n) => String(v == null ? '' : v).slice(0, n);
@@ -960,7 +974,7 @@
     const color = /^#[0-9a-fA-F]{6}$/.test(x.color || '') ? x.color : '';
     const banner = x.banner && /^[A-Za-z]{2,20}$/.test(x.banner.c || '') && Number.isInteger(x.banner.n) && x.banner.n >= 0 && x.banner.n < 200 ? { c: x.banner.c, n: x.banner.n } : null;
     const games = (Array.isArray(x.games) ? x.games : []).map((g) => str(g, 24)).filter(Boolean).slice(0, 8);
-    return { st, game: !!x.game, bio: str(x.bio, 140), color, banner, dm: ['all', 'coach', 'none'].includes(x.dm) ? x.dm : 'all', games };
+    return { st, game: !!x.game, bio: str(x.bio, 140), color, banner, dm: ['all', 'coach', 'none'].includes(x.dm) ? x.dm : 'all', games, look: cleanLook(x.look) };
   }
   // Mon statut envoyé à l'équipe (toutes les minutes et à chaque changement) ; null = invisible (les autres ne me voient plus).
   async function statusSend(st) {

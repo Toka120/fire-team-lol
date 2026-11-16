@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.144",
+   "date": "2026-11-16",
+   "titre": "Boutique FIRE (gratuite) et nouveaux thèmes",
+   "items": [
+    [
+     "new",
+     "🛍️ Boutique FIRE dans Paramètres, comme la boutique de Discord mais gratuite : effets de pseudo (Brillance, Néon, Arc-en-ciel, En feu, Givre, Glitch, Pulsation, Or massif), dégradé et police du pseudo, décoration d’avatar (Flammes, Néon, Arc-en-ciel, Sakura, Givre, Hextech, Couronne, Néant, Éclair, Cœurs), effet de profil animé (Pétales, Neige, Étincelles, Braises, Étoiles, Confettis, Bulles, Cœurs), plaque de nom et thème de carte de profil."
+    ],
+    [
+     "new",
+     "Tes coéquipiers voient ce que tu équipes : ton pseudo dans la discussion et la liste des membres, ton avatar dans le vocal, et ta carte de profil (qui a maintenant ton avatar)."
+    ],
+    [
+     "new",
+     "5 nouveaux thèmes animés : Aurore boréale, Nuit étoilée (lune et étoiles filantes), Orage (pluie et éclairs), Lucioles et Galaxie."
+    ]
+   ]
+  },
+  {
    "v": "1.10.143",
    "date": "2026-11-16",
    "titre": "Accueil à ta façon, planning de l’équipe 1",

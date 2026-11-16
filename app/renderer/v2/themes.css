@@ -102,6 +102,47 @@ html.v2[data-theme=rgb] {
   --trainbow: linear-gradient(90deg, #ff3d6e, #ffd23d, #3dff8a, #3dd8ff, #b13dff, #ff3d6e);
 }
 
+html.v2[data-theme=aurore] {
+  --bg:#03101a; --panel:#071c28; --panel2:#0b2634; --line:#1d4a52; --fg:#eafff7; --muted:#9cc9c2;
+  --ta:#2effaa; --tb:#b06eff; --ton:#032018; --ttitle:'Outfit', var(--v2-font);
+  --tart: radial-gradient(1100px 500px at 50% -10%, rgb(46 255 170 / 14%), transparent 65%), radial-gradient(900px 500px at 80% 0%, rgb(176 110 255 / 12%), transparent 60%);
+  --tglow: 0 0 0 1px rgb(46 255 170 / 14%), 0 10px 34px rgb(46 255 170 / 8%);
+}
+html.v2[data-theme=nuit] {
+  --bg:#070b1c; --panel:#0d1430; --panel2:#131c3e; --line:#26325e; --fg:#f3f0ff; --muted:#a9b2d6;
+  --ta:#ffe7a3; --tb:#7aa2ff; --ton:#1a1505; --ttitle:'Cinzel', Georgia, serif;
+  --tart: radial-gradient(900px 600px at 85% 5%, rgb(255 231 163 / 12%), transparent 60%), linear-gradient(180deg, #070b1c, #0f1640 70%, #1b1b4a);
+  --tglow: 0 10px 34px rgb(122 162 255 / 10%);
+}
+html.v2[data-theme=orage] {
+  --bg:#070a10; --panel:#0e131c; --panel2:#141b27; --line:#2a3546; --fg:#e6edf7; --muted:#9aa8bb;
+  --ta:#9fc0ff; --tb:#e6edf7; --ton:#0a1222; --ttitle:'Bebas Neue', var(--v2-font);
+  --tart: radial-gradient(1200px 500px at 50% -20%, rgb(159 192 255 / 10%), transparent 60%), linear-gradient(180deg, #070a10, #0c111a);
+  --tglow: 0 10px 30px rgb(0 0 0 / 40%);
+}
+html.v2[data-theme=lucioles] {
+  --bg:#04100a; --panel:#0a1c12; --panel2:#0f2619; --line:#24432f; --fg:#f2ffe8; --muted:#a8c6a6;
+  --ta:#d6ff6e; --tb:#3ecf8e; --ton:#132006; --ttitle:'Fredoka', var(--v2-font);
+  --tart: radial-gradient(900px 600px at 20% 110%, rgb(62 207 142 / 14%), transparent 62%), radial-gradient(700px 500px at 90% 0%, rgb(214 255 110 / 8%), transparent 60%);
+  --tglow: 0 10px 30px rgb(214 255 110 / 7%);
+}
+html.v2[data-theme=galaxie] {
+  --bg:#06041a; --panel:#0f0b2a; --panel2:#170f3a; --line:#33255e; --fg:#f6f0ff; --muted:#b9acdf;
+  --ta:#c49bff; --tb:#ff9fe0; --ton:#18082a; --ttitle:'Orbitron', var(--v2-font);
+  --tart: radial-gradient(900px 600px at 50% 50%, rgb(196 155 255 / 14%), transparent 62%), radial-gradient(600px 400px at 100% 0%, rgb(255 159 224 / 10%), transparent 60%);
+  --tglow: 0 0 0 1px rgb(196 155 255 / 16%), 0 10px 34px rgb(196 155 255 / 10%);
+}
+.th-aurore .th-prev { background: radial-gradient(160px 50px at 50% 30%, rgb(46 255 170 / 45%), transparent 70%), radial-gradient(140px 50px at 70% 45%, rgb(176 110 255 / 40%), transparent 70%), var(--pbg); }
+.th-nuit .th-prev { background: radial-gradient(14px 14px at 82% 24%, #fff4d6 45%, transparent 50%), radial-gradient(1px 1px at 20% 30%, #fff, transparent) 0 0 / 30px 26px, var(--pbg); }
+.th-orage .th-prev { background: repeating-linear-gradient(100deg, rgb(188 215 255 / 14%) 0 1px, transparent 1px 9px), var(--pbg); }
+.th-lucioles .th-prev { background: radial-gradient(4px 4px at 30% 70%, #e8ff9a, transparent) 0 0 / 46px 40px, var(--pbg); }
+.th-galaxie .th-prev { background: radial-gradient(60px 26px at 50% 50%, rgb(255 214 245 / 55%), transparent 70%), radial-gradient(1px 1px at 20% 30%, #fff, transparent) 0 0 / 24px 22px, var(--pbg); }
+.th-aurore .th-tt { font-family: 'Outfit'; font-weight: 700; }
+.th-nuit .th-tt { font-family: 'Cinzel'; font-weight: 600; }
+.th-orage .th-tt { font-family: 'Bebas Neue'; font-size: 19px; letter-spacing: .05em; }
+.th-lucioles .th-tt { font-family: 'Fredoka'; font-weight: 600; }
+.th-galaxie .th-tt { font-family: 'Orbitron'; font-weight: 800; }
+
 /* ---------- Règles communes à toutes les ambiances ---------- */
 html.v2[data-skin] {
   --fire1: var(--ta); --fire2: var(--ta); --fire3: var(--tb); --v2-blue: var(--tb);
