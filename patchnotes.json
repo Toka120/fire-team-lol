@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.174",
+   "date": "2026-11-16",
+   "titre": "Briar encore plus mignonne",
+   "items": [
+    [
+     "new",
+     "Compagnon Briar (chibi) : elle a maintenant les joues roses, des petits cœurs qui s’envolent autour d’elle, des étincelles qui scintillent, et elle rebondit doucement sur place."
+    ]
+   ]
+  },
+  {
    "v": "1.10.173",
    "date": "2026-11-16",
    "titre": "La mage aux orbes parle",
