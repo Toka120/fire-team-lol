@@ -3407,3 +3407,8 @@ html[data-calm] .jeu-ombre.torch .om-light{animation:none}
 /* Effet miroir : aperçu figé de son propre partage affiché en grand */
 .vt-mirror{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;max-width:min(440px,86%);display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;padding:16px 18px;border-radius:14px;background:rgba(10,8,14,.86);border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 40px rgba(0,0,0,.5);color:#eee;font-size:13px;line-height:1.45;cursor:default}
 .vt-mirror b{font-size:15px}
+/* Compagnon en image animée (chibi) */
+.pet.pet-img img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none}
+#fire-pet.big{width:92px;height:96px}
+#fire-pet.big .pet-home{width:92px;height:96px}
+#fire-pet.big .pet-shadow{left:22px;right:22px}

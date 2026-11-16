@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.169",
+   "date": "2026-11-16",
+   "titre": "Nouveau compagnon : Briar en chibi",
+   "items": [
+    [
+     "new",
+     "Boutique › Compagnons : Briar (chibi), animée. Elle vit en bas à droite de l’app comme les autres compagnons : elle réagit aux clics, aux messages, au début et à la fin de tes games. Elle est un peu plus grande que les autres pour qu’on la voie bien."
+    ]
+   ]
+  },
+  {
    "v": "1.10.168",
    "date": "2026-11-16",
    "titre": "Son du PC dans les clips, fin de l’effet miroir",

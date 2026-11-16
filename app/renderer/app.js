@@ -51,6 +51,7 @@
     shroom: ['Champi', '<rect x="16" y="26" width="18" height="18" rx="7" fill="#fff1dc"/><path d="M5 27 C5 13 15 6 25 6 C35 6 45 13 45 27 Z" fill="#e8434f"/><circle cx="17" cy="15" r="3" fill="#fff"/><circle cx="31" cy="12" r="2.5" fill="#fff"/><circle cx="37" cy="21" r="2.2" fill="#fff"/>', 'low'],
     astro: ['Astro', '<path d="M25 3 L31 17 L46 18 L34 28 L38 44 L25 35 L12 44 L16 28 L4 18 L19 17Z" fill="#ffd23d" stroke="#ffb02e" stroke-width="1.5" stroke-linejoin="round"/>'],
     drako: ['Drako', '<path d="M12 14 L8 4 L18 11 M38 14 L42 4 L32 11" fill="#7c5cff"/><ellipse cx="25" cy="28" rx="17" ry="16" fill="#9d7bff"/><path d="M6 26 L1 20 L6 31 Z M44 26 L49 20 L44 31Z" fill="#c4b0ff"/><ellipse cx="25" cy="38" rx="8" ry="4" fill="#c4b0ff"/>'],
+    briar: ['Briar (chibi)', null, 'img:../assets/pets/briar.webp'],
     bulle: ['Bulle', '<circle cx="25" cy="26" r="19" fill="#7fe8ff" opacity=".85"/><circle cx="25" cy="26" r="19" fill="none" stroke="#fff" stroke-width="1.5" opacity=".7"/><ellipse cx="17" cy="15" rx="5" ry="3" fill="#fff" opacity=".7" transform="rotate(-30 17 15)"/>'],
   };
   // Boutique : effets de profil « sombres » dessinés en SVG (yeux, sourire, chauves-souris, ombres, toiles)
@@ -9981,6 +9982,8 @@
   }
   function petEl(id, cls) {
     const p = PETS[id]; if (!p) return null;
+    // Compagnon en image animée (chibi) : pas de SVG ni d'yeux dessinés par-dessus.
+    if (typeof p[2] === 'string' && p[2].startsWith('img:')) return h('span', { class: 'pet pet-img ' + (cls || ''), title: 'Compagnon : ' + p[0] }, h('img', { src: p[2].slice(4), alt: '', draggable: 'false' }));
     const eyes = p[2] === true ? PET_EYES.replace(/#1b1020/g, '#5ff3ff').replace(/fill="#fff"/g, 'fill="#e0fdff"') : p[2] === 'low' ? PET_EYES.replace(/cy="27"/g, 'cy="34"').replace(/cy="25.6"/g, 'cy="32.6"').replace(/cy="32"/g, 'cy="38"').replace('M22.5 33 q2.5 2.2 5 0', 'M22.5 39 q2.5 2.2 5 0') : PET_EYES;
     const sp = h('span', { class: 'pet ' + (cls || ''), title: 'Compagnon : ' + p[0] });
     sp.innerHTML = `<svg viewBox="0 0 50 50" aria-hidden="true">${p[1]}<g class="pet-eyes">${eyes}</g></svg>`;
@@ -10006,7 +10009,7 @@
     const body = petEl(id, 'pet-home');
     body.removeAttribute('title');
     PET.bub = h('div', { class: 'pet-bub', 'aria-live': 'polite' });
-    PET.el = h('div', { id: 'fire-pet', title: PETS[id][0] + ' : clique-moi !', role: 'button', tabindex: '0', 'aria-label': 'Compagnon ' + PETS[id][0],
+    PET.el = h('div', { id: 'fire-pet', class: body.classList.contains('pet-img') ? 'big' : null, title: PETS[id][0] + ' : clique-moi !', role: 'button', tabindex: '0', 'aria-label': 'Compagnon ' + PETS[id][0],
       onclick: (e) => { e.stopPropagation(); petClick(); }, onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); petClick(); } },
       onmouseenter: () => { if (PET.asleep) petWake(); else petAnim('happy', 700); } },
       PET.bub, h('div', { class: 'pet-shadow' }), body);
