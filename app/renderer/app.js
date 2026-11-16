@@ -5050,7 +5050,7 @@
   // quand on le remet : après chaque affichage du salon (changement d'onglet, quelqu'un qui coupe son micro…),
   // on relance la lecture des vidéos visibles.
   function resumeVideos() {
-    requestAnimationFrame(() => Object.values(VX.vids).forEach((el) => { if (el.isConnected && el.paused && el.srcObject) el.play().catch(() => {}); }));
+    requestAnimationFrame(() => Object.values(VX.vids).forEach((el) => { if (el.isConnected && el.paused && el.srcObject && !el.dataset.mfrozen) el.play().catch(() => {}); }));
   }
   // Élément vidéo gardé d'un rendu à l'autre : l'image ne clignote pas.
   function vidEl(key, stream, mirror) {
@@ -5059,6 +5059,36 @@
     if (el.srcObject !== stream) { el.srcObject = stream; el.play().catch(() => {}); }
     el.classList.toggle('mirror', !!mirror);
     return el;
+  }
+  // ===== Effet miroir =====
+  // Quand on partage tout son écran (ou la fenêtre de FIRE) et qu'on affiche son propre partage en grand,
+  // l'image se filme elle-même à l'infini : curseurs en cascade, image floue qui vire au vert, et c'est ce que
+  // voient les spectateurs. Dans ce cas l'aperçu de son propre écran est figé (les autres voient le direct).
+  const MIR = { src: null, ok: false };
+  function shareSrc(id, name) { MIR.src = { id: String(id || 'screen:'), name: String(name || '') }; MIR.ok = false; }
+  function mirrorRisk() { const s = MIR.src; return !s || /^screen:/.test(s.id) || /fire/i.test(s.name); }
+  function mirrorGuard() {
+    document.querySelectorAll('.vt.mine-scr, #vc-theater .th-cell[data-k="me:screen"]').forEach((box) => {
+      const vid = box.querySelector('video');
+      if (!vid) return;
+      const r = box.getBoundingClientRect();
+      const big = document.fullscreenElement === box || r.width > window.innerWidth * 0.45;
+      const on = big && !MIR.ok && mirrorRisk();
+      let note = box.querySelector('.vt-mirror');
+      if (on) {
+        vid.dataset.mfrozen = '1';
+        if (!vid.paused) vid.pause();
+        if (!note) {
+          box.append(h('div', { class: 'vt-mirror', onclick: (e) => e.stopPropagation(), ondblclick: (e) => e.stopPropagation() },
+            h('b', null, '🪞 Aperçu figé'),
+            h('span', null, 'Tu partages ' + (MIR.src && /fire/i.test(MIR.src.name) ? 'la fenêtre de FIRE' : 'ton écran') + ' : l’afficher en grand ici filmerait l’image à l’infini (effet miroir). Tes coéquipiers voient ton écran en direct, normalement.'),
+            h('button', { class: 'vm-btn', onclick: (e) => { e.stopPropagation(); MIR.ok = true; mirrorGuard(); } }, 'Afficher en direct quand même')));
+        }
+      } else {
+        if (note) note.remove();
+        if (vid.dataset.mfrozen) { delete vid.dataset.mfrozen; if (vid.paused && vid.srcObject) vid.play().catch(() => {}); }
+      }
+    });
   }
   // ===== Streams en plein écran (tous en même temps) et mini-lecteur flottant =====
   // Liste des partages d'écran visibles : le mien et ceux que je regarde.
@@ -5123,7 +5153,8 @@
     TH.el.style.setProperty('--cols', cols);
     TH.el.replaceChildren(...[...cells, h('button', { class: 'th-x', title: 'Quitter le plein écran (Échap)', onclick: theaterClose }, '✕'),
       TH.focus ? h('button', { class: 'th-back', onclick: () => { TH.focus = null; theaterPaint(true); } }, '⊞ Tous les streams') : null].filter(Boolean));
-    TH.el.querySelectorAll('video').forEach((v) => { if (v.paused) v.play().catch(() => {}); });
+    TH.el.querySelectorAll('video').forEach((v) => { if (v.paused && !v.dataset.mfrozen) v.play().catch(() => {}); });
+    mirrorGuard();
   }
   // Mini-lecteur : le stream que je regardais me suit en petite fenêtre quand je quitte le salon vocal.
   const MINI = { el: null, key: null, closed: null, pos: null };
@@ -5220,7 +5251,7 @@
             : ['Écrans', 'Fenêtres'].map((t, k) => {
               const part = L.filter((x) => x.screen === (k === 0));
               return part.length ? h('div', null, h('p', { class: 'muted small vc-pick-t' }, t), h('div', { class: 'vc-pick-grid' }, part.map((x) =>
-                h('button', { class: 'vc-src', onclick: async () => { close(); await FV().startScreen(x.id, load('fire.vocal.sharesound', false)); hzWarn(x.hz); followStart(x.id); } }, h('img', { src: x.thumb, alt: '' }), h('span', null, x.name, x.hz ? h('small', { class: 'vc-hz' }, ` · ${x.hz} Hz`) : null))))) : null;
+                h('button', { class: 'vc-src', onclick: async () => { close(); shareSrc(x.id, x.name); await FV().startScreen(x.id, load('fire.vocal.sharesound', false)); hzWarn(x.hz); followStart(x.id); } }, h('img', { src: x.thumb, alt: '' }), h('span', null, x.name, x.hz ? h('small', { class: 'vc-hz' }, ` · ${x.hz} Hz`) : null))))) : null;
             })));
     };
     paint(); document.body.append(box);
@@ -5229,7 +5260,7 @@
       VX.picker.list = await window.fire.screen.sources().catch(() => []);
       if (VX.picker) VX.picker.own = await own;
     }
-    else { close(); FV().startScreen(null); return; }
+    else { close(); shareSrc(null); FV().startScreen(null); return; }
     if (VX.picker) paint();
   }
   function fullscreen(el) { (el.requestFullscreen ? el.requestFullscreen() : Promise.reject()).catch(() => {}); }
@@ -5279,10 +5310,10 @@
     }).catch(() => {});
   }
   async function primaryScreen() {
-    if (!window.fire.screen) return FV().startScreen(null);
+    if (!window.fire.screen) { shareSrc(null); return FV().startScreen(null); }
     const list = await window.fire.screen.sources().catch(() => []);
     const scr = list.find((x) => x.screen) || list[0];
-    if (scr) { FV().startScreen(scr.id, load('fire.vocal.sharesound', false)); hzWarn(scr.hz); }
+    if (scr) { shareSrc(scr.id, scr.name); FV().startScreen(scr.id, load('fire.vocal.sharesound', false)); hzWarn(scr.hz); }
   }
   // Un partage ne peut pas avoir plus d'images/s que la fréquence de l'écran capturé (60 Hz → 60 images/s au maximum).
   function hzWarn(hz) {
@@ -5395,6 +5426,7 @@
     }, 3000);
     // Jauge du micro (et rendu remis à plus tard pendant qu'on règle un curseur).
     setInterval(() => {
+      if (FV().state().screen) try { mirrorGuard(); } catch (e) { /* */ }
       if (S.section !== 'vocal') return;
       if (VX.pending && !typing() && !document.fullscreenElement) { VX.pending = false; renderVocal(); }
       const l = FV().level(), open = FV().gateOpen() && !FV().state().mute;
@@ -6056,7 +6088,7 @@
     const when = (t) => new Date(t).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     el.replaceChildren(h('div', { class: 'clips-box' },
       h('div', { class: 'clips-head' }, h('h2', null, vi('clip'), 'Mes clips'),
-        h('span', { class: 'muted small' }, st.on ? `Enregistrement continu · ${keyTxt(vkeys().clip)} pour garder les ${clipCfg().seconds} dernières secondes` : 'Clips désactivés : Vocal › Paramètres › Clips instantanés'),
+        h('span', { class: 'muted small' }, st.on ? `Enregistrement continu · ${keyTxt(vkeys().clip)} pour garder les ${clipCfg().seconds} dernières secondes · ` + (st.snd ? '🔊 son du PC capté' : '⚠ sans le son du PC (Windows a refusé la capture du son)') : 'Clips désactivés : Vocal › Paramètres › Clips instantanés'),
         h('button', { class: 'btn-ghost', onclick: () => window.fire.clips.show() }, 'Ouvrir le dossier'),
         h('button', { class: 'btn-ghost', title: 'Fermer', onclick: () => { CL.open = false; clipsModal(); } }, vi('x'))),
       !CL.list.length ? h('p', { class: 'muted clips-empty' }, st.on ? `Aucun clip pour l’instant. Pendant une game, appuie sur ${keyTxt(vkeys().clip)} : les ${clipCfg().seconds} dernières secondes (écran, son du jeu et vocal) sont enregistrées.` : 'Aucun clip pour l’instant.')
@@ -6329,7 +6361,7 @@
       const f = (pl.fonds || [])[0];
       const lm = !!v.lmute[t.slug];
       const vol = v.vols[t.slug] ?? 1;
-      const box = h('div', { class: 'vt ' + t.kind + (small ? ' small' : '') + (t.stream ? ' has-video' : '') + (lm ? ' lm' : ''), 'data-vslug': t.kind === 'person' || (t.kind === 'screen' && ringScreen) ? t.slug : null,
+      const box = h('div', { class: 'vt ' + t.kind + (t.mine && t.kind === 'screen' ? ' mine-scr' : '') + (small ? ' small' : '') + (t.stream ? ' has-video' : '') + (lm ? ' lm' : ''), 'data-vslug': t.kind === 'person' || (t.kind === 'screen' && ringScreen) ? t.slug : null,
         ondblclick: () => fullscreen(box), onclick: (e) => { if (e.target.closest('.vt-menu, .vt-tools')) return; if (layout === 'focus' && VX.focus === t.key) setLayout('grid'); else setLayout('focus', t.key); },
         oncontextmenu: (e) => { if (t.mine) return; e.preventDefault(); if (t.kind === 'screen') streamMenu(t, box, e.clientX, e.clientY); else if (t.kind === 'person') personMenu(t, e.clientX, e.clientY); } });
       // Vidéo (caméra ou écran) : elle prend toute la case, sans initiales par-dessus.

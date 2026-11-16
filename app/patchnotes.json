@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.168",
+   "date": "2026-11-16",
+   "titre": "Son du PC dans les clips, fin de l’effet miroir",
+   "items": [
+    [
+     "new",
+     "Clips : le son du PC (le jeu, les voix du vocal) est maintenant capté avec la même méthode que le partage d’écran avec son, celle qui marche sous Windows. Ta voix y est toujours. La page Clips indique « 🔊 son du PC capté » ou prévient si Windows l’a refusé."
+    ],
+    [
+     "fix",
+     "Partage d’écran : si tu partages tout ton écran (ou la fenêtre de FIRE) et que tu affiches ton propre partage en grand (plein écran, mode focus, plein écran de tous les streams), l’aperçu se fige. Avant, l’image se filmait à l’infini : curseurs en cascade, image floue qui virait au vert, et tes coéquipiers voyaient ça. Ils voient maintenant ton écran en direct, normalement. Un bouton « Afficher en direct quand même » est là si tu partages un autre écran."
+    ]
+   ]
+  },
+  {
    "v": "1.10.167",
    "date": "2026-11-16",
    "titre": "Les vidéos YouTube se lancent dans FIRE",

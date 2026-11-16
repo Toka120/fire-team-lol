@@ -21,18 +21,27 @@
   async function grab() {
     if (C.opts.stream) return C.opts.stream; // tests
     const Q = q();
-    return navigator.mediaDevices.getUserMedia({
-      audio: { mandatory: { chromeMediaSource: 'desktop' } },
-      video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: C.opts.sourceId, maxWidth: Q.w, maxHeight: Q.h, maxFrameRate: Q.fps } },
-    }).catch(() => navigator.mediaDevices.getUserMedia({ // sans le son du PC si Windows le refuse
-      audio: false,
-      video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: C.opts.sourceId, maxWidth: Q.w, maxHeight: Q.h, maxFrameRate: Q.fps } },
-    })).catch(async () => { // dernier recours : la capture du partage d'écran (même écran, son du PC compris)
-      const fs = window.fire && window.fire.screen;
+    const fs = window.fire && window.fire.screen;
+    const vOpts = { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: C.opts.sourceId, maxWidth: Q.w, maxHeight: Q.h, maxFrameRate: Q.fps } };
+    let st = await navigator.mediaDevices.getUserMedia({ audio: false, video: vOpts }).catch(() => null);
+    if (!st) { // dernier recours : la capture du partage d'écran
       if (!fs) throw new Error('capture');
-      await fs.pick(C.opts.sourceId, true);
-      return navigator.mediaDevices.getDisplayMedia({ audio: true, video: { frameRate: { ideal: Q.fps, max: Q.fps }, width: { max: Q.w }, height: { max: Q.h } } });
-    });
+      await fs.pick(C.opts.sourceId, false);
+      st = await navigator.mediaDevices.getDisplayMedia({ audio: false, video: { frameRate: { ideal: Q.fps, max: Q.fps }, width: { max: Q.w }, height: { max: Q.h } } });
+    }
+    // Le son du PC : la même capture « loopback » que le partage d'écran avec son (celle qui marche partout sous Windows).
+    // Elle demande une image : on la prend toute petite et on la coupe aussitôt, on ne garde que le son.
+    C.snd = false;
+    if (fs && C.opts.sound !== false) {
+      try {
+        await fs.pick(C.opts.sourceId, true);
+        const a = await navigator.mediaDevices.getDisplayMedia({ audio: true, video: { width: { max: 320 }, height: { max: 180 }, frameRate: { max: 1 } } });
+        a.getVideoTracks().forEach((t) => t.stop());
+        const at = a.getAudioTracks()[0];
+        if (at) { st.addTrack(at); C.snd = true; }
+      } catch (e) { /* pas de son du PC : la vidéo et ta voix seulement */ }
+    }
+    return st;
   }
 
   async function pickVideoCodec(w, h) {
@@ -265,7 +274,7 @@
 
   window.FireClips = {
     start, stop, save, setMic, recStart, recStop, recording: () => R.on,
-    state: () => ({ on: C.on, starting: !!C.starting, err: C.err, buffered: C.v.length ? Math.round((C.v[C.v.length - 1].ts - C.v[0].ts) / 1e6) : 0, w: C.w, h: C.h, vcodec: C.vcodec, acodec: C.acodec }),
+    state: () => ({ snd: !!C.snd, on: C.on, starting: !!C.starting, err: C.err, buffered: C.v.length ? Math.round((C.v[C.v.length - 1].ts - C.v[0].ts) / 1e6) : 0, w: C.w, h: C.h, vcodec: C.vcodec, acodec: C.acodec }),
     onChange: (f) => { onChange = f; },
     supported: () => !!(window.VideoEncoder && window.AudioEncoder && window.MediaStreamTrackProcessor && window.Mp4Muxer),
   };
