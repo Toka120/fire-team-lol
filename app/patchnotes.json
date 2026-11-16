@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.177",
+   "date": "2026-11-16",
+   "titre": "Croco : des yeux tout neufs",
+   "items": [
+    [
+     "fix",
+     "Compagnon Croco : ses yeux ne changent plus de forme sans arrêt. Ils restent grands ouverts et brillants, et il fait un vrai clignement doux, les yeux fermés en petite courbe."
+    ]
+   ]
+  },
+  {
    "v": "1.10.176",
    "date": "2026-11-16",
    "titre": "Nouveau compagnon : le croco",
