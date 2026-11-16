@@ -3717,7 +3717,7 @@
         return h('button', { class: 'btn-fire small-btn', disabled: SPX[key] === '…' ? true : null, title: 'Ouvre le mode spectateur de League of Legends (le client LoL doit être ouvert). Riot impose 3 minutes de délai.', onclick: async () => {
           SPX[key] = '…'; liveRefresh(true);
           const r = await window.fire.live.spectate({ puuid: tg.puuid || '', name: tg.n, names: tg.names || [] }).catch((e) => ({ ok: false, error: String(e) }));
-          SPX[key] = r && r.ok ? '✓ Le mode spectateur de LoL se lance…' : '⚠ ' + ((r && r.error) || 'impossible');
+          SPX[key] = r && r.ok ? '✓ Le mode spectateur de LoL se lance…' : r && r.guide ? '👉 ' + String(r.error || '').replace(/\s*\(Détail technique[\s\S]*$/, '') : '⚠ ' + ((r && r.error) || 'impossible');
           liveRefresh(true);
         } }, `👁 Regarder ${nm} en spectateur`); }),
       sharing.map((x) => h('button', { class: 'btn-ghost', onclick: () => { go('vocal'); VX.focus = x + ':screen'; renderVocal(); } }, `📺 Voir l’écran de ${vocalName(x)}`)),
@@ -3780,7 +3780,7 @@
             SPX[key] = '…'; liveRefresh(true);
             const names = [p.pseudo].concat((p.comptes || []).filter((c) => !c.jusqu_au || c.jusqu_au > new Date().toISOString().slice(0, 16)).map((c) => c.pseudo), (p.comptes_flex || []).map((c) => c.pseudo)).filter(Boolean);
             const r = await window.fire.live.spectate({ name: names[0], names }).catch((e) => ({ ok: false, error: String(e) }));
-            SPX[key] = r && r.ok ? '✓ Le mode spectateur de LoL se lance…' : '⚠ ' + ((r && r.error) || 'impossible'); liveRefresh(true);
+            SPX[key] = r && r.ok ? '✓ Le mode spectateur de LoL se lance…' : r && r.guide ? '👉 ' + String(r.error || '').replace(/\s*\(Détail technique[\s\S]*$/, '') : '⚠ ' + ((r && r.error) || 'impossible'); liveRefresh(true);
           } }, `👁 Regarder ${nm} en spectateur`); }),
           bare.map((p) => (LIVE.spx || {})['b:' + p.slug]).filter((t) => t && t !== '…').slice(-1).map((t) => h('small', { class: t.startsWith('⚠') ? 'bad' : 'good' }, t)))) : null);
   }
@@ -10032,7 +10032,15 @@
     const stBtn = (k) => h('button', { class: 'me-st' + ((UX.status || 'online') === k ? ' on' : ''), title: ST_LABEL[k][1], onclick: () => { setUx({ status: k }); actLog('statut', 'Statut : ' + ST_LABEL[k][1]); renderNav(); meMenu(true); } }, ST_LABEL[k][0], h('small', null, ST_LABEL[k][1]));
     const set = (tab, sub) => () => { S.setTab = tab; if (sub) S.setSub = sub; go('settings'); };
     m.replaceChildren(...[
-      me ? h('div', { class: 'me-head' }, avatarEl(me, 'me-av big'), h('div', null, nameEl(me), h('small', { class: 'muted' }, LIVE.mine ? '🎮 En game' : ST_LABEL[UX.status || 'online'][0] + ' ' + ST_LABEL[UX.status || 'online'][1]))) : h('div', { class: 'me-head' }, h('button', { class: 'btn-fire small-btn', onclick: () => { close(); askWho(); } }, 'Qui es-tu ?')),
+      me ? (() => { const L = looks();
+        // En-tête comme ma carte de profil : bannière, thème de carte, effet de profil, cadre d'avatar, plaque de nom.
+        return h('button', { class: 'me-head me-card' + (L.card ? ' pf-themed' : ''), style: L.card ? `--pc1:${L.card[0]};--pc2:${L.card[1]}` : null, title: 'Voir mon profil', onclick: () => { close(); openProfile(me); } },
+          L.pfx ? pfxEl(L.pfx) : null,
+          h('div', { class: 'me-ban', style: UX.banner ? banStyle(UX.banner, 280, 62) : null }),
+          h('div', { class: 'me-row' }, avatarEl(me, 'me-av big'),
+            h('div', { class: 'me-nm' }, h('div', { class: L.plate ? 'plate pl-' + L.plate : '' }, nameEl(me)),
+              h('small', { class: 'muted' }, LIVE.mine ? '🎮 En game' : ST_LABEL[UX.status || 'online'][0] + ' ' + ST_LABEL[UX.status || 'online'][1])))); })()
+        : h('div', { class: 'me-head' }, h('button', { class: 'btn-fire small-btn', onclick: () => { close(); askWho(); } }, 'Qui es-tu ?')),
       me ? h('div', { class: 'me-sts' }, ['online', 'busy', 'away', 'invisible'].map(stBtn)) : null,
       h('div', { class: 'me-sep' }),
       me ? it('👤', 'Voir mon profil', () => openProfile(me)) : null,

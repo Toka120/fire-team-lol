@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.158",
+   "date": "2026-11-16",
+   "titre": "Menu de profil façon carte, spectateur expliqué",
+   "items": [
+    [
+     "new",
+     "Menu de profil (rond en haut à droite) : l’en-tête ressemble à ta carte de profil, avec ta bannière, ton thème de carte, ton effet de profil, ton cadre d’avatar et ta plaque ; ton nom est bien lisible à droite de l’avatar. Clique dessus pour ouvrir ta carte."
+    ],
+    [
+     "fix",
+     "Spectateur : Riot ne laisse que son propre client lancer le mode spectateur (les applications reçoivent « RBAC: access denied » et « spectator key is missing »). Quand c’est le cas, FIRE met ton client LoL devant et t’indique où cliquer : liste d’amis, clic droit sur le joueur, « Regarder ». Le tableau en direct de FIRE et le partage d’écran du vocal restent là pour suivre la partie sans délai."
+    ]
+   ]
+  },
+  {
    "v": "1.10.157",
    "date": "2026-11-16",
    "titre": "Le partage d’écran suit l’application, comme OBS",

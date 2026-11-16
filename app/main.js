@@ -640,6 +640,12 @@ ipcMain.handle('live:spectate', async (e, who) => {
     const phase = await lcuGet('/lol-gameflow/v1/gameflow-phase').catch(() => null);
     if (phase && /Lobby|Matchmaking|ReadyCheck|ChampSelect/.test(String(phase))) return { ok: false, error: `ton client LoL est ${/Lobby/.test(phase) ? 'dans un salon' : /ChampSelect/.test(phase) ? 'en sélection des champions' : 'en file d’attente'} : quitte-le, puis réessaie. Détail : ${all}` };
     if (/not.*spectat|GAME_NOT_FOUND|not found|no.*game/i.test(all) && !/RBAC/i.test(all)) return { ok: false, error: `${gameName} n'a pas de partie que Riot laisse regarder (personnalisée, entraînement, ou trop récente). Détail : ${all}` };
+    // Riot réserve la demande de spectateur au client lui-même (« RBAC : access denied », « spectator key is missing ») :
+    // une application ne peut pas la lancer. On met le client LoL devant et on dit au joueur où cliquer.
+    if (/RBAC|access denied|spectator key/i.test(all)) {
+      await lcuReq('POST', '/riotclient/ux-show').catch(() => null);
+      return { ok: false, guide: true, error: `Riot ne laisse que son propre client lancer le spectateur. Ton client LoL vient de s'ouvrir : dans ta liste d'amis, clic droit sur ${gameName} › « Regarder ». (Détail technique : ${all})` };
+    }
     if (/RBAC|access denied|403/i.test(all)) return { ok: false, error: `Riot refuse le spectateur pour ${gameName}${fr ? '' : ' (il n’est pas dans ta liste d’amis du client LoL)'}. Détail : ${all}` };
     return { ok: false, error: `le client LoL n'a pas lancé le spectateur. Détail : ${all}` };
   } catch (err) { return { ok: false, error: String(err && err.message || err) }; }

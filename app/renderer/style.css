@@ -3301,3 +3301,19 @@ html.v2 body:has(#fire-pet) #vtoasts{right:100px}
 .me-it .me-ico{width:22px;text-align:center}
 .me-it .nbadge{margin-left:auto}
 .me-upd{color:var(--fire1);font-weight:700}
+
+/* En-tête du menu de profil : une mini carte de profil */
+.me-card{position:relative;display:block;width:100%;padding:0;margin:0 0 8px;border:1px solid var(--line,#2a2f3a);border-radius:12px;overflow:hidden;background:linear-gradient(160deg,var(--panel2),var(--panel));color:inherit;font:inherit;text-align:left;cursor:pointer}
+.me-card.pf-themed{background:linear-gradient(160deg,var(--pc1),var(--pc2))}
+.me-card:hover{border-color:var(--fire1)}
+.me-card .pfx{z-index:2}
+.me-ban{height:62px;background:linear-gradient(135deg,var(--fire1),var(--panel2)) center/cover}
+.me-ban[style*=url]{background-size:cover}
+.me-row{position:relative;z-index:4;display:flex;align-items:flex-end;gap:12px;padding:0 12px 12px;margin-top:-30px}
+.me-row .me-av{width:58px;height:58px;font-size:18px;flex:none;box-shadow:0 0 0 3px var(--panel,#151820)}
+.me-row .dk-wings{z-index:-1}
+.me-nm{position:relative;z-index:5;min-width:0;flex:1;margin-left:14px;padding-top:34px}
+.me-nm .plate{display:inline-block;padding:1px 8px 1px 4px}
+.me-nm .nm{font-weight:800;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;vertical-align:bottom}
+.me-nm small{display:block;margin-top:2px}
+.me-card.pf-themed .me-ban:not([style*=url]){background:radial-gradient(120% 140% at 85% 0%,color-mix(in srgb,var(--pc1) 55%,var(--fire1) 45%),transparent 60%),linear-gradient(135deg,color-mix(in srgb,var(--pc1) 80%,#fff 6%),var(--pc2))}
