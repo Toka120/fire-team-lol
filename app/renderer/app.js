@@ -1309,14 +1309,19 @@
     const keep = { c: oldC ? oldC.scrollTop : 0, l: oldL ? oldL.scrollTop : 0, page: S.setTab + '|' + (S.setSub || '') };
     const samePage = S.setScrollPage === keep.page;
     S.setScrollPage = keep.page;
-    box.replaceChildren(
-      h('div', { class: 'set-left' }, side),
-      h('div', { class: 'set-content' },
-        h('div', { class: 'set-page' }, h('h1', { class: 'set-title' }, cur[2]), subBar, ...(pages[tab]() || []).filter(Boolean)),
-        h('div', { class: 'set-close' }, h('button', { class: 'set-x', title: 'Fermer (Échap)', onclick: () => setClose() }, '✕'), h('small', null, 'ÉCHAP'))));
-    const newC = box.querySelector('.set-content'), newL = box.querySelector('.set-left');
-    if (newL) newL.scrollTop = keep.l;
-    if (newC && samePage) { newC.scrollTop = keep.c; requestAnimationFrame(() => { if (newC.isConnected && Math.abs(newC.scrollTop - keep.c) > 2) newC.scrollTop = keep.c; }); }
+    const newL = h('div', { class: 'set-left' }, side);
+    const newC = h('div', { class: 'set-content' },
+      h('div', { class: 'set-page' }, h('h1', { class: 'set-title' }, cur[2]), subBar, ...(pages[tab]() || []).filter(Boolean)),
+      h('div', { class: 'set-close' }, h('button', { class: 'set-x', title: 'Fermer (Échap)', onclick: () => setClose() }, '✕'), h('small', null, 'ÉCHAP')));
+    // Rien n'a changé à l'écran (compte à rebours d'une mise à jour, stats, discussion… qui redessinent souvent) :
+    // on garde la page telle quelle. La redessiner faisait sauter le défilement pendant qu'on utilisait la molette.
+    // (on compare le dessin brut : l'interface V2 décore la page juste après, icônes comprises)
+    const raw = newL.innerHTML + '\u0000' + newC.innerHTML;
+    if (samePage && oldC && oldL && box.__raw === raw) return;
+    box.__raw = raw;
+    box.replaceChildren(newL, newC);
+    newL.scrollTop = keep.l;
+    if (samePage) newC.scrollTop = Math.min(keep.c, Math.max(0, newC.scrollHeight - newC.clientHeight));
   }
 
   // ----- Navigateur intégré : les liens (op.gg, YouTube, mid.gg, dpm.lol, LoLalytics…) s'ouvrent dans FIRE -----

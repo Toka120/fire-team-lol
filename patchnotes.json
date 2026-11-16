@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.145",
+   "date": "2026-11-16",
+   "titre": "Paramètres : plus de sauts",
+   "items": [
+    [
+     "fix",
+     "Paramètres : la page ne saute plus en bas et ne redescend plus toute seule quand tu remontes. Elle était redessinée chaque seconde (compte à rebours d’une mise à jour, stats, discussion…), ce qui ramenait le défilement en arrière : maintenant elle ne se redessine que quand quelque chose change vraiment."
+    ]
+   ]
+  },
+  {
    "v": "1.10.144",
    "date": "2026-11-16",
    "titre": "Boutique FIRE (gratuite) et nouveaux thèmes",
