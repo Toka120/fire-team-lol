@@ -115,4 +115,23 @@ function parseMatchup(html) {
   };
 }
 
-module.exports = { parseMatchup, build, skillOrder, choices, marked };
+// Page « Counters » d'un champion (une lane adverse) : pour chaque adversaire, le taux de victoire du champion contre lui,
+// les deux écarts (Δ1 : par rapport à l'adversaire moyen, Δ2 : après normalisation) et le nombre de parties.
+function parseCounters(html) {
+  const slugOf = {};
+  const re = /champx46\/([a-z0-9]+)\.webp"[^>]*?alt="([^"]+)"/g;
+  let m;
+  while ((m = re.exec(html))) if (!slugOf[m[2]]) slugOf[m[2]] = m[1];
+  const t = flat(html);
+  const rows = [];
+  const rr = /\|([^|]{2,30})\|([\d.]+)%\|VS\|Δ\|1\| ?(-?[\d.]+)\| • \|Δ\|2\| ?(-?[\d.]+)\|([\d.]+)%\|VS\|([\d,]+) Games\|/g;
+  const seen = new Set();
+  while ((m = rr.exec(t))) {
+    const name = m[1].trim();
+    if (seen.has(name)) continue; seen.add(name);
+    rows.push({ name, slug: slugOf[name] || name.toLowerCase().replace(/[^a-z0-9]/g, ''), wr: num(m[2]), d1: num(m[3]), d2: num(m[4]), avg: num(m[5]), games: num(m[6]) });
+  }
+  return { ok: rows.length > 0, rows, patch: (t.match(/on Patch ([\d.]+)/) || [])[1] || '' };
+}
+
+module.exports = { parseCounters, parseMatchup, build, skillOrder, choices, marked };

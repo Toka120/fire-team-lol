@@ -6740,6 +6740,104 @@
   const TL_ELOS = TL_PLUS.concat(TL_RANKS);
   const TL_REG = [['kr', 'Corée'], ['euw', 'Europe']];
   const tlPrefs = () => ({ region: 'kr', elo: 'emerald_plus', lane: 'top', off: false, ...load('fire.tl', {}) });
+  // ----- Synergies et counters d'un champion -----
+  const SCX = { data: {} };
+  // Rangs de dpm.lol (il n'a pas tous les regroupements de LoLalytics).
+  const DPM_T = { iron: 'iron', bronze: 'bronze', silver: 'silver', gold: 'gold', platinum: 'platinum', emerald: 'emerald', diamond: 'diamond', emerald_plus: 'emerald_plus', diamond_plus: 'diamond_plus', master: 'master_plus', grandmaster: 'master_plus', challenger: 'master_plus', master_plus: 'master_plus' };
+
+  const scPrefs = () => ({ champ: '', lane: '', mode: 'syn', role: '', all: false, ...load('fire.tl.sc', {}) });
+  const scSet = (patch) => { save('fire.tl.sc', { ...scPrefs(), ...patch }); renderTierList(); };
+  const scRerender = () => { if (S.section === 'draft' && S.drTab === 'tier') renderTierList(); };
+  // La lane principale d'un champion d'après la tier list (là où il est le plus joué).
+  function scMainLane(id, D) {
+    let best = null;
+    for (const reg of ['euw', 'kr']) for (const byElo of Object.values(((D && D.data) || {})[reg] || {})) for (const [ln, list] of Object.entries(byElo || {})) for (const r of list || []) if (r.id === id && (!best || (r.lane || 0) > best.p)) best = { ln, p: r.lane || 0 };
+    return best ? best.ln : 'bottom';
+  }
+  function scIdOf(slug, name) {
+    const L = (S.champList && S.champList.list) || [];
+    const n = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const c = L.find((x) => lolSlug(x.id) === slug || n(x.id) === slug) || L.find((x) => n(x.name) === n(name));
+    return c ? c.id : null;
+  }
+  function scCard(P, dt, D) {
+    const C = scPrefs();
+    const champs = ((S.champList && S.champList.list) || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+    const A = C.champ ? FC.champName(C.champ) : '';
+    const lane = C.lane || (C.champ ? scMainLane(C.champ, D) : 'bottom');
+    const laneName = (k) => (TL_LANES.find(([x]) => x === k) || [0, k])[1];
+    const roles = C.mode === 'ct' ? TL_LANES.map(([k]) => k) : TL_LANES.map(([k]) => k).filter((k) => k !== lane);
+    const role = roles.includes(C.role) ? C.role : C.mode === 'ct' ? lane : (lane === 'support' ? 'bottom' : lane === 'bottom' ? 'support' : 'jungle');
+    const eloName = ({ emerald_plus: 'Émeraude+', diamond_plus: 'Diamant+', master_plus: 'Maître+' })[dt] || (TL_RANKS.find(([k]) => k === dt) || [0, dt])[1];
+    const head = h('div', { class: 'sc-top' },
+      h('select', { class: 'inp sc-champ', 'aria-label': 'Champion', onchange: (e) => { e.target.blur(); scSet({ champ: e.target.value, lane: '', role: '' }); } },
+        h('option', { value: '' }, '— Choisis un champion —'),
+        champs.map((c) => h('option', { value: c.id, selected: C.champ === c.id ? true : null }, c.name))),
+      C.champ ? h('div', { class: 'sal-chips sc-lane', title: 'Le rôle de ' + A }, h('span', { class: 'muted small' }, A + ' en'),
+        TL_LANES.map(([k, l]) => h('button', { class: 'chip' + (lane === k ? ' on' : ''), 'aria-pressed': String(lane === k), onclick: () => scSet({ lane: k, role: '' }) }, l))) : null);
+    if (!C.champ) {
+      return h('div', { class: 'card tl-syn sc' }, h('h3', null, '🤝 Synergies et counters'), head,
+        h('p', { class: 'muted small' }, 'Choisis un champion : FIRE affiche les meilleurs alliés de chaque rôle avec lui (synergies) et les champions qui le battent le plus (counters).'));
+    }
+    const modes = h('div', { class: 'sal-chips sc-mode' },
+      h('button', { class: 'chip' + (C.mode !== 'ct' ? ' on' : ''), 'aria-pressed': String(C.mode !== 'ct'), onclick: () => scSet({ mode: 'syn', role: '' }) }, '🤝 Synergies'),
+      h('button', { class: 'chip' + (C.mode === 'ct' ? ' on' : ''), 'aria-pressed': String(C.mode === 'ct'), onclick: () => scSet({ mode: 'ct', role: '' }) }, '⚔️ Counters'));
+    const roleChips = h('div', { class: 'sal-chips sc-role' }, h('span', { class: 'muted small' }, C.mode === 'ct' ? 'Adversaires' : 'Alliés'),
+      roles.map((k) => h('button', { class: 'chip' + (role === k ? ' on' : ''), 'aria-pressed': String(role === k), onclick: () => scSet({ role: k }) }, laneName(k))));
+    const cardEl = (id, big, bigCls, line1, line2, title) => h('div', { class: 'sc-c', title },
+      champIcon(id, 52), h('b', { class: 'sc-n' }, FC.champName(id) || id), h('span', { class: 'sc-v ' + bigCls }, big),
+      line1 ? h('small', { class: 'sc-l1' }, line1) : null, h('small', { class: 'muted' }, line2));
+    const pct = (v, d) => `${v > 0 ? '+' : ''}${fr(v, d == null ? 1 : d)} %`;
+    const nb = (n) => (n || 0).toLocaleString('fr-FR') + ' parties';
+    const grid = (title, list, more) => h('div', { class: 'sc-sec' }, h('h4', null, title), h('div', { class: 'sc-grid' }, list), more || null);
+    const showAll = !!C.all;
+    const cut = (l, n) => (showAll ? l : l.slice(0, n));
+    const moreBtn = (l, n) => (l.length > n ? h('button', { class: 'linkbtn small sc-more', onclick: () => scSet({ all: !showAll }) }, showAll ? 'Afficher moins' : `Tout afficher (${l.length})`) : null);
+    let body;
+    if (C.mode !== 'ct') {
+      const key = 'syn|' + C.champ + '|' + lane + '|' + dt;
+      const R = SCX.data[key];
+      if (!R && window.fire.dpmChamp) {
+        SCX.data[key] = { loading: true };
+        window.fire.dpmChamp(C.champ, lane, dt).then((r) => { SCX.data[key] = r || { ok: false }; }).catch((e) => { SCX.data[key] = { ok: false, error: String(e) }; }).finally(scRerender);
+      }
+      const X = SCX.data[key] || {};
+      if (X.loading) body = h('p', { class: 'muted' }, `Lecture de la page de ${A} sur dpm.lol… (une dizaine de secondes la première fois)`);
+      else if (!X.ok) body = h('p', { class: 'muted small' }, 'Synergies indisponibles pour l’instant' + (X.error ? ` (${X.error})` : '') + '. ', h('button', { class: 'linkbtn small', onclick: () => { delete SCX.data[key]; renderTierList(); } }, 'Réessayer'));
+      else {
+        const l = ((X.roles || {})[role] || []).filter((x) => x.c !== C.champ);
+        const good = l.filter((x) => x.syn > 0).sort((a, b) => b.syn - a.syn);
+        const bad = l.filter((x) => x.syn <= 0).sort((a, b) => a.syn - b.syn);
+        body = !l.length ? h('p', { class: 'muted small' }, `dpm.lol n’a pas de synergie ${laneName(role)} pour ${A} en ${laneName(lane)} à ce rang.`)
+          : h('div', null,
+            good.length ? grid(`Les meilleurs ${laneName(role)} avec ${A}`, cut(good, 12).map((x) => cardEl(x.c, pct(x.syn), 'good', 'de synergie', nb(x.games), `${FC.champName(x.c)} + ${A} : ${pct(x.syn)} de victoires en plus ensemble, sur ${nb(x.games)}`)), moreBtn(good, 12)) : null,
+            bad.length ? grid(`À éviter avec ${A}`, cut(bad, 6).map((x) => cardEl(x.c, pct(x.syn), 'bad', 'de synergie', nb(x.games), `${FC.champName(x.c)} + ${A} : ${pct(x.syn)} ensemble, sur ${nb(x.games)}`)), moreBtn(bad, 6)) : null);
+        body.append(h('p', { class: 'muted small' }, `La synergie : combien de victoires le duo gagne (ou perd) ensemble par rapport à ce qu’ils font d’habitude. dpm.lol ne publie pas le taux de victoire du duo sur la page du champion, seulement cet écart et le nombre de parties. Source : dpm.lol · ${eloName}${X.patch ? ' · patch ' + X.patch : ''}${P.elo && !DPM_T[P.elo] ? ' (dpm.lol n’a pas ce regroupement d’elo : Émeraude+ affiché)' : ''}.`));
+      }
+    } else {
+      const key = 'ct|' + C.champ + '|' + lane + '|' + role + '|' + P.elo;
+      if (!SCX.data[key] && window.fire.counters) {
+        SCX.data[key] = { loading: true };
+        window.fire.counters(C.champ, lane, role, P.elo).then((r) => { SCX.data[key] = r || { ok: false }; }).catch((e) => { SCX.data[key] = { ok: false, error: String(e) }; }).finally(scRerender);
+      }
+      const X = SCX.data[key] || {};
+      if (X.loading) body = h('p', { class: 'muted' }, `Chargement des counters de ${A}…`);
+      else if (!X.ok) body = h('p', { class: 'muted small' }, 'Counters indisponibles pour l’instant' + (X.error ? ` (${X.error})` : '') + '. ', h('button', { class: 'linkbtn small', onclick: () => { delete SCX.data[key]; renderTierList(); } }, 'Réessayer'));
+      else {
+        const l = X.rows.map((r) => ({ ...r, id: scIdOf(r.slug, r.name) })).filter((r) => r.id && r.id !== C.champ);
+        const counters = l.slice().sort((a, b) => a.wr - b.wr);
+        const preys = l.slice().sort((a, b) => b.wr - a.wr);
+        body = !l.length ? h('p', { class: 'muted small' }, `Pas assez de parties ${laneName(role)} contre ${A} à ce rang.`)
+          : h('div', null,
+            grid(`Les meilleurs ${laneName(role)} contre ${A}`, cut(counters, 12).map((x) => cardEl(x.id, `${fr(100 - x.wr, 1)} %`, 'bad', `de victoires contre ${A}`, `${x.d1 < 0 ? '+' : ''}${fr(-x.d1, 1)} vs d’habitude · ${nb(x.games)}`,
+              `${FC.champName(x.id)} gagne ${fr(100 - x.wr, 1)} % de ses parties contre ${A} (${A} : ${fr(x.wr, 1)} %), sur ${nb(x.games)}`)), moreBtn(counters, 12)),
+            grid(`${A} est fort contre`, cut(preys, 6).map((x) => cardEl(x.id, `${fr(x.wr, 1)} %`, 'good', `de victoires pour ${A}`, `${x.d1 > 0 ? '+' : ''}${fr(x.d1, 1)} vs d’habitude · ${nb(x.games)}`,
+              `${A} gagne ${fr(x.wr, 1)} % de ses parties contre ${FC.champName(x.id)}, sur ${nb(x.games)}`)), moreBtn(preys, 6)),
+            h('p', { class: 'muted small' }, `Les counters : les champions ${laneName(role)} qui battent le plus ${A} quand il joue ${laneName(lane)}, avec leur taux de victoire contre lui et l’écart par rapport à d’habitude (au moins 100 parties). Source : LoLalytics · ${(TL_ELOS.find(([k]) => k === P.elo) || [0, 'Émeraude+'])[1]}${X.patch ? ' · patch ' + X.patch : ''}.`));
+      }
+    }
+    return h('div', { class: 'card tl-syn sc' }, h('h3', null, champIcon(C.champ, 28), ` Synergies et counters de ${A}`), head, h('div', { class: 'sc-bar' }, modes, roleChips), body);
+  }
   async function renderTierList() {
     const view = $('view');
     if (!TL.data && !TL.loading) {
@@ -6803,40 +6901,14 @@
             h('span', { class: 'muted' }, r.games.toLocaleString('fr-FR')))));
       }
     }
-    // Synergies de duo : le tableau « Synergy » de dpm.lol (rang choisi en haut), lu par FIRE à la demande.
-    const DUO_OPTS = [['BOTTOM_UTILITY', 'ADC + Support'], ['JUNGLE_MIDDLE', 'Jungle + Mid'], ['TOP_JUNGLE', 'Top + Jungle'], ['JUNGLE_UTILITY', 'Jungle + Support'], ['MIDDLE_UTILITY', 'Mid + Support']];
-    const DPM_T = { iron: 'iron', bronze: 'bronze', silver: 'silver', gold: 'gold', platinum: 'platinum', emerald: 'emerald', diamond: 'diamond', emerald_plus: 'emerald_plus', diamond_plus: 'diamond_plus', master: 'master_plus', grandmaster: 'master_plus', challenger: 'master_plus', master_plus: 'master_plus' };
+    // Synergies et counters d'un champion, comme sur sa page dpm.lol : je choisis un champion et son rôle,
+    // puis le rôle de l'allié (synergies, dpm.lol) ou de l'adversaire (counters, LoLalytics) : seuls les champions de ce rôle s'affichent.
     const dt = DPM_T[P.elo] || 'emerald_plus';
-    const duo = TL.duo || 'BOTTOM_UTILITY';
-    const dk = dt + '|' + duo;
-    TL.duoData = TL.duoData || {};
-    if (window.fire.dpmDuo && !TL.duoData[dk]) {
-      TL.duoData[dk] = { loading: true };
-      window.fire.dpmDuo(dt, duo).then((r) => { TL.duoData[dk] = r || { ok: false }; }).catch((e) => { TL.duoData[dk] = { ok: false, error: String(e) }; })
-        .finally(() => { if (S.section === 'draft' && !typing()) render(); });
-    }
-    const DD = TL.duoData[dk] || {};
-    const synRows = DD.ok ? DD.rows.filter((r) => !TL.syn || r.a === TL.syn || r.b === TL.syn) : [];
-    const syn = h('div', { class: 'card tl-syn' }, h('h3', null, '🤝 Synergies de duo'),
-      h('div', { class: 'row tl-syn-f' },
-        h('div', { class: 'sal-chips' }, DUO_OPTS.map(([k, l]) => h('button', { class: 'chip' + (duo === k ? ' on' : ''), 'aria-pressed': String(duo === k), onclick: () => { TL.duo = k; render(); } }, l))),
-        h('select', { class: 'inp', onchange: (e) => { TL.syn = e.target.value; render(); } }, h('option', { value: '' }, 'Tous les champions'),
-          (S.champList && S.champList.list ? S.champList.list : []).map((c) => h('option', { value: c.id, selected: TL.syn === c.id ? true : null }, c.name)))),
-      DD.loading ? h('p', { class: 'muted' }, 'Lecture du tableau de dpm.lol…')
-        : !DD.ok ? h('p', { class: 'muted small' }, 'Synergies indisponibles pour l’instant' + (DD.error ? ` (${DD.error})` : '') + '.', ' ', h('button', { class: 'linkbtn small', onclick: () => { delete TL.duoData[dk]; render(); } }, 'Réessayer'))
-          : !synRows.length ? h('p', { class: 'muted small' }, 'Ce champion n’est pas dans les meilleures synergies de ce duo à ce rang.')
-            : h('div', { class: 'tl-syn-list' },
-              h('div', { class: 'tl-syn-r head' }, h('span', null, '#'), h('span', null, 'Duo'), h('span', null, 'Synergie'), h('span', null, 'Victoires'), h('span', null, 'Parties')),
-              synRows.map((r, i2) => h('div', { class: 'tl-syn-r' }, h('span', { class: 'muted' }, String(i2 + 1)),
-                h('span', { class: 'tl-syn-c' }, champIcon(r.a, 30), champIcon(r.b, 30), h('b', null, `${FC.champName(r.a)} & ${FC.champName(r.b)}`)),
-                h('span', { class: r.syn >= 0 ? 'good' : 'bad' }, h('b', null, `${r.syn > 0 ? '+' : ''}${fr(r.syn, 2)} %`)),
-                h('span', { class: r.wr >= 51 ? 'good' : r.wr < 49 ? 'bad' : '' }, `${fr(r.wr, 1)} %`),
-                h('span', { class: 'muted' }, (r.games || 0).toLocaleString('fr-FR'))))),
-      h('p', { class: 'muted small' }, `La synergie : ce que le duo gagne de plus ensemble par rapport à leurs taux de victoire habituels. Source : dpm.lol · ${({ emerald_plus: 'Émeraude+', diamond_plus: 'Diamant+', master_plus: 'Maître+' })[dt] || (TL_RANKS.find(([k]) => k === dt) || [0, dt])[1]}${DD.patch ? ' · patch ' + DD.patch : ''}${P.elo && !DPM_T[P.elo] ? ' (dpm.lol n’a pas ce regroupement d’elo : Émeraude+ affiché)' : ''}.`));
-    const pt = (D && D.patches) || {};
+    const syn = scCard(P, dt, D);
+        const pt = (D && D.patches) || {};
     const ptTxt = pt.kr && pt.euw && pt.kr !== pt.euw ? `patch ${pt.kr} en Corée, ${pt.euw} en Europe` : `patch ${(pt[P.region]) || (D && D.patch) || '?'}`;
     const foot = D && D.maj ? h('p', { class: 'muted small' }, `Données : ${D.source || 'LoLalytics'} · ${ptTxt} · relevées le ${dateFr(D.maj)}, mises à jour chaque jour.`) : null;
-    view.replaceChildren(...[hero, draftTabs(), filters, trend, body, syn, foot].filter(Boolean));
+    view.replaceChildren(...[hero, draftTabs(), filters, syn, trend, body, foot].filter(Boolean));
   }
 
   // ----- Puzzles de draft : la compo adverse est connue, 3 alliés aussi ; choisis le meilleur duo pour les 2 rôles restants. -----

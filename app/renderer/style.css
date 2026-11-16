@@ -3412,3 +3412,22 @@ html[data-calm] .jeu-ombre.torch .om-light{animation:none}
 #fire-pet.big{width:92px;height:96px}
 #fire-pet.big .pet-home{width:92px;height:96px}
 #fire-pet.big .pet-shadow{left:22px;right:22px}
+/* Synergies et counters d'un champion (Tier list) */
+.sc h3{display:flex;align-items:center;gap:8px}
+.sc-top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:6px 0 10px}
+.sc-top .sc-champ{width:auto;min-width:240px;max-width:280px}
+.sc-bar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:12px}
+.sc .sal-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sc .sal-chips>.muted{margin-right:4px}
+.sc-sec{margin:6px 0 14px}
+.sc-sec h4{margin:0 0 8px;font-size:13px;letter-spacing:.02em}
+.sc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.sc-c{display:flex;flex-direction:column;align-items:center;text-align:center;gap:3px;padding:10px 6px 8px;border-radius:12px;background:rgb(255 255 255 / 4%);border:1px solid var(--line)}
+.sc-c .cico,.sc-c .cico-l{border-radius:10px}
+.sc-n{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.sc-v{font-size:18px;font-weight:800;line-height:1.1}
+.sc-v.good{color:var(--good,#3ddc84)}
+.sc-v.bad{color:var(--bad,#ff6b6b)}
+.sc-l1{font-size:10.5px;opacity:.8}
+.sc-c small{display:block;font-size:10.5px;line-height:1.25}
+.sc-more{margin-top:6px}

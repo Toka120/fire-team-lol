@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.170",
+   "date": "2026-11-16",
+   "titre": "Synergies et counters d’un champion, comme sur dpm.lol",
+   "items": [
+    [
+     "new",
+     "Draft › Tier list : la section « Synergies et counters » est remontée juste sous les filtres. Choisis un champion et son rôle (par exemple Ashe en ADC), puis le rôle de l’allié : seuls les champions de ce rôle s’affichent, en cartes comme sur dpm.lol, avec le % de synergie et le nombre de parties. « À éviter » montre les duos qui perdent ensemble."
+    ],
+    [
+     "new",
+     "Counters : les champions qui battent le plus celui que tu as choisi, rôle adverse par rôle adverse, avec leur taux de victoire contre lui, l’écart par rapport à d’habitude et le nombre de parties (LoLalytics, au moins 100 parties). « … est fort contre » montre aussi ses meilleurs matchups."
+    ],
+    [
+     "fix",
+     "Fini le « Ashe & Seraphine » qui restait affiché quel que soit le duo choisi : les synergies sont maintenant lues sur la page du champion dans dpm.lol, rôle par rôle. Elles suivent le rang choisi en haut de la tier list."
+    ]
+   ]
+  },
+  {
    "v": "1.10.169",
    "date": "2026-11-16",
    "titre": "Nouveau compagnon : Briar en chibi",
