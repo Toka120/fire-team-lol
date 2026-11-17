@@ -21,6 +21,8 @@ const DEFAULT_APPS = {
   listen: { name: 'FIRE Listen', exe: 'FIRE Listen.exe', url: 'https://github.com/Toka120/fire-team-lol/releases/download/apps/FIRE-Listen.exe', sha256: '', version: '' },
 };
 
+// Version Microsoft Store : c'est le Store qui met le launcher à jour, et le démarrage avec Windows se règle dans Windows.
+const STORE = !!process.windowsStore;
 let win = null;
 const send = (ch, m) => { if (win && !win.isDestroyed()) win.webContents.send(ch, m); };
 const readJson = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return d; } };
@@ -42,7 +44,7 @@ function setPrefs(p) {
   if (p && typeof p.autostart === 'boolean') n.autostart = p.autostart;
   if (p && ['team', 'kiting', 'listen'].includes(p.last)) n.last = p.last;
   writeJson(prefsPath(), n);
-  if (n.autostart !== cur.autostart && app.isPackaged) { try { app.setLoginItemSettings({ openAtLogin: n.autostart, args: ['--minimized'] }); } catch (e) { /* */ } }
+  if (n.autostart !== cur.autostart && app.isPackaged && !STORE) { try { app.setLoginItemSettings({ openAtLogin: n.autostart, args: ['--minimized'] }); } catch (e) { /* */ } }
   return n;
 }
 
@@ -229,7 +231,7 @@ ipcMain.handle('apps:uninstall', async (e, id) => {
   try { fs.rmSync(appDir(id), { recursive: true, force: true }); return { ok: true }; } catch (err) { return { ok: false, error: String(err.message || err) }; }
 });
 ipcMain.handle('data:patchnotes', async () => { const p = await getJson('patchnotes.json'); return ((p && p.versions) || []).slice(0, 12); });
-ipcMain.handle('prefs:get', () => ({ ...prefs(), version: app.getVersion() }));
+ipcMain.handle('prefs:get', () => ({ ...prefs(), version: app.getVersion(), store: STORE }));
 ipcMain.handle('prefs:set', (e, p) => setPrefs(p || {}));
 ipcMain.handle('open:url', (e, u) => { if (/^https:\/\//.test(String(u))) shell.openExternal(String(u)); });
 ipcMain.handle('win:min', () => win && win.minimize());
@@ -239,7 +241,7 @@ ipcMain.handle('self:install', () => { if (selfReady && !busy.size) autoUpdater.
 
 // ---------- Mise à jour du launcher lui-même (canal « launcher » de la release « launcher ») ----------
 function selfUpdate() {
-  if (!autoUpdater || !app.isPackaged) return;
+  if (!autoUpdater || !app.isPackaged || STORE) return;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.on('update-available', (i) => send('self', { state: 'progress', version: i.version, pct: 0 }));

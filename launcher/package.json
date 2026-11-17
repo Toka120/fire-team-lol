@@ -1,7 +1,7 @@
 {
   "name": "fire-launcher",
   "productName": "FIRE Launcher",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "FIRE Launcher : installe, met à jour et lance FIRE Team, FIRE Kiting et FIRE Listen",
   "main": "main.js",
   "author": "Toka120",
@@ -9,7 +9,8 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win nsis --publish never"
+    "dist": "electron-builder --win nsis --publish never",
+    "store": "electron-builder --win appx --publish never"
   },
   "devDependencies": {
     "electron": "45.3.0",
@@ -20,8 +21,21 @@
   },
   "build": {
     "appId": "lol.fire.launcher",
-    "files": ["main.js", "preload.js", "index.html", "launcher.css", "launcher.js", "package.json", "assets/**/*"],
-    "win": { "icon": "assets/fire.ico", "target": ["nsis"] },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "launcher.css",
+      "launcher.js",
+      "package.json",
+      "assets/**/*"
+    ],
+    "win": {
+      "icon": "assets/fire.ico",
+      "target": [
+        "nsis"
+      ]
+    },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
@@ -34,7 +48,26 @@
       "include": "build/installer.nsh"
     },
     "publish": [
-      { "provider": "generic", "url": "https://github.com/Toka120/fire-team-lol/releases/download/launcher", "channel": "launcher" }
-    ]
+      {
+        "provider": "generic",
+        "url": "https://github.com/Toka120/fire-team-lol/releases/download/launcher",
+        "channel": "launcher"
+      }
+    ],
+    "appx": {
+      "applicationId": "FIRELoL",
+      "displayName": "FIRE Launcher",
+      "identityName": "Toks42o.FIRELoL",
+      "publisher": "CN=B8EFAA3A-8B5A-4888-81D9-772E2A6DFB2C",
+      "publisherDisplayName": "Toks42o",
+      "languages": [
+        "fr-FR"
+      ],
+      "backgroundColor": "#0f0d0c",
+      "showNameOnTiles": true,
+      "artifactName": "FIRE-Launcher-Store.appx",
+      "minVersion": "10.0.19041.0",
+      "maxVersionTested": "10.0.26100.0"
+    }
   }
 }

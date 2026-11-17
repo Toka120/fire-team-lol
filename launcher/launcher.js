@@ -227,9 +227,9 @@
     modal(h('h2', null, 'Réglages du launcher'),
       h('div', { class: 'set-row' }, h('div', null, h('b', null, 'Quand une app se lance'), h('p', null, 'Ce que fait le launcher une fois l’app ouverte.')),
         seg('onPlay', [['min', 'Se réduire'], ['stay', 'Rester ouvert'], ['close', 'Se fermer']])),
-      h('div', { class: 'set-row' }, h('div', null, h('b', null, 'Démarrer avec Windows'), h('p', null, 'Le launcher s’ouvre réduit au démarrage du PC et prépare les mises à jour.')),
+      PREFS.store ? null : h('div', { class: 'set-row' }, h('div', null, h('b', null, 'Démarrer avec Windows'), h('p', null, 'Le launcher s’ouvre réduit au démarrage du PC et prépare les mises à jour.')),
         h('button', { class: 'sw' + (PREFS.autostart ? ' on' : ''), 'aria-pressed': String(!!PREFS.autostart), onclick: async () => { PREFS = { ...PREFS, ...(await fl.prefs.set({ autostart: !PREFS.autostart })) }; settingsModal(); } })),
-      h('div', { class: 'set-row' }, h('div', null, h('b', null, 'FIRE Launcher'), h('p', null, `Version ${PREFS.version || '?'} · se met à jour tout seul.`)),
+      h('div', { class: 'set-row' }, h('div', null, h('b', null, 'FIRE Launcher'), h('p', null, `Version ${PREFS.version || '?'} · ` + (PREFS.store ? 'mis à jour par le Microsoft Store.' : 'se met à jour tout seul.'))),
         h('button', { class: 'gbtn', onclick: () => fl.open('https://github.com/Toka120/fire-team-lol/releases/download/launcher/FIRE-Launcher-Setup.exe') }, 'Lien de téléchargement')));
   }
   function toast(title, text, err, btn) {

@@ -48,3 +48,31 @@ jobs:
             launcher/dist/FIRE-Launcher-Setup.exe
             launcher/dist/FIRE-Launcher-Setup.exe.blockmap
             launcher/dist/launcher.yml
+
+  # Paquet Microsoft Store : FIRE Launcher remplace FIRE LoL sur le Store (même identité de produit).
+  # Le Store le signe et gère ses mises à jour. Les 3 valeurs viennent de Partner Center › Identité du produit.
+  store:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: launcher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: node build/store-manifest.js
+      - name: Paquet Microsoft Store
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: >
+          npx electron-builder --win appx --publish never
+          -c.appx.identityName="${{ vars.STORE_IDENTITY_NAME || 'Toks42o.FIRELoL' }}"
+          -c.appx.publisher="${{ vars.STORE_PUBLISHER || 'CN=B8EFAA3A-8B5A-4888-81D9-772E2A6DFB2C' }}"
+          -c.appx.publisherDisplayName="${{ vars.STORE_PUBLISHER_NAME || 'Toks42o' }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FIRE-Launcher-Store
+          path: launcher/dist/*.appx
