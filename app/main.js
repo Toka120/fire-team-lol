@@ -11,6 +11,9 @@ function cleanUA() {
   } catch (e) { /* */ }
 }
 cleanUA();
+// Anti capture : les fenêtres de FIRE apparaissent noires dans les captures d'écran, les enregistrements
+// et les partages d'écran (Discord, OBS, outil Capture de Windows…). Demandé par l'équipe pour garder ses infos privées.
+app.on('browser-window-created', (e, w) => { try { w.setContentProtection(true); } catch (err) { /* */ } });
 app.whenReady().then(() => {
   cleanUA();
   // Les sessions déjà créées gardent leur signature : on la nettoie aussi.

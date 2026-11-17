@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.192",
+   "date": "2026-11-17",
+   "titre": "Anti capture d’écran (activé)",
+   "items": [
+    [
+     "fix",
+     "L’anti capture annoncé dans la 1.10.191 est maintenant vraiment actif : la fenêtre de FIRE apparaît noire sur les captures d’écran, les enregistrements et les partages d’écran."
+    ]
+   ]
+  },
+  {
    "v": "1.10.191",
    "date": "2026-11-17",
    "titre": "Anti capture d’écran",
