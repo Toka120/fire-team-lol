@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.196",
+   "date": "2026-11-17",
+   "titre": "Admin : tous les membres dans les listes",
+   "items": [
+    [
+     "fix",
+     "Admin › Interrupteurs (capture autorisée) et Admin › Équipe (bannir) : les listes montrent maintenant tout le monde, les titulaires, les remplaçants, les membres acceptés et les coachs."
+    ]
+   ]
+  },
+  {
    "v": "1.10.195",
    "date": "2026-11-17",
    "titre": "Admin : ajouter dans la Boutique",

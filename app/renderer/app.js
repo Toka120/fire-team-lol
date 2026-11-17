@@ -11140,6 +11140,12 @@
       .filter(([id]) => kind !== 'pet' || PETS[id]);
     return (SHOP[kind] || []).concat(extra);
   }
+  // Tout le monde : titulaires, remplaçants, membres acceptés, coachs (et le chef), sans doublon.
+  function admRoster() {
+    const m = new Map();
+    for (const p of [...(S.players || []), ...((S.cfg && S.cfg.joueurs) || []), ...(S.coachs || []), ...((typeof NM !== 'undefined' && NM.list) || []).filter((x) => x.statut === 'ok')]) if (p && p.slug && !m.has(p.slug)) m.set(p.slug, p);
+    return [...m.values()];
+  }
   // ----- Bannissements (publiés par le créateur) -----
   // Le membre banni : son FIRE se verrouille (même s'il change de pseudo sur ce PC), il quitte le vocal.
   // Chez les autres : il disparaît des listes de joueurs et ses messages ne s'affichent plus.
@@ -11248,7 +11254,7 @@
         field('Thème par défaut', 'Pour ceux qui n’ont pas encore choisi le leur (chacun garde son choix).', h('select', { class: 'inp', onchange: (e) => set({ theme: e.target.value }) }, [h('option', { value: '' }, '— celui de l’app (FIRE) —')].concat(THEMES.map(([id, l]) => h('option', { value: id, selected: D.theme === id ? true : null }, l))))));
     } else if (ADM.tab === 'switch') {
       const sw = (on, title, help, fn) => h('label', { class: 'vs-sw adm-sw' }, h('span', null, h('b', null, title), h('small', null, help)), h('input', { type: 'checkbox', class: 'vs-tog', checked: on ? true : null, onchange: (e) => fn(e.target.checked) }));
-      const members = (S.players || []).filter((p) => p.slug);
+      const members = admRoster();
       const ok = new Set(D.captureOk || []);
       body = h('div', { class: 'adm-sec' },
         sw(D.capture !== 'off', '🛡️ Anti capture d’écran', 'FIRE apparaît noir sur les captures, enregistrements et partages d’écran (PC). Décoche pour l’autoriser à tout le monde.', (v) => set({ capture: v ? '' : 'off' })),
@@ -11325,7 +11331,7 @@
         h('div', { class: 'card' }, h('b', null, '📣 Annonce à toute l’équipe'), h('p', { class: 'muted small' }, 'Un message qui s’affiche chez tout le monde jusqu’à ce qu’on clique « Accepter ».'), h('button', { class: 'btn-ghost', onclick: () => go('annonces') }, 'Écrire une annonce →')));
     } else if (ADM.tab === 'team') {
       const B = D.bans || (D.bans = []);
-      const everyone = [...new Map([...(S.players || []), ...((S.cfg && S.cfg.joueurs) || [])].filter((p) => p.slug).map((p) => [p.slug, p])).values()];
+      const everyone = admRoster();
       const banRow = (p) => { const b = B.find((x) => x.slug === p.slug);
         return h('div', { class: 'adm-it' + (b ? ' off' : '') }, avatarEl(p.slug, 'adm-av'), h('b', { class: 'adm-ptitle' }, vocalName(p.slug)), b ? h('small', { class: 'bad' }, '🚫 banni' + (b.why ? ' · ' + b.why : '')) : null,
           b ? h('button', { class: 'btn-ghost small-btn', onclick: () => set({ bans: B.filter((x) => x.slug !== p.slug) }) }, '↺ Débannir')
