@@ -3516,7 +3516,7 @@
     const v = accVisits(); v[sec] = (v[sec] || 0) + 1; save('fire.visits', v);
   }
   // Accueil personnalisé (sur ce PC) : blocs cachés et rubriques épinglées, dans l'ordre choisi.
-  const ACC_W = [['plan', '📅', 'Planning du jour'], ['obj', '🎯', 'Objectif de la semaine'], ['rdv', '⏰', 'Prochain rendez-vous'], ['chat', '💬', 'Discussion'], ['coach', '📣', 'Parole du coach'], ['puzzle', '🧩', 'Puzzle du jour'], ['clips', '🎬', 'Clips de l’équipe'], ['boutique', '🛍️', 'Boutique']];
+  const ACC_W = [['plan', '📅', 'Planning du jour'], ['obj', '🎯', 'Objectif de la semaine'], ['rdv', '⏰', 'Prochain rendez-vous'], ['chat', '💬', 'Discussion'], ['coach', '📣', 'Parole du coach'], ['puzzle', '🧩', 'Puzzle du jour'], ['clips', '🎬', 'Clips de l’équipe'], ['boutique', '🛍️', 'Boutique'], ['vocal', '🎙️', 'Salon vocal'], ['live', '🔴', 'Coéquipiers en game']];
   const accPrefs = () => ({ pins: null, hide: [], ...load('fire.acc', {}) });
   const accSave = (patch) => { save('fire.acc', { ...accPrefs(), ...patch }); renderAccueil(); };
   const ACCE = { edit: false };
@@ -3524,7 +3524,7 @@
     const A = accPrefs(); let pins = A.pins ? A.pins.slice() : null;
     if (!pins) { pins = []; }
     pins = pins.filter((x) => x !== id); if (on) pins.push(id);
-    accSave({ pins: pins.slice(0, 16) });
+    accSave({ pins });
   }
   function renderAccueil() {
     const view = $('view');
@@ -3541,11 +3541,13 @@
     // Objectif de la semaine
     const d = me ? S.data[me.slug] : null;
     const o = me && d ? objFor(me, d) : null;
+    if (me && !(o && o.target) && !hid.has('obj')) ws.push(tile('stats', '🎯', 'Objectif de la semaine', h('span', { class: 'muted' }, 'Pas d’objectif cette semaine'), h('small', null, 'Ton coach peut t’en fixer un'), '', () => { S.view = 'player'; S.player = me.slug; go('stats'); }));
     if (o && o.target && !hid.has('obj')) ws.push(tile('stats', '🎯', 'Objectif de la semaine', h('span', null, h('b', { class: 'acc-big' }, `${o.done}/${o.target}`), ' games'),
       h('div', null, h('div', { class: 'acc-bar' }, h('i', { style: `width:${o.pct || 0}%` })), h('small', null, o.reste ? `Encore ${o.reste} game${o.reste > 1 ? 's' : ''} sur ton pool d’ici dimanche` : '✅ Objectif atteint, bravo !')),
       o.reste ? '' : 'done', () => { S.view = 'player'; S.player = me.slug; go('stats'); }));
     // Prochain rendez-vous
     const nx = rdvList().find((x) => x.end > Date.now() && x.at - Date.now() < 7 * 86400000);
+    if (!nx && !hid.has('rdv')) ws.push(tile('planning', '⏰', 'Prochain rendez-vous', h('span', { class: 'muted' }, 'Rien de prévu cette semaine'), h('small', null, 'Voir le planning')));
     if (nx && !hid.has('rdv')) ws.push(tile('planning', nx.ico, 'Prochain rendez-vous', h('b', null, `${nx.short} ${rdvDay(nx)}${rdvH(new Date(nx.at).getHours())}`), h('small', null, (nx.at <= Date.now() ? 'En cours · ' : rdvIn(nx.at - Date.now()) + ' · ') + nx.what), nx.at - Date.now() < 3600000 ? 'hot' : '', () => rdvOpen(nx)));
     // Discussion
     const meV = vocalMe();
@@ -3557,13 +3559,17 @@
     // Parole du coach
     const nf = unseen();
     const lastF = (S.fiches || []).slice().sort((a, b) => (b.date || b.at || 0) > (a.date || a.at || 0) ? 1 : -1)[0];
-    if (by.coach && (nf.length || lastF) && !hid.has('coach')) ws.push(tile('coach', '📣', 'Parole du coach', nf.length ? h('b', null, `${nf.length} nouveauté${nf.length > 1 ? 's' : ''}`) : h('span', { class: 'muted' }, 'Rien de nouveau'),
+    if (by.coach && !hid.has('coach')) ws.push(tile('coach', '📣', 'Parole du coach', nf.length ? h('b', null, `${nf.length} nouveauté${nf.length > 1 ? 's' : ''}`) : h('span', { class: 'muted' }, 'Rien de nouveau'),
       (nf[0] || lastF) ? h('small', null, '« ' + String((nf[0] || lastF).titre || '').slice(0, 70) + ' »') : null, nf.length ? 'hot' : ''));
     // Puzzle du jour
     if (by.puzzle && window.FIRE_PUZZLES && !hid.has('puzzle')) { const done = !!(gpSave().days || {})[gpToday()]; ws.push(tile('puzzle', '🧩', 'Puzzle du jour', done ? h('span', null, '✅ Fait aujourd’hui') : h('b', null, 'Une situation t’attend'), done ? h('small', null, 'Reviens demain pour le suivant') : h('small', null, '1 minute pour t’entraîner à lire la partie'), done ? 'done' : 'hot')); }
     // Clips de l'équipe
     const nc = cfUnseen();
-    if (by.clips && nc && !hid.has('clips')) ws.push(tile('clips', '🎬', 'Clips de l’équipe', h('b', null, `${nc} nouveau${nc > 1 ? 'x' : ''} clip${nc > 1 ? 's' : ''}`), h('small', null, 'Like et commente ceux de tes coéquipiers'), 'hot', () => { CLB.tab = 'team'; go('clips'); }));
+    if (by.clips && !hid.has('clips')) ws.push(tile('clips', '🎬', 'Clips de l’équipe', nc ? h('b', null, `${nc} nouveau${nc > 1 ? 'x' : ''} clip${nc > 1 ? 's' : ''}`) : h('span', { class: 'muted' }, 'Pas de nouveau clip'), h('small', null, nc ? 'Like et commente ceux de tes coéquipiers' : 'Revois ceux de l’équipe'), nc ? 'hot' : '', () => { CLB.tab = 'team'; go('clips'); }));
+    // Salon vocal : qui est dedans
+    if (by.vocal && !hid.has('vocal')) { const vp = vocalPeople(); ws.push(tile('vocal', '🎙️', 'Salon vocal', vp.length ? h('b', null, `${vp.length} en vocal`) : h('span', { class: 'muted' }, 'Personne en vocal'), vp.length ? h('small', null, vp.slice(0, 4).map(vocalName).join(', ') + (vp.length > 4 ? '…' : '')) : h('small', null, 'Lance le salon, tes coéquipiers seront prévenus'), vp.length ? 'hot' : '')); }
+    // Coéquipiers en game
+    if (!hid.has('live')) { const la = Object.keys(liveAll()); ws.push(tile('stats', '🔴', 'Coéquipiers en game', la.length ? h('b', null, `${la.length} en game`) : h('span', { class: 'muted' }, 'Personne en game'), la.length ? h('small', null, la.slice(0, 4).map(vocalName).join(', ')) : h('small', null, 'Tu verras ici qui joue en ce moment'), la.length ? 'hot' : '')); }
     // Boutique : ton style actuel et un accès direct
     if (by.boutique && !hid.has('boutique') && meV) {
       const Lk = looks();
@@ -3584,7 +3590,8 @@
       h('div', { class: 'sal-chips' }, items.filter(([id]) => id !== 'accueil' && id !== 'settings').map((it) => { const id = it[0]; const i = pinned ? A.pins.indexOf(id) : -1;
         return h('button', { class: 'chip' + (i >= 0 ? ' on' : ''), 'aria-pressed': String(i >= 0), onclick: () => accPin(id, i < 0) }, i >= 0 ? `📌${i + 1} ` : '', it[1] + ' ' + it[2]); })),
       h('div', { class: 'row' }, pinned ? h('button', { class: 'linkbtn small', onclick: () => accSave({ pins: null }) }, '↺ Revenir aux rubriques les plus utilisées') : null,
-        hid.size ? h('button', { class: 'linkbtn small', onclick: () => accSave({ hide: [] }) }, '↺ Réafficher tous les blocs') : null)) : null;
+        hid.size ? h('button', { class: 'linkbtn small', onclick: () => accSave({ hide: [] }) }, '✓ Afficher tous les blocs') : null,
+        h('button', { class: 'linkbtn small', onclick: () => accSave({ pins: items.filter(([id]) => id !== 'accueil' && id !== 'settings').map((x) => x[0]) }) }, '📌 Tout épingler'))) : null;
     const move = (id, d) => { const l = A.pins.slice(); const i = l.indexOf(id); const j = i + d; if (i < 0 || j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; accSave({ pins: l }); };
     const live = Object.keys(liveAll()).length;
     view.replaceChildren(...[

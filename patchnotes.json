@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.180",
+   "date": "2026-11-17",
+   "titre": "Accueil : tous les widgets que tu veux",
+   "items": [
+    [
+     "new",
+     "Accueil › Personnaliser : plus de limite, tu peux épingler autant de rubriques que tu veux, et même toutes d’un coup avec « 📌 Tout épingler ». « ✓ Afficher tous les blocs » remet tous les widgets."
+    ],
+    [
+     "new",
+     "Deux nouveaux widgets : 🎙️ Salon vocal (qui est dedans) et 🔴 Coéquipiers en game."
+    ],
+    [
+     "fix",
+     "Les widgets choisis restent toujours visibles, même quand il n’y a rien de neuf : « Pas de nouveau clip », « Rien de prévu cette semaine »… Avant, ils disparaissaient et on croyait ne pas pouvoir les ajouter."
+    ]
+   ]
+  },
+  {
    "v": "1.10.179",
    "date": "2026-11-17",
    "titre": "Revue de parties : ×8 et ×16 réparés",
