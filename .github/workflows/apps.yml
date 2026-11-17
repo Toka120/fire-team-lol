@@ -1,26 +1,19 @@
 name: Apps du FIRE Launcher (Kiting, Listen)
-# Branche « apps » : FIRE-Kiting.exe et FIRE-Listen.exe. À chaque envoi, la release « apps » est mise à jour,
-# et FIRE Launcher télécharge les nouvelles versions chez tout le monde.
+# Branche « apps » : les versions d'origine de FIRE-Kiting.exe et FIRE-Listen.exe.
+# À chaque envoi, on relance la compilation sur main (apps-build.yml) : elle ajoute le menu admin,
+# publie les .exe dans la release « apps » et met à jour le launcher.
 on:
   push:
     branches: [apps]
   workflow_dispatch:
 permissions:
-  contents: write
+  actions: write
+  contents: read
 jobs:
-  release:
+  rebuild:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: sha256sum *.exe && ls -l *.exe
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: apps
-          target_commitish: ${{ github.sha }}
-          name: Apps du FIRE Launcher (Kiting, Listen)
-          body: Fichiers téléchargés et mis à jour automatiquement par FIRE Launcher.
-          make_latest: false
-          overwrite_files: true
-          files: |
-            FIRE-Kiting.exe
-            FIRE-Listen.exe
+      - name: Compilation avec le menu admin
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run apps-build.yml --ref main -R "${{ github.repository }}"
