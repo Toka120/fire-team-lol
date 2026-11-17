@@ -1,53 +1,100 @@
-/* FIRE LoL sur téléphone : une colonne, menu en tiroir, barre d'onglets en bas. */
-html.mobile { --v2-pad: 12px; -webkit-text-size-adjust: 100%; }
+/* FIRE LoL sur téléphone : une vraie app mobile.
+   Barre du haut (titre de la rubrique), barre d'onglets en bas, menu « Plus » en plein écran, une colonne partout. */
+html.mobile { --v2-pad: 12px; --mob-top: calc(52px + env(safe-area-inset-top)); --mob-bar: calc(62px + env(safe-area-inset-bottom)); -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
 html.mobile body { overscroll-behavior-y: contain; }
-html.mobile.v2 .shell { display: block; min-height: 100vh; }
-html.mobile.v2 .v2-side { position: fixed; inset: 0 auto 0 0; width: min(300px, 84vw); height: 100vh; z-index: 1200; transform: translateX(-102%); transition: transform .22s ease; padding: calc(16px + env(safe-area-inset-top)) 14px calc(90px + env(safe-area-inset-bottom)); box-shadow: 8px 0 30px #0009; }
-html.mobile.nav-open .v2-side { transform: none; }
-html.mobile .mob-scrim { position: fixed; inset: 0; background: #0008; z-index: 1100; opacity: 0; pointer-events: none; transition: opacity .2s; }
-html.mobile.nav-open .mob-scrim { opacity: 1; pointer-events: auto; }
-html.mobile.v2 .topbar { padding: calc(6px + env(safe-area-inset-top)) 10px 6px; gap: 8px; flex-wrap: wrap; min-height: 0; }
-html.mobile .mob-menu { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line, #ffffff22); background: var(--panel, #161a22); color: inherit; font-size: 20px; flex: 0 0 auto; }
-html.mobile.v2 .topbar .statusbar { order: 9; flex-basis: 100%; font-size: 11px; }
-html.mobile .period { font-size: 0; } html.mobile .period select { font-size: 13px; max-width: 46vw; }
-html.mobile.v2 .view { padding: 12px 12px calc(88px + env(safe-area-inset-bottom)); gap: 16px; max-width: 100vw; overflow-x: hidden; }
-html.mobile #chat { display: none !important; }
-html.mobile .mob-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 850; display: flex; justify-content: space-around; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); background: var(--panel, #12151c); border-top: 1px solid var(--line, #ffffff1a); }
-html.mobile .mob-tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: 0; color: var(--muted, #9aa); font: 600 10.5px/1.2 inherit; padding: 4px 0; position: relative; }
-html.mobile .mob-tabs button .i { font-size: 20px; line-height: 24px; }
-html.mobile .mob-tabs button.on { color: var(--accent, #ffb44d); }
-html.mobile .mob-tabs button b { position: absolute; top: 0; left: 55%; min-width: 16px; height: 16px; border-radius: 8px; background: #ff4d5e; color: #fff; font-size: 10px; line-height: 16px; padding: 0 4px; }
-/* Mises en page en plusieurs colonnes → une seule colonne. */
-html.mobile .team-cards, html.mobile .hub-grid, html.mobile .rv-main, html.mobile .gp-body, html.mobile .meet-grid, html.mobile .rv-list, html.mobile .sc-sides, html.mobile .lv-teams, html.mobile .w-sides, html.mobile .w-ana, html.mobile .lp-wrap, html.mobile .dr-teams, html.mobile .clips-body, html.mobile .lens-body, html.mobile .vs-split, html.mobile .qz-levels, html.mobile .vc-rooms, html.mobile .gp-list { grid-template-columns: 1fr !important; }
-html.mobile .sec-hero { padding: 14px !important; gap: 12px; }
-html.mobile .sec-hero .title { font-size: 24px !important; line-height: 30px !important; }
-html.mobile .sec-hero .sec-ico { display: none; }
-html.mobile .card { max-width: 100%; }
-html.mobile table { display: block; overflow-x: auto; }
+html.mobile * { -webkit-touch-callout: none; }
+html.mobile input, html.mobile textarea, html.mobile [contenteditable] { -webkit-touch-callout: default; }
+
+/* ----- Coque : plus de menu latéral, tout passe par les onglets et le menu « Plus » ----- */
+html.mobile .shell, html.mobile.v2 .shell { display: block !important; min-height: 100vh; }
+html.mobile .v2-side { display: none !important; }
+html.mobile .topbar, html.mobile.v2 .topbar { position: sticky; top: 0; z-index: 900; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 0;
+  padding: calc(6px + env(safe-area-inset-top)) 10px 6px 14px; margin: 0; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--line, #ffffff1a) 70%, transparent);
+  background: color-mix(in srgb, var(--bg, #0b0d10) 82%, transparent) !important; backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3); }
+html.mobile .topbar .brand-sm, html.mobile .topbar .spacer, html.mobile .mob-menu { display: none !important; }
+html.mobile .mob-title { flex: 1 1 auto; min-width: 0; font-size: 20px; font-weight: 800; line-height: 40px; letter-spacing: -.01em; color: var(--text, #f2f2f2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.mobile.mob-has-back .mob-title { flex: 0 0 0; }
+html.mobile #back:not([hidden]) { flex: 1 1 auto; justify-content: flex-start; text-align: left; border: 0; background: none; padding: 0 4px; font-weight: 700; font-size: 15px; min-height: 40px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.mobile #refresh { width: 40px; height: 40px; padding: 0; border-radius: 12px; font-size: 18px; flex: 0 0 auto; }
+html.mobile #me-btn { flex: 0 0 auto; }
+html.mobile .rdv-pill { order: 3; max-width: 46vw; font-size: 12px; padding: 6px 10px; }
+html.mobile .topbar .statusbar { order: 20; flex-basis: 100%; margin: 0; padding: 0 0 2px; font-size: 11px; line-height: 1.3; opacity: .65; background: none; border: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.mobile .topbar .statusbar:empty { display: none; }
+html.mobile .period { order: 21; flex-basis: 100%; font-size: 0; display: flex; padding: 2px 0 4px; }
+html.mobile .period[hidden] { display: none; }
+html.mobile .period select { font-size: 14px; width: 100%; max-width: none; min-height: 38px; }
+html.mobile .updatebar { margin: 8px 12px 0; border-radius: 12px; }
+
+/* ----- Contenu ----- */
+html.mobile .view, html.mobile.v2 .view { padding: 14px 12px calc(var(--mob-bar) + 22px); gap: 14px; max-width: 100vw; overflow-x: hidden; }
+html.mobile .card { max-width: 100%; border-radius: 16px; }
+html.mobile .view > .card, html.mobile .view > section > .card { padding: 14px; }
 html.mobile .row { flex-wrap: wrap; }
-html.mobile input, html.mobile select, html.mobile textarea { font-size: 16px; } /* iOS : pas de zoom automatique */
+html.mobile table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+html.mobile input, html.mobile select, html.mobile textarea { font-size: 16px; } /* iPhone : pas de zoom automatique */
+html.mobile button, html.mobile .chip, html.mobile select { min-height: 36px; }
+html.mobile #chat { display: none !important; }
+html.mobile :is(.btn-fire, .btn-ghost) { touch-action: manipulation; }
+/* Titres de rubrique compacts */
+html.mobile .sec-hero { padding: 14px 16px !important; gap: 10px; border-radius: 18px; }
+html.mobile .sec-hero .sec-ico { display: none; }
+html.mobile .sec-hero .title { font-size: 22px !important; line-height: 28px !important; margin: 0 0 4px; }
+html.mobile .sec-hero p { font-size: 13px; line-height: 1.45; margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+html.mobile .sec-hero p:focus, html.mobile .sec-hero p:active { -webkit-line-clamp: unset; }
+/* Rangées d'onglets et de filtres : elles défilent sur le côté au lieu de s'empiler */
+html.mobile :is(.plan-tabs, .pt-modes, .tl-seg, .dr-tabs, .sal-chips.sc-role, .sal-chips.sc-mode, .clb-filters, .set-subs) { flex-wrap: nowrap !important; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+html.mobile :is(.plan-tabs, .pt-modes, .tl-seg, .dr-tabs, .sal-chips, .clb-filters, .set-subs)::-webkit-scrollbar { display: none; }
+html.mobile :is(.plan-tab, .tl-seg .chip, .sc-role .chip, .sc-mode .chip) { flex: 0 0 auto; white-space: nowrap; }
+/* Mises en page en plusieurs colonnes → une seule colonne */
+html.mobile :is(.team-cards, .hub-grid, .rv-main, .gp-body, .meet-grid, .rv-list, .sc-sides, .lv-teams, .w-sides, .w-ana, .lp-wrap, .dr-teams, .clips-body, .lens-body, .qz-levels, .vc-rooms, .gp-list, .acc-ws-grid, .acc-grid, .ot-cols, .set-wrap, .mu-grid, .pool-grid) { grid-template-columns: 1fr !important; }
 html.mobile .pc-grid { overflow-x: auto; display: grid; }
 html.mobile .live-sec .sp-feed { max-height: 260px; }
 html.mobile .mob-pc { font-size: 12px; opacity: .75; margin: 4px 0 0; }
-/* Discussion : salons en bandeau défilant au-dessus des messages. */
-html.mobile .cp { display: flex !important; flex-direction: column; grid-template-columns: none !important; height: auto !important; min-height: calc(100vh - 170px); }
-html.mobile .cp-side { flex-direction: row !important; overflow-x: auto; overflow-y: hidden; border-right: 0 !important; border-bottom: 1px solid var(--line); padding: 6px !important; gap: 4px !important; flex: 0 0 auto; }
+/* Ligne « Je suis » + liste déroulante */
+html.mobile .me-row { gap: 6px; }
+html.mobile .fld-inline { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; width: 100%; }
+html.mobile .fld-inline select { flex: 1 1 auto; min-width: 0; }
+/* Planning : flèches de semaine sur une seule ligne */
+html.mobile .plan-nav { flex-wrap: nowrap !important; align-items: center; gap: 6px; }
+html.mobile .plan-nav .plan-week { flex: 1 1 auto; text-align: center; font-size: 14px; line-height: 1.3; }
+html.mobile .plan-nav .btn-ghost { flex: 0 0 auto; width: 42px; padding: 0; }
+/* Accueil */
+html.mobile .acc-hero { padding: 16px !important; border-radius: 18px; }
+html.mobile .acc-hero h1 { font-size: 24px; line-height: 1.2; margin: 2px 0 4px; }
+html.mobile .acc-hero .acc-cust { position: static; margin-top: 8px; }
+html.mobile .acc-hero-txt > p, html.mobile .acc-fun { font-size: 13.5px; }
+html.mobile .acc-tick { margin: 0; padding: 6px 8px; }
+html.mobile .tk-lab { display: none; }
+html.mobile .tk-it { width: 250px; }
+html.mobile .acc-w { min-height: 0; padding: 12px 14px; }
+html.mobile .acc-pin-act button { min-height: 32px; }
+/* Tableaux de la tier list : on peut les faire défiler */
+html.mobile .tl-card { overflow-x: auto; padding: 8px !important; }
+html.mobile .tl-head, html.mobile .tl-r { min-width: 640px; }
+html.mobile .sc-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+/* Discussion : salons en bandeau au-dessus des messages, la zone d'écriture en bas */
+html.mobile .cp { display: flex !important; flex-direction: column; grid-template-columns: none !important; height: calc(100vh - var(--mob-top) - var(--mob-bar) - 30px) !important; min-height: 420px; }
+html.mobile .cp-side { flex-direction: row !important; overflow-x: auto; overflow-y: hidden; border-right: 0 !important; border-bottom: 1px solid var(--line); padding: 6px !important; gap: 4px !important; flex: 0 0 auto; scrollbar-width: none; }
+html.mobile .cp-side::-webkit-scrollbar { display: none; }
 html.mobile .cp-side .cp-gt { display: none; }
 html.mobile .cp-cv { flex: 0 0 auto; white-space: nowrap; }
 html.mobile .cp-cv .chat-cv-l { overflow: visible; }
-html.mobile .cp-main { min-height: 60vh; }
-/* Paramètres et fenêtres : plein écran, menu en bandeau. */
+html.mobile .cp-main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+html.mobile .cp-main textarea, html.mobile .cp-main input { min-height: 44px; line-height: 1.4; padding-top: 11px; padding-bottom: 11px; }
+/* Fenêtres : en plein écran, comme une app */
 html.mobile .vs-modal { padding: 0 !important; }
 html.mobile .vs-modal .vs-drawer { width: 100% !important; height: 100% !important; border-radius: 0 !important; }
 html.mobile .vs-split { display: flex !important; flex-direction: column; }
 html.mobile .vs-nav { flex-direction: row !important; overflow-x: auto; border-right: 0 !important; border-bottom: 1px solid var(--line); padding: 8px !important; flex: 0 0 auto; }
 html.mobile .vs-nav-t { display: none; }
 html.mobile .vs-nav-b { flex: 0 0 auto; white-space: nowrap; }
-html.mobile .set-wrap { grid-template-columns: 1fr !important; }
+html.mobile .vc-pick { align-items: flex-end !important; padding: 0 !important; }
+html.mobile .vc-pick > .card, html.mobile .news-pop-in { width: 100% !important; max-width: none !important; max-height: 88vh; overflow-y: auto; border-radius: 20px 20px 0 0 !important; padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important; animation: mobUp .22s ease-out; }
+@keyframes mobUp { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+html.mobile .me-menu { left: 8px !important; right: 8px !important; width: auto !important; top: calc(var(--mob-top) + 4px) !important; max-height: calc(100vh - var(--mob-top) - var(--mob-bar) - 16px); }
+/* Paramètres */
 html.mobile .set-nav { position: static !important; flex-direction: row !important; overflow-x: auto; }
 html.mobile .gp-daily { flex-direction: column; align-items: stretch; }
-html.mobile .plan-tabs { flex-wrap: nowrap; overflow-x: auto; }
-html.mobile .plan-tab { flex: 0 0 auto; }
 html.mobile .set-ovl { flex-direction: column; padding-top: env(safe-area-inset-top); }
 html.mobile .set-left { flex: 0 0 auto; justify-content: flex-start; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; overflow-y: hidden; }
 html.mobile .set-side { width: auto; flex-direction: row; align-items: center; padding: 8px 56px 8px 8px; gap: 4px; }
@@ -55,5 +102,70 @@ html.mobile .set-side .set-gt, html.mobile .set-side .set-sep, html.mobile .set-
 html.mobile .set-ovl .set-tab { flex: 0 0 auto; white-space: nowrap; font-size: 14px; }
 html.mobile .set-content { flex: 1 1 auto; }
 html.mobile .set-page { padding: 18px 14px calc(40px + env(safe-area-inset-bottom)); max-width: 100%; }
-html.mobile .set-subs { overflow-x: auto; gap: 16px; }
 html.mobile .set-ovl .set-close, html.mobile .set-ovl [class*=close] { position: fixed; top: calc(6px + env(safe-area-inset-top)); right: 8px; z-index: 5; }
+/* Compagnon : plus petit, juste au-dessus des onglets */
+html.mobile #fire-pet { right: 8px !important; bottom: calc(var(--mob-bar) + 8px) !important; width: 52px !important; height: 52px !important; }
+html.mobile #fire-pet.big { width: 60px !important; height: 62px !important; }
+html.mobile #fire-pet .pet-home { width: 100% !important; height: 100% !important; }
+html.mobile #fire-pet .pet-bub { font-size: 12px; }
+html.mobile.mob-sheet-on #fire-pet, html.mobile.chat-page #fire-pet { display: none; }
+html.mobile #vbar { bottom: calc(var(--mob-bar) + 8px) !important; left: 8px !important; right: 8px !important; }
+html.mobile #vc-mini { bottom: calc(var(--mob-bar) + 8px) !important; right: 8px !important; width: 46vw !important; }
+html.mobile #vtoasts { bottom: calc(var(--mob-bar) + 10px) !important; }
+
+/* ----- Barre d'onglets ----- */
+html.mobile .mob-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1300; display: flex; justify-content: space-around; align-items: stretch;
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--panel, #12151c) 88%, transparent);
+  backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); border-top: 1px solid color-mix(in srgb, var(--line, #ffffff1a) 80%, transparent); }
+html.mobile .mob-tab { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: none; border: 0; color: var(--muted, #9aa3ad);
+  font-size: 10.5px; font-weight: 600; line-height: 1.15; padding: 2px 0; position: relative; min-height: 50px; transition: color .15s; }
+html.mobile .mob-ti { display: grid; place-items: center; width: 52px; height: 30px; border-radius: 15px; transition: background .2s, transform .15s; }
+html.mobile .mob-ti svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+html.mobile .mob-tab.on { color: var(--fire1, var(--accent, #ffb02e)); }
+html.mobile .mob-tab.on .mob-ti { background: color-mix(in srgb, var(--fire1, #ffb02e) 18%, transparent); }
+html.mobile .mob-tab:active .mob-ti { transform: scale(.92); }
+html.mobile .mob-tl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+html.mobile .mob-badge { position: absolute; top: 0; left: calc(50% + 6px); min-width: 17px; height: 17px; border-radius: 9px; background: #ff4d5e; color: #fff; font-size: 10px; font-weight: 700; line-height: 17px; padding: 0 5px; text-align: center; box-shadow: 0 0 0 2px var(--panel, #12151c); }
+
+/* ----- Menu « Plus » ----- */
+html.mobile .mob-sheet { position: fixed; inset: 0; z-index: 1250; background: rgb(0 0 0 / 0); transition: background .2s; display: flex; align-items: flex-end; }
+html.mobile .mob-sheet.open { background: rgb(0 0 0 / 55%); }
+html.mobile .mob-sheet-in { width: 100%; max-height: calc(100vh - var(--mob-top)); overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px 14px calc(var(--mob-bar) + 14px);
+  border-radius: 22px 22px 0 0; background: var(--panel, #151820); border-top: 1px solid var(--line, #ffffff1a); transform: translateY(30px); opacity: 0; transition: transform .22s ease, opacity .2s; }
+html.mobile .mob-sheet.open .mob-sheet-in { transform: none; opacity: 1; }
+html.mobile .mob-sheet-h { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px 4px; font-size: 17px; }
+html.mobile .mob-sheet-h::before { content: ''; position: absolute; left: 50%; transform: translateX(-50%); margin-top: -16px; width: 40px; height: 4px; border-radius: 2px; background: var(--line, #ffffff33); }
+html.mobile .mob-sheet-x { width: 36px; height: 36px; min-height: 0; border-radius: 18px; border: 0; background: rgb(255 255 255 / 7%); color: inherit; font-size: 15px; }
+html.mobile .mob-sheet-gt { margin: 14px 2px 8px; font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted, #9aa3ad); }
+html.mobile .mob-sheet-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+html.mobile .mob-tile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-height: 84px; padding: 10px 4px; border-radius: 16px;
+  border: 1px solid var(--line, #ffffff1a); background: rgb(255 255 255 / 3.5%); color: inherit; font-size: 12px; font-weight: 600; line-height: 1.2; text-align: center; }
+html.mobile .mob-tile svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--fire1, #ffb02e); }
+html.mobile .mob-tile span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html.mobile .mob-tile.on { border-color: var(--fire1, #ffb02e); background: color-mix(in srgb, var(--fire1, #ffb02e) 12%, transparent); }
+html.mobile .mob-tile:active { transform: scale(.97); }
+html.mobile .mob-tile .mob-badge { top: 6px; left: auto; right: 8px; }
+html.mobile .mob-sheet-me { width: 100%; margin-top: 16px; min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--line, #ffffff1a); background: rgb(255 255 255 / 3.5%); color: inherit; font-size: 14px; font-weight: 600; }
+
+/* ----- Tirer pour mettre à jour ----- */
+html.mobile .mob-ptr { position: fixed; top: calc(var(--mob-top) + 6px); left: 50%; z-index: 950; width: 36px; height: 36px; border-radius: 18px; display: grid; place-items: center;
+  background: var(--panel, #151820); border: 1px solid var(--line, #ffffff22); box-shadow: 0 6px 18px rgb(0 0 0 / 40%); font-size: 18px; opacity: 0; pointer-events: none; transform: translate(-50%, 0); }
+html.mobile .mob-ptr.ready { color: var(--fire1, #ffb02e); }
+html.mobile .mob-ptr.spin { opacity: 1 !important; animation: mobSpin .8s linear infinite; }
+@keyframes mobSpin { to { transform: translate(-50%, 40px) rotate(360deg); } }
+
+/* ----- Titres : la barre du haut porte déjà le nom de la rubrique ----- */
+html.mobile .sec-hero:not(.acc-hero):not(.pool-hero) { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 4px !important; }
+html.mobile .sec-hero:not(.acc-hero) .title { display: none; }
+html.mobile .sec-hero:not(.acc-hero) > div > p.muted, html.mobile .sec-hero:not(.acc-hero) p { color: var(--muted, #9aa3ad); }
+html.mobile .sec-hero::before, html.mobile .sec-hero::after { display: none !important; }
+/* E-sport : le score sur une ligne, la date en dessous */
+html.mobile .w-head { grid-template-columns: 1fr auto 1fr 18px; gap: 8px; padding: 12px; font-size: 14px; }
+html.mobile .w-head .w-date { grid-row: 2; grid-column: 1 / -1; text-align: center; }
+html.mobile .w-head .w-score { white-space: nowrap; font-size: 17px; padding: 3px 9px; }
+/* Conseil d'installation (iPhone) */
+html.mobile .mob-a2hs { position: fixed; left: 10px; right: 10px; bottom: calc(var(--mob-bar) + 10px); z-index: 1260; display: flex; flex-direction: column; gap: 4px; padding: 12px 44px 12px 14px; border-radius: 16px;
+  background: var(--panel, #151820); border: 1px solid var(--fire1, #ffb02e); box-shadow: 0 12px 30px rgb(0 0 0 / 50%); font-size: 13px; line-height: 1.4; animation: mobUp .25s ease-out; }
+html.mobile .mob-a2hs button { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; min-height: 0; border: 0; border-radius: 15px; background: rgb(255 255 255 / 8%); color: inherit; }
+/* Ce qui ne sert qu'au PC */
+html.mobile :is(.set-creator, .creator-row) { display: none !important; }

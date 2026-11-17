@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "1.10.188",
+   "date": "2026-11-17",
+   "titre": "L’app téléphone refaite",
+   "items": [
+    [
+     "new",
+     "Téléphone : nouvelle coque d’application. En haut, le nom de la rubrique où tu es (ou « ← Retour »), le bouton de mise à jour et ton profil. En bas, une vraie barre d’onglets avec les mêmes icônes que sur PC : Accueil, Stats, Planning, Discussion et Plus, avec les pastilles de notifications."
+    ],
+    [
+     "new",
+     "Téléphone : « Plus » ouvre toutes les rubriques en grandes tuiles, rangées par catégorie comme sur PC (Équipe, Jeu, Apprendre, Outils, Social), plus l’accès à ton profil, aux paramètres et aux patch notes."
+    ],
+    [
+     "new",
+     "Téléphone : tire la page vers le bas pour tout mettre à jour, et le bouton retour du téléphone revient à la rubrique précédente (ou ferme le menu). Sur iPhone, un petit conseil explique comment installer FIRE sur l’écran d’accueil."
+    ],
+    [
+     "fix",
+     "Téléphone : mises en page revues rubrique par rubrique. Les onglets et filtres défilent sur le côté au lieu de s’empiler, le planning garde ses flèches de semaine sur une ligne, la discussion prend tout l’écran avec la zone d’écriture en bas, et les scores e-sport tiennent sur une ligne. Les fenêtres s’ouvrent du bas de l’écran, et le compagnon est plus petit, juste au-dessus des onglets."
+    ],
+    [
+     "fix",
+     "POOL et Planning : la ligne « Je suis » ne passe plus sous les boutons des joueurs (sur PC aussi)."
+    ]
+   ]
+  },
+  {
    "v": "1.10.187",
    "date": "2026-11-17",
    "titre": "Les nouveautés défilent sur l’accueil",

@@ -15,8 +15,9 @@
 <style>
   html, body { margin: 0; background: #0d0f14; color: #eee; font-family: system-ui, sans-serif; }
   #boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
-  #boot img { width: 96px; height: 96px; border-radius: 22px; }
+  #boot img { width: 96px; height: 96px; border-radius: 22px; animation: bootPulse 1.6s ease-in-out infinite; box-shadow: 0 10px 40px rgb(255 120 40 / 25%); }
   #boot p { opacity: .7; font-size: 14px; }
+  @keyframes bootPulse { 50% { transform: scale(1.06); box-shadow: 0 10px 50px rgb(255 120 40 / 45%); } }
 </style>
 </head>
 <body>

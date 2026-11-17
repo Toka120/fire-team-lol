@@ -1,5 +1,5 @@
 // FIRE LoL (téléphone) : réseau d'abord, copie gardée pour s'ouvrir même hors connexion.
-const CACHE = 'fire-v1';
+const CACHE = 'fire-v2';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', (e) => {
