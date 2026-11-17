@@ -189,7 +189,9 @@ function createMainWindow(forceShow) {
       nodeIntegration: false,
       sandbox: true,
       // Les vérifications (planning, messages, mises à jour) continuent quand la fenêtre est cachée.
-      backgroundThrottling: false
+      backgroundThrottling: false,
+      // Les clips mélangent le son du PC dans l'app : le son doit pouvoir démarrer sans clic.
+      autoplayPolicy: 'no-user-gesture-required'
     }
   });
   // Agrandie en plein écran si elle l'était, sans jamais faire apparaître une fenêtre censée rester cachée.

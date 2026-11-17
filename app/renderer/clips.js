@@ -89,6 +89,8 @@
         if (r.done || stop) { if (r.value) r.value.close(); break; }
         const f = r.value;
         try {
+          // L'image et le son du PC n'ont pas la même horloge : tout est recalé sur une horloge commune.
+          if (C.vOff == null) C.vOff = performance.now() * 1000 - f.timestamp;
           if (f.timestamp - lastTs < minGap) continue;
           // Taille paire (exigée par H.264) ; si l'écran change de définition, l'encodeur repart.
           const w = f.displayWidth & ~1, h = f.displayHeight & ~1;
@@ -101,9 +103,10 @@
               output: (chunk, meta) => {
                 const d = new Uint8Array(chunk.byteLength); chunk.copyTo(d);
                 if (meta && meta.decoderConfig) C.vmeta = meta;
-                C.v.push({ d, ts: chunk.timestamp, dur: chunk.duration || Math.round(1e6 / Q.fps), key: chunk.type === 'key' });
+                const ts = Math.round(chunk.timestamp + (C.vOff || 0));
+                C.v.push({ d, ts, dur: chunk.duration || Math.round(1e6 / Q.fps), key: chunk.type === 'key' });
                 prune();
-                recVideo(d, chunk.timestamp, chunk.type === 'key');
+                recVideo(d, ts, chunk.type === 'key');
               },
               error: () => { C.err = 'erreur de l’encodeur vidéo'; changed(); },
             });
@@ -125,6 +128,7 @@
     C.acodec = pick.kind;
     C.ac = new AudioContext({ sampleRate: 48000 });
     if (C.ac.state === 'suspended') C.ac.resume().catch(() => {});
+    C.ac.onstatechange = () => { if (C.ac && C.ac.state === 'suspended') C.ac.resume().catch(() => {}); };
     C.mix = C.ac.createMediaStreamDestination();
     C.mix.channelCount = 2;
     if (deskTrack) { C.deskSrc = C.ac.createMediaStreamSource(new MediaStream([deskTrack])); C.deskSrc.connect(C.mix); }
@@ -135,8 +139,10 @@
       output: (chunk, meta) => {
         const d = new Uint8Array(chunk.byteLength); chunk.copyTo(d);
         if (meta && meta.decoderConfig) C.ameta = meta;
-        C.a.push({ d, ts: chunk.timestamp, dur: chunk.duration || 0 });
-        recAudio(d, chunk.timestamp, chunk.duration || 0);
+        const ts = Math.round(chunk.timestamp + (C.aOff || 0));
+        C.a.push({ d, ts, dur: chunk.duration || 0 });
+        C.aGot = (C.aGot || 0) + 1;
+        recAudio(d, ts, chunk.duration || 0);
       },
       error: () => { C.err = 'erreur de l’encodeur audio'; },
     });
@@ -148,6 +154,7 @@
         let r; try { r = await reader.read(); } catch (e) { break; }
         if (r.done || stop) { if (r.value) r.value.close(); break; }
         const ad = r.value;
+        if (C.aOff == null) C.aOff = performance.now() * 1000 - ad.timestamp - (ad.duration || 0);
         try { if (C.aenc && C.aenc.state === 'configured') C.aenc.encode(ad); } catch (e) { /* */ } finally { ad.close(); }
       }
     })();
@@ -188,7 +195,7 @@
     for (const k of ['venc', 'aenc']) { if (C[k]) { try { C[k].close(); } catch (e) { /* */ } C[k] = null; } }
     if (C.ac) { C.ac.close().catch(() => {}); C.ac = null; }
     C.mix = C.micSrc = C.deskSrc = null;
-    C.v = []; C.a = []; C.w = C.h = 0; C.on = false;
+    C.v = []; C.a = []; C.w = C.h = 0; C.on = false; C.vOff = C.aOff = null; C.aGot = 0;
     changed();
   }
 
@@ -277,7 +284,7 @@
 
   window.FireClips = {
     start, stop, save, setMic, recStart, recStop, recording: () => R.on,
-    state: () => ({ snd: !!C.snd, on: C.on, starting: !!C.starting, err: C.err, buffered: C.v.length ? Math.round((C.v[C.v.length - 1].ts - C.v[0].ts) / 1e6) : 0, w: C.w, h: C.h, vcodec: C.vcodec, acodec: C.acodec }),
+    state: () => ({ audioBlocks: C.aGot || 0, audioBuffered: C.a.length, snd: !!C.snd, on: C.on, starting: !!C.starting, err: C.err, buffered: C.v.length ? Math.round((C.v[C.v.length - 1].ts - C.v[0].ts) / 1e6) : 0, w: C.w, h: C.h, vcodec: C.vcodec, acodec: C.acodec }),
     onChange: (f) => { onChange = f; },
     supported: () => !!(window.VideoEncoder && window.AudioEncoder && window.MediaStreamTrackProcessor && window.Mp4Muxer),
   };
