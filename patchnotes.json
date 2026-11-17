@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.186",
+   "date": "2026-11-17",
+   "titre": "Plus de « Bonne nuit » sur l’accueil",
+   "items": [
+    [
+     "fix",
+     "L’accueil ne dit plus « Bonne nuit » : c’est « Salut » la journée et « Bonsoir » le soir et la nuit."
+    ]
+   ]
+  },
+  {
    "v": "1.10.185",
    "date": "2026-11-17",
    "titre": "Ta voix dans les clips",

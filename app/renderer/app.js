@@ -3601,7 +3601,7 @@
     const by = Object.fromEntries(items.map((x) => [x[0], x]));
     const me = S.players.find((p) => p.slug === S.moi);
     const hr = new Date().getHours();
-    const hello = hr < 6 ? 'Bonne nuit' : hr < 18 ? 'Salut' : 'Bonsoir';
+    const hello = hr >= 6 && hr < 18 ? 'Salut' : 'Bonsoir';
     const icon = (id, fb) => { const it = by[id]; const ic = it && window.FIREV2 && window.FIREV2.icon ? window.FIREV2.icon('navigation.' + it[2]) : null; return ic || fb || (it ? it[1] : ''); };
     const tile = (id, ico, title, main, sub, cls, onclick) => (by[id] || id === '_' ? h('button', { class: 'acc-w' + (cls ? ' ' + cls : ''), onclick: onclick || (() => go(id)) },
       h('div', { class: 'acc-wh' }, h('span', { class: 'acc-wi' }, ico), h('span', null, title)), h('div', { class: 'acc-wm' }, main), sub ? h('div', { class: 'acc-ws' }, sub) : null) : null);
