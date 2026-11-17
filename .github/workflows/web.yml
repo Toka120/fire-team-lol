@@ -42,5 +42,5 @@ jobs:
           git add app/m
           if git diff --cached --quiet; then echo "rien de neuf"; exit 0; fi
           git commit -m "Version téléphone : reconstruite"
-          git pull --rebase origin main
+          git pull --rebase --autostash origin main
           git push origin HEAD:main
