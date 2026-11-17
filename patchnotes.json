@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.195",
+   "date": "2026-11-17",
+   "titre": "Admin : ajouter dans la Boutique",
+   "items": [
+    [
+     "new",
+     "Admin › Boutique : le créateur ajoute lui-même des compagnons et des cadres d’avatar en envoyant une image (PNG, GIF, WebP animé ou JPEG, 1,5 Mo au maximum). Une fois publiés, ils apparaissent dans la Boutique de tout le monde, marqués ✨, et s’équipent comme les autres. Chaque image est chiffrée, et une image modifiée par quelqu’un d’autre que le créateur est refusée."
+    ]
+   ]
+  },
+  {
    "v": "1.10.194",
    "date": "2026-11-17",
    "titre": "Admin : bannir",

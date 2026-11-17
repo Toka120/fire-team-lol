@@ -1276,6 +1276,8 @@ ipcMain.handle('act:all', (e, slugs) => coach.activityAll(slugs));
 ipcMain.handle('staff:notes', () => coach.staffNotes());
 ipcMain.handle('appcfg:get', () => coach.appCfgGet());
 ipcMain.handle('appcfg:post', (e, cfg, who) => coach.appCfgPost(cfg, String(who || '')));
+ipcMain.handle('appcfg:assetPut', (e, id, data) => coach.appAssetPut(String(id || ''), String(data || '')));
+ipcMain.handle('appcfg:asset', (e, id, sum) => coach.appAssetGet(String(id || ''), String(sum || '')));
 ipcMain.handle('ann:get', (e, f) => coach.annonceGet(f && typeof f === 'object' ? f : null));
 ipcMain.handle('ann:post', (e, texte, who, retirer) => coach.annoncePost(String(texte || ''), String(who || ''), !!retirer));
 ipcMain.handle('ann:lu', (e, id, slug, at) => coach.annonceLu(id, slug, at));

@@ -89,6 +89,7 @@
   }
   // Ce qui s'ajoute autour de l'avatar selon la décoration (le cercle animé, lui, est en CSS).
   function decoExtra(d) {
+    if (typeof d === 'string' && d.startsWith('s_')) { const u = shopAsset(d); return u ? h('img', { class: 'dk-img', src: u, alt: '' }) : null; }
     if (d === 'couronne') return h('i', { class: 'dk-top' }, '👑');
     if (d === 'coeurs') return h('i', { class: 'dk-top' }, '💞');
     if (d === 'eclair') return h('i', { class: 'dk-top' }, '⚡');
@@ -1260,8 +1261,8 @@
       sec('✨ Effet de pseudo', 'Il s’anime partout où ton pseudo apparaît.', SHOP.fx.map(([v, l, d]) => item('fx', v, l, d, name(v, L.font, L.grad)))),
       sec('🎨 Dégradé de pseudo', 'Deux couleurs pour ton pseudo (sinon, ta couleur de Profil).', SHOP.grad.map(([v, l]) => item('grad', v, l, '', name(L.fx, L.font, v)))),
       sec('🔤 Police du pseudo', null, SHOP.font.map(([v, l]) => item('font', v, l, '', name(L.fx, v, L.grad)))),
-      sec('💫 Décoration d’avatar', 'Autour de ton avatar dans le vocal et sur ta carte.', SHOP.deco.map(([v, l]) => item('deco', v, l, '', h('span', { class: 'vc-av shop-av' + (v ? ' dk dk-' + v : '') }, ini(me), decoExtra(v))))),
-      sec('🐾 Compagnon chibi', 'Il vit en bas à droite de ton FIRE : il bouge, réagit à ce qui se passe (messages, games, puzzles…) et quand tu cliques dessus. Il n’apparaît que chez toi.', SHOP.pet.map(([v, l]) => item('pet', v, l, '', v ? petEl(v, 'shop-pet') : h('span', { class: 'muted' }, '—')))),
+      sec('💫 Décoration d’avatar', 'Autour de ton avatar dans le vocal et sur ta carte.', shopList('deco').map(([v, l]) => item('deco', v, l, '', h('span', { class: 'vc-av shop-av' + (v ? ' dk dk-' + v : '') }, ini(me), decoExtra(v))))),
+      sec('🐾 Compagnon chibi', 'Il vit en bas à droite de ton FIRE : il bouge, réagit à ce qui se passe (messages, games, puzzles…) et quand tu cliques dessus. Il n’apparaît que chez toi.', shopList('pet').map(([v, l]) => item('pet', v, l, '', v ? petEl(v, 'shop-pet') : h('span', { class: 'muted' }, '—')))),
       sec('🌠 Effet de profil', 'Une animation sur ta carte de profil.', SHOP.pfx.map(([v, l]) => item('pfx', v, l, '', h('div', { class: 'shop-pfx' }, v ? pfxEl(v) : null)))),
       sec('🏷️ Plaque de nom', 'Le fond derrière ton pseudo dans la liste des membres.', SHOP.plate.map(([v, l]) => item('plate', v, l, '', h('div', { class: 'cp-cv shop-plate' + (v ? ' plate pl-' + v : '') }, h('span', { class: 'chat-cv-l' }, vocalName(me)))))),
       sec('🃏 Thème de carte de profil', null, SHOP.card.map(([v, l]) => item('card', v, l, '', h('div', { class: 'shop-card' + (v ? ' pf-themed' : ''), style: v ? `--pc1:${v[0]};--pc2:${v[1]}` : '' })))),
@@ -11109,12 +11110,35 @@
       c.css || '',
     ].join('\n');
     appCapture();
-    try { banCheck(); banFilter(); } catch (e) { /* */ }
+    try { banCheck(); banFilter(); shopRegister(); } catch (e) { /* */ }
     const brand = c.brand || '';
     document.querySelectorAll('.v2-brand span, .brand-sm span, #lock .brand').forEach((e) => { if (!e.dataset.orig) e.dataset.orig = e.textContent; e.textContent = brand || e.dataset.orig; });
     document.title = brand || 'FIRE LoL';
     // Thème par défaut de l'équipe : seulement pour ceux qui n'en ont pas choisi un.
     if (c.theme && localStorage.getItem('fire.theme') == null && THEMES.some(([id]) => id === c.theme)) { try { applyTheme(c.theme); } catch (e) { /* */ } }
+  }
+  // ----- Articles ajoutés par le créateur dans la Boutique (images) -----
+  const SHOPX = { data: {}, wait: {} };
+  function shopAsset(id) {
+    if (SHOPX.data[id]) return SHOPX.data[id];
+    const it = (acfg().shop || []).find((x) => x.id === id);
+    if (it && !SHOPX.wait[id] && window.fire.appcfg && window.fire.appcfg.asset) {
+      SHOPX.wait[id] = true;
+      window.fire.appcfg.asset(id, it.sha).then((r) => { if (r && r.ok && r.data) { SHOPX.data[id] = r.data; shopRegister(); if (S.section === 'boutique' && !typing()) render(); try { petSync(); } catch (e) { /* */ } } }).catch(() => {}).finally(() => { setTimeout(() => { delete SHOPX.wait[id]; }, 60000); });
+    }
+    return null;
+  }
+  // Les compagnons du créateur rejoignent la liste des compagnons (image animée, comme Briar).
+  function shopRegister() {
+    for (const it of (acfg().shop || [])) {
+      const u = shopAsset(it.id);
+      if (it.kind === 'pet' && u) PETS[it.id] = [it.name, null, 'img:' + u];
+    }
+  }
+  function shopList(kind) {
+    const extra = (acfg().shop || []).filter((x) => x.kind === kind).map((x) => { shopAsset(x.id); return [x.id, x.name + ' ✨']; })
+      .filter(([id]) => kind !== 'pet' || PETS[id]);
+    return (SHOP[kind] || []).concat(extra);
   }
   // ----- Bannissements (publiés par le créateur) -----
   // Le membre banni : son FIRE se verrouille (même s'il change de pseudo sur ce PC), il quitte le vocal.
@@ -11192,8 +11216,8 @@
 
   // ----- Page Admin -----
   const clone = (x) => JSON.parse(JSON.stringify(x || {}));
-  function admOpen() { if (!ADM.draft) ADM.draft = { hide: [], rename: {}, hero: {}, fun: [], accent: '', theme: '', brand: '', css: '', font: '', groups: [], pages: [], bans: [], ...clone(APPCFG) }; }
-  const admDirty = () => JSON.stringify(ADM.draft) !== JSON.stringify({ hide: [], rename: {}, hero: {}, fun: [], accent: '', theme: '', brand: '', css: '', font: '', groups: [], pages: [], bans: [], ...clone(APPCFG) });
+  function admOpen() { if (!ADM.draft) ADM.draft = { hide: [], rename: {}, hero: {}, fun: [], accent: '', theme: '', brand: '', css: '', font: '', groups: [], pages: [], bans: [], shop: [], ...clone(APPCFG) }; }
+  const admDirty = () => JSON.stringify(ADM.draft) !== JSON.stringify({ hide: [], rename: {}, hero: {}, fun: [], accent: '', theme: '', brand: '', css: '', font: '', groups: [], pages: [], bans: [], shop: [], ...clone(APPCFG) });
   function admGroups(D) {
     if (D.groups && D.groups.length) return D.groups;
     const base = window.FIREV2 && window.FIREV2.groups ? window.FIREV2.groups() : [['Rubriques', (S.navAll || []).map(([id]) => id)]];
@@ -11312,7 +11336,34 @@
         h('div', { class: 'card' }, h('b', null, '👥 Membres, rôles et modérateurs'), h('p', { class: 'muted small' }, 'Valider les nouveaux, choisir les modérateurs, voir l’activité : dans le carnet de bord.'), h('button', { class: 'btn-ghost', onclick: () => go('carnet') }, 'Ouvrir le carnet de bord →')),
         null);
     } else if (ADM.tab === 'shop') {
-      body = h('div', { class: 'adm-sec' }, h('div', { class: 'card' }, h('b', null, '🛍️ Ajouter dans la Boutique'), h('p', { class: 'muted small' }, 'Arrive dans une prochaine étape : ajouter toi-même des compagnons, bannières et cadres en envoyant une image.')));
+      const L = D.shop || (D.shop = []);
+      const KIND = { pet: '🐾 Compagnon', deco: '💫 Cadre d’avatar' };
+      const nf = { kind: ADM.nk || 'pet', name: ADM.nn || '' };
+      const fileIn = h('input', { type: 'file', accept: 'image/png,image/gif,image/webp,image/jpeg', onchange: async (e) => {
+        const f = e.target.files && e.target.files[0]; if (!f) return;
+        if (f.size > 1.5 * 1024 * 1024) { ADM.msg = '⚠ Image trop lourde : 1,5 Mo au maximum.'; renderAdmin(); return; }
+        const data = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.readAsDataURL(f); });
+        const id = 's_' + Date.now().toString(36);
+        ADM.busy = true; ADM.msg = 'Envoi de l’image…'; renderAdmin();
+        const r = await window.fire.appcfg.assetPut(id, data).catch((err) => ({ ok: false, error: String(err) }));
+        ADM.busy = false;
+        if (!r || !r.ok) { ADM.msg = '⚠ ' + ((r && r.error) || 'envoi impossible'); renderAdmin(); return; }
+        SHOPX.data[id] = data;
+        L.push({ id, kind: ADM.nk || 'pet', name: (ADM.nn || '').trim() || f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40), sha: r.sha });
+        ADM.nn = ''; ADM.msg = 'Image envoyée : publie pour que l’article arrive dans la Boutique de tout le monde.'; set({});
+      } });
+      body = h('div', { class: 'adm-sec' },
+        h('div', { class: 'card adm-grp' }, h('b', null, '➕ Ajouter un article'),
+          h('p', { class: 'muted small' }, 'Compagnon : une image avec fond transparent, idéalement animée (GIF ou WebP animé), environ 200 px de haut. Cadre : une image carrée transparente qui entoure l’avatar (le rond au centre reste visible). 1,5 Mo au maximum.'),
+          h('div', { class: 'row' },
+            h('select', { class: 'inp', style: 'max-width:200px', onchange: (e) => { ADM.nk = e.target.value; } }, Object.entries(KIND).map(([k, l]) => h('option', { value: k, selected: nf.kind === k ? true : null }, l))),
+            h('input', { class: 'inp', style: 'max-width:240px', placeholder: 'Nom de l’article', value: nf.name, maxlength: 40, oninput: (e) => { ADM.nn = e.target.value; } }),
+            fileIn)),
+        L.length ? h('div', { class: 'adm-shop' }, L.map((x, i) => { const u = SHOPX.data[x.id] || shopAsset(x.id);
+          return h('div', { class: 'card adm-shop-it' }, u ? (x.kind === 'deco' ? h('span', { class: 'vc-av shop-av dk' }, ini(vocalMe() || 'FI'), h('img', { class: 'dk-img', src: u, alt: '' })) : h('img', { class: 'adm-shop-img', src: u, alt: '' })) : h('span', { class: 'muted small' }, 'chargement…'),
+            h('input', { class: 'inp', value: x.name, maxlength: 40, onchange: (e) => { x.name = e.target.value.trim() || x.name; set({}); } }),
+            h('small', { class: 'muted' }, KIND[x.kind]),
+            h('button', { class: 'linkbtn small', onclick: () => { if (!confirm(`Retirer « ${x.name} » de la Boutique ?`)) return; L.splice(i, 1); set({}); } }, '🗑️ Retirer')); })) : h('p', { class: 'muted' }, 'Aucun article ajouté pour l’instant.'));
     } else {
       body = h('div', { class: 'adm-sec' },
         field('CSS de l’équipe', 'Pour aller au bout : tout ce que tu écris ici s’applique au style de FIRE chez tout le monde (couleurs, tailles, arrondis, cacher un bloc…). « Essayer sur mon PC » pour voir avant de publier.',

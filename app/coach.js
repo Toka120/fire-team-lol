@@ -1171,6 +1171,8 @@ function appCfgClean(c) {
     capture: c.capture === 'off' ? 'off' : '',
     captureOk: [...new Set((Array.isArray(c.captureOk) ? c.captureOk : []).map((x) => str(x, 80)).filter(Boolean))].slice(0, 60),
     petsOff: !!c.petsOff,
+    // Articles ajoutés dans la Boutique : compagnon (image) ou cadre d'avatar (image autour de l'avatar).
+    shop: (Array.isArray(c.shop) ? c.shop : []).slice(0, 60).map((x) => ({ id: 's_' + sid(String(x && x.id || '').replace(/^s_/, '')).slice(0, 20), kind: ['pet', 'deco'].includes(x && x.kind) ? x.kind : 'pet', name: str(x && x.name, 40) || 'Article', sha: /^[0-9a-f]{64}$/.test(String(x && x.sha)) ? x.sha : '' })).filter((x) => x.id.length > 2 && x.sha),
     bans: (Array.isArray(c.bans) ? c.bans : []).slice(0, 100).map((b) => ({ slug: str(b && b.slug, 80), why: str(b && b.why, 200), at: Number(b && b.at) || 0 })).filter((b) => b.slug),
     fxOff: !!c.fxOff,
     // Catégories du menu : [[titre, [rubriques]]]
@@ -1206,6 +1208,42 @@ async function appCfgGet() {
     if (!cur || !appCfgVerify(cur)) return { ok: true, cfg: null };
     return { ok: true, cfg: appCfgClean(cur.cfg), at: Number(cur.at), by: String(cur.by || '') };
   } catch (e) { return { ok: false, error: String((e && e.message) || e), cfg: null }; }
+}
+// Images des articles ajoutés par le créateur dans la Boutique : un fichier chiffré par image. L'empreinte est
+// dans la personnalisation signée : une image modifiée par quelqu'un d'autre est refusée.
+const assetPath = (id) => 'admin/assets/' + sid(id) + '.json';
+async function appAssetPut(id, data) {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  id = sid(id); data = String(data || '');
+  if (!id || !/^data:image\/(png|gif|webp|jpeg);base64,[A-Za-z0-9+/=]+$/.test(data)) return { ok: false, error: 'image PNG, GIF, WebP ou JPEG attendue' };
+  if (data.length > 2200000) return { ok: false, error: 'image trop lourde (1,5 Mo au maximum)' };
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, error: "le coach n'a pas encore activé le jeton d'équipe" };
+  try {
+    const p = assetPath(id);
+    for (let i = 0; i < 3; i++) {
+      const cur = await ghGet(tok, p, dr).catch(() => null);
+      const r = await ghPut(tok, p, { v: 1, team: seal({ d: data }, p) }, cur && cur.sha, 'Image de la Boutique', dr);
+      if (r.ok) { saveCache('asset_' + id, { d: data }); return { ok: true, id, sha: sha256(data) }; }
+    }
+    throw new Error("l'image n'a pas pu être envoyée, réessaie");
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+async function appAssetGet(id, sum) {
+  id = sid(id); if (!id) return { ok: false };
+  const c = loadCache('asset_' + id);
+  if (c && c.d && (!sum || sha256(c.d) === sum)) return { ok: true, data: c.d };
+  try {
+    const dr = getConfig().data_repo || null;
+    const tok = teamKey() ? await teamToken().catch(() => null) : null;
+    if (!dr || !teamKey()) return { ok: false };
+    const f = await readPublic(assetPath(id), dr, tok);
+    const d = f && f.team ? open(f.team) : null;
+    if (!d || !d.d || (sum && sha256(d.d) !== sum)) return { ok: false, error: 'image refusée' };
+    saveCache('asset_' + id, { d: d.d });
+    return { ok: true, data: d.d };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 async function appCfgPost(cfg, who) {
   if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
@@ -1783,4 +1821,4 @@ async function revueNote(id, note, del) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 
-module.exports = { appCfgGet, appCfgPost, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

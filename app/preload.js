@@ -61,7 +61,7 @@ contextBridge.exposeInMainWorld('fire', {
   forum: { get: call('forum:get'), op: call('forum:op') },
   splashFocus: call('splash:focus'),
   bgVideo: { get: call('bgvid:get'), set: call('bgvid:set'), clear: call('bgvid:clear') },
-  appcfg: { get: call('appcfg:get'), post: call('appcfg:post') },
+  appcfg: { get: call('appcfg:get'), post: call('appcfg:post'), assetPut: call('appcfg:assetPut'), asset: call('appcfg:asset') },
   capture: { protect: call('capture:protect') },
   annonce: { get: call('ann:get'), post: call('ann:post'), lu: call('ann:lu'), lus: call('ann:lus') },
   onNotifyGo: (cb) => ipcRenderer.on('notify:go', (e, sec) => cb(sec)),
