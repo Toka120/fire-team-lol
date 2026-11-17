@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.183",
+   "date": "2026-11-17",
+   "titre": "Le son du PC dans les clips, pour de vrai",
+   "items": [
+    [
+     "fix",
+     "Clips et vidéos de partie : le son du PC est enregistré. Pour capter le son, Windows ouvre aussi une petite capture d’image, que FIRE coupait aussitôt, et ça coupait le son avec. Elle reste maintenant ouverte (minuscule, 1 image par seconde, sans effet sur tes FPS). Si Windows coupe quand même le son, la page Clips l’indique."
+    ]
+   ]
+  },
+  {
    "v": "1.10.182",
    "date": "2026-11-17",
    "titre": "Nouveautés sur l’accueil, one-tricks sur onetricks.gg",

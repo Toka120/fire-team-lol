@@ -30,15 +30,16 @@
       st = await navigator.mediaDevices.getDisplayMedia({ audio: false, video: { frameRate: { ideal: Q.fps, max: Q.fps }, width: { max: Q.w }, height: { max: Q.h } } });
     }
     // Le son du PC : la même capture « loopback » que le partage d'écran avec son (celle qui marche partout sous Windows).
-    // Elle demande une image : on la prend toute petite et on la coupe aussitôt, on ne garde que le son.
+    // Elle demande aussi une image : on la prend toute petite (1 image/s) et on la GARDE ouverte, car l'arrêter
+    // coupe aussi le son sous Windows (les clips étaient muets). Elle est fermée avec le reste quand les clips s'arrêtent.
     C.snd = false;
     if (fs && C.opts.sound !== false) {
       try {
         await fs.pick(C.opts.sourceId, true);
         const a = await navigator.mediaDevices.getDisplayMedia({ audio: true, video: { width: { max: 320 }, height: { max: 180 }, frameRate: { max: 1 } } });
-        a.getVideoTracks().forEach((t) => t.stop());
         const at = a.getAudioTracks()[0];
-        if (at) { st.addTrack(at); C.snd = true; }
+        if (at) { C.loop = a; C.snd = true; at.onended = () => { C.snd = false; changed(); }; st.addTrack(at); }
+        else a.getTracks().forEach((t) => t.stop());
       } catch (e) { /* pas de son du PC : la vidéo et ta voix seulement */ }
     }
     return st;
@@ -123,6 +124,7 @@
     if (!pick) return;
     C.acodec = pick.kind;
     C.ac = new AudioContext({ sampleRate: 48000 });
+    if (C.ac.state === 'suspended') C.ac.resume().catch(() => {});
     C.mix = C.ac.createMediaStreamDestination();
     C.mix.channelCount = 2;
     if (deskTrack) { C.deskSrc = C.ac.createMediaStreamSource(new MediaStream([deskTrack])); C.deskSrc.connect(C.mix); }
@@ -181,6 +183,7 @@
     if (typeof R !== 'undefined' && R.on) recStop(true);
     C.stopRead.forEach((f) => f()); C.stopRead = [];
     if (C.st && !(C.opts && C.opts.stream)) C.st.getTracks().forEach((t) => t.stop());
+    if (C.loop) { C.loop.getTracks().forEach((t) => t.stop()); C.loop = null; }
     C.st = null;
     for (const k of ['venc', 'aenc']) { if (C[k]) { try { C[k].close(); } catch (e) { /* */ } C[k] = null; } }
     if (C.ac) { C.ac.close().catch(() => {}); C.ac = null; }
