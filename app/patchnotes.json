@@ -1,6 +1,37 @@
 {
  "versions": [
   {
+   "v": "1.10.193",
+   "date": "2026-11-17",
+   "titre": "Menu Admin : modifier FIRE sans mise à jour",
+   "items": [
+    [
+     "new",
+     "Nouveau menu 🛠️ Admin, réservé au créateur sur son PC. Ce qui y est publié est signé par sa clé et s’applique chez toute l’équipe (PC et téléphone) en 10 minutes, sans nouvelle version."
+    ],
+    [
+     "new",
+     "Admin › Apparence : nom de l’app, police (19 au choix), couleur principale, thème par défaut pour ceux qui n’en ont pas choisi."
+    ],
+    [
+     "new",
+     "Admin › Interrupteurs : anti capture d’écran pour tous, coupé, ou autorisé seulement à certains membres ; compagnons et fonds animés activables ou non pour toute l’équipe."
+    ],
+    [
+     "new",
+     "Admin › Menu et catégories : renommer, masquer, réordonner les rubriques, créer et nommer des catégories, ranger chaque rubrique où on veut."
+    ],
+    [
+     "new",
+     "Admin › Pages : créer des pages à soi (règlement, stratégie, liens utiles…) avec titres, textes, listes, liens, images, vidéos YouTube, citations et séparateurs, avec un aperçu en direct."
+    ],
+    [
+     "new",
+     "Admin › Textes et Accueil : changer le texte en haut de chaque rubrique et les messages de l’accueil. « Essayer sur mon PC » pour voir avant de publier, « Tout remettre par défaut » pour revenir à l’origine."
+    ]
+   ]
+  },
+  {
    "v": "1.10.192",
    "date": "2026-11-17",
    "titre": "Anti capture d’écran (activé)",

@@ -36,15 +36,22 @@
   const NAV = {
     accueil: 'Accueil', stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente',
     guides: 'Lanes et principes', coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', chat: 'Discussion', vocal: 'Vocal', carnet: 'Carnet de bord', annonces: 'Annonces', boutique: 'Boutique', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', puzzle: 'Puzzle du jour', apprendre: 'Apprendre en jouant', puzdraft: 'Puzzles de draft', scrims: 'Scrims', stream: 'Stream', revue: 'Revue de parties',
-    patch: 'Patch notes', settings: 'Paramètres',
+    patch: 'Patch notes', settings: 'Paramètres', admin: 'Admin',
   };
   const GROUPS = [['Équipe', ['accueil', 'stats', 'pool', 'planning']], ['Jeu', ['draft', 'train', 'jeux']],
-    ['Apprendre', ['parcours', 'apprendre', 'puzzle', 'puzdraft', 'guides', 'coach', 'worlds', 'lolpatch']], ['Outils', ['revue', 'scrims', 'parties', 'outils', 'reunion']], ['Social', ['chat', 'vocal', 'clips', 'stream', 'boutique']], [null, ['annonces', 'carnet', 'patch', 'settings']]];
+    ['Apprendre', ['parcours', 'apprendre', 'puzzle', 'puzdraft', 'guides', 'coach', 'worlds', 'lolpatch']], ['Outils', ['revue', 'scrims', 'parties', 'outils', 'reunion']], ['Social', ['chat', 'vocal', 'clips', 'stream', 'boutique']], [null, ['admin', 'annonces', 'carnet', 'patch', 'settings']]];
 
   // items : [{ id, label, badge, cls }] ; go(id) ouvre la rubrique.
-  function nav(box, items, current, go) {
+  // custom : catégories choisies par le créateur dans le menu Admin ([[titre, [ids]]]). Une rubrique rangée nulle part
+  // va dans « Autres » : rien ne disparaît par erreur.
+  function nav(box, items, current, go, custom) {
     const by = Object.fromEntries(items.map((x) => [x.id, x]));
-    const groups = GROUPS.map(([title, ids]) => {
+    const foot = GROUPS[GROUPS.length - 1];
+    let G = Array.isArray(custom) && custom.length ? custom.map(([t, ids]) => [t || '', (ids || []).filter((id) => !foot[1].includes(id))]).concat([foot]) : GROUPS.slice();
+    const placed = new Set(G.flatMap(([, ids]) => ids));
+    const rest = items.map((x) => x.id).filter((id) => !placed.has(id));
+    if (rest.length) G.splice(G.length - 1, 0, [Array.isArray(custom) && custom.length ? 'Autres' : 'Pages', rest]);
+    const groups = G.map(([title, ids]) => {
       const g = document.createElement('div');
       g.className = 'v2-group' + (title ? '' : ' foot');
       if (title) { const t = document.createElement('p'); t.className = 'v2-group-t'; t.textContent = title; g.append(t); }
@@ -54,11 +61,12 @@
         const b = document.createElement('button');
         b.className = 'navbtn' + (it.cls ? ' ' + it.cls : '');
         if (current === id) b.setAttribute('aria-current', 'page');
-        b.title = it.label;
+        b.title = it.label; b.dataset.id = id;
         b.setAttribute('aria-label', it.label + (it.badge ? ` (${it.badge})` : ''));
         b.addEventListener('click', () => go(id));
-        const ic = icon('navigation.' + NAV[id]);
+        const ic = NAV[id] ? icon('navigation.' + NAV[id]) : null;
         if (ic) b.append(ic);
+        else { const e = document.createElement('span'); e.className = 'v2i v2-emo'; e.textContent = it.ico || '📄'; b.append(e); }
         const l = document.createElement('span'); l.className = 'v2-lab'; l.textContent = it.label; b.append(l);
         if (it.badge) { const n = document.createElement('span'); n.className = 'nbadge'; n.textContent = it.badge; b.append(n); }
         g.append(b);
@@ -282,5 +290,5 @@
     document.documentElement.classList.add('v2');
     mount();
   }
-  window.FIREV2 = { on, icon, nav, decorate, set: (v) => { try { localStorage.setItem('fire.ui.v1', JSON.stringify(!v)); } catch (e) { /* stockage indisponible */ } location.reload(); } };
+  window.FIREV2 = { on, icon, nav, groups: () => GROUPS.slice(0, -1).map(([t, ids]) => [t, ids.slice()]), decorate, set: (v) => { try { localStorage.setItem('fire.ui.v1', JSON.stringify(!v)); } catch (e) { /* stockage indisponible */ } location.reload(); } };
 }());

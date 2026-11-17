@@ -458,7 +458,7 @@
     actInit();
     modInit(); voiceTrayInit();
     loadGuides();
-    window.fire.coach.state().then((c) => { S.coachState = c; if (SUB()) { subInit(); renderNav(); if (!SUB_OK.has(S.section)) go('stats'); else if (!typing()) render(); } else if (S.section === 'coach' && !typing()) render(); }).catch(() => {});
+    window.fire.coach.state().then((c) => { S.coachState = c; try { renderNav(); } catch (e) { /* */ } if (SUB()) { subInit(); renderNav(); if (!SUB_OK.has(S.section)) go('stats'); else if (!typing()) render(); } else if (S.section === 'coach' && !typing()) render(); }).catch(() => {});
     loadFiches();
     loadPools();
     loadPlanning();
@@ -469,6 +469,10 @@
     window.fire.team([]).then((r) => { if (r && r.games) { S.teamGames = r.games; if (S.section === 'stats' && !typing()) render(); } }).catch(() => {});
     refreshAll();
     S.timer = setInterval(refreshContent, REFRESH_EVERY);
+    // Personnalisation du créateur (menu Admin) : appliquée tout de suite (copie gardée), puis relue en ligne.
+    try { appCfgApply(); } catch (e) { /* */ }
+    setTimeout(() => appCfgLoad().catch(() => {}), 2500); setInterval(() => appCfgLoad().catch(() => {}), REFRESH_EVERY);
+    setInterval(() => { try { appCapture(); } catch (e) { /* */ } }, 60000);
     // Créneaux avec un coach : tant qu'une demande attend (ou sur le PC d'un coach), on regarde chaque minute
     // pour prévenir le joueur dès que le coach accepte ou refuse.
     setInterval(() => {
@@ -3417,10 +3421,12 @@
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
     $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
     const back = $('back');
-    back.hidden = S.section === 'carnet' || S.section === 'annonces' || S.section === 'boutique' || S.section === 'parcours' || S.section === 'puzzle' || S.section === 'apprendre' || S.section === 'puzdraft' || S.section === 'accueil' || S.section === 'scrims' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
+    back.hidden = S.section === 'admin' || String(S.section).startsWith('p_') || S.section === 'carnet' || S.section === 'annonces' || S.section === 'boutique' || S.section === 'parcours' || S.section === 'puzzle' || S.section === 'apprendre' || S.section === 'puzdraft' || S.section === 'accueil' || S.section === 'scrims' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
-    if (S.section === 'settings') renderSettings();
+    if (S.section === 'admin') renderAdmin();
+    else if (String(S.section).startsWith('p_')) renderCustomPage();
+    else if (S.section === 'settings') renderSettings();
     else if (S.section === 'web') renderWeb();
     else if (S.section === 'chat') renderChatPage();
     else if (S.section === 'carnet') renderCarnet();
@@ -3635,7 +3641,7 @@
         let n; do { n = news[Math.floor(Math.random() * news.length)]; } while (news.length > 1 && ACCE.fun && n.txt === ACCE.fun.txt);
         ACCE.fun = n;
       } else {
-        const pool = ACC_FUN.concat(hr < 6 || hr >= 23 ? ACC_NIGHT : hr < 11 ? ACC_MORNING : []);
+        const pool = (acfg().fun || []).length ? acfg().fun.slice() : ACC_FUN.concat(hr < 6 || hr >= 23 ? ACC_NIGHT : hr < 11 ? ACC_MORNING : []);
         let m; do { m = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && m === ACCE.fun);
         ACCE.fun = m;
       }
@@ -4741,7 +4747,8 @@
   const pourLabel = (p) => (!p || p === 'tous') ? "Toute l'équipe" : String(p).split(/\s+/).map((r) => (FC.ROLES[r] ? FC.ROLES[r].label : r)).join(' et ');
 
   function go(sec) {
-    if (SUB() && !SUB_OK.has(sec)) sec = 'stats';
+    if (SUB() && !SUB_OK.has(sec) && !String(sec).startsWith('p_')) sec = 'stats';
+    try { if (secHidden(sec)) sec = 'accueil'; } catch (e) { /* */ }
     if (MOBILE && MOBILE_OFF.has(sec)) sec = 'stats';
     try { accVisit(sec); } catch (e) { /* */ }
     // Revenir dans « Puzzle du jour » depuis une autre rubrique ramène à la liste, pas au puzzle laissé en plan.
@@ -7482,13 +7489,14 @@
       ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(annMine() ? [['annonces', '📢', 'Annonces']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', bugRepUnseen() ? String(bugRepUnseen()) : patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     if (MOBILE) { const keep = items.filter(([id]) => !MOBILE_OFF.has(id)); items.length = 0; items.push(...keep); }
+    try { navCustom(items); } catch (e) { console.error(e); }
     S.navItems = items;
     if (S.section === 'accueil' && document.querySelector('.acc-grid') && !typing()) accBadges();
     // Paramètres et Patch notes passent dans le menu de mon profil (rond en haut à droite) : la barre de gauche respire.
     try { meBtn(items); } catch (e) { console.error(e); }
     const shownNav = $('me-btn') ? items.filter(([id]) => id !== 'settings' && id !== 'patch') : items;
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
-    if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), shownNav.map(([id, , label, badge, cls]) => ({ id, label, badge, cls })), S.section, go); return; }
+    if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), shownNav.map(([id, ico, label, badge, cls]) => ({ id, ico, label, badge, cls })), S.section, go, (acfg().groups || []).length ? acfg().groups : null); return; }
     $('nav').replaceChildren(...shownNav.map(([id, ico, label, badge, cls]) => b(id, ico + ' ' + label, badge, cls)));
   }
 
@@ -11066,6 +11074,232 @@
   // les séances du planning d'équipe (sans les dispos des coachs ni les réponses de chacun).
   const SUB = () => !!(S.coachState && S.coachState.remplacant);
   // Version téléphone : pas ce qui lit le jeu, le client LoL ou l'écran du PC.
+  // ===================== Menu Admin (créateur) : personnaliser FIRE pour toute l'équipe =====================
+  // Tout est dans un fichier signé par la clé du créateur (coach.js › appCfg) : menu, catégories, pages, textes,
+  // apparence, CSS. Chaque FIRE l'applique au lancement puis toutes les 10 minutes.
+  const ADMIN_FONTS = [['', 'Celle de l’app (Inter)'], ['Poppins', 'Poppins'], ['Montserrat', 'Montserrat'], ['Outfit', 'Outfit'], ['Nunito', 'Nunito'], ['Lexend', 'Lexend'], ['Space Grotesk', 'Space Grotesk'], ['Rajdhani', 'Rajdhani'], ['Russo One', 'Russo One'], ['Orbitron', 'Orbitron'], ['Audiowide', 'Audiowide'], ['Cinzel', 'Cinzel'], ['Bebas Neue', 'Bebas Neue'], ['Fredoka', 'Fredoka'], ['Bangers', 'Bangers'], ['Permanent Marker', 'Permanent Marker'], ['Comic Neue', 'Comic Neue'], ['Press Start 2P', 'Press Start 2P (rétro)'], ['JetBrains Mono', 'JetBrains Mono']];
+  const fontKey = (n) => String(n || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const fontOf = (k) => (ADMIN_FONTS.find(([n]) => fontKey(n) === k) || [''])[0];
+  let APPCFG = load('fire.appcfg', null);
+  const ADM = { preview: null, draft: null, tab: 'look', page: null, msg: '', busy: false, at: 0 };
+  const acfg = () => ADM.preview || APPCFG || {};
+  const isAdmin = () => !!(S.coachState && S.coachState.admin);
+  const NEVER_HIDE = new Set(['accueil', 'settings', 'admin']);
+  async function appCfgLoad() {
+    if (!window.fire.appcfg) return;
+    const r = await window.fire.appcfg.get().catch(() => null);
+    if (!r || !r.ok) return;
+    const sig = JSON.stringify(r.cfg || null);
+    if (sig === JSON.stringify(APPCFG || null)) return;
+    APPCFG = r.cfg || null; ADM.at = r.at || 0; save('fire.appcfg', APPCFG);
+    appCfgApply(); if (!typing()) render();
+  }
+  function appCfgApply() {
+    const c = acfg();
+    let st = document.getElementById('fire-admin-css');
+    if (!st) { st = document.createElement('style'); st.id = 'fire-admin-css'; document.head.append(st); }
+    const font = fontOf(c.font);
+    st.textContent = [
+      c.accent ? `:root,html{--fire1:${c.accent};--accent:${c.accent}}` : '',
+      font ? `:root{--font:'${font}',system-ui,sans-serif} body,button,input,select,textarea,.v2-lab,.title,h1,h2,h3{font-family:'${font}',system-ui,sans-serif!important}` : '',
+      c.petsOff ? '#fire-pet{display:none!important}' : '',
+      c.fxOff ? '#fire-fx{display:none!important}' : '',
+      c.css || '',
+    ].join('\n');
+    appCapture();
+    const brand = c.brand || '';
+    document.querySelectorAll('.v2-brand span, .brand-sm span, #lock .brand').forEach((e) => { if (!e.dataset.orig) e.dataset.orig = e.textContent; e.textContent = brand || e.dataset.orig; });
+    document.title = brand || 'FIRE LoL';
+    // Thème par défaut de l'équipe : seulement pour ceux qui n'en ont pas choisi un.
+    if (c.theme && localStorage.getItem('fire.theme') == null && THEMES.some(([id]) => id === c.theme)) { try { applyTheme(c.theme); } catch (e) { /* */ } }
+  }
+  // Anti capture : actif pour tous, sauf si le créateur l'a coupé ou l'autorise à ce membre.
+  function appCapture() {
+    const c = acfg(); const me = vocalMe();
+    const allow = c.capture === 'off' || (!!me && (c.captureOk || []).includes(me));
+    try { if (window.fire.capture) window.fire.capture.protect(!allow); } catch (e) { /* */ }
+  }
+  // Rubriques : masquées, renommées, pages ajoutées, menu Admin pour le créateur.
+  function navCustom(items) {
+    const c = acfg();
+    for (const p of (c.pages || [])) if (!items.some(([id]) => id === p.id)) items.push([p.id, p.ico || '📄', p.title]);
+    if (isAdmin() && !items.some(([id]) => id === 'admin')) items.push(['admin', '🛠️', 'Admin']);
+    S.navAll = items.map((x) => x.slice());
+    const hide = new Set(c.hide || []);
+    const out = items.filter(([id]) => NEVER_HIDE.has(id) || !hide.has(id) || isAdmin());
+    for (const it of out) if (c.rename && c.rename[it[0]]) it[2] = c.rename[it[0]];
+    items.length = 0; items.push(...out);
+  }
+  const secHidden = (sec) => !isAdmin() && !NEVER_HIDE.has(sec) && (acfg().hide || []).includes(sec);
+  // Texte d'en-tête d'une rubrique remplacé par celui du créateur.
+  function heroOverride() {
+    const t = (acfg().hero || {})[S.section];
+    if (!t) return;
+    const p = document.querySelector('#view .sec-hero p');
+    if (p && p.textContent !== t) { p.textContent = t; p.removeAttribute('data-v2l'); }
+  }
+  new MutationObserver(() => { try { heroOverride(); } catch (e) { /* */ } }).observe(document.getElementById('view') || document.body, { childList: true });
+
+  // ----- Pages créées par le créateur -----
+  const admYt = (u) => { const m = String(u || '').match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/); return m ? m[1] : ''; };
+  const admUrl = (u) => /^https?:\/\//i.test(String(u || '').trim());
+  function pageBlocks(blocks) {
+    return (blocks || []).map((b) => {
+      if (b.t === 'h') return h('h2', { class: 'cp-h' }, b.v);
+      if (b.t === 'list') return h('ul', { class: 'cp-list' }, String(b.v || '').split('\n').map((x) => x.trim()).filter(Boolean).map((x) => h('li', null, x)));
+      if (b.t === 'link') return admUrl(b.u) ? h('a', { class: 'btn-ghost cp-link', href: b.u.trim(), target: '_blank', rel: 'noopener' }, '🔗 ' + (b.v || b.u)) : null;
+      if (b.t === 'img') return admUrl(b.u) || /^data:image\//.test(b.u || '') ? h('figure', { class: 'cp-img' }, h('img', { src: b.u.trim(), alt: '', loading: 'lazy' }), b.v ? h('figcaption', { class: 'muted small' }, b.v) : null) : null;
+      if (b.t === 'yt') { const id = admYt(b.u || b.v); return id ? h('button', { class: 'card cp-yt', onclick: () => webOpen('https://www.youtube.com/watch?v=' + id) }, h('img', { src: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`, alt: '' }), h('span', { class: 'cp-play' }, '▶'), b.v ? h('b', null, b.v) : null) : null; }
+      if (b.t === 'quote') return h('blockquote', { class: 'cp-quote' }, b.v);
+      if (b.t === 'sep') return h('hr', { class: 'cp-sep' });
+      return h('p', { class: 'cp-p' }, b.v);
+    }).filter(Boolean);
+  }
+  function renderCustomPage() {
+    const view = $('view');
+    const p = (acfg().pages || []).find((x) => x.id === S.section);
+    if (!p) { view.replaceChildren(h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Cette page n’existe plus.'))); return; }
+    view.replaceChildren(
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, p.ico || '📄'), h('div', null, h('h1', { class: 'title' }, p.title), p.sub ? h('p', { class: 'muted' }, p.sub) : null)),
+      h('div', { class: 'card cp-page' }, ...(p.blocks && p.blocks.length ? pageBlocks(p.blocks) : [h('p', { class: 'muted' }, 'Page vide pour l’instant.')]),
+        isAdmin() ? h('button', { class: 'linkbtn small', onclick: () => { admOpen(); ADM.tab = 'pages'; ADM.page = p.id; go('admin'); } }, '✏️ Modifier cette page (Admin)') : null));
+  }
+
+  // ----- Page Admin -----
+  const clone = (x) => JSON.parse(JSON.stringify(x || {}));
+  function admOpen() { if (!ADM.draft) ADM.draft = { hide: [], rename: {}, hero: {}, fun: [], accent: '', theme: '', brand: '', css: '', font: '', groups: [], pages: [], ...clone(APPCFG) }; }
+  const admDirty = () => JSON.stringify(ADM.draft) !== JSON.stringify({ hide: [], rename: {}, hero: {}, fun: [], accent: '', theme: '', brand: '', css: '', font: '', groups: [], pages: [], ...clone(APPCFG) });
+  function admGroups(D) {
+    if (D.groups && D.groups.length) return D.groups;
+    const base = window.FIREV2 && window.FIREV2.groups ? window.FIREV2.groups() : [['Rubriques', (S.navAll || []).map(([id]) => id)]];
+    D.groups = base.map(([t, ids]) => [t || '', ids.slice()]);
+    return D.groups;
+  }
+  async function admPublish(cfg) {
+    ADM.busy = true; ADM.msg = 'Publication…'; renderAdmin();
+    const r = await window.fire.appcfg.post(cfg, vocalMe() || '').catch((e) => ({ ok: false, error: String(e) }));
+    ADM.busy = false;
+    if (r && r.ok) { APPCFG = r.cfg; save('fire.appcfg', APPCFG); ADM.preview = null; ADM.draft = null; admOpen(); ADM.msg = '✅ Publié : toute l’équipe le reçoit dans les 10 minutes (ou en relançant FIRE).'; appCfgApply(); render(); }
+    else { ADM.msg = '⚠ ' + ((r && r.error) || 'publication impossible'); renderAdmin(); }
+  }
+  function renderAdmin() {
+    const view = $('view');
+    if (!isAdmin()) { view.replaceChildren(h('div', { class: 'card' }, h('p', null, '🛠️ Le menu Admin est réservé au créateur de FIRE, sur son PC.'))); return; }
+    admOpen();
+    const D = ADM.draft;
+    const set = (patch) => { Object.assign(D, patch); if (ADM.preview) { ADM.preview = clone(D); appCfgApply(); renderNav(); } renderAdmin(); };
+    const tabs = [['look', '🎨 Apparence'], ['switch', '🔧 Interrupteurs'], ['menu', '🗂️ Menu et catégories'], ['pages', '📄 Pages'], ['texts', '✍️ Textes'], ['home', '🏠 Accueil'], ['team', '👥 Équipe'], ['shop', '🛍️ Boutique'], ['css', '🧪 CSS avancé']];
+    const field = (label, help, el) => h('label', { class: 'adm-f' }, h('b', null, label), help ? h('small', { class: 'muted' }, help) : null, el);
+    let body;
+    if (ADM.tab === 'look') {
+      body = h('div', { class: 'adm-sec' },
+        field('Nom de l’app', 'Affiché dans le menu et sur l’écran du code. Vide : « FIRE LoL ».', h('input', { class: 'inp', value: D.brand || '', maxlength: 30, placeholder: 'FIRE LoL', onchange: (e) => set({ brand: e.target.value.trim() }) })),
+        field('Police de l’app', 'Pour tout le texte de FIRE, chez toute l’équipe.', h('select', { class: 'inp', onchange: (e) => set({ font: fontKey(e.target.value) }) }, ADMIN_FONTS.map(([n, l]) => h('option', { value: n, selected: fontKey(n) === (D.font || '') ? true : null, style: n ? `font-family:'${n}'` : '' }, l)))),
+        field('Couleur principale', 'Boutons, onglets actifs, liens. Vide : la couleur du thème.', h('div', { class: 'row' }, h('input', { type: 'color', value: D.accent || '#ff5e3a', onchange: (e) => set({ accent: e.target.value }) }), D.accent ? h('button', { class: 'linkbtn small', onclick: () => set({ accent: '' }) }, '↺ Couleur du thème') : h('small', { class: 'muted' }, 'couleur du thème'))),
+        field('Thème par défaut', 'Pour ceux qui n’ont pas encore choisi le leur (chacun garde son choix).', h('select', { class: 'inp', onchange: (e) => set({ theme: e.target.value }) }, [h('option', { value: '' }, '— celui de l’app (FIRE) —')].concat(THEMES.map(([id, l]) => h('option', { value: id, selected: D.theme === id ? true : null }, l))))));
+    } else if (ADM.tab === 'switch') {
+      const sw = (on, title, help, fn) => h('label', { class: 'vs-sw adm-sw' }, h('span', null, h('b', null, title), h('small', null, help)), h('input', { type: 'checkbox', class: 'vs-tog', checked: on ? true : null, onchange: (e) => fn(e.target.checked) }));
+      const members = (S.players || []).filter((p) => p.slug);
+      const ok = new Set(D.captureOk || []);
+      body = h('div', { class: 'adm-sec' },
+        sw(D.capture !== 'off', '🛡️ Anti capture d’écran', 'FIRE apparaît noir sur les captures, enregistrements et partages d’écran (PC). Décoche pour l’autoriser à tout le monde.', (v) => set({ capture: v ? '' : 'off' })),
+        D.capture !== 'off' ? h('div', { class: 'card adm-grp' }, h('b', null, 'Autoriser la capture à certains membres'), h('p', { class: 'muted small' }, 'Coche ceux qui ont le droit de capturer ou de partager FIRE (pour toi aussi).'),
+          h('div', { class: 'adm-who' }, members.map((p) => h('label', { class: 'adm-chk' }, h('input', { type: 'checkbox', checked: ok.has(p.slug) ? true : null, onchange: (e) => { const l = new Set(D.captureOk || []); if (e.target.checked) l.add(p.slug); else l.delete(p.slug); set({ captureOk: [...l] }); } }), avatarEl(p.slug, 'adm-av'), vocalName(p.slug))))) : null,
+        sw(!D.petsOff, '🐾 Compagnons', 'Les compagnons en bas à droite de l’app, pour toute l’équipe.', (v) => set({ petsOff: !v })),
+        sw(!D.fxOff, '✨ Fonds animés', 'Les effets des thèmes (pétales, neige, braises…). Décoche pour une app plus sobre et plus légère pour tous.', (v) => set({ fxOff: !v })),
+        h('p', { class: 'muted small' }, 'Pour masquer une rubrique entière (Boutique, Clips, Détente…), passe par « Menu et catégories ».'));
+    } else if (ADM.tab === 'menu') {
+      const G = admGroups(D);
+      const all = (S.navAll || []).filter(([id]) => !['admin', 'settings', 'patch', 'annonces', 'carnet'].includes(id));
+      const labelOf = (id) => (all.find((x) => x[0] === id) || [id, '', id])[2];
+      const placed = new Set(G.flatMap(([, ids]) => ids));
+      const loose = all.map(([id]) => id).filter((id) => !placed.has(id));
+      const moveG = (i, d) => { const j = i + d; if (j < 0 || j >= G.length) return; [G[i], G[j]] = [G[j], G[i]]; set({}); };
+      const moveI = (gi, k, d) => { const l = G[gi][1]; const j = k + d; if (j < 0 || j >= l.length) return; [l[k], l[j]] = [l[j], l[k]]; set({}); };
+      const toGroup = (id, gi) => { G.forEach((g) => { g[1] = g[1].filter((x) => x !== id); }); if (gi >= 0) G[gi][1].push(id); set({}); };
+      const row = (id, gi, k, n) => { const hid = (D.hide || []).includes(id);
+        return h('div', { class: 'adm-it' + (hid ? ' off' : '') },
+          h('input', { class: 'inp adm-name', value: (D.rename || {})[id] || '', placeholder: labelOf(id), title: 'Nouveau nom (vide : nom d’origine)', onchange: (e) => { const r = { ...(D.rename || {}) }; if (e.target.value.trim()) r[id] = e.target.value.trim(); else delete r[id]; set({ rename: r }); } }),
+          NEVER_HIDE.has(id) ? h('small', { class: 'muted' }, 'toujours visible') : h('label', { class: 'adm-chk', title: 'Visible pour l’équipe' }, h('input', { type: 'checkbox', checked: hid ? null : true, onchange: (e) => set({ hide: e.target.checked ? (D.hide || []).filter((x) => x !== id) : [...new Set([...(D.hide || []), id])] }) }), 'visible'),
+          h('select', { class: 'inp adm-g', title: 'Catégorie', onchange: (e) => toGroup(id, Number(e.target.value)) }, G.map(([t], i) => h('option', { value: i, selected: i === gi ? true : null }, t || 'Sans titre'))),
+          gi >= 0 ? h('span', { class: 'adm-mv' }, h('button', { disabled: k === 0 ? true : null, onclick: () => moveI(gi, k, -1) }, '↑'), h('button', { disabled: k === n - 1 ? true : null, onclick: () => moveI(gi, k, 1) }, '↓')) : null); };
+      body = h('div', { class: 'adm-sec' },
+        h('p', { class: 'muted small' }, 'Renomme, masque, range les rubriques dans tes catégories et choisis leur ordre. Les rubriques masquées restent visibles pour toi seul. Les pages que tu crées apparaissent ici aussi.'),
+        ...G.map(([t, ids], gi) => h('div', { class: 'card adm-grp' },
+          h('div', { class: 'row adm-gh' }, h('input', { class: 'inp adm-gt', value: t, placeholder: 'Nom de la catégorie', onchange: (e) => { G[gi][0] = e.target.value.trim(); set({}); } }),
+            h('span', { class: 'adm-mv' }, h('button', { disabled: gi === 0 ? true : null, onclick: () => moveG(gi, -1), title: 'Monter la catégorie' }, '↑'), h('button', { disabled: gi === G.length - 1 ? true : null, onclick: () => moveG(gi, 1), title: 'Descendre la catégorie' }, '↓')),
+            h('button', { class: 'linkbtn small', onclick: () => { if (ids.length && !confirm('Les rubriques de cette catégorie iront dans « Autres ». Supprimer la catégorie ?')) return; G.splice(gi, 1); set({}); } }, '🗑️ Supprimer')),
+          ids.length ? ids.filter((id) => all.some(([x]) => x === id)).map((id, k, arr) => row(id, gi, k, arr.length)) : h('p', { class: 'muted small' }, 'Catégorie vide : choisis-la dans la liste d’une rubrique pour l’y ranger.'))),
+        loose.length ? h('div', { class: 'card adm-grp' }, h('b', null, 'Rangées nulle part (affichées dans « Autres »)'), loose.map((id) => row(id, -1, 0, 1))) : null,
+        h('button', { class: 'btn-ghost', onclick: () => { G.push(['Nouvelle catégorie', []]); set({}); } }, '➕ Ajouter une catégorie'),
+        h('button', { class: 'linkbtn small', onclick: () => { D.groups = []; D.hide = []; D.rename = {}; set({}); } }, '↺ Menu d’origine'));
+    } else if (ADM.tab === 'pages') {
+      const P = D.pages || (D.pages = []);
+      const cur = P.find((p) => p.id === ADM.page);
+      if (!cur) {
+        body = h('div', { class: 'adm-sec' },
+          h('p', { class: 'muted small' }, 'Crée tes propres pages (sous-catégories) : règlement, stratégie de la semaine, liens utiles, vidéos à voir… Elles s’ajoutent au menu ; range-les ensuite dans « Menu et catégories ».'),
+          P.length ? P.map((p, i) => h('div', { class: 'adm-it' }, h('span', { class: 'adm-pico' }, p.ico || '📄'), h('b', { class: 'adm-ptitle' }, p.title), h('small', { class: 'muted' }, `${(p.blocks || []).length} bloc${(p.blocks || []).length > 1 ? 's' : ''}`),
+            h('button', { class: 'btn-ghost small-btn', onclick: () => { ADM.page = p.id; renderAdmin(); } }, '✏️ Modifier'),
+            h('button', { class: 'linkbtn small', onclick: () => { if (!confirm(`Supprimer la page « ${p.title} » ?`)) return; P.splice(i, 1); set({}); } }, '🗑️'))) : h('p', { class: 'muted' }, 'Aucune page pour l’instant.'),
+          h('button', { class: 'btn-fire', onclick: () => { const p = { id: 'p_' + Date.now().toString(36), title: 'Nouvelle page', ico: '📄', sub: '', blocks: [{ t: 'p', v: 'Écris ici…', u: '' }] }; P.push(p); ADM.page = p.id; set({}); } }, '➕ Nouvelle page'));
+      } else {
+        const B = cur.blocks || (cur.blocks = []);
+        const T = { h: 'Titre', p: 'Texte', list: 'Liste', link: 'Lien', img: 'Image', yt: 'Vidéo YouTube', quote: 'Citation', sep: 'Séparateur' };
+        const mv = (k, d) => { const j = k + d; if (j < 0 || j >= B.length) return; [B[k], B[j]] = [B[j], B[k]]; set({}); };
+        const blk = (b, k) => h('div', { class: 'card adm-blk' },
+          h('div', { class: 'row adm-bh' }, h('b', null, T[b.t] || b.t), h('span', { class: 'spacer' }),
+            h('span', { class: 'adm-mv' }, h('button', { disabled: k === 0 ? true : null, onclick: () => mv(k, -1) }, '↑'), h('button', { disabled: k === B.length - 1 ? true : null, onclick: () => mv(k, 1) }, '↓')),
+            h('button', { class: 'linkbtn small', onclick: () => { B.splice(k, 1); set({}); } }, '🗑️')),
+          b.t === 'sep' ? null : ['link', 'img', 'yt'].includes(b.t)
+            ? [h('input', { class: 'inp', value: b.u || '', placeholder: b.t === 'yt' ? 'Lien YouTube' : b.t === 'img' ? 'Lien de l’image (https://…)' : 'Adresse (https://…)', onchange: (e) => { b.u = e.target.value.trim(); set({}); } }),
+              h('input', { class: 'inp', value: b.v || '', placeholder: b.t === 'link' ? 'Texte du lien' : 'Légende (facultatif)', onchange: (e) => { b.v = e.target.value; set({}); } })]
+            : h('textarea', { class: 'inp', rows: b.t === 'h' ? 1 : b.t === 'list' ? 4 : 3, placeholder: b.t === 'list' ? 'Un élément par ligne' : '', onchange: (e) => { b.v = e.target.value; set({}); } }, b.v || ''));
+        body = h('div', { class: 'adm-sec' },
+          h('button', { class: 'linkbtn small', onclick: () => { ADM.page = null; renderAdmin(); } }, '← Toutes les pages'),
+          h('div', { class: 'row adm-ph' }, h('input', { class: 'inp adm-ico', value: cur.ico || '', maxlength: 8, title: 'Émoji de la page', onchange: (e) => { cur.ico = e.target.value.trim(); set({}); } }),
+            h('input', { class: 'inp', value: cur.title, maxlength: 60, placeholder: 'Titre de la page', onchange: (e) => { cur.title = e.target.value.trim() || 'Page'; set({}); } })),
+          h('input', { class: 'inp', value: cur.sub || '', maxlength: 300, placeholder: 'Sous-titre (facultatif)', onchange: (e) => { cur.sub = e.target.value; set({}); } }),
+          ...B.map(blk),
+          h('div', { class: 'row adm-add' }, h('small', { class: 'muted' }, 'Ajouter :'), ...Object.entries(T).map(([t, l]) => h('button', { class: 'chip', onclick: () => { B.push({ t, v: '', u: '' }); set({}); } }, '+ ' + l))),
+          h('div', { class: 'card adm-prev' }, h('small', { class: 'muted' }, 'Aperçu'), h('h2', null, (cur.ico || '📄') + ' ' + cur.title), cur.sub ? h('p', { class: 'muted' }, cur.sub) : null, ...pageBlocks(B)));
+      }
+    } else if (ADM.tab === 'texts') {
+      const all = (S.navAll || []).filter(([id]) => !String(id).startsWith('p_') && id !== 'admin');
+      body = h('div', { class: 'adm-sec' },
+        h('p', { class: 'muted small' }, 'Le petit texte en haut de chaque rubrique. Vide : le texte d’origine.'),
+        ...all.map(([id, ico, label]) => field(ico + ' ' + ((D.rename || {})[id] || label), null, h('textarea', { class: 'inp', rows: 2, maxlength: 400, placeholder: 'Texte d’origine', onchange: (e) => { const x = { ...(D.hero || {}) }; if (e.target.value.trim()) x[id] = e.target.value.trim(); else delete x[id]; set({ hero: x }); } }, (D.hero || {})[id] || ''))));
+    } else if (ADM.tab === 'home') {
+      body = h('div', { class: 'adm-sec' },
+        field('Messages de l’accueil', 'La petite phrase sous « Salut … », tirée au hasard. Un message par ligne. Vide : les messages drôles d’origine.',
+          h('textarea', { class: 'inp', rows: 10, placeholder: 'Bonnes games !\nPense à ward 👁️\n…', onchange: (e) => set({ fun: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 80) }) }, (D.fun || []).join('\n'))),
+        h('div', { class: 'card' }, h('b', null, '📣 Annonce à toute l’équipe'), h('p', { class: 'muted small' }, 'Un message qui s’affiche chez tout le monde jusqu’à ce qu’on clique « Accepter ».'), h('button', { class: 'btn-ghost', onclick: () => go('annonces') }, 'Écrire une annonce →')));
+    } else if (ADM.tab === 'team') {
+      body = h('div', { class: 'adm-sec' },
+        h('div', { class: 'card' }, h('b', null, '👥 Membres, rôles et modérateurs'), h('p', { class: 'muted small' }, 'Valider les nouveaux, choisir les modérateurs, voir l’activité : dans le carnet de bord.'), h('button', { class: 'btn-ghost', onclick: () => go('carnet') }, 'Ouvrir le carnet de bord →')),
+        h('div', { class: 'card' }, h('b', null, '🚫 Bannir quelqu’un'), h('p', { class: 'muted small' }, 'Arrive dans la prochaine étape : bannir un membre verrouille son FIRE, le retire des listes, du vocal et de la discussion.')));
+    } else if (ADM.tab === 'shop') {
+      body = h('div', { class: 'adm-sec' }, h('div', { class: 'card' }, h('b', null, '🛍️ Ajouter dans la Boutique'), h('p', { class: 'muted small' }, 'Arrive dans une prochaine étape : ajouter toi-même des compagnons, bannières et cadres en envoyant une image.')));
+    } else {
+      body = h('div', { class: 'adm-sec' },
+        field('CSS de l’équipe', 'Pour aller au bout : tout ce que tu écris ici s’applique au style de FIRE chez tout le monde (couleurs, tailles, arrondis, cacher un bloc…). « Essayer sur mon PC » pour voir avant de publier.',
+          h('textarea', { class: 'inp adm-css', rows: 16, spellcheck: 'false', placeholder: '/* exemple */\n.card { border-radius: 24px; }\n.navbtn { font-size: 15px; }', onchange: (e) => set({ css: e.target.value.slice(0, 20000) }) }, D.css || '')));
+    }
+    const dirty = admDirty();
+    view.replaceChildren(
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🛠️'), h('div', null, h('h1', { class: 'title' }, 'Admin'),
+        h('p', { class: 'muted' }, 'Modifie FIRE pour toute l’équipe, sans mise à jour : menu, catégories, pages, textes, apparence. Tes changements sont signés par ta clé de créateur : personne d’autre ne peut publier ici.'))),
+      h('div', { class: 'row plan-tabs adm-tabs' }, tabs.map(([k, l]) => h('button', { class: 'plan-tab', 'aria-pressed': String(ADM.tab === k), onclick: () => { ADM.tab = k; renderAdmin(); } }, l))),
+      h('div', { class: 'card adm-body' }, body),
+      h('div', { class: 'card adm-bar' },
+        h('div', { class: 'row' },
+          h('button', { class: 'btn-ghost', 'aria-pressed': String(!!ADM.preview), onclick: () => { ADM.preview = ADM.preview ? null : clone(D); appCfgApply(); render(); } }, ADM.preview ? '👁️ Aperçu actif (cliquer pour l’arrêter)' : '👁️ Essayer sur mon PC'),
+          h('button', { class: 'btn-fire', disabled: ADM.busy || !dirty ? true : null, onclick: () => admPublish(D) }, '📤 Publier pour toute l’équipe'),
+          dirty ? h('button', { class: 'linkbtn small', onclick: () => { ADM.draft = null; ADM.preview = null; appCfgApply(); render(); } }, '↶ Annuler mes changements') : null,
+          h('span', { class: 'spacer' }),
+          h('button', { class: 'linkbtn small', onclick: () => { if (confirm('Remettre tout FIRE comme à l’origine pour toute l’équipe ?')) admPublish({}); } }, '⟲ Tout remettre par défaut')),
+        h('small', { class: dirty ? 'warn' : 'muted' }, ADM.msg || (dirty ? '● Changements pas encore publiés' : APPCFG ? 'Tout est publié.' : 'FIRE est comme à l’origine.'))));
+  }
   const MOBILE = !!window.FIRE_MOBILE;
   const MOBILE_OFF = new Set(['train', 'clips', 'parties', 'reunion', 'lolpatch', 'web']);
   const SUB_OK = new Set(['boutique', 'accueil', 'stats', 'planning', 'jeux', 'puzzle', 'stream', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);

@@ -1148,6 +1148,82 @@ async function annoncePost(texte, who, retirer) {
     throw new Error("l'annonce a changé pendant l'envoi, réessaie");
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
+// ---------- Personnalisation de FIRE par le créateur (menu Admin) ----------
+// Rubriques masquées ou renommées, textes, messages de l'accueil, couleurs, nom de l'app, CSS : un seul fichier
+// dans le dépôt de données, chiffré pour l'équipe et signé par la clé du créateur. Sans signature valide, ignoré.
+const APPCFG = 'admin/app.json';
+const sid = (x) => String(x || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 24);
+function appCfgClean(c) {
+  c = c && typeof c === 'object' ? c : {};
+  const map = (o, n) => { const out = {}; for (const k of Object.keys(o && typeof o === 'object' ? o : {}).map(sid).filter(Boolean).sort().slice(0, 80)) { const v = str(o[k], n); if (v) out[k] = v; } return out; };
+  const accent = /^#[0-9a-f]{6}$/i.test(String(c.accent || '')) ? String(c.accent).toLowerCase() : '';
+  return {
+    hide: [...new Set((Array.isArray(c.hide) ? c.hide : []).map(sid).filter(Boolean))].sort().slice(0, 60),
+    rename: map(c.rename, 40),
+    hero: map(c.hero, 400),
+    fun: (Array.isArray(c.fun) ? c.fun : []).map((x) => str(x, 160)).filter(Boolean).slice(0, 80),
+    accent,
+    theme: sid(c.theme),
+    brand: str(c.brand, 30),
+    css: String(c.css || '').slice(0, 20000),
+    font: sid(c.font),
+    // Interrupteurs : anti capture (pour tous, ou autorisé pour certains membres), compagnons, fonds animés.
+    capture: c.capture === 'off' ? 'off' : '',
+    captureOk: [...new Set((Array.isArray(c.captureOk) ? c.captureOk : []).map((x) => str(x, 80)).filter(Boolean))].slice(0, 60),
+    petsOff: !!c.petsOff,
+    fxOff: !!c.fxOff,
+    // Catégories du menu : [[titre, [rubriques]]]
+    groups: (Array.isArray(c.groups) ? c.groups : []).slice(0, 20).map((g) => [str(Array.isArray(g) ? g[0] : '', 40), (Array.isArray(g) && Array.isArray(g[1]) ? g[1] : []).map(sid).filter(Boolean).slice(0, 60)]),
+    // Pages créées par le créateur : des blocs de contenu (titre, texte, liste, lien, image, vidéo, citation).
+    pages: (Array.isArray(c.pages) ? c.pages : []).slice(0, 40).map((p) => ({
+      id: 'p_' + sid(String(p && p.id || '').replace(/^p_/, '')).slice(0, 20),
+      title: str(p && p.title, 60) || 'Page',
+      ico: str(p && p.ico, 8),
+      sub: str(p && p.sub, 300),
+      blocks: (p && Array.isArray(p.blocks) ? p.blocks : []).slice(0, 80).map((b) => ({ t: ['h', 'p', 'list', 'link', 'img', 'yt', 'quote', 'sep'].includes(b && b.t) ? b.t : 'p', v: str(b && b.v, 4000), u: str(b && b.u, 2000) })),
+    })).filter((p) => p.id.length > 2),
+  };
+}
+const appCfgCanon = (a) => 'FIRE-appcfg:' + JSON.stringify([Number(a.at), String(a.by || ''), appCfgClean(a.cfg)]);
+function appCfgVerify(a) {
+  if (!a || !a.sig) return false;
+  for (const k of (getConfig().admins || [])) {
+    try { if (k && k.pub && crypto.verify('sha256', Buffer.from(appCfgCanon(a)), crypto.createPublicKey({ key: Buffer.from(String(k.pub), 'base64'), format: 'der', type: 'spki' }), Buffer.from(String(a.sig), 'base64'))) return true; } catch (e) { /* clé suivante */ }
+  }
+  return false;
+}
+async function appCfgGet() {
+  try {
+    const dr = getConfig().data_repo || null;
+    if (!dr) return { ok: true, cfg: null };
+    const tok = teamKey() ? await teamToken().catch(() => null) : null;
+    let f = null;
+    try { f = await readPublic(APPCFG, dr, tok); if (f) saveCache('appcfg', f); } catch (e) { f = loadCache('appcfg'); }
+    if (!f || typeof f !== 'object') return { ok: true, cfg: null };
+    let cur = null;
+    if (teamKey() && f.team) { try { cur = open(f.team); } catch (e) { cur = null; } } else if (f.remp) cur = rempOpen(f.remp);
+    if (!cur || !appCfgVerify(cur)) return { ok: true, cfg: null };
+    return { ok: true, cfg: appCfgClean(cur.cfg), at: Number(cur.at), by: String(cur.by || '') };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e), cfg: null }; }
+}
+async function appCfgPost(cfg, who) {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  const k = adminKey();
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, error: "le coach n'a pas encore activé le jeton d'équipe" };
+  const a = { at: Date.now(), by: String(who || '').slice(0, 80), cfg: appCfgClean(cfg) };
+  a.sig = crypto.sign('sha256', Buffer.from(appCfgCanon(a)), crypto.createPrivateKey(k.priv)).toString('base64');
+  try {
+    for (let i = 0; i < 4; i++) {
+      const cur = await ghGet(tok, APPCFG, dr);
+      const file = { v: 1, at: a.at, team: seal(a, APPCFG), remp: rempSeal(a) };
+      const r = await ghPut(tok, APPCFG, file, cur && cur.sha, 'Personnalisation de FIRE', dr);
+      if (r.ok) { saveCache('appcfg', file); return { ok: true, cfg: a.cfg, at: a.at }; }
+    }
+    throw new Error('la personnalisation a changé pendant l’envoi, réessaie');
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
 // « J'ai lu » : chacun écrit son fichier ; un titulaire l'écrit aussi pour un remplaçant (reçu de PC à PC).
 async function annonceLu(id, slug, at) {
   id = String(id || '').replace(/[^\w-]/g, '').slice(0, 30); slug = String(slug || '').slice(0, 80);
@@ -1706,4 +1782,4 @@ async function revueNote(id, note, del) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 
-module.exports = { clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { appCfgGet, appCfgPost, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

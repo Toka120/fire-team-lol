@@ -3,11 +3,13 @@
 // avec toutes les rubriques par catégorie, tirer vers le bas pour mettre à jour, bouton retour d'Android qui ferme le menu.
 (function () {
   const H = document.documentElement;
-  const TABS = [['Accueil', 'Accueil'], ['Stats des joueurs', 'Stats'], ['Planning', 'Planning'], ['Discussion', 'Discussion'], ['__plus', 'Plus']];
+  // Onglets par identifiant de rubrique (le créateur peut renommer les rubriques dans le menu Admin).
+  const TABS = [['accueil', 'Accueil'], ['stats', 'Stats'], ['planning', 'Planning'], ['chat', 'Discussion'], ['__plus', 'Plus']];
   const PLUS_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" class="v2i"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
   const navBtns = () => [...document.querySelectorAll('#nav .navbtn')];
   const titleOf = (b) => (b.getAttribute('title') || b.textContent || '').trim();
-  const navBtn = (t) => navBtns().find((b) => titleOf(b) === t);
+  const idOf = (b) => (b && b.dataset.id) || '';
+  const navBtn = (t) => navBtns().find((b) => idOf(b) === t || titleOf(b) === t);
   const activeBtn = () => navBtns().find((b) => b.getAttribute('aria-current') === 'page' || b.classList.contains('on'));
   const badgeOf = (b) => { const x = b && b.querySelector('.v2-badge, .badge, .nbadge'); return x && !x.hidden ? x.textContent.trim() : ''; };
   const svgOf = (b) => { const s = b && b.querySelector('svg'); return s ? s.outerHTML : ''; };
@@ -38,7 +40,7 @@
         const name = titleOf(b);
         const it = el('button', 'mob-tile' + (b === activeBtn() ? ' on' : ''), svgOf(b) + `<span>${name}</span>`);
         const bd = badgeOf(b); if (bd) it.append(el('b', 'mob-badge', bd));
-        it.onclick = () => go(name);
+        it.onclick = () => go(idOf(b) || name);
         grid.append(it);
       }
       inner.append(grid);
@@ -94,13 +96,14 @@
     if (!bar) return;
     const a = activeBtn();
     const name = a ? titleOf(a) : '';
-    const inTabs = TABS.some(([t]) => t === name);
+    const aid = a ? idOf(a) : '';
+    const inTabs = TABS.some(([t]) => t === aid);
     for (const b of bar.querySelectorAll('.mob-tab')) {
       const t = b.dataset.t;
-      const on = t === '__plus' ? (!!sheet || (!!name && !inTabs)) : (!sheet && t === name);
+      const on = t === '__plus' ? (!!sheet || (!!aid && !inTabs)) : (!sheet && t === aid);
       b.classList.toggle('on', on);
       let bd = '';
-      if (t === '__plus') bd = navBtns().filter((n) => !TABS.some(([x]) => x === titleOf(n)) && badgeOf(n)).length ? '•' : '';
+      if (t === '__plus') bd = navBtns().filter((n) => !TABS.some(([x]) => x === idOf(n)) && badgeOf(n)).length ? '•' : '';
       else bd = badgeOf(navBtn(t));
       let e = b.querySelector('.mob-badge');
       if (bd && !e) { e = el('b', 'mob-badge'); b.append(e); }
@@ -111,10 +114,10 @@
       title.textContent = back && !back.hidden ? '' : name;
       H.classList.toggle('mob-has-back', !!(back && !back.hidden));
     }
-    if (name && name !== lastSec) {
-      const prev = lastSec; lastSec = name; H.dataset.sec = name;
-      if (prev && !fromPop) { try { history.pushState({ mobSec: name }, ''); } catch (e) { /* */ } }
-      else if (!prev) { try { history.replaceState({ mobSec: name }, ''); } catch (e) { /* */ } }
+    if (aid && aid !== lastSec) {
+      const prev = lastSec; lastSec = aid; H.dataset.sec = aid;
+      if (prev && !fromPop) { try { history.pushState({ mobSec: aid }, ''); } catch (e) { /* */ } }
+      else if (!prev) { try { history.replaceState({ mobSec: aid }, ''); } catch (e) { /* */ } }
       fromPop = false;
     }
   }

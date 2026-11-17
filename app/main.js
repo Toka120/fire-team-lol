@@ -13,7 +13,10 @@ function cleanUA() {
 cleanUA();
 // Anti capture : les fenêtres de FIRE apparaissent noires dans les captures d'écran, les enregistrements
 // et les partages d'écran (Discord, OBS, outil Capture de Windows…). Demandé par l'équipe pour garder ses infos privées.
-app.on('browser-window-created', (e, w) => { try { w.setContentProtection(true); } catch (err) { /* */ } });
+let captureBlock = true;
+app.on('browser-window-created', (e, w) => { try { w.setContentProtection(captureBlock); } catch (err) { /* */ } });
+// Le créateur peut couper l'anti capture pour tous, ou l'autoriser à certains membres (menu Admin › Interrupteurs).
+ipcMain.handle('capture:protect', (e, on) => { captureBlock = !!on; for (const w of BrowserWindow.getAllWindows()) { try { w.setContentProtection(captureBlock); } catch (err) { /* */ } } return captureBlock; });
 app.whenReady().then(() => {
   cleanUA();
   // Les sessions déjà créées gardent leur signature : on la nettoie aussi.
@@ -1271,6 +1274,8 @@ ipcMain.handle('roles:save', (e, modos, who) => coach.rolesSave(modos, who));
 ipcMain.handle('act:push', (e, slug, evts) => coach.activityPush(slug, evts));
 ipcMain.handle('act:all', (e, slugs) => coach.activityAll(slugs));
 ipcMain.handle('staff:notes', () => coach.staffNotes());
+ipcMain.handle('appcfg:get', () => coach.appCfgGet());
+ipcMain.handle('appcfg:post', (e, cfg, who) => coach.appCfgPost(cfg, String(who || '')));
 ipcMain.handle('ann:get', (e, f) => coach.annonceGet(f && typeof f === 'object' ? f : null));
 ipcMain.handle('ann:post', (e, texte, who, retirer) => coach.annoncePost(String(texte || ''), String(who || ''), !!retirer));
 ipcMain.handle('ann:lu', (e, id, slug, at) => coach.annonceLu(id, slug, at));
