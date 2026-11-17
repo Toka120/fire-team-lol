@@ -2159,15 +2159,25 @@
     }
   }
   const rvVid = () => (RV.video && RV.video.isConnected && RV.g && RV.g.vod ? RV.video : null);
-  function rvStop() { RV.play = false; clearInterval(RV.timer); RV.timer = null; const v = rvVid(); if (v && !v.paused) v.pause(); }
+  function rvStop() { RV.play = false; RV.scrub = false; clearInterval(RV.timer); RV.timer = null; const v = rvVid(); if (v && !v.paused) v.pause(); }
   const rvPaintTl = () => rvPaint();
   function rvPlay() {
     if (RV.play) { rvStop(); rvPaint(); return; }
     const v = rvVid();
-    // Avec la vidéo : c'est elle qui avance (jusqu'à ×16, au-delà le navigateur coupe le son et saccade).
-    if (v && !v.error) { v.playbackRate = Math.min(16, RV.speed || 1); v.play().catch(() => {}); return; }
+    // Avec la vidéo jusqu'à ×4 : c'est elle qui avance, avec le son.
+    if (v && !v.error && (RV.speed || 1) <= 4) { v.playbackRate = RV.speed || 1; v.play().catch(() => {}); return; }
+    // Plus vite (×8, ×16) : un PC ne décode pas 240 images par seconde, la vidéo se figeait et la partie se
+    // désynchronisait. FIRE fait avancer le temps lui-même et montre l'image de la vidéo à chaque pas.
     RV.play = true;
-    RV.timer = setInterval(() => { if (!RV.g || S.section !== 'revue') { rvStop(); return; } RV.t = Math.min(RV.g.duration || 0, RV.t + RV.speed * 0.25); if (RV.t >= (RV.g.duration || 0)) rvStop(); rvPaint(); }, 250);
+    if (v && !v.error) { RV.scrub = true; if (!v.paused) v.pause(); }
+    RV.timer = setInterval(() => {
+      if (!RV.g || S.section !== 'revue') { rvStop(); return; }
+      RV.t = Math.min(RV.g.duration || 0, RV.t + RV.speed * 0.25);
+      const vv = rvVid();
+      if (RV.scrub && vv && !vv.error && !vv.seeking) { const to = Math.max(0, RV.t - (RV.g.vod.gt0 || 0)); try { if (vv.fastSeek) vv.fastSeek(to); else vv.currentTime = to; } catch (e) { /* */ } }
+      if (RV.t >= (RV.g.duration || 0)) rvStop();
+      rvPaint();
+    }, 250);
     rvPaint();
   }
   function rvSeek(t) {
@@ -2255,8 +2265,8 @@
     RV.video = video;
     if (video) {
       video.addEventListener('timeupdate', () => { if (RV.g !== g || video.paused) return; RV.t = Math.min(g.duration || 0, (g.vod.gt0 || 0) + video.currentTime); rvPaint(); });
-      video.addEventListener('play', () => { RV.play = true; rvPaintTl(); });
-      video.addEventListener('pause', () => { RV.play = false; rvPaintTl(); });
+      video.addEventListener('play', () => { if (RV.scrub) { clearInterval(RV.timer); RV.timer = null; RV.scrub = false; } video.playbackRate = Math.min(4, RV.speed || 1); RV.play = true; rvPaintTl(); });
+      video.addEventListener('pause', () => { if (RV.scrub) return; RV.play = false; rvPaintTl(); });
       video.addEventListener('error', () => { const n = document.querySelector('.rv-vnote'); if (n) n.textContent = 'Vidéo introuvable (déplacée ou supprimée de Vidéos › FIRE Clips › Parties).'; });
     }
     const fights = h('div', { class: 'rv-fights' });
@@ -2367,7 +2377,7 @@
       const bar = h('div', { class: 'rv-bar', onclick: (e) => { const r = e.currentTarget.getBoundingClientRect(); rvSeek((e.clientX - r.left) / r.width * D); } }, h('div', { class: 'rv-fill', style: `width:${t / D * 100}%` }), ...marks, h('i', { class: 'rv-head-m', style: `left:${t / D * 100}%` }));
       tl.replaceChildren(...[h('button', { class: 'btn-fire small-btn rv-pl', onclick: rvPlay }, RV.play ? '⏸' : '▶'),
         h('b', { class: 'rv-time' }, `${mmss(t)} / ${mmss(D)}`), bar,
-        h('select', { class: 'inp rv-sp', onchange: (e) => { RV.speed = Number(e.target.value); const v = rvVid(); if (v) v.playbackRate = Math.min(16, RV.speed); } }, (rvVid() ? [1, 2, 4, 8, 16] : [4, 8, 16, 32]).map((x) => h('option', { value: x, selected: RV.speed === x ? true : null }, `×${x}`))),
+        h('select', { class: 'inp rv-sp', onchange: (e) => { RV.speed = Number(e.target.value); e.target.blur(); const was = RV.play; if (was) { rvStop(); rvPlay(); } else { const v = rvVid(); if (v) v.playbackRate = Math.min(4, RV.speed); } } }, (rvVid() ? [1, 2, 4, 8, 16] : [4, 8, 16, 32]).map((x) => h('option', { value: x, selected: RV.speed === x ? true : null }, `×${x}`))),
         clips.length ? h('small', { class: 'muted' }, `🎬 ${clips.length} clip${clips.length > 1 ? 's' : ''}`) : null].filter(Boolean));
     }
     // Combats : gagnés / perdus, cliquables ; sur un combat perdu, on coche ce qui n'a pas marché (ça devient une note).

@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.179",
+   "date": "2026-11-17",
+   "titre": "Revue de parties : ×8 et ×16 réparés",
+   "items": [
+    [
+     "fix",
+     "Revue de parties : en ×8 et ×16, la vidéo ne se fige plus et la carte reste synchronisée. Au-delà de ×4, un PC n’arrive pas à décoder la vidéo aussi vite : FIRE fait maintenant avancer la partie lui-même et affiche l’image de la vidéo à chaque pas. Jusqu’à ×4, la vidéo se lit normalement, avec le son. Changer de vitesse pendant la lecture marche aussi."
+    ]
+   ]
+  },
+  {
    "v": "1.10.178",
    "date": "2026-11-17",
    "titre": "Nouveau compagnon : le Mécano",
