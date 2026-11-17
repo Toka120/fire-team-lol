@@ -56,7 +56,7 @@
       h('div', { class: 'r-logo' }, h('img', { src: 'assets/fire-cut.png', alt: 'FIRE' })),
       ...IDS.map((id) => {
         const a = APPS[id], s = ST.apps[id] || {};
-        const dot = s.running ? 'run' : (s.update || (!s.installed && s.available)) ? 'new' : '';
+        const dot = (s.update || (!s.installed && s.available)) ? 'new' : s.running ? 'run' : '';
         return h('button', { class: 'r-it' + (cur === id ? ' on' : ''), 'aria-label': a.name, onclick: () => pick(id) },
           h('img', { src: a.tile || a.icon, alt: '' }), dot ? h('span', { class: 'dot ' + dot }) : null, h('span', { class: 'r-tip' }, a.name));
       }),
@@ -119,13 +119,14 @@
     if (p) return { label: p.label || 'Patiente…', busy: true, pct: p.pct };
     if (!s.available) return { label: 'Bientôt', dis: true };
     if (!s.installed) return { label: 'Installer', up: true };
+    if (s.update) return { label: 'Mettre à jour et jouer', up: true };
     if (s.running) return id === 'team' ? { label: 'Afficher' } : { label: 'Déjà ouvert', dis: true };
-    if (s.update) return { label: 'Mettre à jour', up: true };
     return { label: 'Jouer' };
   }
   function statusOf(id) {
     const s = ST.apps[id] || {};
     if (!s.available) return ['', 'Pas encore disponible'];
+    if (s.installed && s.update) return ['up', 'Mise à jour disponible' + (id === 'team' && s.latest ? ' : v' + s.latest : '') + (s.running ? ' (sera fermé puis relancé)' : '')];
     if (s.running) return ['run', 'Ouvert'];
     if (!s.installed) return ['', 'Non installé' + (s.size ? ' · ' + (s.size / 1048576).toFixed(0) + ' Mo' : '')];
     if (s.update) return ['up', 'Mise à jour disponible' + (id === 'team' && s.latest ? ' : v' + s.latest : '')];
@@ -144,7 +145,7 @@
     const r = await fl.play(id, opts).catch((e) => ({ ok: false, error: String(e) }));
     delete PROG[id];
     if (!r || !r.ok) toast('Oups', (r && r.error ? r.error.charAt(0).toUpperCase() + r.error.slice(1) : 'Ça n’a pas marché') + '.', true);
-    else if (r.updatedLater) toast('Déjà ouvert', `${APPS[id].name} est ouvert : ferme-le puis relance-le ici pour installer la mise à jour.`);
+    else if (r.updated) toast('À jour ✓', `${APPS[id].name} vient d’être mis à jour, puis lancé.`);
     await refresh();
   }
 
@@ -266,6 +267,7 @@
   $('w-max').onclick = () => fl.win.max();
   $('w-close').onclick = () => fl.win.close();
   $('b-set').onclick = () => settingsModal();
+  window.addEventListener('focus', () => { if (!Object.keys(PROG).length) refresh(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('modal').hidden) { $('modal').hidden = true; $('modal').replaceChildren(); } });
 
   (async () => {

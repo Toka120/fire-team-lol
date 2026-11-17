@@ -66,6 +66,23 @@ async function manifest() {
   return { ...(m || {}), apps };
 }
 
+// ---------- Dernière version de FIRE Team : celle de la release GitHub (la même que la mise à jour automatique) ----------
+const TEAM_YML = 'https://github.com/Toka120/fire-team-lol/releases/latest/download/latest.yml';
+let ymlCache = { at: 0, v: null };
+async function teamLatest(force) {
+  if (!force && ymlCache.v && Date.now() - ymlCache.at < 60000) return ymlCache.v;
+  let v = null;
+  try {
+    const r = await net.fetch(TEAM_YML + '?t=' + Date.now(), { cache: 'no-store' });
+    if (r.ok) { const m = /^version:\s*['"]?([\d.]+)/m.exec(await r.text()); if (m) v = m[1]; }
+  } catch (e) { /* hors ligne */ }
+  const cfg = await getJson('joueurs.json');
+  const announced = cfg && cfg.derniere_version;
+  if (announced && (!v || newer(announced, v))) v = announced;
+  if (v) ymlCache = { at: Date.now(), v };
+  return v || ymlCache.v;
+}
+
 // ---------- Ce qui est installé et ce qui tourne ----------
 function regUninstall() {
   if (process.platform !== 'win32') return Promise.resolve('');
@@ -80,13 +97,21 @@ async function teamInstall() {
     const icon = g('DisplayIcon').replace(/,\s*-?\d+$/, '').replace(/^"|"$/g, '');
     const dir = g('InstallLocation').replace(/^"|"$/g, '');
     const exe = /\.exe$/i.test(icon) ? icon : dir ? path.join(dir, TEAM_EXE) : '';
-    if (exe && fs.existsSync(exe)) return { exe, version: g('DisplayVersion') };
+    if (exe && fs.existsSync(exe)) return { exe, version: exeVersion(exe) || g('DisplayVersion') };
   }
   for (const d of ['FIRE LoL', 'fire-lol', 'FIRE Team']) {
     const exe = path.join(LOCAL, 'Programs', d, TEAM_EXE);
-    if (fs.existsSync(exe)) return { exe, version: '' };
+    if (fs.existsSync(exe)) return { exe, version: exeVersion(exe) };
   }
   return null;
+}
+// Electron lit directement dans app.asar : on y trouve le package.json, donc la version exacte installée.
+function exeVersion(exe) {
+  try { return JSON.parse(fs.readFileSync(path.join(path.dirname(exe), 'resources', 'app.asar', 'package.json'), 'utf8')).version || ''; } catch (e) { return ''; }
+}
+function killExe(name) {
+  if (process.platform !== 'win32') return Promise.resolve();
+  return new Promise((res) => execFile('taskkill', ['/f', '/t', '/im', name], { windowsHide: true }, () => setTimeout(res, 1200)));
 }
 function running() {
   if (process.platform !== 'win32') return Promise.resolve(new Set());
@@ -98,11 +123,10 @@ const appDir = (id) => path.join(APPS_DIR, id);
 const recPath = (id) => path.join(appDir(id), 'installe.json');
 
 async function stateAll() {
-  const [m, cfg, run, team] = await Promise.all([manifest(), getJson('joueurs.json'), running(), teamInstall()]);
-  const latest = (cfg && cfg.derniere_version) || null;
+  const [m, latest, run, team] = await Promise.all([manifest(), teamLatest(), running(), teamInstall()]);
   const apps = {
     team: { installed: !!team, version: (team && team.version) || '', latest, running: run.has(TEAM_EXE.toLowerCase()), available: true,
-      update: !!(team && latest && team.version && newer(latest, team.version)) },
+      update: !!(team && latest && (!team.version || newer(latest, team.version))) },
   };
   for (const id of ['kiting', 'listen']) {
     const a = m.apps[id];
@@ -112,7 +136,7 @@ async function stateAll() {
     apps[id] = { installed: inst, version: (rec && rec.version) || '', latest: a.version || '', running: run.has(String(a.exe).toLowerCase()), available: !!a.url,
       update: !!(inst && a.sha256 && (!rec || rec.sha256 !== a.sha256)), size: a.size || 0 };
   }
-  return { apps, online: !!cfg, launcher: app.getVersion(), news: (m && m.news) || null };
+  return { apps, online: !!latest, launcher: app.getVersion(), news: (m && m.news) || null };
 }
 
 // ---------- Téléchargement (suit les redirections de GitHub), avec progression et contrôle d'empreinte ----------
@@ -153,25 +177,26 @@ const pctTxt = (t, pct, got, total) => t + (pct != null ? ` ${Math.round(pct)} %
 
 async function playTeam(P, opts) {
   P('Vérification de FIRE Team…');
-  const cfg = await getJson('joueurs.json');
-  const latest = cfg && cfg.derniere_version;
+  const latest = await teamLatest(true);
   let inst = await teamInstall();
   const isRun = (await running()).has(TEAM_EXE.toLowerCase());
-  const need = !inst || opts.repair || (latest && inst.version && newer(latest, inst.version));
-  if (need && !isRun) {
+  const need = !inst || opts.repair || !!(latest && (!inst.version || newer(latest, inst.version)));
+  if (need) {
     const tmp = path.join(os.tmpdir(), 'FIRE-Team-Setup-' + Date.now() + '.exe');
-    const t = inst ? `Téléchargement de la version ${latest || 'la plus récente'}…` : 'Téléchargement de FIRE Team…';
+    const t = inst ? `Mise à jour vers la version ${latest || 'la plus récente'}…` : 'Téléchargement de FIRE Team…';
     await download(TEAM_SETUP, tmp, (pct, got, total) => P(pctTxt(t, pct, got, total), pct));
+    if (isRun) { P('Fermeture de FIRE Team pour la mise à jour…'); await killExe(TEAM_EXE); }
     P('Installation de FIRE Team…');
     const code = await new Promise((res) => { const c = spawn(tmp, ['/S'], { windowsHide: true }); c.on('exit', res); c.on('error', () => res(-1)); });
     setTimeout(() => { try { fs.rmSync(tmp, { force: true }); } catch (e) { /* */ } }, 5000);
     inst = await teamInstall();
     if (!inst) throw new Error(`l'installation n'a pas abouti (code ${code})`);
+    if (latest && inst.version && newer(latest, inst.version)) throw new Error(`la mise à jour n'a pas pris (version ${inst.version} au lieu de ${latest}) : réessaie`);
   }
   if (!inst) throw new Error('FIRE Team est introuvable');
   P('Lancement de FIRE Team…');
   launch(inst.exe, ['--from-launcher']);
-  return { ok: true, already: isRun, updatedLater: !!(need && isRun) };
+  return { ok: true, already: isRun && !need, updated: need };
 }
 async function playExe(id, P, opts) {
   const a = (await manifest()).apps[id];
@@ -180,8 +205,9 @@ async function playExe(id, P, opts) {
   const rec = readJson(recPath(id), null);
   const isRun = (await running()).has(String(a.exe).toLowerCase());
   const need = !fs.existsSync(exe) || opts.repair || (a.sha256 && (!rec || rec.sha256 !== a.sha256));
-  if (isRun) return { ok: true, already: true, updatedLater: need };
+  if (isRun && !need) return { ok: true, already: true };
   if (need) {
+    if (isRun) { P(`Fermeture de ${a.name} pour la mise à jour…`); await killExe(a.exe); }
     const t = fs.existsSync(exe) ? `Mise à jour de ${a.name}…` : `Téléchargement de ${a.name}…`;
     P(t, 0);
     const sum = await download(a.url, exe, (pct, got, total) => P(pctTxt(t, pct, got, total), pct), a.sha256);
