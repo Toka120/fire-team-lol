@@ -3555,3 +3555,13 @@ html[data-calm] .jeu-ombre.torch .om-light{animation:none}
 html[data-lite] *,html[data-lite] *::before,html[data-lite] *::after{animation-play-state:paused!important;transition:none!important}
 html[data-lite] *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 html[data-lite] #fire-pet,html[data-lite] .acc-tick,html[data-lite] #fire-fx,html[data-lite] .fire-fx{display:none!important}
+/* Rubriques en travaux */
+.works-card{text-align:center;padding:48px 24px;max-width:640px;margin:40px auto}
+.works-ico{font-size:72px;line-height:1;margin-bottom:10px;animation:wk-bob 2.4s ease-in-out infinite}
+@keyframes wk-bob{50%{transform:translateY(-6px) rotate(-4deg)}}
+.works-msg{color:var(--muted,#bbb);font-size:15px;margin:10px auto 22px;max-width:480px;white-space:pre-wrap}
+.adm-wk{border:1px solid var(--border,#ffffff22);background:none;color:inherit;border-radius:999px;padding:4px 10px;cursor:pointer;font:inherit;font-size:13px}
+.adm-wk.on{background:#f5a62333;border-color:#f5a623;color:#ffd27a;font-weight:600}
+.adm-it.works{flex-wrap:wrap}
+.adm-wkmsg{flex-basis:100%;margin-top:4px}
+.navworks{opacity:.75}

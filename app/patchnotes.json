@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "2.0.5",
+   "date": "2026-11-17",
+   "titre": "Rubriques en travaux",
+   "items": [
+    [
+     "new",
+     "Admin › Menu et catégories : un bouton 🚧 sur chaque rubrique la met « en travaux ». L’équipe voit une page « en travaux » à la place, avec ton message si tu en écris un."
+    ],
+    [
+     "new",
+     "Un bouton 🚧 « Toute la catégorie » met d’un coup toutes les rubriques d’une catégorie en travaux, et les rouvre au second clic."
+    ],
+    [
+     "improve",
+     "Les rubriques en travaux portent une pastille 🚧 dans le menu. Toi, tu y gardes l’accès pour les préparer, avec un bandeau qui te rappelle que l’équipe ne les voit pas."
+    ],
+    [
+     "improve",
+     "Rien à installer : le réglage se publie avec le reste de l’Admin et arrive chez tout le monde."
+    ]
+   ]
+  },
+  {
    "v": "2.0.4",
    "date": "2026-11-17",
    "titre": "Mode jeu : FIRE se fait oublier pendant tes parties",

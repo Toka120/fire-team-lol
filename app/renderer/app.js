@@ -3457,7 +3457,8 @@
     back.hidden = S.section === 'admin' || String(S.section).startsWith('p_') || S.section === 'carnet' || S.section === 'annonces' || S.section === 'boutique' || S.section === 'parcours' || S.section === 'puzzle' || S.section === 'apprendre' || S.section === 'puzdraft' || S.section === 'accueil' || S.section === 'scrims' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
-    if (S.section === 'admin') renderAdmin();
+    if (worksBlocked(S.section)) renderWorks();
+    else if (S.section === 'admin') renderAdmin();
     else if (String(S.section).startsWith('p_')) renderCustomPage();
     else if (S.section === 'settings') renderSettings();
     else if (S.section === 'web') renderWeb();
@@ -3491,6 +3492,7 @@
     else if (S.view === 'player') renderPlayer();
     else if (S.view === 'team') renderTeam();
     else renderHub();
+    try { worksBanner(); } catch (e) { /* */ }
   }
 
   function openPlayer(slug) {
@@ -11284,7 +11286,26 @@
     const hide = new Set(c.hide || []);
     const out = items.filter(([id]) => NEVER_HIDE.has(id) || !hide.has(id) || isAdmin());
     for (const it of out) if (c.rename && c.rename[it[0]]) it[2] = c.rename[it[0]];
+    for (const it of out) if (worksOf(it[0]) != null && !NEVER_HIDE.has(it[0])) { it[3] = '🚧'; it[4] = ((it[4] || '') + ' navworks').trim(); }
     items.length = 0; items.push(...out);
+  }
+  // Rubriques « en travaux » : les membres voient 🚧 et un message à la place ; le créateur garde l'accès.
+  const worksOf = (sec) => { const v = (acfg().hero || {})['wk_' + sec]; return v == null ? null : (v === '1' ? '' : v); };
+  const worksBlocked = (sec) => worksOf(sec) != null && !isAdmin() && !NEVER_HIDE.has(sec);
+  const WORKS_TXT = 'Cette rubrique est en cours d’amélioration. Elle revient très vite !';
+  function renderWorks() {
+    const it = (S.navAll || []).find((x) => x[0] === S.section) || [S.section, '🚧', 'Cette rubrique'];
+    const name = (acfg().rename || {})[S.section] || it[2];
+    $('view').replaceChildren(h('div', { class: 'card works-card' },
+      h('div', { class: 'works-ico' }, '🚧'), h('h1', { class: 'title' }, `${name} : en travaux`),
+      h('p', { class: 'works-msg' }, worksOf(S.section) || WORKS_TXT),
+      h('div', { class: 'row', style: 'justify-content:center' }, h('button', { class: 'btn-fire', onclick: () => go('accueil') }, '← Retour à l’accueil'))));
+  }
+  function worksBanner() {
+    if (!isAdmin() || worksOf(S.section) == null || NEVER_HIDE.has(S.section)) return;
+    const v = $('view'); if (!v || v.querySelector('.works-admin')) return;
+    v.prepend(h('div', { class: 'news works-admin' }, h('span', { class: 'news-ico' }, '🚧'), h('span', { class: 'news-txt' }, h('b', null, 'En travaux pour l’équipe. '), 'Les membres voient « ', worksOf(S.section) || WORKS_TXT, ' ». Toi, tu y as accès normalement.'),
+      h('button', { class: 'btn-ghost small-btn', onclick: () => go('admin') }, 'Gérer')));
   }
   const secHidden = (sec) => !isAdmin() && !NEVER_HIDE.has(sec) && (acfg().hide || []).includes(sec);
   // Texte d'en-tête d'une rubrique remplacé par celui du créateur.
@@ -11418,17 +11439,23 @@
       const moveG = (i, d) => { const j = i + d; if (j < 0 || j >= G.length) return; [G[i], G[j]] = [G[j], G[i]]; set({}); };
       const moveI = (gi, k, d) => { const l = G[gi][1]; const j = k + d; if (j < 0 || j >= l.length) return; [l[k], l[j]] = [l[j], l[k]]; set({}); };
       const toGroup = (id, gi) => { G.forEach((g) => { g[1] = g[1].filter((x) => x !== id); }); if (gi >= 0) G[gi][1].push(id); set({}); };
-      const row = (id, gi, k, n) => { const hid = (D.hide || []).includes(id);
-        return h('div', { class: 'adm-it' + (hid ? ' off' : '') },
+      const wkOf = (id) => { const v = (D.hero || {})['wk_' + id]; return v == null ? null : (v === '1' ? '' : v); };
+      const wkSet = (id, on, msg) => { const hr = { ...(D.hero || {}) }; if (on) hr['wk_' + id] = String(msg || '').trim().slice(0, 400) || '1'; else delete hr['wk_' + id]; set({ hero: hr }); };
+      const row = (id, gi, k, n) => { const hid = (D.hide || []).includes(id); const wk = wkOf(id);
+        return h('div', { class: 'adm-it' + (hid ? ' off' : '') + (wk != null ? ' works' : '') },
           h('input', { class: 'inp adm-name', value: (D.rename || {})[id] || '', placeholder: labelOf(id), title: 'Nouveau nom (vide : nom d’origine)', onchange: (e) => { const r = { ...(D.rename || {}) }; if (e.target.value.trim()) r[id] = e.target.value.trim(); else delete r[id]; set({ rename: r }); } }),
           NEVER_HIDE.has(id) ? h('small', { class: 'muted' }, 'toujours visible') : h('label', { class: 'adm-chk', title: 'Visible pour l’équipe' }, h('input', { type: 'checkbox', checked: hid ? null : true, onchange: (e) => set({ hide: e.target.checked ? (D.hide || []).filter((x) => x !== id) : [...new Set([...(D.hide || []), id])] }) }), 'visible'),
           h('select', { class: 'inp adm-g', title: 'Catégorie', onchange: (e) => toGroup(id, Number(e.target.value)) }, G.map(([t], i) => h('option', { value: i, selected: i === gi ? true : null }, t || 'Sans titre'))),
-          gi >= 0 ? h('span', { class: 'adm-mv' }, h('button', { disabled: k === 0 ? true : null, onclick: () => moveI(gi, k, -1) }, '↑'), h('button', { disabled: k === n - 1 ? true : null, onclick: () => moveI(gi, k, 1) }, '↓')) : null); };
+          gi >= 0 ? h('span', { class: 'adm-mv' }, h('button', { disabled: k === 0 ? true : null, onclick: () => moveI(gi, k, -1) }, '↑'), h('button', { disabled: k === n - 1 ? true : null, onclick: () => moveI(gi, k, 1) }, '↓')) : null,
+          NEVER_HIDE.has(id) ? null : h('button', { class: 'adm-wk' + (wk != null ? ' on' : ''), title: wk != null ? 'En travaux : clique pour rouvrir la rubrique' : 'Mettre la rubrique en travaux', 'aria-pressed': String(wk != null), onclick: () => wkSet(id, wk == null, wk || '') }, wk != null ? '🚧 En travaux' : '🚧'),
+          wk != null ? h('input', { class: 'inp adm-wkmsg', value: wk, maxlength: 400, placeholder: 'Message pour l’équipe (facultatif) : ' + WORKS_TXT, onchange: (e) => wkSet(id, true, e.target.value) }) : null); };
       body = h('div', { class: 'adm-sec' },
-        h('p', { class: 'muted small' }, 'Renomme, masque, range les rubriques dans tes catégories et choisis leur ordre. Les rubriques masquées restent visibles pour toi seul. Les pages que tu crées apparaissent ici aussi.'),
+        h('p', { class: 'muted small' }, 'Renomme, masque, range les rubriques dans tes catégories et choisis leur ordre. 🚧 met une rubrique en travaux : l’équipe voit « en travaux » et ton message, toi tu y as accès pour la préparer. Les rubriques masquées restent visibles pour toi seul. Les pages que tu crées apparaissent ici aussi.'),
         ...G.map(([t, ids], gi) => h('div', { class: 'card adm-grp' },
           h('div', { class: 'row adm-gh' }, h('input', { class: 'inp adm-gt', value: t, placeholder: 'Nom de la catégorie', onchange: (e) => { G[gi][0] = e.target.value.trim(); set({}); } }),
             h('span', { class: 'adm-mv' }, h('button', { disabled: gi === 0 ? true : null, onclick: () => moveG(gi, -1), title: 'Monter la catégorie' }, '↑'), h('button', { disabled: gi === G.length - 1 ? true : null, onclick: () => moveG(gi, 1), title: 'Descendre la catégorie' }, '↓')),
+            (() => { const can = ids.filter((id) => all.some(([x]) => x === id) && !NEVER_HIDE.has(id)); if (!can.length) return null; const allOn = can.every((id) => wkOf(id) != null);
+              return h('button', { class: 'adm-wk' + (allOn ? ' on' : ''), title: allOn ? 'Rouvrir toutes les rubriques de cette catégorie' : 'Mettre toutes les rubriques de cette catégorie en travaux', onclick: () => { const hr = { ...(D.hero || {}) }; for (const id of can) { if (allOn) delete hr['wk_' + id]; else if (hr['wk_' + id] == null) hr['wk_' + id] = '1'; } set({ hero: hr }); } }, allOn ? '🚧 Catégorie en travaux' : '🚧 Toute la catégorie'); })(),
             h('button', { class: 'linkbtn small', onclick: () => { if (ids.length && !confirm('Les rubriques de cette catégorie iront dans « Autres ». Supprimer la catégorie ?')) return; G.splice(gi, 1); set({}); } }, '🗑️ Supprimer')),
           ids.length ? ids.filter((id) => all.some(([x]) => x === id)).map((id, k, arr) => row(id, gi, k, arr.length)) : h('p', { class: 'muted small' }, 'Catégorie vide : choisis-la dans la liste d’une rubrique pour l’y ranger.'))),
         loose.length ? h('div', { class: 'card adm-grp' }, h('b', null, 'Rangées nulle part (affichées dans « Autres »)'), loose.map((id) => row(id, -1, 0, 1))) : null,
