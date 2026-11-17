@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.191",
+   "date": "2026-11-17",
+   "titre": "Anti capture d’écran",
+   "items": [
+    [
+     "new",
+     "FIRE est protégé contre les captures : sa fenêtre apparaît noire sur les captures d’écran, les enregistrements et les partages d’écran (outil Capture de Windows, Discord, OBS, et le vocal de FIRE). Les infos de l’équipe restent privées. Le jeu, lui, se capture et se partage comme avant."
+    ]
+   ]
+  },
+  {
    "v": "1.10.190",
    "date": "2026-11-17",
    "titre": "Téléphone : lancement plus solide",
