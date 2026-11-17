@@ -3556,14 +3556,42 @@
   ];
   const ACC_NIGHT = ['Encore une petite game ? On sait tous que ce ne sera pas la dernière.', 'Il est tard : la meilleure macro du moment, c’est d’aller dormir.', 'Les games de nuit comptent double. Pour le tilt aussi.'];
   const ACC_MORNING = ['Café, échauffement, puis ranked. Dans cet ordre.', 'Bien réveillé ? Les adversaires, eux, ne le sont pas encore.'];
+  // Les nouveautés des 10 derniers jours (patch notes) : nouveau compagnon, objet de la boutique, exercice, grosse mise à jour.
+  function accNews() {
+    const out = [], lim = Date.now() - 10 * 86400000;
+    for (const v of (S.patch || []).slice(0, 25)) {
+      const t = Date.parse(v.date || ''); if (!t || t < lim || !Array.isArray(v.items)) continue;
+      const news = v.items.filter((x) => Array.isArray(x) && x[0] === 'new');
+      if (v.v && v.items.length >= 3) out.push({ ico: '🚀', lab: `Grosse mise à jour v${v.v}`, txt: v.titre || '', go: 'patch' });
+      for (const [, txt] of news) {
+        const t1 = String(txt || '').split(/(?<=\.)\s/)[0].replace(/^[^:]{0,40}›[^:]{0,40}:\s*/, '');
+        const t1c = t1.length > 120 ? t1.slice(0, 117).replace(/\s+\S*$/, '') + '…' : t1;
+        const k = /compagnon|chibi/i.test(txt) ? { ico: '🐾', lab: 'Nouveau compagnon', go: 'boutique' }
+          : /boutique/i.test(txt) ? { ico: '🛍️', lab: 'Nouveau dans la boutique', go: 'boutique' }
+            : /défi|exercice|puzzle|quiz|parcours|entraînement/i.test(txt) ? { ico: '🧩', lab: 'Nouvel exercice', go: 'patch' }
+              : { ico: '🆕', lab: 'Nouveau dans FIRE', go: 'patch' };
+        out.push({ ...k, txt: t1c });
+      }
+    }
+    return out;
+  }
   function accFun(hr) {
     if (!ACCE.fun || Date.now() - ACCE.funAt > 45000) {
-      const pool = ACC_FUN.concat(hr < 6 || hr >= 23 ? ACC_NIGHT : hr < 11 ? ACC_MORNING : []);
-      let m; do { m = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && m === ACCE.fun);
-      ACCE.fun = m;
+      const news = accNews();
+      // Une fois sur deux (quand il y a du neuf) : une nouveauté, sinon un petit mot.
+      if (news.length && Math.random() < 0.55) {
+        let n; do { n = news[Math.floor(Math.random() * news.length)]; } while (news.length > 1 && ACCE.fun && n.txt === ACCE.fun.txt);
+        ACCE.fun = n;
+      } else {
+        const pool = ACC_FUN.concat(hr < 6 || hr >= 23 ? ACC_NIGHT : hr < 11 ? ACC_MORNING : []);
+        let m; do { m = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && m === ACCE.fun);
+        ACCE.fun = m;
+      }
     }
     ACCE.funAt = Date.now();
-    return ACCE.fun;
+    const f = ACCE.fun;
+    if (typeof f === 'string') return h('p', { class: 'acc-fun', title: 'Un nouveau message à chaque visite' }, f);
+    return h('button', { class: 'acc-fun acc-news', title: 'Voir', onclick: () => go(f.go) }, h('b', null, f.ico + ' ' + f.lab + ' : '), f.txt, ' →');
   }
   function renderAccueil() {
     const view = $('view');
@@ -3636,7 +3664,7 @@
     view.replaceChildren(...[
       h('header', { class: 'acc-hero' },
         h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE LoL'), h('h1', null, `${hello}${me ? ' ' + String(me.pseudo).split('#')[0] : ''} 👋`),
-          h('p', { class: 'acc-fun', title: 'Un nouveau message à chaque visite' }, accFun(hr)),
+          accFun(hr),
           h('button', { class: 'btn-ghost small-btn acc-cust', title: 'Choisir ce qui s’affiche sur ton accueil', onclick: () => { ACCE.edit = !ACCE.edit; renderAccueil(); } }, ACCE.edit ? 'Fermer' : '✏️ Personnaliser'),
           h('div', { class: 'row acc-quick' },
             live ? h('button', { class: 'chip acc-live', onclick: () => go('stats') }, `🔴 ${live} coéquipier${live > 1 ? 's' : ''} en game`) : null,
@@ -6759,11 +6787,13 @@
       const dd = (D && D.dd) || { runes: {}, spells: {} };
       const b = (c && c.build) || {};
       const build = c ? buildBox(b, D && D.dd) : null;
-      const opgg = (r, n) => `https://www.op.gg/summoners/${r === 'kr' ? 'kr' : 'euw'}/${encodeURIComponent(String(n).replace('#', '-'))}`;
+      // Tout s'ouvre sur onetricks.gg (pas d'op.gg ni de dpm.lol ici). Leurs pages de joueurs ont un identifiant interne
+      // que FIRE n'a pas : un clic sur un joueur ouvre le classement du champion sur onetricks.gg, où il apparaît.
+      const otg = (kind) => `https://www.onetricks.gg/champions/${kind}/${encodeURIComponent(OT.champ)}`;
       const col = (reg, label) => {
         const ps = (c && c[reg]) || [];
         return h('div', { class: 'ot-col' }, h('h3', null, label, h('small', { class: 'muted' }, ` · ${ps.length} joueur${ps.length > 1 ? 's' : ''}`)),
-          ps.length ? ps.map((p, i) => h('a', { class: 'ot-p', href: opgg(reg, p.n), target: '_blank', rel: 'noopener', title: 'Ouvrir son profil op.gg (historique, builds de ses parties)' },
+          ps.length ? ps.map((p, i) => h('a', { class: 'ot-p', href: otg('ranking'), target: '_blank', rel: 'noopener', title: `Voir ${p.n.split('#')[0]} dans le classement des one-tricks sur onetricks.gg` },
             h('span', { class: 'ot-n' }, String(i + 1)),
             h('span', { class: 'ot-tier', style: `color:${OT_TIER[p.t] || 'var(--muted)'}` }, p.d || p.t),
             h('span', { class: 'ot-name' }, h('b', null, p.n.split('#')[0]), h('small', { class: 'muted' }, '#' + (p.n.split('#')[1] || '') + (p.l && p.l.length ? ' · ' + p.l.map((l) => OT_LANE[l] || l).join(', ') : ''))),
@@ -6775,12 +6805,12 @@
       res = h('div', { class: 'card ot-res' },
         h('div', { class: 'ot-head' }, champIcon(OT.champ, 64), h('div', null, h('h2', null, A), h('small', { class: 'muted' }, D && D.maj ? `Build des joueurs Maître+ · patch ${D.patch || '?'}` : 'Chargement des données…')),
           h('div', { class: 'ot-links' },
-            h('a', { class: 'btn-ghost', href: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(A + ' one trick challenger gameplay'), target: '_blank', rel: 'noopener' }, '▶ Vidéos d’OTP'),
-            h('a', { class: 'btn-ghost', href: `https://mid.gg/champion/${encodeURIComponent(OT.champ)}`, target: '_blank', rel: 'noopener' }, '▶ VOD de pros'),
-            h('button', { class: 'btn-ghost', onclick: () => window.fire.lcu.stats(`https://lolalytics.com/lol/${lolSlug(OT.champ)}/leaderboard/`) }, '📊 Classement complet'))),
+            h('a', { class: 'btn-ghost', href: otg('ranking'), target: '_blank', rel: 'noopener' }, '🏆 Classement onetricks.gg'),
+            h('a', { class: 'btn-ghost', href: otg('builds'), target: '_blank', rel: 'noopener' }, '🛠️ Build des one-tricks'),
+            h('a', { class: 'btn-ghost', href: otg('streamers'), target: '_blank', rel: 'noopener' }, '📺 Streamers'))),
         build || (OT.loading ? h('p', { class: 'muted' }, 'Chargement des one-tricks…') : D && !c ? h('p', { class: 'muted' }, OT.empty ? 'Les données des one-tricks ne sont pas encore arrivées sur ce PC. Rouvre l’onglet dans un instant (il faut Internet).' : 'Pas encore de données pour ce champion (elles arrivent avec le relevé de la semaine).') : null),
         h('div', { class: 'ot-cols' }, col('kr', '🇰🇷 Corée'), col('euw', '🇪🇺 Europe')),
-        h('p', { class: 'muted small' }, 'Clique sur un joueur pour ouvrir son profil op.gg dans ton navigateur : ses dernières parties, ses runes et ses objets. ',
+        h('p', { class: 'muted small' }, 'Clique sur un joueur : le classement des one-tricks de ce champion s’ouvre sur onetricks.gg, avec son profil, ses parties et son build. ',
           D && D.maj ? `Données : LoLalytics (Diamant IV et plus, au moins 50 parties et plus de 50 % de victoires sur 90 jours), relevées le ${dateFr(D.maj)}.` : ''));
     } else res = h('p', { class: 'muted ot-hint' }, '👆 Choisis un champion pour voir ses one-tricks.');
     view.replaceChildren(...[hero, draftTabs(), res && OT.champ ? res : pick, res && OT.champ ? pick : res].filter(Boolean));

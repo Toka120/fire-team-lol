@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.182",
+   "date": "2026-11-17",
+   "titre": "Nouveautés sur l’accueil, one-tricks sur onetricks.gg",
+   "items": [
+    [
+     "new",
+     "Accueil : la banderole sous le bonjour annonce aussi les nouveautés des 10 derniers jours : 🐾 nouveau compagnon, 🛍️ nouveauté de la boutique, 🧩 nouvel exercice, 🚀 grosse mise à jour… Clique dessus pour y aller. Le reste du temps, elle dit toujours ses petites phrases."
+    ],
+    [
+     "improve",
+     "Draft › One-tricks : tout s’ouvre maintenant sur onetricks.gg (plus d’op.gg, de YouTube ni de LoLalytics ici) : classement des one-tricks du champion, build des one-tricks et streamers. Un clic sur un joueur ouvre le classement onetricks.gg du champion, où il apparaît avec son profil."
+    ]
+   ]
+  },
+  {
    "v": "1.10.181",
    "date": "2026-11-17",
    "titre": "Synergies, YouTube et petits mots sur l’accueil",

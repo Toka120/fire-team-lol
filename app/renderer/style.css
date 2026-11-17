@@ -3431,3 +3431,7 @@ html[data-calm] .jeu-ombre.torch .om-light{animation:none}
 .sc-l1{font-size:10.5px;opacity:.8}
 .sc-c small{display:block;font-size:10.5px;line-height:1.25}
 .sc-more{margin-top:6px}
+/* Accueil : nouveauté dans la banderole */
+.acc-news{all:unset;display:block;cursor:pointer;margin:4px 0 10px;color:inherit;opacity:.92;line-height:1.45}
+.acc-news b{color:var(--fire1,#ffb02e)}
+.acc-news:hover{opacity:1;text-decoration:underline;text-underline-offset:3px}
