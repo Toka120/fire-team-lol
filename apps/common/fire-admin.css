@@ -1,0 +1,58 @@
+/* FIRE — menu admin et contenus d'équipe (FIRE Kiting / FIRE Listen). Utilise les couleurs du thème choisi. */
+#adminBtn, .fa-admin-btn { border: 1px solid color-mix(in srgb, var(--accent, #b26bff) 55%, transparent); background: color-mix(in srgb, var(--accent, #b26bff) 14%, transparent); color: var(--text, #f1ecff); border-radius: 999px; padding: 6px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+#adminBtn:hover, .fa-admin-btn:hover { background: color-mix(in srgb, var(--accent, #b26bff) 28%, transparent); }
+.fa-level-badge { display: inline-flex; align-items: center; gap: 6px; margin: 6px 0 0; padding: 4px 6px 4px 12px; border-radius: 999px; font-size: 13px; background: color-mix(in srgb, var(--accent, #b26bff) 18%, transparent); border: 1px solid color-mix(in srgb, var(--accent, #b26bff) 50%, transparent); }
+.fa-level-badge[hidden] { display: none; }
+.fa-level-badge button { border: 0; background: #0005; color: inherit; border-radius: 999px; width: 22px; height: 22px; cursor: pointer; }
+.fa-modal { position: fixed; inset: 0; z-index: 9000; background: #0009; display: grid; place-items: center; padding: 16px; animation: fa-in .18s ease; }
+@keyframes fa-in { from { opacity: 0; } }
+.fa-box { width: min(560px, 100%); max-height: min(88vh, 900px); display: flex; flex-direction: column; background: var(--panel, #171221); color: var(--text, #f1ecff); border: 1px solid var(--border, #ffffff22); border-radius: 18px; box-shadow: 0 24px 60px #000a; }
+.fa-box.wide { width: min(900px, 100%); }
+.fa-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border, #ffffff22); font-size: 17px; }
+.fa-x { border: 0; background: none; color: inherit; font-size: 24px; cursor: pointer; opacity: .7; }
+.fa-x:hover { opacity: 1; }
+.fa-body { padding: 14px 18px 18px; overflow: auto; }
+.fa-muted { color: var(--muted, #b8aecb); font-size: 13px; margin: 4px 0; }
+.fa-muted.bad, .fa-toast.bad { color: #ffb4b4; }
+.fa-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.fa-sticky { position: sticky; bottom: -18px; background: var(--panel, #171221); padding: 10px 0 4px; border-top: 1px solid var(--border, #ffffff22); }
+.fa-btn { border: 1px solid var(--border, #ffffff33); background: var(--raised, #ffffff10); color: inherit; border-radius: 10px; padding: 8px 14px; font: inherit; cursor: pointer; }
+.fa-btn:hover { border-color: var(--accent, #b26bff); }
+.fa-btn.primary { background: var(--accent, #b26bff); border-color: var(--accent, #b26bff); color: #0d0914; font-weight: 700; }
+.fa-btn.danger:hover { border-color: #ff6b6b; color: #ffb4b4; }
+.fa-link { border: 0; background: none; color: var(--accent, #b26bff); cursor: pointer; font: inherit; padding: 0; text-decoration: underline; }
+.fa-key { width: 100%; box-sizing: border-box; background: #0006; color: inherit; border: 1px solid var(--border, #ffffff33); border-radius: 10px; padding: 10px; font: 12px/1.4 ui-monospace, Consolas, monospace; resize: vertical; }
+.fa-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.fa-tabs button { border: 1px solid var(--border, #ffffff22); background: none; color: inherit; border-radius: 999px; padding: 6px 14px; cursor: pointer; font: inherit; }
+.fa-tabs button.on { background: var(--accent, #b26bff); color: #0d0914; border-color: var(--accent, #b26bff); font-weight: 700; }
+.fa-sec { display: flex; flex-direction: column; gap: 6px; }
+.fa-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; margin-top: 8px; }
+.fa-card { position: relative; border: 1px solid var(--border, #ffffff22); background: var(--raised, #ffffff08); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.fa-card-h { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.fa-card-h b { font-size: 15px; }
+.fa-stats { font-size: 12.5px; margin: 2px 0; }
+.fa-tag { align-self: flex-start; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #0005; color: var(--muted, #b8aecb); }
+.fa-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; box-shadow: 0 0 8px currentColor; }
+.fa-chip { font-size: 11.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border, #ffffff33); background: none; color: inherit; white-space: nowrap; }
+.fa-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.fa-chips .fa-chip { cursor: pointer; font-size: 13px; padding: 5px 11px; }
+.fa-chip.on { background: color-mix(in srgb, var(--accent, #b26bff) 30%, transparent); border-color: var(--accent, #b26bff); }
+.fa-field { display: flex; flex-direction: column; gap: 4px; margin: 4px 0; font-size: 13.5px; }
+.fa-field > span { font-weight: 600; }
+.fa-inp { background: #0006; color: inherit; border: 1px solid var(--border, #ffffff33); border-radius: 9px; padding: 8px 10px; font: inherit; }
+.fa-range { display: flex; align-items: center; gap: 10px; }
+.fa-range input { flex: 1; accent-color: var(--accent, #b26bff); }
+.fa-range output { min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+.fa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.fa-grid input[type=color] { width: 100%; height: 34px; border: 1px solid var(--border, #ffffff33); border-radius: 8px; background: none; padding: 2px; }
+.fa-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; margin-right: 10px; cursor: pointer; }
+.fa-toasts { position: fixed; right: 16px; bottom: 16px; z-index: 9500; display: flex; flex-direction: column; gap: 8px; max-width: min(420px, calc(100vw - 32px)); }
+.fa-toast { background: var(--panel, #171221); border: 1px solid var(--border, #ffffff33); border-left: 4px solid var(--accent, #b26bff); border-radius: 12px; padding: 10px 14px; box-shadow: 0 10px 30px #0008; font-size: 13.5px; animation: fa-in .2s ease; }
+.fa-player { display: flex; align-items: center; gap: 8px; }
+.fa-timer { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent, #b26bff) 18%, transparent); }
+.fa-timer.low { background: #ff4d4d33; color: #ffb4b4; animation: fa-pulse .5s ease-in-out infinite alternate; }
+@keyframes fa-pulse { to { transform: scale(1.06); } }
+.fa-timer[hidden] { display: none; }
+.mode-card.team-level { border-color: color-mix(in srgb, var(--accent, #b26bff) 70%, transparent); }
+.mode-card.team-level h2::before { content: '🎯 '; }
+details > summary { cursor: pointer; margin: 6px 0; font-size: 13.5px; font-weight: 600; }

@@ -1276,6 +1276,12 @@ ipcMain.handle('act:push', (e, slug, evts) => coach.activityPush(slug, evts));
 ipcMain.handle('act:all', (e, slugs) => coach.activityAll(slugs));
 ipcMain.handle('staff:notes', () => coach.staffNotes());
 ipcMain.handle('appcfg:get', () => coach.appCfgGet());
+// Clés admin de FIRE Kiting / FIRE Listen (créateur), et relais des publications de leur menu admin.
+ipcMain.handle('appkeys:list', () => coach.appKeysList());
+ipcMain.handle('appkeys:make', (e, who, apps) => coach.appKeyMake(who, apps));
+ipcMain.handle('appkeys:revoke', (e, id, on) => coach.appKeyRevoke(String(id || ''), on !== false));
+ipcMain.handle('appsrelay:now', () => coach.appsRelay());
+app.whenReady().then(() => { setTimeout(() => coach.appsRelay().catch(() => {}), 8000); setInterval(() => coach.appsRelay().catch(() => {}), 15000); });
 ipcMain.handle('appcfg:post', (e, cfg, who) => coach.appCfgPost(cfg, String(who || '')));
 ipcMain.handle('appcfg:assetPut', (e, id, data) => coach.appAssetPut(String(id || ''), String(data || '')));
 ipcMain.handle('appcfg:asset', (e, id, sum) => coach.appAssetGet(String(id || ''), String(sum || '')));

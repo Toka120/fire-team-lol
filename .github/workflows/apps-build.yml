@@ -1,0 +1,109 @@
+name: Compiler FIRE Kiting et FIRE Listen (Windows)
+
+# FIRE Kiting et FIRE Listen avec leur menu admin.
+# Base : les .exe d'origine (branche « apps »), dont on extrait l'interface web. On y ajoute les fichiers de apps/*/overlay
+# et apps/common, on reconstruit l'application avec PyInstaller + pywebview, on la teste (--self-test), puis on la publie
+# dans la release « apps » et on met à jour launcher/apps.json : FIRE Launcher installe la nouvelle version chez tout le monde.
+on:
+  push:
+    branches: [main]
+    paths: ['apps/**', '.github/workflows/apps-build.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apps-build
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Outils
+        run: python -m pip install --upgrade pip pyinstaller pywebview pyinstxtractor-ng
+      - name: Versions d'origine (branche apps)
+        run: |
+          git fetch --depth 1 origin apps
+          mkdir -p base
+          git cat-file blob origin/apps:FIRE-Kiting.exe > base/FIRE-Kiting.exe
+          git cat-file blob origin/apps:FIRE-Listen.exe > base/FIRE-Listen.exe
+          ls -l base
+          cd base && pyinstxtractor-ng FIRE-Kiting.exe > /dev/null && pyinstxtractor-ng FIRE-Listen.exe > /dev/null
+          test -f FIRE-Kiting.exe_extracted/dist/kiting/index.html
+          test -f FIRE-Listen.exe_extracted/dist/index.html
+      - name: Assemblage
+        run: |
+          for app in kiting listen; do
+            src=base/FIRE-$([ $app = kiting ] && echo Kiting || echo Listen).exe_extracted
+            mkdir -p build/$app
+            cp -r "$src/dist" build/$app/dist
+            cp -r apps/$app/overlay/. build/$app/dist/
+            cp apps/common/fire-admin.mjs apps/common/fire-admin.css build/$app/dist/
+            cp apps/common/server.py apps/common/bridge.py build/$app/
+          done
+          cp apps/kiting/desktop_kiting.py build/kiting/
+          cp apps/listen/desktop.py build/listen/
+          cp apps/kiting/kiting.ico build/kiting/app.ico
+          cp apps/listen/listen.ico build/listen/app.ico
+          du -sh build/*/dist
+      - name: Compilation
+        run: |
+          cd build/kiting && pyinstaller --noconfirm --clean --onefile --windowed --name "FIRE Kiting" --icon app.ico --add-data "dist;dist" desktop_kiting.py > ../kiting.log 2>&1 || (tail -40 ../kiting.log; exit 1)
+          cd ../listen && pyinstaller --noconfirm --clean --onefile --windowed --name "FIRE Listen" --icon app.ico --add-data "dist;dist" desktop.py > ../listen.log 2>&1 || (tail -40 ../listen.log; exit 1)
+          ls -l ../kiting/dist/*.exe ../listen/dist/*.exe
+      - name: Test des applications compilées
+        shell: pwsh
+        run: |
+          $ok = $true
+          foreach ($a in @(@{n='kiting'; exe='build/kiting/dist/FIRE Kiting.exe'}, @{n='listen'; exe='build/listen/dist/FIRE Listen.exe'})) {
+            $out = Join-Path $PWD "selftest/$($a.n)/report.json"
+            New-Item -ItemType Directory -Force -Path (Split-Path $out) | Out-Null
+            $p = Start-Process -FilePath $a.exe -ArgumentList @('--self-test', "`"$out`"") -PassThru
+            if (-not $p.WaitForExit(180000)) { $p.Kill(); Write-Host "$($a.n) : délai dépassé" }
+            if (Test-Path $out) { Get-Content $out; if (-not ((Get-Content $out -Raw | ConvertFrom-Json).passed)) { $ok = $false } } else { Write-Host "$($a.n) : pas de rapport"; $ok = $false }
+          }
+          if (-not $ok) { exit 1 }
+      - name: Publication (release « apps »)
+        run: |
+          mkdir -p out
+          cp "build/kiting/dist/FIRE Kiting.exe" out/FIRE-Kiting.exe
+          cp "build/listen/dist/FIRE Listen.exe" out/FIRE-Listen.exe
+          sha256sum out/*.exe
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apps
+          name: Apps du FIRE Launcher (Kiting, Listen)
+          body: Fichiers téléchargés et mis à jour automatiquement par FIRE Launcher.
+          make_latest: false
+          overwrite_files: true
+          files: |
+            out/FIRE-Kiting.exe
+            out/FIRE-Listen.exe
+      - name: Manifeste du launcher
+        run: |
+          python - <<'EOF'
+          import hashlib, json, os, datetime
+          p = 'launcher/apps.json'
+          d = json.load(open(p, encoding='utf-8'))
+          stamp = datetime.date.today().strftime('%Y.%m.%d') + '-' + os.environ['GITHUB_RUN_NUMBER']
+          for app, f in (('kiting', 'out/FIRE-Kiting.exe'), ('listen', 'out/FIRE-Listen.exe')):
+              b = open(f, 'rb').read()
+              d['apps'][app].update(sha256=hashlib.sha256(b).hexdigest(), size=len(b), version=stamp)
+          open(p, 'w', encoding='utf-8', newline='\n').write(json.dumps(d, indent=1, ensure_ascii=False) + '\n')
+          print(json.dumps(d, indent=1))
+          EOF
+          git config user.name "FIRE apps"
+          git config user.email "actions@users.noreply.github.com"
+          git add launcher/apps.json
+          git commit -m "Launcher : nouvelles versions de FIRE Kiting et FIRE Listen" || exit 0
+          for i in 1 2 3; do git pull --rebase --autostash origin main && git push origin HEAD:main && break; sleep 5; done

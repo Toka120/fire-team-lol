@@ -3547,3 +3547,7 @@ html[data-calm] .jeu-ombre.torch .om-light{animation:none}
 .fl-ban .news-txt { flex: 1; min-width: 240px; }
 .fl-prog { font-weight: 600; color: var(--accent, #ffb02e); }
 .fl-row { align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.adm-keybox{width:100%;font:12px/1.4 ui-monospace,Consolas,monospace;word-break:break-all}
+.adm-keys{display:flex;flex-direction:column;gap:6px}
+.adm-key{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px}
+.adm-key.off{opacity:.6}

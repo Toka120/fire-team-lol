@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "version": "2.0.2",
+   "date": "2026-11-17",
+   "titre": "Clés admin pour FIRE Kiting et FIRE Listen",
+   "notes": [
+    "Admin › Clés des apps (créateur) : crée une clé pour une personne, valable pour FIRE Kiting, FIRE Listen ou les deux. Elle ouvre leur menu admin. Chaque clé est signée par ta clé de créateur, et tu peux la retirer ou la rétablir quand tu veux.",
+    "FIRE Team envoie à toute l’équipe les niveaux, personnages, sorts et sons publiés depuis le menu admin de FIRE Kiting et FIRE Listen, après avoir vérifié la signature de la clé.",
+    "FIRE Kiting : nouvelle version Dodge 3D (Ezreal, Ahri, Lux, Blitzcrank, Flash), avec un menu admin pour créer des niveaux (vitesse et complexité en %), d’autres personnages et des sorts.",
+    "FIRE Listen : menu admin pour créer des niveaux de quiz (touches, vies, chrono, sons coupés) et ajouter des sons."
+   ]
+  },
+  {
    "version": "2.0.1",
    "date": "2026-11-17",
    "titre": "FIRE Launcher en un clic depuis FIRE Team",

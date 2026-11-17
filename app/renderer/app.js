@@ -11310,13 +11310,58 @@
     if (r && r.ok) { APPCFG = r.cfg; save('fire.appcfg', APPCFG); ADM.preview = null; ADM.draft = null; admOpen(); ADM.msg = '✅ Publié : toute l’équipe le reçoit dans les 10 minutes (ou en relançant FIRE).'; appCfgApply(); render(); }
     else { ADM.msg = '⚠ ' + ((r && r.error) || 'publication impossible'); renderAdmin(); }
   }
+  // ----- Admin › Clés des apps : clés du menu admin de FIRE Kiting et FIRE Listen -----
+  const AK = { list: null, who: '', apps: { kiting: true, listen: true }, last: null, msg: '', busy: false };
+  function akLoad() { window.fire.appkeys.list().then((r) => { AK.list = (r && r.ok) ? r.keys : []; if (S.section === 'admin' && ADM.tab === 'apps') renderAdmin(); }).catch(() => { AK.list = []; }); }
+  const akCopy = (k) => { try { navigator.clipboard.writeText(k); AK.msg = '📋 Clé copiée : envoie-la en message privé.'; } catch (e) { AK.msg = '⚠ Copie impossible : sélectionne la clé à la main.'; } renderAdmin(); };
+  function appKeysTab() {
+    if (!window.fire.appkeys) return h('div', { class: 'adm-sec' }, h('p', { class: 'muted' }, 'Disponible sur la version PC.'));
+    if (AK.list === null) { AK.list = []; akLoad(); }
+    const roster = admRoster();
+    const appsTxt = (a) => a.map((x) => (x === 'kiting' ? 'FIRE Kiting' : 'FIRE Listen')).join(' + ');
+    const make = async () => {
+      const apps = Object.keys(AK.apps).filter((k) => AK.apps[k]);
+      if (!AK.who.trim() || !apps.length) { AK.msg = '⚠ Choisis une personne et au moins une app.'; renderAdmin(); return; }
+      AK.busy = true; AK.msg = 'Création de la clé…'; renderAdmin();
+      const r = await window.fire.appkeys.make(AK.who.trim(), apps).catch((e) => ({ ok: false, error: String(e) }));
+      AK.busy = false;
+      if (r && r.ok) { AK.last = { who: AK.who.trim(), apps, key: r.key }; AK.msg = r.warn ? '⚠ Clé créée, mais la liste de l’équipe n’a pas pu être mise à jour : ' + r.warn : '✅ Clé créée.'; AK.who = ''; akLoad(); }
+      else AK.msg = '⚠ ' + ((r && r.error) || 'création impossible');
+      renderAdmin();
+    };
+    const revoke = async (k, on) => {
+      if (on && !confirm(`Retirer la clé de ${k.who} ? Son menu admin se fermera, et ses prochaines publications seront refusées.`)) return;
+      const r = await window.fire.appkeys.revoke(k.id, on).catch((e) => ({ ok: false, error: String(e) }));
+      AK.msg = r && r.ok ? (on ? '✅ Clé retirée pour toute l’équipe.' : '✅ Clé rétablie.') : '⚠ ' + ((r && r.error) || 'impossible');
+      akLoad(); renderAdmin();
+    };
+    return h('div', { class: 'adm-sec' },
+      h('p', { class: 'muted' }, 'Une clé ouvre le menu admin de FIRE Kiting ou FIRE Listen (bouton 🔧 Admin) : créer des niveaux, des personnages, des sorts ou des sons pour toute l’équipe. Chaque clé est signée par ta clé de créateur : personne d’autre ne peut en fabriquer, et tu peux la retirer quand tu veux.'),
+      h('div', { class: 'card adm-grp' }, h('b', null, '➕ Nouvelle clé'),
+        h('div', { class: 'row' },
+          h('input', { class: 'inp', list: 'ak-who', placeholder: 'Pour qui ? (pseudo)', value: AK.who, maxlength: 40, style: 'max-width:240px', oninput: (e) => { AK.who = e.target.value; } }),
+          h('datalist', { id: 'ak-who' }, roster.map((p) => h('option', { value: String(p.pseudo || p.slug).split('#')[0] }))),
+          ['kiting', 'listen'].map((a) => h('label', { class: 'adm-chk' }, h('input', { type: 'checkbox', checked: AK.apps[a] ? true : null, onchange: (e) => { AK.apps[a] = e.target.checked; } }), a === 'kiting' ? ' FIRE Kiting' : ' FIRE Listen')),
+          h('button', { class: 'btn-fire small-btn', disabled: AK.busy ? true : null, onclick: make }, '🔑 Créer la clé'))),
+      AK.last ? h('div', { class: 'card adm-grp' }, h('b', null, `Clé de ${AK.last.who} (${appsTxt(AK.last.apps)})`),
+        h('textarea', { class: 'inp adm-keybox', readonly: true, rows: 4, onclick: (e) => e.target.select() }, AK.last.key),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => akCopy(AK.last.key) }, '📋 Copier la clé')),
+        h('p', { class: 'muted small' }, 'Envoie-la en message privé. Dans FIRE Kiting ou FIRE Listen : bouton « 🔧 Admin », puis colle la clé. Garde-la secrète : elle permet de publier au nom de cette personne.')) : null,
+      AK.msg ? h('p', { class: 'small' }, AK.msg) : null,
+      h('b', null, 'Clés données'),
+      AK.list && AK.list.length ? h('div', { class: 'adm-keys' }, AK.list.map((k) => h('div', { class: 'card adm-key' + (k.revoked ? ' off' : '') },
+        h('div', null, h('b', null, k.who), h('span', { class: 'muted small' }, ` · ${appsTxt(k.apps)} · ${new Date(k.at).toLocaleDateString('fr-FR')}`), k.revoked ? h('span', { class: 'bad small' }, ' · retirée') : null),
+        h('div', { class: 'row' }, k.key && !k.revoked ? h('button', { class: 'linkbtn small', onclick: () => akCopy(k.key) }, '📋 Copier') : null,
+          h('button', { class: 'linkbtn small', onclick: () => revoke(k, !k.revoked) }, k.revoked ? '↺ Rétablir' : '🚫 Retirer'))))) : h('p', { class: 'muted small' }, 'Aucune clé pour l’instant.'),
+      h('p', { class: 'muted small' }, 'Les créations de l’admin sont envoyées à l’équipe par FIRE Team ouvert sur son PC (il doit être connecté avec le code d’équipe).'));
+  }
   function renderAdmin() {
     const view = $('view');
     if (!isAdmin()) { view.replaceChildren(h('div', { class: 'card' }, h('p', null, '🛠️ Le menu Admin est réservé au créateur de FIRE, sur son PC.'))); return; }
     admOpen();
     const D = ADM.draft;
     const set = (patch) => { Object.assign(D, patch); if (ADM.preview) { ADM.preview = clone(D); appCfgApply(); renderNav(); } renderAdmin(); };
-    const tabs = [['look', '🎨 Apparence'], ['switch', '🔧 Interrupteurs'], ['menu', '🗂️ Menu et catégories'], ['pages', '📄 Pages'], ['texts', '✍️ Textes'], ['home', '🏠 Accueil'], ['team', '👥 Équipe'], ['shop', '🛍️ Boutique'], ['css', '🧪 CSS avancé']];
+    const tabs = [['look', '🎨 Apparence'], ['switch', '🔧 Interrupteurs'], ['menu', '🗂️ Menu et catégories'], ['pages', '📄 Pages'], ['texts', '✍️ Textes'], ['home', '🏠 Accueil'], ['team', '👥 Équipe'], ['shop', '🛍️ Boutique'], ['apps', '🔑 Clés des apps'], ['css', '🧪 CSS avancé']];
     const field = (label, help, el) => h('label', { class: 'adm-f' }, h('b', null, label), help ? h('small', { class: 'muted' }, help) : null, el);
     let body;
     if (ADM.tab === 'look') {
@@ -11465,6 +11510,8 @@
             h('input', { class: 'inp', value: x.name, maxlength: 40, onchange: (e) => { x.name = e.target.value.trim() || x.name; set({}); } }),
             h('button', { class: 'linkbtn small', onclick: () => { if (!confirm(`Retirer « ${x.name} » de la Boutique ?`)) return; L.splice(L.indexOf(x), 1); set({}); } }, '🗑️ Retirer'))))); }),
         L.length ? null : h('p', { class: 'muted' }, 'Aucun article ajouté pour l’instant.'));
+    } else if (ADM.tab === 'apps') {
+      body = appKeysTab();
     } else {
       body = h('div', { class: 'adm-sec' },
         field('CSS de l’équipe', 'Pour aller au bout : tout ce que tu écris ici s’applique au style de FIRE chez tout le monde (couleurs, tailles, arrondis, cacher un bloc…). « Essayer sur mon PC » pour voir avant de publier.',
@@ -11476,7 +11523,7 @@
         h('p', { class: 'muted' }, 'Modifie FIRE pour toute l’équipe, sans mise à jour : menu, catégories, pages, textes, apparence. Tes changements sont signés par ta clé de créateur : personne d’autre ne peut publier ici.'))),
       h('div', { class: 'row plan-tabs adm-tabs' }, tabs.map(([k, l]) => h('button', { class: 'plan-tab', 'aria-pressed': String(ADM.tab === k), onclick: () => { ADM.tab = k; renderAdmin(); } }, l))),
       h('div', { class: 'card adm-body' }, body),
-      h('div', { class: 'card adm-bar' },
+      ADM.tab === 'apps' && !dirty ? '' : h('div', { class: 'card adm-bar' },
         h('div', { class: 'row' },
           h('button', { class: 'btn-ghost', 'aria-pressed': String(!!ADM.preview), onclick: () => { ADM.preview = ADM.preview ? null : clone(D); appCfgApply(); render(); } }, ADM.preview ? '👁️ Aperçu actif (cliquer pour l’arrêter)' : '👁️ Essayer sur mon PC'),
           h('button', { class: 'btn-fire', disabled: ADM.busy || !dirty ? true : null, onclick: () => admPublish(D) }, '📤 Publier pour toute l’équipe'),

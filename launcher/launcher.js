@@ -26,19 +26,19 @@
   // Les apps du launcher. FIRE Team = l'ancienne FIRE LoL.
   const APPS = {
     team: { name: 'FIRE Team', icon: 'assets/fire-cut.png', tile: 'assets/team.png', tag: 'L’app de l’équipe : stats, draft, vocal, planning, coaching et boutique.' },
-    kiting: { name: 'FIRE Kiting', icon: 'assets/kiting.png', round: true, tag: 'Entraînement à l’attaque-déplacement sur la vraie image du mid.',
-      feat: ['☄️', 'Esquive de sorts', 'Boules de feu, attaques en ligne et lasers : esquive après l’avertissement. Le bilan compte les sorts évités et les impacts reçus.'],
+    kiting: { name: 'FIRE Kiting', icon: 'assets/kiting.png', round: true, tag: 'Kiting et Dodge 3D sur la vraie image du mid : attaque-déplacement, esquive de sorts et Flash.',
+      feat: ['🌀', 'Dodge 3D', 'Ezreal, Ahri, Lux et Blitzcrank lancent leurs sorts en 3D : esquive, garde ton Flash (F) et tiens jusqu’au bout. Les admins ajoutent d’autres personnages et des niveaux.'],
       news: [
-        ['🎯', 'Attaque-déplacement', 'Clic droit pour bouger ou attaquer, A + clic gauche ou X pour attaquer en avançant, S pour s’arrêter, Échap pour la pause.', 'GUIDE'],
-        ['☄️', 'Esquive de sorts', 'Le bouton Esquive de sorts en haut lance le mode : déplace-toi au clic droit et lis bien les avertissements.', 'MODE'],
-        ['⌨️', 'Tes propres touches', 'Section Touches : clique un raccourci puis presse la nouvelle touche. Préréglage Q + clic gauche disponible.', 'RÉGLAGES'],
+        ['🎯', 'Niveaux de l’équipe', 'Des niveaux créés par les admins : vitesse et complexité en %, personnages choisis, avec ou sans Flash. Onglet « Niveaux de l’équipe ».', 'NOUVEAU'],
+        ['🌀', 'Dodge 3D', 'Projectiles, orbes aller-retour, grappin, laser et zones au sol, sur la midlane. F pour le Flash (15 s de recharge).', 'MODE'],
+        ['⌨️', 'Tes propres touches', 'Section Touches : clique un raccourci puis presse la nouvelle touche. Préréglage Q + clic gauche et touche du Flash.', 'RÉGLAGES'],
       ] },
-    listen: { name: 'FIRE Listen', icon: 'assets/listen.png', round: true, tag: 'Apprends à reconnaître les sons du jeu : quiz sonore et Atelier audio.',
+    listen: { name: 'FIRE Listen', icon: 'assets/listen.png', round: true, tag: 'Apprends à reconnaître les sons du jeu : quiz sonore, Atelier audio et niveaux de l’équipe.',
       feat: ['🎛️', 'Atelier audio', 'Compare les sons entre eux pour ne plus jamais confondre un sort, une ulti ou un pas dans les buissons.'],
       news: [
         ['🎧', 'Quiz sonore', 'Un son du jeu, à toi de retrouver d’où il vient. Parfait pour réagir plus vite en partie.', 'MODE'],
         ['🎛️', 'Atelier audio', 'Écoute et compare les sons côte à côte pour bien les distinguer.', 'MODE'],
-        ['🤝', 'Suivis partagés', 'Partage ta progression avec tes amis grâce aux fichiers de suivi.', 'ÉQUIPE'],
+        ['🎯', 'Niveaux de l’équipe', 'Des quiz créés par les admins : touches, vies, chrono, sons coupés, et de nouveaux sons ajoutés pour l’équipe.', 'NOUVEAU'],
       ] },
   };
   const IDS = ['team', 'kiting', 'listen'];

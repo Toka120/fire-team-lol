@@ -1825,4 +1825,154 @@ async function revueNote(id, note, del) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 
-module.exports = { appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+
+// ---------- FIRE Kiting / FIRE Listen : clés admin données par le créateur, et publications de l'équipe ----------
+// Une clé = certificat (qui, quelles apps, clé publique) signé par la clé de créateur + la clé privée de la personne.
+// Les créations faites dans le menu admin de Kiting/Listen sont signées avec cette clé, déposées dans
+// %LOCALAPPDATA%\FIRE\envois, puis FIRE Team (ouvert et connecté à l'équipe) les vérifie et les envoie dans apps/<app>.json.
+const APPS = ['kiting', 'listen'];
+const APPS_KEYS = 'apps/keys.json';
+const b64u = (b) => Buffer.from(b).toString('base64url');
+function canonJ(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v === undefined ? null : v);
+  if (Array.isArray(v)) return '[' + v.map(canonJ).join(',') + ']';
+  return '{' + Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + canonJ(v[k])).join(',') + '}';
+}
+const p1363 = (key) => ({ key, dsaEncoding: 'ieee-p1363' });
+function byAdmin(sigB64u, data) {
+  for (const a of (getConfig().admins || [])) {
+    try { if (crypto.verify('sha256', Buffer.from(data), p1363(crypto.createPublicKey({ key: Buffer.from(String(a.pub), 'base64'), format: 'der', type: 'spki' })), Buffer.from(String(sigB64u), 'base64url'))) return true; } catch (e) { /* clé suivante */ }
+  }
+  return false;
+}
+function appCert(by) {
+  const [c, s] = String(by || '').split('.');
+  if (!c || !s || !byAdmin(s, c)) return null;
+  try { const cert = JSON.parse(Buffer.from(c, 'base64url').toString('utf8')); return cert && cert.v === 1 && Array.isArray(cert.apps) && cert.pub ? cert : null; } catch (e) { return null; }
+}
+function appKeysLocal() { const d = readSecret('appkeys.bin') || {}; return { issued: Array.isArray(d.issued) ? d.issued : [], revoked: Array.isArray(d.revoked) ? d.revoked : [] }; }
+async function appKeysPublish(d) {
+  const k = adminKey();
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) throw new Error("le coach n'a pas encore activé le jeton d'équipe");
+  const payload = { v: 1, at: Date.now(), revoked: d.revoked.slice(), issued: d.issued.map((x) => ({ id: x.id, who: x.who, apps: x.apps, at: x.at })) };
+  const file = { payload, sig: b64u(crypto.sign('sha256', Buffer.from(canonJ(payload)), p1363(crypto.createPrivateKey(k.priv)))) };
+  for (let i = 0; i < 4; i++) {
+    const cur = await ghGet(tok, APPS_KEYS, dr);
+    const r = await ghPut(tok, APPS_KEYS, file, cur && cur.sha, 'Clés admin de FIRE Kiting / FIRE Listen', dr);
+    if (r.ok) return;
+  }
+  throw new Error('la liste des clés a changé pendant l’envoi, réessaie');
+}
+function appKeysList() {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  const d = appKeysLocal();
+  return { ok: true, keys: d.issued.map((x) => ({ ...x, revoked: d.revoked.includes(x.id) })).reverse() };
+}
+async function appKeyMake(who, apps) {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  who = String(who || '').trim().slice(0, 40);
+  apps = APPS.filter((a) => (Array.isArray(apps) ? apps : []).includes(a));
+  if (!who || !apps.length) return { ok: false, error: 'choisis une personne et au moins une app' };
+  const k = adminKey();
+  const h = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
+  const cert = { v: 1, id: 'k_' + crypto.randomBytes(5).toString('hex'), who, apps, pub: h.publicKey.export({ type: 'spki', format: 'der' }).toString('base64'), at: Date.now() };
+  const c = b64u(JSON.stringify(cert));
+  const s = b64u(crypto.sign('sha256', Buffer.from(c), p1363(crypto.createPrivateKey(k.priv))));
+  const key = 'FIREKEY1.' + c + '.' + s + '.' + b64u(h.privateKey.export({ type: 'pkcs8', format: 'der' }));
+  const d = appKeysLocal();
+  d.issued.push({ id: cert.id, who, apps, at: cert.at, key });
+  writeSecret('appkeys.bin', d);
+  let warn = null;
+  try { await appKeysPublish(d); } catch (e) { warn = String((e && e.message) || e); }
+  return { ok: true, id: cert.id, key, warn };
+}
+async function appKeyRevoke(id, on = true) {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  const d = appKeysLocal();
+  if (!d.issued.some((x) => x.id === id)) return { ok: false, error: 'clé inconnue' };
+  d.revoked = d.revoked.filter((x) => x !== id);
+  if (on) d.revoked.push(id);
+  writeSecret('appkeys.bin', d);
+  try { await appKeysPublish(d); return { ok: true }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+
+// Dossier d'envoi partagé avec FIRE Kiting / FIRE Listen (lu seulement sur PC, jamais sur téléphone).
+const outboxDir = () => path.join(process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || process.env.HOME || '.', 'AppData', 'Local'), 'FIRE', 'envois');
+async function ghPutRaw(token, p, buf, sha, message, repo) {
+  const body = { message, content: Buffer.from(buf).toString('base64'), branch: 'main' };
+  if (sha) body.sha = sha;
+  const r = await http(apiOf(repo) + p, { method: 'PUT', headers: { ...ghHeaders(token), 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.status === 409 || r.status === 422) return { conflict: true };
+  if (!r.ok) throw new Error(`GitHub a refusé l'envoi (${r.status})`);
+  return { ok: true };
+}
+async function relayOne(box, revoked, dr, tok) {
+  const app = box && box.app, it = box && box.item;
+  if (!APPS.includes(app) || !it || it.app !== app) throw new Error('publication invalide');
+  if (!/^(level|champ|spell|sound)$/.test(String(it.kind)) || !/^[\w-]{3,40}$/.test(String(it.id))) throw new Error('élément inconnu');
+  const cert = appCert(it.by);
+  if (!cert) throw new Error('clé admin non reconnue');
+  if (!cert.apps.includes(app)) throw new Error('clé non valable pour cette app');
+  if (revoked.has(cert.id)) throw new Error('clé retirée par le créateur');
+  const msg = canonJ({ app, kind: it.kind, id: it.id, at: it.at, del: !!it.del, data: it.del ? null : it.data });
+  const pub = crypto.createPublicKey({ key: Buffer.from(cert.pub, 'base64'), format: 'der', type: 'spki' });
+  if (!crypto.verify('sha256', Buffer.from(msg), p1363(pub), Buffer.from(String(it.sig), 'base64url'))) throw new Error('signature invalide');
+  if (!Number.isFinite(it.at) || Math.abs(Date.now() - it.at) > 7 * 864e5) throw new Error('publication trop ancienne : republie-la');
+  if (JSON.stringify(it.data || null).length > 60000) throw new Error('élément trop lourd');
+  const clean = { app, kind: it.kind, id: it.id, at: it.at, del: !!it.del, data: it.del ? null : it.data, by: it.by, sig: it.sig };
+  // Un son de FIRE Listen : le fichier audio part à côté, son empreinte est signée dans l'élément.
+  if (app === 'listen' && it.kind === 'sound' && !it.del) {
+    const d = it.data || {};
+    const buf = Buffer.from(String(it.blob || ''), 'base64');
+    if (!/^[0-9a-f]{64}$/.test(String(d.sha)) || !/^(mp3|ogg|wav|m4a|webm)$/.test(String(d.ext))) throw new Error('son invalide');
+    const p = `apps/listen/sons/${d.sha}.${d.ext}`;
+    const exists = (await http(apiOf(dr) + p + '?ref=main', { method: 'HEAD', headers: ghHeaders(tok) }).catch(() => ({ status: 0 }))).status === 200;
+    if (!exists) {
+      if (!buf.length || buf.length > 2.5e6) throw new Error('son manquant ou trop lourd (2,5 Mo au maximum)');
+      if (crypto.createHash('sha256').update(buf).digest('hex') !== d.sha) throw new Error('son abîmé pendant l’envoi');
+      await ghPutRaw(tok, p, buf, null, 'FIRE Listen : son ajouté', dr);
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    const cur = await ghGet(tok, `apps/${app}.json`, dr);
+    const doc = (cur && cur.json && Array.isArray(cur.json.items)) ? cur.json : { v: 1, items: [] };
+    if (doc.items.some((x) => x.kind === clean.kind && x.id === clean.id && x.at >= clean.at)) return { ok: true, note: 'déjà à jour' };
+    doc.items = doc.items.filter((x) => !(x.kind === clean.kind && x.id === clean.id)).concat([clean]).slice(-600);
+    doc.v = 1; doc.at = Date.now();
+    const r = await ghPut(tok, `apps/${app}.json`, doc, cur && cur.sha, `FIRE ${app === 'kiting' ? 'Kiting' : 'Listen'} : ${clean.del ? 'retrait' : 'publication'} (${clean.kind})`, dr);
+    if (r.ok) return { ok: true };
+  }
+  throw new Error('les publications ont changé pendant l’envoi, réessaie');
+}
+let relayBusy = false;
+async function appsRelay() {
+  let files = [];
+  const OUTBOX = outboxDir();
+  try { files = fs.readdirSync(OUTBOX).filter((f) => /^(kiting|listen)-[\w-]+\.json$/.test(f) && !f.endsWith('.resultat.json')); } catch (e) { return { ok: true, n: 0 }; }
+  // Nettoyage des vieux résultats (plus d'une journée).
+  try { for (const f of fs.readdirSync(OUTBOX)) if (f.endsWith('.resultat.json') && Date.now() - fs.statSync(path.join(OUTBOX, f)).mtimeMs > 864e5) fs.rmSync(path.join(OUTBOX, f), { force: true }); } catch (e) { /* */ }
+  if (!files.length || relayBusy) return { ok: true, n: 0 };
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, n: files.length, error: 'FIRE Team n’est pas connecté à l’équipe' };
+  relayBusy = true;
+  let n = 0;
+  try {
+    let revoked = new Set();
+    try {
+      const kf = await readPublic(APPS_KEYS, dr, tok);
+      if (kf && kf.payload && byAdmin(kf.sig, canonJ(kf.payload))) revoked = new Set((kf.payload.revoked || []).map(String));
+    } catch (e) { /* pas encore de liste */ }
+    for (const f of files) {
+      const name = f.replace(/\.json$/, '');
+      let res;
+      try { res = await relayOne(JSON.parse(fs.readFileSync(path.join(OUTBOX, f), 'utf8')), revoked, dr, tok); n++; } catch (e) { res = { ok: false, error: String((e && e.message) || e) }; }
+      try { fs.writeFileSync(path.join(OUTBOX, name + '.resultat.json'), JSON.stringify({ ...res, at: Date.now() })); fs.rmSync(path.join(OUTBOX, f), { force: true }); } catch (e) { /* */ }
+    }
+  } finally { relayBusy = false; }
+  return { ok: true, n };
+}
+
+module.exports = { appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
