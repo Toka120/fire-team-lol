@@ -33,7 +33,7 @@ jobs:
         run: python -m pip install --upgrade pip pyinstaller pywebview pyinstxtractor-ng
       - name: Versions d'origine (branche apps)
         run: |
-          git fetch --depth 1 origin apps
+          git fetch --depth 1 origin +refs/heads/apps:refs/remotes/origin/apps
           mkdir -p base
           git cat-file blob origin/apps:FIRE-Kiting.exe > base/FIRE-Kiting.exe
           git cat-file blob origin/apps:FIRE-Listen.exe > base/FIRE-Listen.exe
