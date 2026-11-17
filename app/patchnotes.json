@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.189",
+   "date": "2026-11-17",
+   "titre": "Téléphone : écran du code propre",
+   "items": [
+    [
+     "fix",
+     "Téléphone : l’écran du code d’accès s’affiche seul, sans la barre du haut ni les onglets. Le logo ne chevauche plus le titre, et le texte dit « sur ce téléphone »."
+    ]
+   ]
+  },
+  {
    "v": "1.10.188",
    "date": "2026-11-17",
    "titre": "L’app téléphone refaite",

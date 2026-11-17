@@ -138,6 +138,8 @@
     });
   }
 
+  // Écran du code : « sur ce téléphone » plutôt que « sur cet ordinateur ».
+  for (const n of document.querySelectorAll('#lock .lock-note')) n.textContent = n.textContent.replace('sur cet ordinateur', 'sur ce téléphone');
   // Textes d'aide trop longs pour un écran de téléphone (« (Entrée pour envoyer) »…).
   let phT = 0;
   const trimPh = () => { phT = 0; for (const x of document.querySelectorAll('textarea[placeholder], input[placeholder]')) { const v = x.getAttribute('placeholder'); const n = v.replace(/\s*\((?:Entrée|Maj|Ctrl)[^)]*\)/g, '').replace(/…\s*$/, '…'); if (n !== v) x.setAttribute('placeholder', n); } };

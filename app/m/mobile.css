@@ -6,7 +6,8 @@ html.mobile * { -webkit-touch-callout: none; }
 html.mobile input, html.mobile textarea, html.mobile [contenteditable] { -webkit-touch-callout: default; }
 
 /* ----- Coque : plus de menu latéral, tout passe par les onglets et le menu « Plus » ----- */
-html.mobile .shell, html.mobile.v2 .shell { display: block !important; min-height: 100vh; }
+html.mobile .shell:not([hidden]), html.mobile.v2 .shell:not([hidden]) { display: block !important; min-height: 100vh; }
+html.mobile .shell[hidden] { display: none !important; }
 html.mobile .v2-side { display: none !important; }
 html.mobile .topbar, html.mobile.v2 .topbar { position: sticky; top: 0; z-index: 900; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 0;
   padding: calc(6px + env(safe-area-inset-top)) 10px 6px 14px; margin: 0; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--line, #ffffff1a) 70%, transparent);
@@ -169,3 +170,9 @@ html.mobile .mob-a2hs { position: fixed; left: 10px; right: 10px; bottom: calc(v
 html.mobile .mob-a2hs button { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; min-height: 0; border: 0; border-radius: 15px; background: rgb(255 255 255 / 8%); color: inherit; }
 /* Ce qui ne sert qu'au PC */
 html.mobile :is(.set-creator, .creator-row) { display: none !important; }
+
+/* Écran du code d'accès */
+html.mobile .lock { padding: calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom)); }
+html.mobile .lock .lock-logo { width: 120px !important; height: auto !important; margin-bottom: 14px !important; }
+html.mobile .lock .brand { margin-top: 0 !important; font-size: 30px !important; }
+html.mobile body:has(#lock:not([hidden])) .mob-tabs, html.mobile body:has(#lock:not([hidden])) #fire-pet { display: none !important; }
