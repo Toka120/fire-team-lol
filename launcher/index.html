@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>FIRE Launcher</title>
+<link rel="stylesheet" href="launcher.css">
+</head>
+<body>
+<div id="root">
+  <nav id="rail" aria-label="Apps FIRE"></nav>
+  <header id="top">
+    <div class="brand"><span>FIRE <b>LAUNCHER</b></span></div>
+    <div class="top-mid" id="top-mid"></div>
+    <div class="top-r">
+      <button class="tb" id="b-set" title="Réglages" aria-label="Réglages"><svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></button>
+      <span class="sep"></span>
+      <button class="wb" id="w-min" aria-label="Réduire"><svg viewBox="0 0 12 12"><path d="M2 6h8"/></svg></button>
+      <button class="wb" id="w-max" aria-label="Agrandir"><svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8"/></svg></button>
+      <button class="wb close" id="w-close" aria-label="Fermer"><svg viewBox="0 0 12 12"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>
+    </div>
+  </header>
+  <main id="stage">
+    <div id="bg"></div>
+    <canvas id="fx"></canvas>
+    <div id="art"></div>
+    <section id="content"></section>
+  </main>
+  <div id="toasts"></div>
+  <div id="modal" hidden></div>
+</div>
+<script src="launcher.js"></script>
+</body>
+</html>

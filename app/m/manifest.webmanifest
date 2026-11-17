@@ -1,6 +1,6 @@
 {
-  "name": "FIRE LoL",
-  "short_name": "FIRE LoL",
+  "name": "FIRE Team",
+  "short_name": "FIRE Team",
   "description": "L'application de l'équipe FIRE : stats, POOL, planning, discussion, revues, puzzles.",
   "lang": "fr",
   "start_url": "./",

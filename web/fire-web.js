@@ -98,7 +98,7 @@ window.fire = {
     try { const t = (await (await fetch('https://decapi.me/twitch/uptime/' + encodeURIComponent(ch))).text()).trim(); return /error|not found/i.test(t) ? null : { live: !/offline/i.test(t), uptime: /offline/i.test(t) ? '' : t }; } catch (e) { return null; }
   },
   notify: async (m) => {
-    try { if (document.hidden && 'Notification' in window && Notification.permission === 'granted') new Notification(String((m && m.title) || 'FIRE LoL'), { body: String((m && m.body) || ''), icon: 'icon-192.png' }); } catch (e) { /* */ }
+    try { if (document.hidden && 'Notification' in window && Notification.permission === 'granted') new Notification(String((m && m.title) || 'FIRE Team'), { body: String((m && m.body) || ''), icon: 'icon-192.png' }); } catch (e) { /* */ }
     return true;
   },
   onNotifyGo: noop,

@@ -269,7 +269,7 @@
     const brand = document.createElement('div');
     brand.className = 'v2-brand';
     const logo = document.createElement('img'); logo.src = '../assets/fire.png'; logo.alt = '';
-    const name = document.createElement('span'); name.textContent = 'FIRE LoL';
+    const name = document.createElement('span'); name.textContent = 'FIRE Team';
     brand.append(logo, name);
     side.append(brand, document.getElementById('nav'));
     const main = document.createElement('div');

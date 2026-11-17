@@ -413,7 +413,7 @@
     $('app').hidden = true;
     const up = updateNode();
     if (up) { $('lock-update').hidden = false; $('lock-update').replaceChildren(up); }
-    $('lock-version').textContent = `FIRE LoL v${S.version}` + (S.cfg && S.cfg._source === 'copie locale' ? ' · hors ligne : configuration enregistrée utilisée' : '');
+    $('lock-version').textContent = `FIRE Team v${S.version}` + (S.cfg && S.cfg._source === 'copie locale' ? ' · hors ligne : configuration enregistrée utilisée' : '');
     const inp = $('code');
     setTimeout(() => inp.focus(), 50);
     const go = async () => {
@@ -866,7 +866,7 @@
       const now = h('button', { class: 'linkbtn', onclick: () => installNow(true) }, 'Redémarrer maintenant');
       // Plus de redémarrage automatique : des membres travaillent dans FIRE (vocal, draft, coaching…) et se faisaient déconnecter.
       // La mise à jour s'installe quand ils ferment FIRE, ou tout de suite s'ils cliquent sur « Redémarrer maintenant ».
-      node = h('span', null, `✓ La version ${u.version} est prête : elle s'installera quand tu fermeras FIRE LoL. `, now);
+      node = h('span', null, `✓ La version ${u.version} est prête : elle s'installera quand tu fermeras FIRE Team. `, now);
     } else if (!u.auto) node = updateNode();
     box.hidden = !node;
     box.replaceChildren(...(node ? [node] : []));
@@ -934,8 +934,8 @@
         rdvChime();
       } }, '⏰ Voir un exemple de rappel')),
       h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: (p.on || p.app) ? null : true, onclick: () => {
-        if (p.app) popup('🔥 FIRE LoL', 'Les notifications fonctionnent ✓', null);
-        if (p.on && window.fire.notify) deskNotify({ title: '🔥 FIRE LoL', body: 'Les notifications fonctionnent ✓', section: 'settings', force: true });
+        if (p.app) popup('🔥 FIRE Team', 'Les notifications fonctionnent ✓', null);
+        if (p.on && window.fire.notify) deskNotify({ title: '🔥 FIRE Team', body: 'Les notifications fonctionnent ✓', section: 'settings', force: true });
       } }, '🔔 Envoyer une notification de test')),
       b.notif === false ? h('p', { class: 'bad small' }, '⚠ Ton ordinateur bloque les notifications. Active-les dans Windows : Paramètres › Système › Notifications.') : null,
       h('h3', { class: 'nh' }, 'Recevoir les notifications même fenêtre fermée'),
@@ -999,7 +999,7 @@
     ['Paramètres utilisateur', [['compte', '🪪', 'Mon compte'], ['profil', '👤', 'Profil'], ['confid', '🔒', 'Confidentialité']]],
     ['Application', [['apparence', '🎨', 'Apparence'], ['texte', '🔤', 'Polices et texte'], ['access', '♿', 'Accessibilité'], ['voix', '🎙️', 'Voix et vidéo'],
       ['notifs', '🔔', 'Notifications'], ['raccourcis', '⌨️', 'Raccourcis clavier'], ['streamer', '📺', 'Mode streamer'], ['ouverture', '🚀', 'Ouverture de FIRE'], ['avance', '⚙️', 'Avancé']]],
-    ['FIRE LoL', [['nouveautes', '🆕', 'Nouveautés'], ['maj', '🔄', 'Mises à jour'], ['bug', '🐞', 'Signaler un bug'], ['apropos', 'ℹ️', 'À propos']]],
+    ['FIRE Team', [['nouveautes', '🆕', 'Nouveautés'], ['maj', '🔄', 'Mises à jour'], ['bug', '🐞', 'Signaler un bug'], ['apropos', 'ℹ️', 'À propos']]],
   ];
   const SET_TABS = SET_GROUPS.flatMap(([, items]) => items);
   const SET_SUB = { apparence: [['theme', 'Thème'], ['couleurs', 'Couleur et fond'], ['affichage', 'Affichage']], notifs: [['alertes', 'Alertes'], ['dnd', 'Ne pas déranger'], ['son', 'Son']], profil: [['statut', 'Statut'], ['carte', 'Carte de profil']] };
@@ -1430,7 +1430,7 @@
     r.onload = () => {
       try {
         const j = JSON.parse(r.result);
-        if (!j || j.app !== 'FIRE LoL' || !j.prefs) throw new Error('fichier');
+        if (!j || !['FIRE LoL', 'FIRE Team'].includes(j.app) || !j.prefs) throw new Error('fichier');
         const keys = Object.keys(j.prefs).filter((k) => k.startsWith('fire.') && !EXPORT_SKIP.test(k));
         if (!confirm(`Remplacer tes réglages par ceux de ce fichier (${keys.length} réglages) ? FIRE va se recharger.`)) return;
         keys.forEach((k) => localStorage.setItem(k, String(j.prefs[k])));
@@ -1532,10 +1532,10 @@
         coachAccess());
     C.about = h('div', { class: 'card settings-card' },
         h('h2', null, 'ℹ️ À propos'),
-        h('p', { class: 'small' }, 'FIRE LoL · ', h('a', { href: 'https://toka120.github.io/fire-team-lol/', target: '_blank' }, 'page de téléchargement'), ' · ',
+        h('p', { class: 'small' }, 'FIRE Team · ', h('a', { href: 'https://toka120.github.io/fire-team-lol/', target: '_blank' }, 'page de téléchargement'), ' · ',
           h('a', { href: 'https://github.com/Toka120/fire-team-lol/releases', target: '_blank' }, 'toutes les versions'), ' · ',
           h('a', { href: 'https://toka120.github.io/fire-team-lol/confidentialite.html', target: '_blank' }, 'confidentialité')),
-        h('p', { class: 'muted small' }, "FIRE LoL n'est pas approuvé par Riot Games et ne reflète pas les opinions de Riot Games ni de quiconque officiellement impliqué dans la production ou la gestion des propriétés de Riot Games. Riot Games et toutes les propriétés associées sont des marques commerciales ou des marques déposées de Riot Games, Inc."));
+        h('p', { class: 'muted small' }, "FIRE Team n'est pas approuvé par Riot Games et ne reflète pas les opinions de Riot Games ni de quiconque officiellement impliqué dans la production ou la gestion des propriétés de Riot Games. Riot Games et toutes les propriétés associées sont des marques commerciales ou des marques déposées de Riot Games, Inc."));
     // Comme Discord : plein écran, groupes et sous-menus à gauche, la page à droite, « Échap » pour fermer.
     const tab = SET_TABS.some(([k]) => k === S.setTab) ? S.setTab : 'compte';
     const [pWho, pStatus, pCard] = profilCards();
@@ -3732,7 +3732,7 @@
     const live = Object.keys(liveAll()).length;
     view.replaceChildren(...[
       h('header', { class: 'acc-hero' },
-        h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE LoL'), h('h1', null, `${hello}${me ? ' ' + String(me.pseudo).split('#')[0] : ''} 👋`),
+        h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE Team'), h('h1', null, `${hello}${me ? ' ' + String(me.pseudo).split('#')[0] : ''} 👋`),
           accFun(hr),
           h('button', { class: 'btn-ghost small-btn acc-cust', title: 'Choisir ce qui s’affiche sur ton accueil', onclick: () => { ACCE.edit = !ACCE.edit; renderAccueil(); } }, ACCE.edit ? 'Fermer' : '✏️ Personnaliser'),
           h('div', { class: 'row acc-quick' },
@@ -4625,7 +4625,7 @@
       ['⭐ Maîtrisés', `Les champions qu'il maîtrise (deuxième ligne de sa tierlist)${(p.maitrise_ids || []).length ? ' : ' + p.maitrise_ids.map(FC.champName).join(' · ') : ''}. Un champion peut être à la fois obligatoire et maîtrisé.`],
       ['❔ Autres', 'Les champions joués qui ne sont ni obligatoires ni maîtrisés.']
     ];
-    page.append(h('p', { class: 'muted small' }, 'Les mots de FIRE LoL, expliqués simplement. Les repères sont indicatifs (choisis pour FIRE LoL), pas des règles officielles.'),
+    page.append(h('p', { class: 'muted small' }, 'Les mots de FIRE Team, expliqués simplement. Les repères sont indicatifs (choisis pour FIRE Team), pas des règles officielles.'),
       h('dl', { class: 'lex' }, items.map(([t, d]) => h('div', null, h('dt', null, t), h('dd', null, d)))));
   }
 
@@ -10994,7 +10994,7 @@
     if (shopNew()) { save('fire.shop.vu', 2); setTimeout(() => { try { renderNav(); } catch (e) { /* */ } }, 0); }
     const view = $('view');
     const hero = h('header', { class: 'acc-hero shop-hero' },
-      h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE LoL · tout est gratuit'), h('h1', null, '🛍️ Boutique FIRE'),
+      h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE Team · tout est gratuit'), h('h1', null, '🛍️ Boutique FIRE'),
         h('p', { class: 'muted' }, 'Effets de profil, décorations d’avatar, pseudos animés, packs complets… Survole pour essayer, clique pour équiper.')));
     view.replaceChildren(hero, h('div', { class: 'shop-page' }, ...shopCards()));
   }
@@ -11122,7 +11122,7 @@
     try { banCheck(); banFilter(); shopRegister(); } catch (e) { /* */ }
     const brand = c.brand || '';
     document.querySelectorAll('.v2-brand span, .brand-sm span, #lock .brand').forEach((e) => { if (!e.dataset.orig) e.dataset.orig = e.textContent; e.textContent = brand || e.dataset.orig; });
-    document.title = brand || 'FIRE LoL';
+    document.title = brand || 'FIRE Team';
     // Thème par défaut de l'équipe : seulement pour ceux qui n'en ont pas choisi un.
     if (c.theme && localStorage.getItem('fire.theme') == null && THEMES.some(([id]) => id === c.theme)) { try { applyTheme(c.theme); } catch (e) { /* */ } }
   }
@@ -11275,7 +11275,7 @@
     let body;
     if (ADM.tab === 'look') {
       body = h('div', { class: 'adm-sec' },
-        field('Nom de l’app', 'Affiché dans le menu et sur l’écran du code. Vide : « FIRE LoL ».', h('input', { class: 'inp', value: D.brand || '', maxlength: 30, placeholder: 'FIRE LoL', onchange: (e) => set({ brand: e.target.value.trim() }) })),
+        field('Nom de l’app', 'Affiché dans le menu et sur l’écran du code. Vide : « FIRE Team ».', h('input', { class: 'inp', value: D.brand || '', maxlength: 30, placeholder: 'FIRE Team', onchange: (e) => set({ brand: e.target.value.trim() }) })),
         field('Police de l’app', 'Pour tout le texte de FIRE, chez toute l’équipe.', h('select', { class: 'inp', onchange: (e) => set({ font: fontKey(e.target.value) }) }, ADMIN_FONTS.map(([n, l]) => h('option', { value: n, selected: fontKey(n) === (D.font || '') ? true : null, style: n ? `font-family:'${n}'` : '' }, l)))),
         field('Couleur principale', 'Boutons, onglets actifs, liens. Vide : la couleur du thème.', h('div', { class: 'row' }, h('input', { type: 'color', value: D.accent || '#ff5e3a', onchange: (e) => set({ accent: e.target.value }) }), D.accent ? h('button', { class: 'linkbtn small', onclick: () => set({ accent: '' }) }, '↺ Couleur du thème') : h('small', { class: 'muted' }, 'couleur du thème'))),
         field('Thème par défaut', 'Pour ceux qui n’ont pas encore choisi le leur (chacun garde son choix).', h('select', { class: 'inp', onchange: (e) => set({ theme: e.target.value }) }, [h('option', { value: '' }, '— celui de l’app (FIRE) —')].concat(THEMES.map(([id, l]) => h('option', { value: id, selected: D.theme === id ? true : null }, l))))));

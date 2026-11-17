@@ -1,0 +1,40 @@
+{
+  "name": "fire-launcher",
+  "productName": "FIRE Launcher",
+  "version": "1.0.0",
+  "description": "FIRE Launcher : installe, met à jour et lance FIRE Team, FIRE Kiting et FIRE Listen",
+  "main": "main.js",
+  "author": "Toka120",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.3.0",
+    "electron-builder": "25.1.8"
+  },
+  "dependencies": {
+    "electron-updater": "6.3.9"
+  },
+  "build": {
+    "appId": "lol.fire.launcher",
+    "files": ["main.js", "preload.js", "index.html", "launcher.css", "launcher.js", "package.json", "assets/**/*"],
+    "win": { "icon": "assets/fire.ico", "target": ["nsis"] },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "FIRE Launcher",
+      "installerIcon": "assets/fire.ico",
+      "uninstallerIcon": "assets/fire.ico",
+      "artifactName": "FIRE-Launcher-Setup.exe",
+      "include": "build/installer.nsh"
+    },
+    "publish": [
+      { "provider": "generic", "url": "https://github.com/Toka120/fire-team-lol/releases/download/launcher", "channel": "launcher" }
+    ]
+  }
+}

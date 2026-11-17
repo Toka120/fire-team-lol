@@ -43,3 +43,9 @@
 !macro customRemoveFiles
   RMDir /r "$INSTDIR"
 !macroend
+
+; FIRE LoL s'appelle maintenant FIRE Team : on retire les anciens raccourcis « FIRE LoL » (le programme et les données ne bougent pas).
+!macro customInstall
+  Delete "$DESKTOP\FIRE LoL.lnk"
+  Delete "$SMPROGRAMS\FIRE LoL.lnk"
+!macroend

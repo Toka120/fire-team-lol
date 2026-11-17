@@ -64,9 +64,9 @@ function ensureTray() {
   if (tray) return;
   try {
     tray = new Tray(path.join(__dirname, 'assets', process.platform === 'win32' ? 'fire.ico' : 'fire.png'));
-    tray.setToolTip('FIRE LoL');
+    tray.setToolTip('FIRE Team');
     tray.setContextMenu(trayMenu());
-    if (inVoice) tray.setToolTip('FIRE LoL · en vocal');
+    if (inVoice) tray.setToolTip('FIRE Team · en vocal');
     tray.on('click', showMain);
   } catch (e) { tray = null; }
 }
@@ -75,15 +75,15 @@ function dropTray() { if (tray) { tray.destroy(); tray = null; } }
 let inVoice = false;
 ipcMain.on('vocal:on', (e, on) => {
   inVoice = !!on;
-  if (tray) tray.setToolTip(inVoice ? 'FIRE LoL · en vocal' : 'FIRE LoL');
+  if (tray) tray.setToolTip(inVoice ? 'FIRE Team · en vocal' : 'FIRE Team');
   if (tray) tray.setContextMenu(trayMenu());
 });
 function trayMenu() {
   return Menu.buildFromTemplate([
-    { label: 'Ouvrir FIRE LoL', click: showMain },
+    { label: 'Ouvrir FIRE Team', click: showMain },
     ...(inVoice ? [{ label: 'Quitter le vocal', click: () => { if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('vocal:leave'); } }] : []),
     { type: 'separator' },
-    { label: 'Quitter FIRE LoL', click: () => { quitting = true; app.quit(); } }
+    { label: 'Quitter FIRE Team', click: () => { quitting = true; app.quit(); } }
   ]);
 }
 function notify(title, body, section, silent, flash) {
@@ -180,7 +180,7 @@ function createMainWindow(forceShow) {
     minWidth: 900,
     minHeight: 640,
     backgroundColor: '#0B0D10',
-    title: 'FIRE LoL',
+    title: 'FIRE Team',
     icon: path.join(__dirname, 'assets', 'fire.ico'),
     autoHideMenuBar: true,
     webPreferences: {
@@ -222,7 +222,7 @@ function createMainWindow(forceShow) {
     mainWin.hide();
     ensureTray();
     if (inVoice) { notify('Tu es toujours en vocal', 'FIRE est rangé près de l’horloge : l’appel continue. Clic droit sur l’icône FIRE pour quitter le vocal ou FIRE.', null, true); return; }
-    if (!trayHintShown) { trayHintShown = true; notify('FIRE LoL reste ouvert', "Tu recevras les notifications ici. Clic droit sur l'icône FIRE près de l'horloge pour quitter."); }
+    if (!trayHintShown) { trayHintShown = true; notify('FIRE Team reste ouvert', "Tu recevras les notifications ici. Clic droit sur l'icône FIRE près de l'horloge pour quitter."); }
   });
   hideAdSlots(mainWin.webContents);
   // League of Listen (Détente) : interface traduite en français dans le cadre du jeu.
@@ -1569,7 +1569,7 @@ async function latestTag() {
   } catch (e) { return null; }
 }
 ipcMain.handle('update:state', async () => ({ ...updateState, auto: canAutoUpdate(), portable, store, latest: store ? null : await latestTag() }));
-ipcMain.handle('notify', (e, m) => notify(String((m && m.title) || 'FIRE LoL').slice(0, 120), String((m && m.body) || '').slice(0, 300), m && m.section, m && m.silent, !!(m && m.flash)));
+ipcMain.handle('notify', (e, m) => notify(String((m && m.title) || 'FIRE Team').slice(0, 120), String((m && m.body) || '').slice(0, 300), m && m.section, m && m.silent, !!(m && m.flash)));
 
 // ---------- Avancé : accélération matérielle, cache, son de Windows ----------
 // L'accélération matérielle se règle avant le démarrage : on lit le choix au lancement (redémarrage nécessaire).
@@ -1669,10 +1669,11 @@ ipcMain.handle('update:check', async () => {
 let launcherWin = null;
 function peekMode() { try { const j = JSON.parse(fs.readFileSync(quietPath(), 'utf8')); return Date.now() - (j.t || 0) > 600000 ? null : (j.mode || 'tray'); } catch (e) { return null; } }
 async function launcher() {
-  if (!canAutoUpdate()) { createMainWindow(); setupUpdater(); return; }
+  // Ouvert par FIRE Launcher : il vient déjà de tout mettre à jour, pas besoin de revérifier ici.
+  if (!canAutoUpdate() || process.argv.includes('--from-launcher')) { createMainWindow(); setupUpdater(); return; }
   const silent = startHidden || peekMode() === 'tray'; // lancement avec Windows : pas d'écran, tout se fait en silence
   if (!silent) {
-    launcherWin = new BrowserWindow({ width: 420, height: 300, frame: false, transparent: true, resizable: false, maximizable: false, fullscreenable: false, show: false, center: true, title: 'FIRE LoL', icon: path.join(__dirname, 'assets', 'fire.ico'),
+    launcherWin = new BrowserWindow({ width: 420, height: 300, frame: false, transparent: true, resizable: false, maximizable: false, fullscreenable: false, show: false, center: true, title: 'FIRE Team', icon: path.join(__dirname, 'assets', 'fire.ico'),
       webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false } });
     launcherWin.once('ready-to-show', () => { if (launcherWin && !launcherWin.isDestroyed()) launcherWin.show(); });
     launcherWin.webContents.once('did-finish-load', () => js(`ver(${JSON.stringify(app.getVersion())})`));
