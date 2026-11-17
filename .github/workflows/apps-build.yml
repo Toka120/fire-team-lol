@@ -79,16 +79,11 @@ jobs:
           cp "build/kiting/dist/FIRE Kiting.exe" out/FIRE-Kiting.exe
           cp "build/listen/dist/FIRE Listen.exe" out/FIRE-Listen.exe
           sha256sum out/*.exe
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: apps
-          name: Apps du FIRE Launcher (Kiting, Listen)
-          body: Fichiers téléchargés et mis à jour automatiquement par FIRE Launcher.
-          make_latest: false
-          overwrite_files: true
-          files: |
-            out/FIRE-Kiting.exe
-            out/FIRE-Listen.exe
+      - name: Envoi dans la release « apps »
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Seulement les fichiers (la release elle-même n'est pas modifiée).
+        run: gh release upload apps out/FIRE-Kiting.exe out/FIRE-Listen.exe --clobber -R "${{ github.repository }}"
       - name: Manifeste du launcher
         run: |
           python - <<'EOF'

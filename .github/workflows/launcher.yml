@@ -34,20 +34,12 @@ jobs:
           test -f dist/FIRE-Launcher-Setup.exe
           test -f dist/launcher.yml
           cat dist/launcher.yml
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: launcher
-          target_commitish: ${{ github.sha }}
-          name: FIRE Launcher
-          body: |
-            FIRE Launcher : installe, met à jour et lance FIRE Team, FIRE Kiting et FIRE Listen.
-            Télécharger : FIRE-Launcher-Setup.exe ci-dessous. Le launcher se met ensuite à jour tout seul.
-          make_latest: false
-          overwrite_files: true
-          files: |
-            launcher/dist/FIRE-Launcher-Setup.exe
-            launcher/dist/FIRE-Launcher-Setup.exe.blockmap
-            launcher/dist/launcher.yml
+      - name: Envoi dans la release « launcher »
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Seulement les fichiers (la release elle-même n'est pas modifiée).
+        run: gh release upload launcher dist/FIRE-Launcher-Setup.exe dist/FIRE-Launcher-Setup.exe.blockmap dist/launcher.yml --clobber -R "${{ github.repository }}"
 
   # Paquet Microsoft Store : FIRE Launcher remplace FIRE LoL sur le Store (même identité de produit).
   # Le Store le signe et gère ses mises à jour. Les 3 valeurs viennent de Partner Center › Identité du produit.
