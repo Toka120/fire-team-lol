@@ -25,9 +25,33 @@
 <script>
 // FIRE LoL sur téléphone : charge l'interface de l'application PC (dossier ../renderer, toujours à jour avec la dernière version)
 // et remplace son « moteur » (Electron) par fire-web.js, qui fait la même chose dans le navigateur.
+// Si quelque chose casse au lancement, on l'affiche (au lieu d'un écran vide) avec de quoi réparer.
+window.__fireErrs = [];
+window.addEventListener('error', (e) => { window.__fireErrs.push((e.message || 'erreur') + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '')); });
+window.addEventListener('unhandledrejection', (e) => { window.__fireErrs.push('promesse : ' + ((e.reason && e.reason.message) || e.reason)); });
+async function fireRepair() {
+  try { const rs = navigator.serviceWorker ? await navigator.serviceWorker.getRegistrations() : []; for (const r of rs) await r.unregister(); } catch (e) { /* */ }
+  try { for (const k of await caches.keys()) await caches.delete(k); } catch (e) { /* */ }
+  location.reload();
+}
+function fireStuck(msg) {
+  if (document.getElementById('boot-err')) return;
+  const d = document.createElement('div'); d.id = 'boot-err';
+  d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0d0f14;color:#eee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;font:15px/1.45 system-ui,sans-serif';
+  const errs = (window.__fireErrs || []).slice(-4).join('\n');
+  d.innerHTML = '<img src="icon-192.png" style="width:72px;height:72px;border-radius:18px"><b style="font-size:18px">FIRE n’a pas réussi à se lancer</b><p style="opacity:.75;margin:0">' + msg + '</p>'
+    + (errs ? '<pre style="white-space:pre-wrap;font-size:11.5px;opacity:.6;max-width:100%;margin:0">' + errs.replace(/</g, '&lt;') + '</pre>' : '')
+    + '<button id="be-r" style="min-height:46px;padding:0 22px;border-radius:12px;border:0;background:#f5a623;color:#111;font-weight:700;font-size:15px">Réparer et relancer</button>'
+    + '<button id="be-l" style="min-height:40px;padding:0 18px;border-radius:12px;border:1px solid #ffffff33;background:none;color:#eee;font-size:14px">Recharger</button>'
+    + '<small style="opacity:.5">« Réparer » vide seulement les fichiers gardés en mémoire : ton code et tes réglages restent.</small>';
+  document.body.append(d);
+  d.querySelector('#be-r').onclick = fireRepair; d.querySelector('#be-l').onclick = () => location.reload();
+}
+// Au bout de 20 s, si ni l'écran du code ni l'app ne sont affichés, c'est que le lancement a cassé.
+setTimeout(() => { const a = document.getElementById('app'), l = document.getElementById('lock'); if (!(a && !a.hidden) && !(l && !l.hidden)) fireStuck('Le lancement s’est bloqué. Vérifie ta connexion, puis touche « Réparer et relancer ».'); }, 20000);
 (async () => {
   const R = new URL('../renderer/', location.href);
-  const fail = (e) => { document.getElementById('boot-t').textContent = 'FIRE n’a pas pu se charger (' + (e && e.message || e) + '). Vérifie ta connexion et recharge la page.'; };
+  const fail = (e) => { const t = document.getElementById('boot-t'); const m = 'FIRE n’a pas pu se charger (' + (e && e.message || e) + '). Vérifie ta connexion et recharge la page.'; if (t) t.textContent = m; else fireStuck(m); };
   try {
     const html = await (await fetch(new URL('index.html', R), { cache: 'no-cache' })).text();
     const doc = new DOMParser().parseFromString(html, 'text/html');

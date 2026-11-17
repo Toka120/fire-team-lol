@@ -115,7 +115,7 @@ html.mobile #vc-mini { bottom: calc(var(--mob-bar) + 8px) !important; right: 8px
 html.mobile #vtoasts { bottom: calc(var(--mob-bar) + 10px) !important; }
 
 /* ----- Barre d'onglets ----- */
-html.mobile .mob-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1300; display: flex; justify-content: space-around; align-items: stretch;
+html.mobile .mob-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 800; display: flex; justify-content: space-around; align-items: stretch;
   padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--panel, #12151c) 88%, transparent);
   backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); border-top: 1px solid color-mix(in srgb, var(--line, #ffffff1a) 80%, transparent); }
 html.mobile .mob-tab { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: none; border: 0; color: var(--muted, #9aa3ad);
@@ -129,7 +129,7 @@ html.mobile .mob-tl { white-space: nowrap; overflow: hidden; text-overflow: elli
 html.mobile .mob-badge { position: absolute; top: 0; left: calc(50% + 6px); min-width: 17px; height: 17px; border-radius: 9px; background: #ff4d5e; color: #fff; font-size: 10px; font-weight: 700; line-height: 17px; padding: 0 5px; text-align: center; box-shadow: 0 0 0 2px var(--panel, #12151c); }
 
 /* ----- Menu « Plus » ----- */
-html.mobile .mob-sheet { position: fixed; inset: 0; z-index: 1250; background: rgb(0 0 0 / 0); transition: background .2s; display: flex; align-items: flex-end; }
+html.mobile .mob-sheet { position: fixed; inset: 0; z-index: 790; background: rgb(0 0 0 / 0); transition: background .2s; display: flex; align-items: flex-end; }
 html.mobile .mob-sheet.open { background: rgb(0 0 0 / 55%); }
 html.mobile .mob-sheet-in { width: 100%; max-height: calc(100vh - var(--mob-top)); overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px 14px calc(var(--mob-bar) + 14px);
   border-radius: 22px 22px 0 0; background: var(--panel, #151820); border-top: 1px solid var(--line, #ffffff1a); transform: translateY(30px); opacity: 0; transition: transform .22s ease, opacity .2s; }

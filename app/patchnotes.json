@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.190",
+   "date": "2026-11-17",
+   "titre": "Téléphone : lancement plus solide",
+   "items": [
+    [
+     "fix",
+     "Téléphone : si le lancement casse ou se bloque, FIRE ne reste plus sur un écran vide. Il affiche ce qui s’est passé et un bouton « Réparer et relancer », qui vide les fichiers gardés en mémoire sans toucher à ton code ni à tes réglages."
+    ],
+    [
+     "fix",
+     "Téléphone : les fenêtres (« Qui es-tu ? »…) passent au-dessus de la barre d’onglets."
+    ]
+   ]
+  },
+  {
    "v": "1.10.189",
    "date": "2026-11-17",
    "titre": "Téléphone : écran du code propre",
