@@ -146,6 +146,7 @@
     let url = '';
     if (b.type === 'skin' && /^[A-Za-z]+$/.test(b.c || '')) url = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${b.c}_${Number(b.n) || 0}.jpg`;
     if (b.type === 'image') url = load('fire.uxbgimg', '') || '';
+    if (b.type === 'admin') { try { url = shopAsset(b.a) || ''; } catch (e) { /* menu Admin pas encore chargé */ } }
     // Ma vidéo : lue en boucle, sans le son, derrière FIRE (fichier copié sur ce PC).
     const vid = b.type === 'video' && load('fire.uxbgvid', '');
     let ve = document.getElementById('fire-bgv');
@@ -1014,6 +1015,7 @@
   const SPF = { map: null };
   try { if (window.fire.splashFocus) window.fire.splashFocus().then((m) => { SPF.map = m || {}; }).catch(() => {}); } catch (e) { /* */ }
   function banStyle(b, w = 555, hb = 150) {
+    if (b && b.a) { let u = ''; try { u = shopAsset(b.a) || ''; } catch (e) { /* */ } return u ? `background-image:url("${u}");background-size:cover;background-position:center` : ''; }
     const url = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${b.c}_${b.n}.jpg`;
     const f = SPF.map && (SPF.map[b.c] || []).find((x) => x[0] === b.n);
     let y = 22;
@@ -1246,7 +1248,7 @@
         h('div', { class: 'prof-body' }, h('div', { class: 'prof-name' + (X.plate ? ' plate pl-' + X.plate : '') }, lname(X)), h('small', { class: 'muted' }, UX.bio || 'Ta carte de profil, comme les autres la voient'))),
       h('div', { class: 'shop-side' },
         trying ? h('span', { class: 'shop-try' }, '👀 Essai : clique pour l’équiper') : h('span', { class: 'shop-try eq' }, '✓ Ce que tu portes'),
-        h('p', { class: 'muted small' }, 'Dans la discussion :'), h('div', { class: 'chat-m' }, h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n' }, chatWhoIco(me), lname(X)), h('span', { class: 'muted' }, ' 21:30')), h('div', { class: 'chat-tx' }, 'On lance une flex ? 🔥')),
+        h('p', { class: 'muted small' }, 'Dans la discussion :'), h('div', { class: 'chat-m' + (X.bubble ? ' bub-' + X.bubble : '') }, h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n' }, chatWhoIco(me), lname(X)), h('span', { class: 'muted' }, ' 21:30')), h('div', { class: 'chat-tx' }, 'On lance une flex ? 🔥')),
         h('p', { class: 'muted small' }, 'Dans la liste des membres :'), h('div', { class: 'cp-cv' + (X.plate ? ' plate pl-' + X.plate : '') }, h('span', { class: 'chat-cv-i' }, '🙂'), h('span', { class: 'chat-cv-l' }, lname(X))),
         h('p', { class: 'muted small' }, 'Dans le vocal :'), h('div', { class: 'shop-vt' }, lav(X, 'shop-vt-av'), h('span', { class: 'shop-vt-n' }, lname(X)))));
     const preview = previewOf(L, false);
@@ -1259,19 +1261,25 @@
         return h('button', { class: 'shop-it shop-pack' + (on ? ' on' : ''), onclick: () => { setUx({ look: { ...P } }); shopRedraw(); }, onmouseenter: () => { const Pv = document.querySelector('.shop-preview'); if (Pv) Pv.replaceWith(previewOf(P, true)); }, onmouseleave: () => tryOn('fx', undefined) },
           h('div', { class: 'shop-prev shop-packprev' + (P.card ? ' pf-themed' : ''), style: P.card ? `--pc1:${P.card[0]};--pc2:${P.card[1]}` : '' }, P.pfx ? pfxEl(P.pfx) : null, lav(P, 'shop-av')), h('b', null, l), h('small', { class: 'muted' }, d), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Tout équiper')); })),
       sec('✨ Effet de pseudo', 'Il s’anime partout où ton pseudo apparaît.', SHOP.fx.map(([v, l, d]) => item('fx', v, l, d, name(v, L.font, L.grad)))),
-      sec('🎨 Dégradé de pseudo', 'Deux couleurs pour ton pseudo (sinon, ta couleur de Profil).', SHOP.grad.map(([v, l]) => item('grad', v, l, '', name(L.fx, L.font, v)))),
+      sec('🎨 Dégradé de pseudo', 'Deux couleurs pour ton pseudo (sinon, ta couleur de Profil).', shopList('grad').map(([v, l]) => item('grad', v, l, '', name(L.fx, L.font, v)))),
       sec('🔤 Police du pseudo', null, SHOP.font.map(([v, l]) => item('font', v, l, '', name(L.fx, v, L.grad)))),
       sec('💫 Décoration d’avatar', 'Autour de ton avatar dans le vocal et sur ta carte.', shopList('deco').map(([v, l]) => item('deco', v, l, '', h('span', { class: 'vc-av shop-av' + (v ? ' dk dk-' + v : '') }, ini(me), decoExtra(v))))),
       sec('🐾 Compagnon chibi', 'Il vit en bas à droite de ton FIRE : il bouge, réagit à ce qui se passe (messages, games, puzzles…) et quand tu cliques dessus. Il n’apparaît que chez toi.', shopList('pet').map(([v, l]) => item('pet', v, l, '', v ? petEl(v, 'shop-pet') : h('span', { class: 'muted' }, '—')))),
-      sec('🌠 Effet de profil', 'Une animation sur ta carte de profil.', SHOP.pfx.map(([v, l]) => item('pfx', v, l, '', h('div', { class: 'shop-pfx' }, v ? pfxEl(v) : null)))),
-      sec('🏷️ Plaque de nom', 'Le fond derrière ton pseudo dans la liste des membres.', SHOP.plate.map(([v, l]) => item('plate', v, l, '', h('div', { class: 'cp-cv shop-plate' + (v ? ' plate pl-' + v : '') }, h('span', { class: 'chat-cv-l' }, vocalName(me)))))),
-      sec('🃏 Thème de carte de profil', null, SHOP.card.map(([v, l]) => item('card', v, l, '', h('div', { class: 'shop-card' + (v ? ' pf-themed' : ''), style: v ? `--pc1:${v[0]};--pc2:${v[1]}` : '' })))),
-    ];
+      sec('🌠 Effet de profil', 'Une animation sur ta carte de profil.', shopList('pfx').map(([v, l]) => item('pfx', v, l, '', h('div', { class: 'shop-pfx' }, v ? pfxEl(v) : null)))),
+      sec('🏷️ Plaque de nom', 'Le fond derrière ton pseudo dans la liste des membres.', shopList('plate').map(([v, l]) => item('plate', v, l, '', h('div', { class: 'cp-cv shop-plate' + (v ? ' plate pl-' + v : '') }, h('span', { class: 'chat-cv-l' }, vocalName(me)))))),
+      sec('🃏 Thème de carte de profil', null, shopList('card').map(([v, l]) => item('card', v, l, '', h('div', { class: 'shop-card' + (v ? ' pf-themed' : ''), style: v ? `--pc1:${v[0]};--pc2:${v[1]}` : '' })))),
+      shopList('bubble').length > 1 ? sec('💬 Effet de messages', 'Le fond de tes messages dans la discussion, chez tout le monde.', shopList('bubble').map(([v, l]) => item('bubble', v, l, '', h('div', { class: 'chat-m' + (v ? ' bub-' + v : '') }, h('div', { class: 'chat-tx' }, 'GG !'))))) : null,
+      shopItems('banner').length ? sec('🖼️ Bannière de profil', 'En haut de ta carte de profil.', [h('button', { class: 'shop-it' + (!(UX.banner && UX.banner.a) ? ' on' : ''), onclick: () => { if (UX.banner && UX.banner.a) setUx({ banner: null }); shopRedraw(); } }, h('div', { class: 'shop-prev' }, h('span', { class: 'muted' }, '—')), h('b', null, 'Aucune'), h('span', { class: 'shop-tag' }, 'Gratuit'))]
+        .concat(shopItems('banner').map((x) => { const on = !!(UX.banner && UX.banner.a === x.id); return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => { setUx({ banner: { a: x.id } }); shopRedraw(); } }, h('div', { class: 'shop-prev shop-ban', style: banStyle({ a: x.id }) }), h('b', null, x.name + ' ✨'), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); }))) : null,
+      shopItems('appbg').length ? sec('🌄 Fond d’app', 'Derrière tout FIRE, chez toi seulement (flou et assombrissement dans Paramètres › Apparence).', [h('button', { class: 'shop-it' + ((UX.bg || {}).type !== 'admin' ? ' on' : ''), onclick: () => { if ((UX.bg || {}).type === 'admin') setUx({ bg: { ...(UX.bg || {}), type: 'none' } }); shopRedraw(); } }, h('div', { class: 'shop-prev' }, h('span', { class: 'muted' }, '—')), h('b', null, 'Aucun'), h('span', { class: 'shop-tag' }, 'Gratuit'))]
+        .concat(shopItems('appbg').map((x) => { const on = (UX.bg || {}).type === 'admin' && UX.bg.a === x.id; return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => { setUx({ bg: { blur: 6, dim: 60, ...(UX.bg || {}), type: 'admin', a: x.id } }); shopRedraw(); } }, h('div', { class: 'shop-prev shop-ban', style: (() => { const u = shopAsset(x.id); return u ? `background-image:url("${u}");background-size:cover;background-position:center` : ''; })() }), h('b', null, x.name + ' ✨'), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); }))) : null,
+    ].filter(Boolean);
   }
   // Aperçu du fond d'écran : une mini-FIRE (menu, cartes) par-dessus l'image, avec le flou et l'assombrissement choisis.
   function bgUrl(b) {
     if (b.type === 'skin' && /^[A-Za-z]+$/.test(b.c || '')) return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${b.c}_${Number(b.n) || 0}.jpg`;
     if (b.type === 'image') return load('fire.uxbgimg', '') || '';
+    if (b.type === 'admin') { try { return shopAsset(b.a) || ''; } catch (e) { return ''; } }
     return '';
   }
   function bgPreview(b) {
@@ -10474,7 +10482,8 @@
       if (day !== lastDay) { rows.push(h('div', { class: 'chat-day' }, day)); lastDay = day; last = null; }
       const grouped = last && last.from === m.from && m.at - last.at < 5 * 60000;
       const col = st(m.from).color;
-      rows.push(h('div', { class: 'chat-m with-av' + (m.from === me ? ' mine' : '') + (grouped ? ' grp' : '') },
+      const bub = ((statusOf(m.from) || {}).look || {}).bubble;
+      rows.push(h('div', { class: 'chat-m with-av' + (m.from === me ? ' mine' : '') + (grouped ? ' grp' : '') + (bub ? ' bub-' + bub : '') },
         grouped ? null : h('span', { class: 'chat-av-w', onclick: () => openProfile(m.from) }, miniAv(m.from, 'chat-av')),
         grouped ? null : h('div', { class: 'chat-mh' }, h('b', { class: 'chat-who-n', title: 'Voir sa carte de profil (clic droit : plus d’options)', onclick: () => openProfile(m.from), oncontextmenu: (e) => { if (m.from === vocalMe()) return; e.preventDefault(); personMenu({ slug: m.from }, e.clientX, e.clientY); } }, chatWhoIco(m.from), nameEl(m.from)), roleBadge(m.from), h('span', { class: 'muted' }, hm(m.at)),
           isStaff() && !m.to ? h('button', { class: 'chat-del', title: 'Supprimer ce message (modération)', onclick: () => chatModDelete(m) }, '🗑') : null),
@@ -11130,15 +11139,33 @@
   }
   // Les compagnons du créateur rejoignent la liste des compagnons (image animée, comme Briar).
   function shopRegister() {
+    const css = [];
     for (const it of (acfg().shop || [])) {
-      const u = shopAsset(it.id);
-      if (it.kind === 'pet' && u) PETS[it.id] = [it.name, null, 'img:' + u];
+      const u = it.kind === 'grad' ? '' : shopAsset(it.id);
+      if (!u) continue;
+      const U = `url("${u}")`;
+      if (it.kind === 'pet') PETS[it.id] = [it.name, null, 'img:' + u];
+      if (it.kind === 'plate') css.push(`.plate.pl-${it.id}{background-image:${U}!important;background-size:cover!important;background-position:center!important}`);
+      if (it.kind === 'pfx') css.push(`.pfx.pfx-${it.id}{background:${U} center/cover no-repeat}`);
+      if (it.kind === 'card' && it.c1) css.push(`.pf-themed[style*="${it.c1}"]{background-image:${U}!important;background-size:cover!important;background-position:center!important}`);
+      if (it.kind === 'bubble') css.push(`.chat-m.bub-${it.id} .chat-tx{background-image:${U};background-size:cover;background-position:center;padding:6px 10px;border-radius:12px;color:#fff;text-shadow:0 1px 3px #000;display:inline-block}`);
     }
+    let st = document.getElementById('fire-shop-css');
+    if (!st) { st = document.createElement('style'); st.id = 'fire-shop-css'; document.head.append(st); }
+    const t = css.join('\n'); if (st.textContent !== t) st.textContent = t;
+    if ((UX.bg || {}).type === 'admin') { try { applyUx(); } catch (e) { /* */ } }
   }
+  const shopItems = (kind) => (acfg().shop || []).filter((x) => x.kind === kind);
+  // Les articles du créateur à la suite de ceux de la Boutique (valeur, nom), selon la catégorie.
   function shopList(kind) {
-    const extra = (acfg().shop || []).filter((x) => x.kind === kind).map((x) => { shopAsset(x.id); return [x.id, x.name + ' ✨']; })
-      .filter(([id]) => kind !== 'pet' || PETS[id]);
-    return (SHOP[kind] || []).concat(extra);
+    const extra = shopItems(kind).map((x) => {
+      if (kind === 'grad') return [[x.c1, x.c2], x.name + ' ✨'];
+      shopAsset(x.id);
+      if (kind === 'card') return [[x.c1, x.c2 || '#000000'], x.name + ' ✨'];
+      return [x.id, x.name + ' ✨'];
+    }).filter(([id]) => kind !== 'pet' || PETS[id]);
+    const base = SHOP[kind] || (kind === 'bubble' ? [['', 'Aucun']] : []);
+    return base.concat(extra);
   }
   // Tout le monde : titulaires, remplaçants, membres acceptés, coachs (et le chef), sans doublon.
   function admRoster() {
@@ -11343,8 +11370,19 @@
         null);
     } else if (ADM.tab === 'shop') {
       const L = D.shop || (D.shop = []);
-      const KIND = { pet: '🐾 Compagnon', deco: '💫 Cadre d’avatar' };
-      const nf = { kind: ADM.nk || 'pet', name: ADM.nn || '' };
+      const KIND = {
+        pet: ['🐾 Compagnon', 'Vit en bas à droite de l’app. Image à fond transparent, idéalement animée (GIF ou WebP animé), environ 200 px de haut.'],
+        deco: ['💫 Cadre d’avatar', 'Autour de l’avatar (vocal, discussion, carte). Image carrée transparente, le rond du milieu reste visible.'],
+        card: ['🃏 Carte de visite', 'Le fond de la carte de profil. Image en largeur (par exemple 600 × 340).'],
+        banner: ['🖼️ Bannière de profil', 'Le bandeau en haut de la carte de profil. Image très large (par exemple 1200 × 300).'],
+        pfx: ['🌠 Effet de profil', 'Une animation par-dessus la carte de profil : GIF ou WebP animé transparent (paillettes, flammes…).'],
+        plate: ['🏷️ Plaque de nom', 'Le fond derrière le pseudo dans la liste des membres. Image en longueur (par exemple 400 × 60).'],
+        bubble: ['💬 Effet de messages', 'Le fond des messages dans la discussion. Image ou motif, le texte reste en blanc par-dessus.'],
+        appbg: ['🌄 Fond d’app', 'Derrière tout FIRE (chez celui qui l’équipe). Grande image (par exemple 1920 × 1080).'],
+        grad: ['🎨 Dégradé de pseudo', 'Deux couleurs pour le pseudo. Pas d’image : choisis les couleurs.'],
+      };
+      const kind = ADM.nk || 'pet';
+      const add = (extra) => { L.push({ id: 's_' + Date.now().toString(36), kind, name: (ADM.nn || '').trim() || KIND[kind][0].replace(/^\S+\s/, ''), ...extra }); ADM.nn = ''; ADM.msg = 'Article ajouté : publie pour qu’il arrive dans la Boutique de tout le monde.'; set({}); };
       const fileIn = h('input', { type: 'file', accept: 'image/png,image/gif,image/webp,image/jpeg', onchange: async (e) => {
         const f = e.target.files && e.target.files[0]; if (!f) return;
         if (f.size > 1.5 * 1024 * 1024) { ADM.msg = '⚠ Image trop lourde : 1,5 Mo au maximum.'; renderAdmin(); return; }
@@ -11355,21 +11393,32 @@
         ADM.busy = false;
         if (!r || !r.ok) { ADM.msg = '⚠ ' + ((r && r.error) || 'envoi impossible'); renderAdmin(); return; }
         SHOPX.data[id] = data;
-        L.push({ id, kind: ADM.nk || 'pet', name: (ADM.nn || '').trim() || f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40), sha: r.sha });
-        ADM.nn = ''; ADM.msg = 'Image envoyée : publie pour que l’article arrive dans la Boutique de tout le monde.'; set({});
+        // Carte de visite : une couleur unique sert de repère pour poser l'image derrière la carte, partout.
+        const c1 = kind === 'card' ? '#' + [0, 0, 0].map(() => Math.floor(Math.random() * 200 + 30).toString(16).padStart(2, '0')).join('') : '';
+        L.push({ id, kind, name: (ADM.nn || '').trim() || f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40), sha: r.sha, c1, c2: kind === 'card' ? '#000000' : '' });
+        ADM.nn = ''; ADM.msg = 'Image envoyée : publie pour que l’article arrive dans la Boutique de tout le monde.'; set({}); shopRegister();
       } });
+      const prevOf = (x) => {
+        if (x.kind === 'grad') return h('span', { class: 'nm nm-grad adm-gradprev', style: `--n1:${x.c1};--n2:${x.c2}` }, vocalName(vocalMe() || '') || 'Pseudo');
+        const u = SHOPX.data[x.id] || shopAsset(x.id);
+        if (!u) return h('span', { class: 'muted small' }, 'chargement…');
+        if (x.kind === 'deco') return h('span', { class: 'vc-av shop-av dk' }, ini(vocalMe() || 'FI'), h('img', { class: 'dk-img', src: u, alt: '' }));
+        if (['card', 'banner', 'appbg', 'plate', 'bubble'].includes(x.kind)) return h('div', { class: 'adm-shop-wide', style: `background-image:url("${u}")` }, x.kind === 'bubble' ? h('span', null, 'GG !') : x.kind === 'plate' ? h('span', null, vocalName(vocalMe() || '') || 'Pseudo') : null);
+        return h('img', { class: 'adm-shop-img', src: u, alt: '' });
+      };
       body = h('div', { class: 'adm-sec' },
         h('div', { class: 'card adm-grp' }, h('b', null, '➕ Ajouter un article'),
-          h('p', { class: 'muted small' }, 'Compagnon : une image avec fond transparent, idéalement animée (GIF ou WebP animé), environ 200 px de haut. Cadre : une image carrée transparente qui entoure l’avatar (le rond au centre reste visible). 1,5 Mo au maximum.'),
+          h('div', { class: 'sal-chips adm-kinds' }, Object.entries(KIND).map(([k, [l]]) => h('button', { class: 'chip' + (kind === k ? ' on' : ''), 'aria-pressed': String(kind === k), onclick: () => { ADM.nk = k; renderAdmin(); } }, l))),
+          h('p', { class: 'muted small' }, KIND[kind][1] + (kind === 'grad' ? '' : ' PNG, GIF, WebP ou JPEG, 1,5 Mo au maximum.')),
           h('div', { class: 'row' },
-            h('select', { class: 'inp', style: 'max-width:200px', onchange: (e) => { ADM.nk = e.target.value; } }, Object.entries(KIND).map(([k, l]) => h('option', { value: k, selected: nf.kind === k ? true : null }, l))),
-            h('input', { class: 'inp', style: 'max-width:240px', placeholder: 'Nom de l’article', value: nf.name, maxlength: 40, oninput: (e) => { ADM.nn = e.target.value; } }),
-            fileIn)),
-        L.length ? h('div', { class: 'adm-shop' }, L.map((x, i) => { const u = SHOPX.data[x.id] || shopAsset(x.id);
-          return h('div', { class: 'card adm-shop-it' }, u ? (x.kind === 'deco' ? h('span', { class: 'vc-av shop-av dk' }, ini(vocalMe() || 'FI'), h('img', { class: 'dk-img', src: u, alt: '' })) : h('img', { class: 'adm-shop-img', src: u, alt: '' })) : h('span', { class: 'muted small' }, 'chargement…'),
+            h('input', { class: 'inp', style: 'max-width:240px', placeholder: 'Nom de l’article', value: ADM.nn || '', maxlength: 40, oninput: (e) => { ADM.nn = e.target.value; } }),
+            kind === 'grad' ? [h('input', { type: 'color', value: ADM.g1 || '#ff5e3a', onchange: (e) => { ADM.g1 = e.target.value; } }), h('input', { type: 'color', value: ADM.g2 || '#ffb02e', onchange: (e) => { ADM.g2 = e.target.value; } }),
+              h('button', { class: 'btn-ghost', onclick: () => add({ c1: ADM.g1 || '#ff5e3a', c2: ADM.g2 || '#ffb02e', sha: '' }) }, '➕ Ajouter le dégradé')] : fileIn)),
+        ...Object.entries(KIND).map(([k, [l]]) => { const items = L.filter((x) => x.kind === k); if (!items.length) return null;
+          return h('div', null, h('p', { class: 'adm-kt' }, l + ` (${items.length})`), h('div', { class: 'adm-shop' }, items.map((x) => h('div', { class: 'card adm-shop-it' }, prevOf(x),
             h('input', { class: 'inp', value: x.name, maxlength: 40, onchange: (e) => { x.name = e.target.value.trim() || x.name; set({}); } }),
-            h('small', { class: 'muted' }, KIND[x.kind]),
-            h('button', { class: 'linkbtn small', onclick: () => { if (!confirm(`Retirer « ${x.name} » de la Boutique ?`)) return; L.splice(i, 1); set({}); } }, '🗑️ Retirer')); })) : h('p', { class: 'muted' }, 'Aucun article ajouté pour l’instant.'));
+            h('button', { class: 'linkbtn small', onclick: () => { if (!confirm(`Retirer « ${x.name} » de la Boutique ?`)) return; L.splice(L.indexOf(x), 1); set({}); } }, '🗑️ Retirer'))))); }),
+        L.length ? null : h('p', { class: 'muted' }, 'Aucun article ajouté pour l’instant.'));
     } else {
       body = h('div', { class: 'adm-sec' },
         field('CSS de l’équipe', 'Pour aller au bout : tout ce que tu écris ici s’applique au style de FIRE chez tout le monde (couleurs, tailles, arrondis, cacher un bloc…). « Essayer sur mon PC » pour voir avant de publier.',

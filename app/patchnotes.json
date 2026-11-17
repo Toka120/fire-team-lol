@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "version": "1.10.197",
+   "date": "2026-11-17",
+   "titre": "Boutique Admin : tous les types d’articles",
+   "notes": [
+    "Admin › Boutique : 9 types d’articles à ajouter soi-même, chacun expliqué (format d’image conseillé) : compagnon, cadre d’avatar, carte de visite, bannière de profil, effet de profil animé, plaque de nom, effet de messages, fond d’app et dégradé de pseudo (deux couleurs, sans image).",
+    "Les articles sont rangés par type avec un aperçu, se renomment et se retirent en un clic.",
+    "Boutique : nouvelles sections « Bannière de profil », « Fond d’app » et « Effet de messages », et les articles du créateur (✨) apparaissent dans toutes les catégories.",
+    "Les coéquipiers voient enfin les articles du créateur que tu portes : cadre, carte, bannière, effet, plaque et fond de tes messages dans la discussion."
+   ]
+  },
+  {
    "v": "1.10.196",
    "date": "2026-11-17",
    "titre": "Admin : tous les membres dans les listes",

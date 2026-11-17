@@ -1172,7 +1172,11 @@ function appCfgClean(c) {
     captureOk: [...new Set((Array.isArray(c.captureOk) ? c.captureOk : []).map((x) => str(x, 80)).filter(Boolean))].slice(0, 60),
     petsOff: !!c.petsOff,
     // Articles ajoutés dans la Boutique : compagnon (image) ou cadre d'avatar (image autour de l'avatar).
-    shop: (Array.isArray(c.shop) ? c.shop : []).slice(0, 60).map((x) => ({ id: 's_' + sid(String(x && x.id || '').replace(/^s_/, '')).slice(0, 20), kind: ['pet', 'deco'].includes(x && x.kind) ? x.kind : 'pet', name: str(x && x.name, 40) || 'Article', sha: /^[0-9a-f]{64}$/.test(String(x && x.sha)) ? x.sha : '' })).filter((x) => x.id.length > 2 && x.sha),
+    shop: (Array.isArray(c.shop) ? c.shop : []).slice(0, 120).map((x) => {
+      const hex = (v) => (/^#[0-9a-f]{6}$/i.test(String(v || '')) ? String(v).toLowerCase() : '');
+      const kind = ['pet', 'deco', 'pfx', 'plate', 'card', 'banner', 'bubble', 'appbg', 'grad'].includes(x && x.kind) ? x.kind : 'pet';
+      return { id: 's_' + sid(String(x && x.id || '').replace(/^s_/, '')).slice(0, 20), kind, name: str(x && x.name, 40) || 'Article', sha: /^[0-9a-f]{64}$/.test(String(x && x.sha)) ? x.sha : '', c1: hex(x && x.c1), c2: hex(x && x.c2) };
+    }).filter((x) => x.id.length > 2 && (x.kind === 'grad' ? x.c1 && x.c2 : x.sha) && (x.kind !== 'card' || x.c1)),
     bans: (Array.isArray(c.bans) ? c.bans : []).slice(0, 100).map((b) => ({ slug: str(b && b.slug, 80), why: str(b && b.why, 200), at: Number(b && b.at) || 0 })).filter((b) => b.slug),
     fxOff: !!c.fxOff,
     // Catégories du menu : [[titre, [rubriques]]]

@@ -989,7 +989,10 @@
     const hex = (c) => (/^#[0-9a-fA-F]{6}$/.test(c || '') ? c : '');
     const two = (a) => (Array.isArray(a) && hex(a[0]) && hex(a[1]) ? [a[0], a[1]] : null);
     const o = {};
-    for (const k of Object.keys(LOOK)) if (LOOK[k].includes(l[k])) o[k] = l[k];
+    // Articles ajoutés par le créateur dans la Boutique : identifiants « s_… » (images envoyées depuis le menu Admin).
+    const sid = (v) => (/^s_[a-z0-9]{3,20}$/.test(String(v || '')) ? v : '');
+    for (const k of Object.keys(LOOK)) if (LOOK[k].includes(l[k]) || (k !== 'font' && k !== 'fx' && sid(l[k]))) o[k] = l[k];
+    if (sid(l.bubble)) o.bubble = l.bubble;
     if (two(l.grad)) o.grad = two(l.grad);
     if (two(l.card)) o.card = two(l.card);
     return Object.keys(o).length ? o : null;
@@ -999,7 +1002,7 @@
     const str = (v, n) => String(v == null ? '' : v).slice(0, n);
     const st = ['online', 'busy', 'away'].includes(x.st) ? x.st : 'online';
     const color = /^#[0-9a-fA-F]{6}$/.test(x.color || '') ? x.color : '';
-    const banner = x.banner && /^[A-Za-z]{2,20}$/.test(x.banner.c || '') && Number.isInteger(x.banner.n) && x.banner.n >= 0 && x.banner.n < 200 ? { c: x.banner.c, n: x.banner.n } : null;
+    const banner = x.banner && /^s_[a-z0-9]{3,20}$/.test(String(x.banner.a || '')) ? { a: x.banner.a } : x.banner && /^[A-Za-z]{2,20}$/.test(x.banner.c || '') && Number.isInteger(x.banner.n) && x.banner.n >= 0 && x.banner.n < 200 ? { c: x.banner.c, n: x.banner.n } : null;
     const games = (Array.isArray(x.games) ? x.games : []).map((g) => str(g, 24)).filter(Boolean).slice(0, 8);
     // Nom affiché choisi par le joueur : 2 à 20 caractères visibles, sans caractères de contrôle ni invisibles.
     const nom = String(x.nom == null ? '' : x.nom).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20);

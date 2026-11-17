@@ -3538,3 +3538,8 @@ html[data-calm] .jeu-ombre.torch .om-light{animation:none}
 .adm-shop-it{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px!important;text-align:center}
 .adm-shop-img{width:110px;height:110px;object-fit:contain}
 .adm-shop-it .vc-av{width:70px;height:70px;margin:16px}
+.adm-kinds{flex-wrap:wrap;gap:6px}
+.adm-kt{margin:8px 0 6px;font-weight:700}
+.adm-shop-wide{width:100%;height:80px;border-radius:10px;background-size:cover;background-position:center;display:grid;place-items:center;color:#fff;font-weight:700;text-shadow:0 1px 3px #000}
+.adm-gradprev{font-size:18px;font-weight:800;padding:20px 0}
+.shop-ban{height:60px;border-radius:10px;background-size:cover;background-position:center}
