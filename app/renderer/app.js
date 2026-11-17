@@ -1496,6 +1496,7 @@
         u.store ? null : row('Dernière version publiée', latest ? 'v' + latest : '…'),
         row('État', state),
         h('div', { class: 'row' }, buttons),
+        launcherRow(),
         S.updMsg ? h('p', { class: 'small' }, S.updMsg) : null,
         h('p', { class: 'muted small' }, u.store
           ? "Installé depuis le Microsoft Store : les nouvelles versions arrivent toutes seules par le Store (Bibliothèque › Obtenir les mises à jour)."
@@ -3731,6 +3732,7 @@
     const move = (id, d) => { const l = A.pins.slice(); const i = l.indexOf(id); const j = i + d; if (i < 0 || j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; accSave({ pins: l }); };
     const live = Object.keys(liveAll()).length;
     view.replaceChildren(...[
+      launcherBanner(),
       h('header', { class: 'acc-hero' },
         h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE Team'), h('h1', null, `${hello}${me ? ' ' + String(me.pseudo).split('#')[0] : ''} 👋`),
           accFun(hr),
@@ -7509,6 +7511,50 @@
     // V2 (aperçu) : barre latérale en groupes, icônes Lucide. Sinon : la barre du haut habituelle.
     if (window.FIREV2 && window.FIREV2.on) { window.FIREV2.nav($('nav'), shownNav.map(([id, ico, label, badge, cls]) => ({ id, ico, label, badge, cls })), S.section, go, (acfg().groups || []).length ? acfg().groups : null); return; }
     $('nav').replaceChildren(...shownNav.map(([id, ico, label, badge, cls]) => b(id, ico + ' ' + label, badge, cls)));
+  }
+
+  // ----- FIRE Launcher : proposé en un clic (jamais installé sans demander) -----
+  const FLS = { st: null, prog: null, asked: false };
+  function flRefresh() {
+    if (!window.fire.flauncher || FLS.asked) return;
+    FLS.asked = true;
+    window.fire.flauncher.status().then((st) => { FLS.st = st; flRedraw(); }).catch(() => {});
+  }
+  function flRedraw() {
+    if (typing()) return;
+    if (S.section === 'accueil') renderAccueil();
+    else if (S.section === 'settings') renderSettings();
+  }
+  if (window.fire.flauncher) window.fire.flauncher.on((m) => { FLS.prog = m && m.state !== 'done' ? m : null; flRedraw(); });
+  async function flInstall() {
+    if (FLS.prog) return;
+    FLS.prog = { state: 'download', pct: 0 }; flRedraw();
+    const r = await window.fire.flauncher.install().catch((e) => ({ ok: false, error: String(e) }));
+    FLS.prog = null;
+    if (r && r.ok) { FLS.st = { ...(FLS.st || {}), installed: true }; popup('🚀 FIRE Launcher installé', r.already ? 'Il était déjà installé : il vient de s’ouvrir.' : 'Il vient de s’ouvrir, et son raccourci est sur ton bureau. Lance FIRE Team, FIRE Kiting et FIRE Listen depuis là.', null); }
+    else popup('⚠ FIRE Launcher', 'Installation impossible : ' + ((r && r.error) || 'erreur inconnue') + '. Tu peux aussi le télécharger depuis la page de l’équipe.', null);
+    flRedraw();
+  }
+  const flProgTxt = () => (FLS.prog.state === 'install' ? 'Installation…' : `Téléchargement… ${FLS.prog.pct != null ? FLS.prog.pct + ' %' : ''}`);
+  function launcherBanner() {
+    if (MOBILE || !window.fire.flauncher) return null;
+    if (!FLS.st) { flRefresh(); return null; }
+    if (FLS.st.installed || !FLS.st.win) return null;
+    if (!FLS.prog && Number(load('fire.flauncher.later', 0)) > Date.now()) return null;
+    return h('div', { class: 'news fl-ban' }, h('span', { class: 'news-ico' }, '🚀'),
+      h('span', { class: 'news-txt' }, h('b', null, 'Nouveau : FIRE Launcher. '), 'FIRE Team, FIRE Kiting (kiting et esquive de sorts) et FIRE Listen (sons du jeu) au même endroit, mis à jour d’un coup.'),
+      FLS.prog ? h('span', { class: 'fl-prog' }, flProgTxt())
+        : [h('button', { class: 'btn-fire small-btn', onclick: flInstall }, 'Installer'),
+          h('button', { class: 'linkbtn small', onclick: () => { save('fire.flauncher.later', Date.now() + 7 * 864e5); renderAccueil(); } }, 'Plus tard')]);
+  }
+  function launcherRow() {
+    if (MOBILE || !window.fire.flauncher) return null;
+    if (!FLS.st) { flRefresh(); return null; }
+    if (!FLS.st.win) return null;
+    return h('div', { class: 'row fl-row' }, h('span', { class: 'muted small' }, '🚀 FIRE Launcher : FIRE Team, FIRE Kiting et FIRE Listen au même endroit.'),
+      FLS.prog ? h('span', { class: 'small' }, flProgTxt())
+        : FLS.st.installed ? h('button', { class: 'btn-ghost small-btn', onclick: () => window.fire.flauncher.open() }, 'Ouvrir FIRE Launcher')
+          : h('button', { class: 'btn-fire small-btn', onclick: flInstall }, 'Installer FIRE Launcher'));
   }
 
   function pendingBanner() {

@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld('fire', {
   annonce: { get: call('ann:get'), post: call('ann:post'), lu: call('ann:lu'), lus: call('ann:lus') },
   onNotifyGo: (cb) => ipcRenderer.on('notify:go', (e, sec) => cb(sec)),
   background: { get: call('bg:get'), set: call('bg:set') },
+  flauncher: { status: call('flauncher:status'), install: call('flauncher:install'), open: call('flauncher:open'), on: (cb) => ipcRenderer.on('flauncher', (e, m) => cb(m)) },
   update: {
     state: call('update:state'),
     install: call('update:install'),

@@ -1,7 +1,7 @@
 // FIRE LoL - application de bureau (Electron).
 // Lit les stats des joueurs sur dpm.lol dans une fenêtre cachée, puis les affiche.
 
-const { app, BrowserWindow, WebContentsView, ipcMain, session, shell, Notification, Tray, Menu, desktopCapturer, globalShortcut, screen } = require('electron');
+const { app, BrowserWindow, WebContentsView, ipcMain, session, shell, Notification, Tray, Menu, desktopCapturer, globalShortcut, screen, net } = require('electron');
 // Les sites voient FIRE comme un Chrome normal. Avec la signature d'Electron, dpm.lol croyait être dans sa propre
 // application DPM et affichait « Connecte-toi à DPM » au lieu des stats.
 function cleanUA() {
@@ -1714,6 +1714,68 @@ async function launcher() {
   const lw = launcherWin; launcherWin = null;
   if (lw && !lw.isDestroyed()) setTimeout(() => { try { lw.destroy(); } catch (e) { /* */ } }, 250);
 }
+
+// ---------- FIRE Launcher : installé en un clic depuis FIRE Team (bouton de l'Accueil et des Paramètres) ----------
+const FL_SETUP = 'https://github.com/Toka120/fire-team-lol/releases/download/launcher/FIRE-Launcher-Setup.exe';
+function flExe() {
+  if (process.platform !== 'win32') return Promise.resolve(null);
+  return new Promise((res) => require('child_process').execFile('reg', ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall', '/s'], { windowsHide: true, maxBuffer: 16 * 1024 * 1024 }, (err, out) => {
+    for (const block of String(out || '').split(/\r?\n(?=HKEY_)/)) {
+      const g = (k) => { const m = block.match(new RegExp('^\\s+' + k + '\\s+REG_\\w+\\s+(.*)$', 'mi')); return m ? m[1].trim() : ''; };
+      if (!/^FIRE Launcher\b/i.test(g('DisplayName'))) continue;
+      const icon = g('DisplayIcon').replace(/,\s*-?\d+$/, '').replace(/^"|"$/g, '');
+      const dir = g('InstallLocation').replace(/^"|"$/g, '');
+      const exe = /\.exe$/i.test(icon) ? icon : dir ? path.join(dir, 'FIRE Launcher.exe') : '';
+      if (exe && fs.existsSync(exe)) return res(exe);
+    }
+    const local = process.env.LOCALAPPDATA || path.join(require('os').homedir(), 'AppData', 'Local');
+    for (const d of ['FIRE Launcher', 'fire-launcher']) { const f = path.join(local, 'Programs', d, 'FIRE Launcher.exe'); if (fs.existsSync(f)) return res(f); }
+    res(null);
+  }));
+}
+const flRun = (exe) => { const c = require('child_process').spawn(exe, [], { detached: true, stdio: 'ignore', cwd: path.dirname(exe) }); c.on('error', () => {}); c.unref(); };
+let flBusy = false;
+ipcMain.handle('flauncher:status', async () => ({ installed: !!(await flExe()), busy: flBusy, win: process.platform === 'win32' }));
+ipcMain.handle('flauncher:open', async () => { const exe = await flExe(); if (exe) flRun(exe); return !!exe; });
+ipcMain.handle('flauncher:install', async (e) => {
+  if (process.platform !== 'win32') return { ok: false, error: 'FIRE Launcher existe seulement sur Windows' };
+  const have = await flExe();
+  if (have) { flRun(have); return { ok: true, already: true }; }
+  if (flBusy) return { ok: false, error: 'installation déjà en cours' };
+  flBusy = true;
+  const wc = e.sender;
+  const P = (m) => { try { if (!wc.isDestroyed()) wc.send('flauncher', m); } catch (err) { /* */ } };
+  const tmp = path.join(require('os').tmpdir(), 'FIRE-Launcher-Setup-' + Date.now() + '.exe');
+  try {
+    P({ state: 'download', pct: 0 });
+    const r = await net.fetch(FL_SETUP, { cache: 'no-store' });
+    if (!r.ok) throw new Error('téléchargement impossible (HTTP ' + r.status + ')');
+    const total = Number(r.headers.get('content-length')) || 0;
+    const out = fs.createWriteStream(tmp);
+    const reader = r.body.getReader();
+    let got = 0, last = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      got += value.length;
+      if (!out.write(Buffer.from(value))) await new Promise((ok) => out.once('drain', ok));
+      if (Date.now() - last > 200) { last = Date.now(); P({ state: 'download', pct: total ? Math.round((got / total) * 100) : null }); }
+    }
+    await new Promise((ok, ko) => out.end((err) => (err ? ko(err) : ok())));
+    P({ state: 'install' });
+    const code = await new Promise((res) => { const c = require('child_process').spawn(tmp, ['/S'], { windowsHide: true }); c.on('exit', res); c.on('error', () => res(-1)); });
+    const exe = await flExe();
+    if (!exe) throw new Error(`l'installation n'a pas abouti (code ${code})`);
+    flRun(exe);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String((err && err.message) || err) };
+  } finally {
+    flBusy = false;
+    P({ state: 'done' });
+    setTimeout(() => { try { fs.rmSync(tmp, { force: true }); } catch (err) { /* */ } }, 8000);
+  }
+});
 
 // ---------- Démarrage ----------
 

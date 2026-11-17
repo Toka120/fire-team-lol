@@ -3543,3 +3543,7 @@ html[data-calm] .jeu-ombre.torch .om-light{animation:none}
 .adm-shop-wide{width:100%;height:80px;border-radius:10px;background-size:cover;background-position:center;display:grid;place-items:center;color:#fff;font-weight:700;text-shadow:0 1px 3px #000}
 .adm-gradprev{font-size:18px;font-weight:800;padding:20px 0}
 .shop-ban{height:60px;border-radius:10px;background-size:cover;background-position:center}
+.fl-ban { gap: 10px; flex-wrap: wrap; }
+.fl-ban .news-txt { flex: 1; min-width: 240px; }
+.fl-prog { font-weight: 600; color: var(--accent, #ffb02e); }
+.fl-row { align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
