@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.187",
+   "date": "2026-11-17",
+   "titre": "Les nouveautés défilent sur l’accueil",
+   "items": [
+    [
+     "new",
+     "Accueil : un bandeau « 🆕 Nouveautés » fait défiler les nouveautés des 10 derniers jours. Il s’arrête quand tu passes la souris dessus. Un clic ouvre un aperçu : le texte en entier, l’image du compagnon pour les nouveaux compagnons, et un bouton pour y aller (« L’équiper dans la Boutique »…)."
+    ],
+    [
+     "new",
+     "La petite phrase sous « Salut » est toujours un message drôle tiré au hasard. Le bandeau peut se cacher dans « Personnaliser »."
+    ]
+   ]
+  },
+  {
    "v": "1.10.186",
    "date": "2026-11-17",
    "titre": "Plus de « Bonne nuit » sur l’accueil",

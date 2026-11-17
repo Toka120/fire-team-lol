@@ -3517,7 +3517,7 @@
     const v = accVisits(); v[sec] = (v[sec] || 0) + 1; save('fire.visits', v);
   }
   // Accueil personnalisé (sur ce PC) : blocs cachés et rubriques épinglées, dans l'ordre choisi.
-  const ACC_W = [['plan', '📅', 'Planning du jour'], ['obj', '🎯', 'Objectif de la semaine'], ['rdv', '⏰', 'Prochain rendez-vous'], ['chat', '💬', 'Discussion'], ['coach', '📣', 'Parole du coach'], ['puzzle', '🧩', 'Puzzle du jour'], ['clips', '🎬', 'Clips de l’équipe'], ['boutique', '🛍️', 'Boutique'], ['vocal', '🎙️', 'Salon vocal'], ['live', '🔴', 'Coéquipiers en game']];
+  const ACC_W = [['plan', '📅', 'Planning du jour'], ['obj', '🎯', 'Objectif de la semaine'], ['rdv', '⏰', 'Prochain rendez-vous'], ['chat', '💬', 'Discussion'], ['coach', '📣', 'Parole du coach'], ['puzzle', '🧩', 'Puzzle du jour'], ['clips', '🎬', 'Clips de l’équipe'], ['boutique', '🛍️', 'Boutique'], ['vocal', '🎙️', 'Salon vocal'], ['live', '🔴', 'Coéquipiers en game'], ['news', '🆕', 'Nouveautés qui défilent']];
   const accPrefs = () => ({ pins: null, hide: [], ...load('fire.acc', {}) });
   const accSave = (patch) => { save('fire.acc', { ...accPrefs(), ...patch }); renderAccueil(); };
   const ACCE = { edit: false };
@@ -3563,7 +3563,7 @@
     for (const v of (S.patch || []).slice(0, 25)) {
       const t = Date.parse(v.date || ''); if (!t || t < lim || !Array.isArray(v.items)) continue;
       const news = v.items.filter((x) => Array.isArray(x) && x[0] === 'new');
-      if (v.v && v.items.length >= 3) out.push({ ico: '🚀', lab: `Grosse mise à jour v${v.v}`, txt: v.titre || '', go: 'patch' });
+      if (v.v && v.items.length >= 3) out.push({ ico: '🚀', lab: `Grosse mise à jour v${v.v}`, txt: v.titre || '', full: v.items.map((x) => '• ' + x[1]).join('\n'), v: v.v, date: v.date, go: 'patch' });
       for (const [, txt] of news) {
         const t1 = String(txt || '').split(/(?<=\.)\s/)[0].replace(/^[^:]{0,40}›[^:]{0,40}:\s*/, '');
         const t1c = t1.length > 120 ? t1.slice(0, 117).replace(/\s+\S*$/, '') + '…' : t1;
@@ -3571,16 +3571,67 @@
           : /boutique/i.test(txt) ? { ico: '🛍️', lab: 'Nouveau dans la boutique', go: 'boutique' }
             : /défi|exercice|puzzle|quiz|parcours|entraînement/i.test(txt) ? { ico: '🧩', lab: 'Nouvel exercice', go: 'patch' }
               : { ico: '🆕', lab: 'Nouveau dans FIRE', go: 'patch' };
-        out.push({ ...k, txt: t1c });
+        out.push({ ...k, txt: t1c, full: String(txt || ''), v: v.v, date: v.date });
       }
     }
     return out;
+  }
+  // ----- Nouveautés qui défilent sur l'accueil, avec un aperçu -----
+  // Le défilement est fait en JS (et pas en CSS) pour ne pas repartir du début à chaque mise à jour de la page.
+  const TICK = { x: 0, last: 0, raf: 0, hover: false, sig: '', el: null, track: null };
+  function petPreview(txt) {
+    for (const [id, p] of Object.entries(PETS)) {
+      if (typeof p[2] !== 'string' || !p[2].startsWith('img:')) continue;
+      const base = String(p[0]).replace(/\s*\(chibi\)\s*/i, '').trim();
+      if (base && new RegExp('\\b' + base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(txt)) return { id, src: p[2].slice(4) };
+    }
+    return null;
+  }
+  function newsOpen(n) {
+    const pv = petPreview(n.full || n.txt);
+    const box = h('div', { class: 'vc-pick news-pop', onclick: (e) => { if (e.target === box) box.remove(); } },
+      h('div', { class: 'card news-pop-in' },
+        h('div', { class: 'row news-pop-h' }, h('b', null, n.ico + ' ' + n.lab), h('span', { class: 'spacer' }), h('button', { class: 'btn-ghost', onclick: () => box.remove() }, '✕')),
+        pv ? h('div', { class: 'news-pop-pv' }, h('img', { src: pv.src, alt: '' })) : h('div', { class: 'news-pop-ico' }, n.ico),
+        h('p', { class: 'news-pop-txt' }, n.full || n.txt),
+        h('small', { class: 'muted' }, n.v ? `Version ${n.v}` + (n.date ? ' · ' + dateFr(n.date) : '') : ''),
+        h('div', { class: 'row news-pop-act' },
+          n.go && n.go !== 'patch' ? h('button', { class: 'btn-fire small-btn', onclick: () => { box.remove(); go(n.go); } }, n.go === 'boutique' ? (pv ? '🐾 L’équiper dans la Boutique' : '🛍️ Ouvrir la Boutique') : 'Y aller') : null,
+          h('button', { class: 'btn-ghost small-btn', onclick: () => { box.remove(); go('patch'); } }, '📜 Toutes les patch notes'))));
+    document.body.append(box);
+  }
+  function newsTicker() {
+    const news = accNews().slice(0, 14);
+    if (!news.length) return null;
+    const sig = news.map((n) => n.txt).join('|');
+    if (TICK.el && TICK.sig === sig) return TICK.el;
+    TICK.sig = sig;
+    const card = (n) => { const pv = petPreview(n.full || n.txt);
+      return h('button', { class: 'tk-it', title: 'Voir l’aperçu', onclick: () => newsOpen(n) },
+        pv ? h('img', { class: 'tk-pv', src: pv.src, alt: '' }) : h('span', { class: 'tk-ico' }, n.ico),
+        h('span', { class: 'tk-t' }, h('b', null, n.lab), h('small', null, n.txt))); };
+    TICK.track = h('div', { class: 'tk-track' }, ...news.map(card), ...news.map(card));
+    TICK.el = h('div', { class: 'acc-tick', onmouseenter: () => { TICK.hover = true; }, onmouseleave: () => { TICK.hover = false; } },
+      h('span', { class: 'tk-lab' }, '🆕 Nouveautés'), h('div', { class: 'tk-win' }, TICK.track));
+    if (!TICK.raf) {
+      const step = (now) => {
+        TICK.raf = requestAnimationFrame(step);
+        if (!TICK.el || !TICK.el.isConnected) { TICK.last = now; return; }
+        const dt = Math.min(100, now - (TICK.last || now)); TICK.last = now;
+        if (!TICK.hover && !document.documentElement.hasAttribute('data-calm')) TICK.x += dt * 0.045;
+        const half = TICK.track.scrollWidth / 2;
+        if (half > 0 && TICK.x >= half) TICK.x -= half;
+        TICK.track.style.transform = `translateX(${-TICK.x}px)`;
+      };
+      TICK.raf = requestAnimationFrame(step);
+    }
+    return TICK.el;
   }
   function accFun(hr) {
     if (!ACCE.fun || Date.now() - ACCE.funAt > 45000) {
       const news = accNews();
       // Une fois sur deux (quand il y a du neuf) : une nouveauté, sinon un petit mot.
-      if (news.length && Math.random() < 0.55) {
+      if (false && news.length) {
         let n; do { n = news[Math.floor(Math.random() * news.length)]; } while (news.length > 1 && ACCE.fun && n.txt === ACCE.fun.txt);
         ACCE.fun = n;
       } else {
@@ -3671,6 +3722,7 @@
             live ? h('button', { class: 'chip acc-live', onclick: () => go('stats') }, `🔴 ${live} coéquipier${live > 1 ? 's' : ''} en game`) : null,
             by.planning && planTodo() ? h('button', { class: 'chip', onclick: () => go('planning') }, `📅 ${planTodo()} réponse${planTodo() > 1 ? 's' : ''} au planning`) : null,
             TWITCH.live && by.stream ? h('button', { class: 'chip acc-live', onclick: () => go('stream') }, '🟣 Toks42o est en live') : null))),
+      hid.has('news') ? null : newsTicker(),
       editor,
       SUB() || (MOBILE && !S.plan) || hid.has('plan') ? null : todayPlanCard(),
       ws.filter(Boolean).length ? h('div', { class: 'acc-ws-grid' }, ...ws.filter(Boolean)) : null,
