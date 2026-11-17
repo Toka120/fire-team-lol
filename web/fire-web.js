@@ -32,9 +32,28 @@ async function otpDragon() {
 }
 const sha = async (t) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(t))))].map((b) => b.toString(16).padStart(2, '0')).join('');
 
+// Mise à jour du téléphone : dès que l'équipe annonce une version plus récente que le code chargé, on recharge
+// (l'écran de lancement ajoute ?v=<version> à chaque fichier, donc le navigateur prend forcément les nouveaux).
+const verNewer = (a, b) => { const x = String(a || '').split('.').map(Number), y = String(b || '').split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+function webUpdate(cfg) {
+  const v = cfg && cfg.derniere_version;
+  if (!v || cfg._source !== 'en ligne') return;
+  try { localStorage.setItem('fire.web.lastVer', v); } catch (e) { /* */ }
+  if (!verNewer(v, __FIRE_VER__)) return;
+  // Garde-fou : une seule tentative par version toutes les 10 minutes (si GitHub n'a pas encore fini de publier).
+  let t = null; try { t = JSON.parse(localStorage.getItem('fire.web.reloadFor') || 'null'); } catch (e) { /* */ }
+  if (t && t.v === v && Date.now() - t.at < 600000) return;
+  try { localStorage.setItem('fire.web.reloadFor', JSON.stringify({ v, at: Date.now() })); } catch (e) { /* */ }
+  const go = () => { const d = document.createElement('div'); d.className = 'fire-web-upd'; d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0d0f14;color:#eee;display:flex;align-items:center;justify-content:center;font:600 16px system-ui,sans-serif'; d.textContent = '🔥 Mise à jour de FIRE (v' + v + ')…'; document.body.append(d); setTimeout(() => location.reload(), 400); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+}
+// L'app reste souvent ouverte en arrière-plan sur un téléphone : au retour dessus, on revérifie.
+let lastVis = Date.now();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible' || Date.now() - lastVis < 60000) return; lastVis = Date.now(); pagesJson('joueurs.json').then(webUpdate).catch(() => {}); });
+
 window.FIRE_MOBILE = true;
 window.fire = {
-  config: async () => { const j = (await pagesJson('joueurs.json')) || { joueurs: [], _source: 'aucune' }; lastCfg = j; return j; },
+  config: async () => { const j = (await pagesJson('joueurs.json')) || { joueurs: [], _source: 'aucune' }; lastCfg = j; webUpdate(j); return j; },
   guides: async () => (await pagesJson('guides.json')) || { themes: [] },
   patchnotes: async () => (await pagesJson('patchnotes.json')) || { versions: [] },
   tierlist: async () => (await pagesJson('tierlist.json')) || { data: {} },
@@ -43,7 +62,7 @@ window.fire = {
   matchup: async (a, b, lane) => ({ ok: false, error: PC_ONLY, dd: await otpDragon(), url: `https://lolalytics.com/lol/${String(a).toLowerCase()}/vs/${String(b).toLowerCase()}/build/` }),
   lolpatch: { list: async () => ({ ok: false, error: PC_ONLY, items: [] }), get: async (url) => ({ ok: false, error: PC_ONLY, link: 'https://www.leagueoflegends.com' + url }) },
   hash: sha,
-  version: async () => { const p = await pagesJson('patchnotes.json'); return (p && p.versions && p.versions[0] && p.versions[0].v) || 'web'; },
+  version: async () => __FIRE_VER__,
   // Stats : instantané partagé par les PC de l'équipe (le téléphone ne peut pas lire dpm.lol).
   fetchPlayer: no,
   team: async () => ({ ok: true, games: {} }),
@@ -84,7 +103,8 @@ window.fire = {
   },
   onNotifyGo: noop,
   background: { get: async () => null, set: async () => null },
-  update: { state: async () => ({ state: 'idle' }), install: noop, check: noop, on: noop },
+  // Téléphone : rien à télécharger ni à installer. La dernière version se charge toute seule à chaque lancement (voir webUpdate).
+  update: { state: async () => ({ state: 'idle', store: true, web: true }), install: noop, check: async () => ({ ok: true, store: true, web: true }), on: noop },
   // Liens : ouverts dans le navigateur du téléphone.
   live: { on: noop, spectate: no },
   win: { displays: async () => [], setDisplay: no, soundComms: async () => null, inVoice: noop, onLeaveVoice: noop },

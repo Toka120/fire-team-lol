@@ -2,6 +2,7 @@
 import * as esbuild from 'esbuild';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const shim = (n) => path.join(here, 'shim', n);
 await esbuild.build({
@@ -10,7 +11,7 @@ await esbuild.build({
   outfile: path.join(here, '..', 'app', 'm', 'fire-web.js'), minify: true, legalComments: 'none',
   alias: { electron: shim('electron.js'), fs: shim('fs.js'), crypto: shim('crypto.js'), zlib: shim('zlib.js'), path: 'path-browserify' },
   inject: [shim('buffer-global.js')],
-  define: { 'process.env.NODE_ENV': '"production"' },
+  define: { 'process.env.NODE_ENV': '"production"', __FIRE_VER__: JSON.stringify(JSON.parse(fs.readFileSync(path.join(here, '..', 'app', 'package.json'), 'utf8')).version) },
   nodePaths: [path.join(here, 'node_modules')],
   logLevel: 'warning',
 });

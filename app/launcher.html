@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>FIRE LoL</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; -webkit-app-region: drag; }
+  .box { position: absolute; inset: 0; border-radius: 18px; background: radial-gradient(120% 90% at 50% 0%, #2a1408 0%, #12100f 55%, #0b0d10 100%); border: 1px solid #ffffff14; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font: 14px/1.4 "Segoe UI", system-ui, sans-serif; color: #eee; }
+  img { width: 84px; height: 84px; border-radius: 20px; animation: pulse 1.8s ease-in-out infinite; filter: drop-shadow(0 8px 26px rgb(255 120 40 / 35%)); }
+  @keyframes pulse { 50% { transform: scale(1.06); filter: drop-shadow(0 8px 34px rgb(255 120 40 / 60%)); } }
+  h1 { margin: 0; font-size: 20px; letter-spacing: .5px; color: #ffb44d; }
+  #t { opacity: .8; min-height: 20px; text-align: center; padding: 0 20px; }
+  .bar { width: 260px; height: 6px; border-radius: 6px; background: #ffffff14; overflow: hidden; visibility: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ff5e3a, #ffb02e); transition: width .25s; }
+  .bar.ind i { width: 35%; animation: ind 1.2s ease-in-out infinite; }
+  @keyframes ind { from { margin-left: -35%; } to { margin-left: 100%; } }
+  small { position: absolute; bottom: 10px; opacity: .35; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="box">
+  <img src="assets/fire.png" alt="">
+  <h1>FIRE LoL</h1>
+  <div id="t">Recherche de mises à jour…</div>
+  <div class="bar ind" id="b"><i id="p"></i></div>
+  <small id="v"></small>
+</div>
+<script>
+  // Appelé par main.js : texte, et pourcentage (null = barre animée, -1 = pas de barre).
+  window.st = (text, pct) => {
+    document.getElementById('t').textContent = text;
+    const b = document.getElementById('b');
+    b.style.visibility = pct === -1 ? 'hidden' : 'visible';
+    b.classList.toggle('ind', pct == null);
+    document.getElementById('p').style.width = pct == null || pct < 0 ? '' : Math.max(2, Math.min(100, pct)) + '%';
+  };
+  window.ver = (v) => { document.getElementById('v').textContent = 'v' + v; };
+  window.st('Recherche de mises à jour…', null);
+</script>
+</body>
+</html>

@@ -52,22 +52,33 @@ setTimeout(() => { const a = document.getElementById('app'), l = document.getEle
 (async () => {
   const R = new URL('../renderer/', location.href);
   const fail = (e) => { const t = document.getElementById('boot-t'); const m = 'FIRE n’a pas pu se charger (' + (e && e.message || e) + '). Vérifie ta connexion et recharge la page.'; if (t) t.textContent = m; else fireStuck(m); };
+  // Version annoncée par l'équipe : ajoutée à chaque fichier pour que le téléphone charge toujours la dernière.
+  let ver = '';
+  const bt = document.getElementById('boot-t'); if (bt) bt.textContent = 'Recherche de mises à jour…';
+  try { ver = localStorage.getItem('fire.web.lastVer') || ''; } catch (e) { /* */ }
   try {
-    const html = await (await fetch(new URL('index.html', R), { cache: 'no-cache' })).text();
+    const ac = new AbortController(); const to = setTimeout(() => ac.abort(), 5000);
+    const j = await (await fetch(new URL('../../joueurs.json', location.href).href + '?t=' + Date.now(), { cache: 'no-store', signal: ac.signal })).json();
+    clearTimeout(to);
+    if (j && j.derniere_version) { ver = String(j.derniere_version); if (bt) bt.textContent = 'Chargement de FIRE v' + ver + '…'; try { localStorage.setItem('fire.web.lastVer', ver); } catch (e) { /* */ } }
+  } catch (e) { /* hors ligne : dernière version connue */ }
+  const V = (u) => (!u || /^(data:|blob:|#)/i.test(u) || !ver || new URL(u, location.href).origin !== location.origin) ? u : u + (u.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(ver);
+  try {
+    const html = await (await fetch(V(new URL('index.html', R).href), { cache: 'no-cache' })).text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    const fix = (u) => (!u || /^(https?:|data:|blob:|#)/i.test(u)) ? u : u.startsWith('vendor/') ? new URL(u, location.href).href : new URL(u, R).href;
+    const fix = (u) => (!u || /^(https?:|data:|blob:|#)/i.test(u)) ? u : V(u.startsWith('vendor/') ? new URL(u, location.href).href : new URL(u, R).href);
     for (const el of doc.querySelectorAll('[src]')) el.setAttribute('src', fix(el.getAttribute('src')));
     for (const el of doc.querySelectorAll('link[href]')) el.setAttribute('href', fix(el.getAttribute('href')));
     const scripts = [...doc.querySelectorAll('script')].map((s) => s.getAttribute('src')).filter(Boolean);
     doc.querySelectorAll('script').forEach((s) => s.remove());
     for (const l of doc.querySelectorAll('link[rel=stylesheet]')) document.head.append(l);
-    const mob = document.createElement('link'); mob.rel = 'stylesheet'; mob.href = 'mobile.css'; document.head.append(mob);
+    const mob = document.createElement('link'); mob.rel = 'stylesheet'; mob.href = V('mobile.css'); document.head.append(mob);
     document.documentElement.classList.add('mobile');
     document.body.innerHTML = doc.body.innerHTML;
     const load = (src) => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error('script ' + src.split('/').pop())); document.body.append(s); });
-    await load('fire-web.js');
+    await load(V('fire-web.js'));
     for (const s of scripts) await load(s);
-    await load('mobile.js');
+    await load(V('mobile.js'));
   } catch (e) { fail(e); }
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();

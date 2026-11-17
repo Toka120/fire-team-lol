@@ -54,6 +54,7 @@ function startupOn() {
   try { return !!app.getLoginItemSettings({ path: exePath(), args: ['--hidden'] }).openAtLogin; } catch (e) { return false; }
 }
 function showMain() {
+  if (launcherWin && !launcherWin.isDestroyed()) { launcherWin.show(); launcherWin.focus(); return; } // le launcher ouvrira FIRE juste après
   if (!mainWin || mainWin.isDestroyed()) { createMainWindow(true); return; }
   if (mainWin.isMinimized()) mainWin.restore();
   mainWin.show();
@@ -1505,7 +1506,7 @@ function sendUpdate(m) {
   updateState = { ...updateState, ...m };
   if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('update', updateState);
 }
-function setupUpdater() {
+function setupUpdater(skipFirst) {
   if (!canAutoUpdate()) return;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
@@ -1515,7 +1516,7 @@ function setupUpdater() {
   autoUpdater.on('download-progress', (p) => sendUpdate({ state: 'progress', percent: Math.round(p.percent || 0) }));
   autoUpdater.on('update-downloaded', (i) => sendUpdate({ state: 'ready', version: i.version }));
   autoUpdater.on('error', (e) => onUpdateError(e));
-  setTimeout(safeCheck, 1500);
+  if (!skipFirst) setTimeout(safeCheck, 1500);
   setInterval(safeCheck, 30 * 60 * 1000);
 }
 
@@ -1661,6 +1662,58 @@ ipcMain.handle('update:check', async () => {
   return { ok: true, auto: true, latest, found: r && r.updateInfo ? r.updateInfo.version : null };
 });
 
+// ---------- Launcher ----------
+// Avant d'ouvrir FIRE, un petit écran cherche la mise à jour. S'il y en a une, il télécharge directement la DERNIÈRE
+// version publiée (jamais les intermédiaires) et l'installe tout de suite : FIRE s'ouvre déjà à jour, en une fois.
+// Pas de connexion, GitHub lent ou erreur : FIRE s'ouvre normalement (la mise à jour continue en arrière-plan).
+let launcherWin = null;
+function peekMode() { try { const j = JSON.parse(fs.readFileSync(quietPath(), 'utf8')); return Date.now() - (j.t || 0) > 600000 ? null : (j.mode || 'tray'); } catch (e) { return null; } }
+async function launcher() {
+  if (!canAutoUpdate()) { createMainWindow(); setupUpdater(); return; }
+  const silent = startHidden || peekMode() === 'tray'; // lancement avec Windows : pas d'écran, tout se fait en silence
+  if (!silent) {
+    launcherWin = new BrowserWindow({ width: 420, height: 300, frame: false, transparent: true, resizable: false, maximizable: false, fullscreenable: false, show: false, center: true, title: 'FIRE LoL', icon: path.join(__dirname, 'assets', 'fire.ico'),
+      webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false } });
+    launcherWin.once('ready-to-show', () => { if (launcherWin && !launcherWin.isDestroyed()) launcherWin.show(); });
+    launcherWin.webContents.once('did-finish-load', () => js(`ver(${JSON.stringify(app.getVersion())})`));
+    launcherWin.loadFile(path.join(__dirname, 'launcher.html')).catch(() => {});
+  }
+  function js(code) { if (launcherWin && !launcherWin.isDestroyed()) launcherWin.webContents.executeJavaScript(code).catch(() => {}); }
+  const st = (t, p) => js(`st(${JSON.stringify(t)}, ${p == null ? 'null' : JSON.stringify(p)})`);
+  const res = await new Promise((resolve) => {
+    let over = false, timer = null;
+    const H = {
+      'update-not-available': () => { updateState = { ...updateState, state: 'none' }; end('none'); },
+      'update-available': (i) => { updateState = { ...updateState, state: 'available', version: i.version, percent: 0 }; st(`Nouvelle version ${i.version} : téléchargement…`, 0); arm(120000); },
+      'download-progress': (p) => { const pc = Math.round(p.percent || 0); updateState = { ...updateState, state: 'progress', percent: pc }; st(`Téléchargement de la version ${updateState.version || ''}… ${pc} %`, pc); arm(120000); },
+      'update-downloaded': (i) => { updateState = { ...updateState, state: 'ready', version: i.version }; end('ready'); },
+      error: () => end('error'),
+    };
+    function end(r) { if (over) return; over = true; clearTimeout(timer); for (const [k, f] of Object.entries(H)) autoUpdater.removeListener(k, f); resolve(r); }
+    function arm(ms) { clearTimeout(timer); timer = setTimeout(() => end('timeout'), ms); }
+    for (const [k, f] of Object.entries(H)) autoUpdater.on(k, f);
+    arm(12000); // recherche : 12 s au maximum, ensuite FIRE s'ouvre quand même
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+    checking = true;
+    autoUpdater.checkForUpdates().catch(() => end('error')).finally(() => { checking = false; });
+  });
+  if (res === 'ready' && !(silent && await lolBusy())) {
+    st(`Installation de la version ${updateState.version}… FIRE se relance tout seul.`, 100);
+    try { fs.writeFileSync(quietPath(), JSON.stringify({ t: Date.now(), mode: silent ? 'tray' : 'show' })); } catch (e) { /* */ }
+    await new Promise((r) => setTimeout(r, 900));
+    quitting = true;
+    try { autoUpdater.quitAndInstall(true, true); return; } catch (e) { quitting = false; /* on ouvre FIRE quand même */ }
+  }
+  if (res === 'timeout' || res === 'error') st('Ouverture de FIRE…', -1);
+  // La fenêtre de FIRE d'abord, puis on ferme le launcher (sinon « plus aucune fenêtre » quitterait l'app).
+  setupUpdater(true);
+  if (updateState.state === 'available' || updateState.state === 'progress') sendUpdate({});
+  createMainWindow();
+  const lw = launcherWin; launcherWin = null;
+  if (lw && !lw.isDestroyed()) setTimeout(() => { try { lw.destroy(); } catch (e) { /* */ } }, 250);
+}
+
 // ---------- Démarrage ----------
 
 // Accélération matérielle coupée dans Paramètres › Avancé (pris en compte à ce démarrage).
@@ -1676,6 +1729,6 @@ if (!single) {
   if (process.platform === 'win32' && !store) app.setAppUserModelId('lol.fire.team');
   // Un 2e lancement par Windows (démarrage auto) ne doit pas afficher la fenêtre : seulement un double-clic du joueur.
   app.on('second-instance', (e, argv) => { if (!(argv || []).includes('--hidden')) showMain(); });
-  app.whenReady().then(() => { lockPermissions(); blockAds(); adblockWeb().catch(() => {}); screenShare(); createMainWindow(); setupUpdater(); });
+  app.whenReady().then(() => { lockPermissions(); blockAds(); adblockWeb().catch(() => {}); screenShare(); launcher().catch(() => { if (!mainWin || mainWin.isDestroyed()) createMainWindow(); setupUpdater(true); }); });
   app.on('window-all-closed', () => { if ((!bgPrefs().bg && !inVoice) || quitting) app.quit(); });
 }

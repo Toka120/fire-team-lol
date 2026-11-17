@@ -1,6 +1,18 @@
 {
  "versions": [
   {
+   "version": "1.10.198",
+   "date": "2026-11-17",
+   "titre": "Launcher : FIRE se met à jour avant de s’ouvrir",
+   "notes": [
+    "PC : nouveau launcher au lancement de FIRE. Il cherche la mise à jour, télécharge directement la toute dernière version (jamais les intermédiaires) et l’installe avant d’ouvrir l’app : plus de mises à jour en chaîne.",
+    "Pas de connexion ou GitHub trop lent : FIRE s’ouvre quand même au bout de quelques secondes, et la mise à jour continue en arrière-plan.",
+    "Lancement avec Windows : la mise à jour se fait en silence, sans fenêtre.",
+    "Téléphone : plus de message « mise à jour disponible » ni de lien vers GitHub. L’app charge toujours la dernière version à l’ouverture, et se met à jour toute seule quand tu reviens dessus.",
+    "Téléphone : correction de la version affichée (« web » au lieu du vrai numéro), qui faisait croire qu’une mise à jour manquait."
+   ]
+  },
+  {
    "version": "1.10.197",
    "date": "2026-11-17",
    "titre": "Boutique Admin : tous les types d’articles",
