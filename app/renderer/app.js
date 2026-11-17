@@ -3725,6 +3725,9 @@
     window.fire.live.on((g) => {
       LIVE.mine = g;
       const now = Date.now();
+      // Début et fin de MA partie : à la fin, la page de ses clips s'ouvre.
+      if (g && !LIVE.gameAt) LIVE.gameAt = now - Math.max(0, Number(g.time) || 0) * 1000;
+      if (!g && LIVE.gameAt) { const at = LIVE.gameAt; LIVE.gameAt = 0; setTimeout(() => clipRecap(at), 5000); }
       if (g) autoClipCheck(g);
       mmLive(g);
       vodLive(g);
@@ -6065,6 +6068,114 @@
     view.replaceChildren(...[hero, tabs, player, grid,
       list.length > CF.n ? h('div', { class: 'more-row' }, h('button', { class: 'btn-ghost', onclick: () => { CF.n += 24; renderClipsPage(); } }, `Voir plus (${list.length - CF.n})`)) : null].filter(Boolean));
   }
+  // ----- Couper un clip : garder seulement le passage choisi (le clip d'origine reste) -----
+  const CLT = { path: null, a: 0, b: null, dur: 0, busy: false, pct: 0, err: '', done: '' };
+  const tfmt = (t) => { t = Math.max(0, t || 0); return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}.${Math.floor((t % 1) * 10)}`; };
+  function clipTrimBox(sel) {
+    const pv = () => document.querySelector('.clb-player video');
+    const v0 = pv();
+    const dur = v0 && Number.isFinite(v0.duration) && v0.duration > 0 ? v0.duration : CLT.dur;
+    if (!dur) { if (v0) v0.addEventListener('loadedmetadata', () => { CLT.dur = v0.duration; renderClipsPage(); }, { once: true }); else later(() => { if (CLT.path) renderClipsPage(); }); return h('div', { class: 'clt-box' }, h('p', { class: 'muted small' }, 'Chargement du clip…')); }
+    CLT.dur = dur;
+    if (CLT.b == null || CLT.b > dur) CLT.b = dur;
+    const lab = h('span', { class: 'clt-lab' }, `${tfmt(CLT.a)} → ${tfmt(CLT.b)} · ${fr(CLT.b - CLT.a, 1)} s`);
+    let box = null;
+    const upd = () => { lab.textContent = `${tfmt(CLT.a)} → ${tfmt(CLT.b)} · ${fr(CLT.b - CLT.a, 1)} s`; const f = box && box.querySelector('.clt-fill'); if (f) { f.style.left = (CLT.a / dur * 100) + '%'; f.style.width = ((CLT.b - CLT.a) / dur * 100) + '%'; } };
+    const seek = (t) => { const v = pv(); if (v) { v.pause(); v.currentTime = t; } };
+    const range = (k) => h('input', { type: 'range', class: 'clt-r clt-' + k, min: 0, max: dur.toFixed(2), step: 0.1, value: CLT[k], disabled: CLT.busy ? true : null, 'aria-label': k === 'a' ? 'Début du passage' : 'Fin du passage',
+      oninput: (e) => { let x = Number(e.target.value); if (k === 'a') x = Math.min(x, CLT.b - 0.5); else x = Math.max(x, CLT.a + 0.5); CLT[k] = Math.max(0, Math.min(dur, x)); e.target.value = CLT[k]; upd(); seek(CLT[k]); } });
+    const here = (k) => h('button', { class: 'btn-ghost small-btn', disabled: CLT.busy ? true : null, title: 'Prendre l’instant où en est la vidéo', onclick: () => { const v = pv(); if (!v) return; const t = v.currentTime; if (k === 'a' && t < CLT.b - 0.5) CLT.a = t; if (k === 'b' && t > CLT.a + 0.5) CLT.b = t; renderClipsPage(); } }, k === 'a' ? '⇤ Début ici' : 'Fin ici ⇥');
+    box = h('div', { class: 'clt-box' },
+      h('div', { class: 'row clt-head' }, h('b', null, '✂️ Couper le clip'), lab),
+      h('div', { class: 'clt-track' }, h('i', { class: 'clt-fill' }), range('a'), range('b')),
+      h('div', { class: 'row clt-act' }, here('a'), here('b'),
+        h('button', { class: 'btn-ghost small-btn', disabled: CLT.busy ? true : null, onclick: () => { const v = pv(); if (!v) return; v.currentTime = CLT.a; v.play().catch(() => {}); const stop = () => { if (v.currentTime >= CLT.b) { v.pause(); v.removeEventListener('timeupdate', stop); } }; v.addEventListener('timeupdate', stop); } }, '▶ Aperçu'),
+        h('span', { class: 'spacer' }),
+        h('button', { class: 'btn-fire small-btn clt-go', disabled: CLT.busy ? true : null, onclick: () => clipTrim(sel) }, CLT.busy ? `Découpe… ${CLT.pct} %` : '✂️ Enregistrer le passage')),
+      CLT.err ? h('p', { class: 'bad small' }, '⚠ ' + CLT.err) : null,
+      h('p', { class: 'muted small' }, 'Le passage choisi devient un nouveau clip (le clip entier reste, tu peux le supprimer après). La découpe prend le temps du passage.'));
+    upd();
+    return box;
+  }
+  async function clipTrim(sel) {
+    if (CLT.busy) return;
+    const mime = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a', 'video/mp4'].find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
+    if (!mime) { CLT.err = 'ton FIRE ne sait pas enregistrer en MP4 sur ce PC'; renderClipsPage(); return; }
+    const a = CLT.a, b = CLT.b;
+    CLT.busy = true; CLT.pct = 0; CLT.err = ''; renderClipsPage();
+    const pv = document.querySelector('.clb-player video'); if (pv) pv.pause();
+    // Lecteur invisible : son image et son son vont seulement dans l'enregistrement (rien dans tes haut-parleurs).
+    const v = h('video', { src: sel.url, preload: 'auto', playsinline: '', style: 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none' });
+    document.body.append(v);
+    let ac = null, rec = null;
+    try {
+      await new Promise((ok, ko) => { v.onloadedmetadata = ok; v.onerror = () => ko(new Error('clip illisible')); });
+      ac = new AudioContext(); const src = ac.createMediaElementSource(v); const dest = ac.createMediaStreamDestination(); src.connect(dest);
+      if (ac.state === 'suspended') await ac.resume().catch(() => {});
+      v.currentTime = a; await new Promise((ok) => { v.onseeked = ok; setTimeout(ok, 3000); });
+      const vt = v.captureStream().getVideoTracks()[0];
+      if (!vt) throw new Error('image du clip introuvable');
+      const st = new MediaStream([vt, ...dest.stream.getAudioTracks()]);
+      const chunks = [];
+      rec = new MediaRecorder(st, { mimeType: mime, videoBitsPerSecond: 12e6, audioBitsPerSecond: 160000 });
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      const ended = new Promise((ok) => { rec.onstop = ok; });
+      rec.start(1000);
+      await v.play();
+      await new Promise((ok) => {
+        const tick = () => {
+          CLT.pct = Math.max(0, Math.min(99, Math.round((v.currentTime - a) / (b - a) * 100)));
+          const btn = document.querySelector('.clt-go'); if (btn) btn.textContent = `Découpe… ${CLT.pct} %`;
+          if (v.currentTime >= b || v.ended) return ok();
+          if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(tick); else setTimeout(tick, 40);
+        };
+        tick();
+      });
+      v.pause(); rec.stop(); await ended;
+      const buf = await new Blob(chunks, { type: mime }).arrayBuffer();
+      const m = sel.meta || {};
+      const res = await window.fire.clips.save(buf, { label: String(clipTitle(sel) || 'Clip').slice(0, 30) + ' coupé', champ: m.champ || '', mode: m.mode || '', kind: m.kind || 'manuel' });
+      if (!res || !res.ok) throw new Error((res && res.error) || 'enregistrement impossible');
+      CL.sel = res.path; CLT.path = null;
+      await clipsRefresh();
+      vocalToast(`✂️ Clip coupé · ${fr(b - a, 1)} s`, true);
+    } catch (e) { CLT.err = 'découpe impossible : ' + String((e && e.message) || e); }
+    finally {
+      CLT.busy = false;
+      try { if (rec && rec.state !== 'inactive') rec.stop(); } catch (e) { /* */ }
+      try { if (ac) ac.close(); } catch (e) { /* */ }
+      v.removeAttribute('src'); try { v.load(); } catch (e) { /* */ } v.remove();
+      renderClipsPage();
+    }
+  }
+  // ----- Fin de partie : une page s'ouvre avec les clips de la game -----
+  async function clipRecap(since) {
+    if (clipCfg().recap === false || !window.fire.clips) return;
+    const all = await window.fire.clips.list().catch(() => []);
+    CL.list = all;
+    const mine = all.filter((c) => c.t >= since - 10000);
+    if (!mine.length) return;
+    const old = document.getElementById('clip-recap'); if (old) old.remove();
+    const close = () => { box.querySelectorAll('video').forEach((v) => { v.pause(); v.removeAttribute('src'); }); box.remove(); };
+    const openIn = (c, what) => { close(); CL.sel = c.path; if (what === 'cut') { CLT.path = c.path; CLT.a = 0; CLT.b = null; CLT.err = ''; } if (what === 'share') { CLS.open = c.path; CLS.title = clipTitle(c); CLS.vis = 'public'; CLS.to = []; CLS.err = ''; } go('clips'); };
+    const card = (c) => h('div', { class: 'rc-card' },
+      h('video', { src: c.url, controls: '', preload: 'metadata' }),
+      h('div', { class: 'rc-t' }, c.meta && c.meta.champ ? champIcon(c.meta.champ, 22) : null, h('b', null, clipTitle(c))),
+      h('div', { class: 'row rc-act' },
+        h('button', { class: 'btn-ghost small-btn' + (c.meta && c.meta.keep ? ' on' : ''), onclick: async (e) => { const on = !(c.meta && c.meta.keep); await window.fire.clips.keep(c.name, on); c.meta = { ...(c.meta || {}), keep: on }; e.target.textContent = on ? '⭐ Gardé' : '☆ Garder'; } }, c.meta && c.meta.keep ? '⭐ Gardé' : '☆ Garder'),
+        h('button', { class: 'btn-ghost small-btn', onclick: () => openIn(c, 'cut') }, '✂️ Couper'),
+        h('button', { class: 'btn-fire small-btn', onclick: () => openIn(c, 'share') }, '🌐 Partager')));
+    const box = h('div', { id: 'clip-recap', role: 'dialog', 'aria-label': 'Clips de la partie', onclick: (e) => { if (e.target === box) close(); } },
+      h('div', { class: 'rc-in' },
+        h('div', { class: 'row rc-head' }, h('h2', null, `🎬 Tes clips de la partie · ${mine.length}`), h('span', { class: 'spacer' }),
+          h('button', { class: 'btn-ghost', onclick: () => { close(); go('clips'); } }, 'Tous mes clips'), h('button', { class: 'btn-ghost', title: 'Fermer', onclick: close }, '✕')),
+        h('div', { class: 'rc-grid' }, mine.slice(0, 12).map(card)),
+        h('p', { class: 'muted small' }, 'Les clips non gardés partent tout seuls avec le ménage automatique. Garde les meilleurs ⭐')));
+    document.body.append(box);
+    box.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    try { window.fire.win && window.fire.win.front && window.fire.win.front(); } catch (e) { /* */ }
+    try { petReact('clip'); } catch (e) { /* */ }
+  }
   function renderClipsPage() {
     const view = $('view');
     if (!CL.loaded) { CL.loaded = true; clipsRefresh(); }
@@ -6094,6 +6205,8 @@
     const cfg = h('div', { class: 'card clb-cfg' },
       h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Enregistrement continu'), h('small', null, `FIRE garde en mémoire les ${c.seconds} dernières secondes de ton écran, du son du jeu et du vocal. Rien n’est écrit tant qu’il n’y a pas de clip.`)),
         h('input', { type: 'checkbox', class: 'vs-tog', checked: c.on ? true : null, onchange: (e) => upd({ on: e.target.checked }) })),
+      h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Mes clips à la fin de la partie'), h('small', null, 'Quand ta game se termine, FIRE passe devant et ouvre une page avec les clips de la partie : revois-les, garde, coupe ou partage les meilleurs.')),
+        h('input', { type: 'checkbox', class: 'vs-tog', checked: c.recap !== false ? true : null, onchange: (e) => upd({ recap: e.target.checked }) })),
       h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Clips automatiques'), h('small', null, 'Un clip à chaque kill ou assist, à chaque objectif où tu participes (dragon, Nashor, Héraut, larves, Atakhan) et à chaque tour ou inhibiteur pris juste après un kill ou une assist. Pas les camps de la jungle, ni les vagues, ni un TP ou un ignite sans kill. Un combat entier = un seul clip.')),
         h('input', { type: 'checkbox', class: 'vs-tog', checked: c.auto !== false ? true : null, onchange: (e) => upd({ auto: e.target.checked }) })),
       c.auto !== false ? h('div', { class: 'row clb-types' }, h('span', { class: 'muted small' }, 'Filmer automatiquement :'),
@@ -6135,6 +6248,7 @@
           h('button', { class: 'btn-fire small-btn', onclick: () => { CLS.open = CLS.open === sel.path ? null : sel.path; CLS.title = clipTitle(sel); CLS.vis = 'public'; CLS.to = []; CLS.err = ''; renderClipsPage(); } }, '🌐 Partager'),
           h('button', { class: 'btn-ghost' + (sel.meta && sel.meta.keep ? ' on' : ''), title: sel.meta && sel.meta.keep ? 'Ce clip ne sera jamais supprimé tout seul' : 'Garder ce clip : il ne sera pas supprimé par le ménage automatique', onclick: async () => { await window.fire.clips.keep(sel.name, !(sel.meta && sel.meta.keep)); clipsRefresh(); } }, sel.meta && sel.meta.keep ? '⭐ Gardé' : '☆ Garder'),
           others ? h('button', { class: 'btn-ghost', disabled: CL.sending[sel.path] != null ? true : null, onclick: () => clipSend(sel) }, CL.sending[sel.path] != null ? `Envoi… ${CL.sending[sel.path]} %` : '📨 Envoyer au salon') : null,
+          h('button', { class: 'btn-ghost' + (CLT.path === sel.path ? ' on' : ''), title: 'Garder seulement le meilleur moment du clip', onclick: () => { if (CLT.busy) return; CLT.path = CLT.path === sel.path ? null : sel.path; CLT.a = 0; CLT.b = null; CLT.err = ''; CLT.done = ''; renderClipsPage(); } }, '✂️ Couper'),
           h('button', { class: 'btn-ghost', onclick: () => window.fire.clips.show(sel.path) }, 'Afficher dans le dossier'),
           h('button', { class: 'btn-ghost', onclick: async () => {
             if (CL.confirm !== sel.path) { CL.confirm = sel.path; renderClipsPage(); return; }
@@ -6142,6 +6256,7 @@
           } }, CL.confirm === sel.path ? 'Confirmer la suppression' : '🗑 Supprimer'),
           h('button', { class: 'btn-ghost', title: 'Fermer', onclick: () => { CL.sel = null; renderClipsPage(); } }, '✕'))),
       CLS.open === sel.path ? clipShareBox(sel) : null,
+      CLT.path === sel.path ? clipTrimBox(sel) : null,
       !(sel.meta && sel.meta.keep) && (c.keepDays ?? 14) ? h('p', { class: 'muted small' }, `⏳ Supprimé tout seul dans ${clipLeft(sel, c)} : clique sur « ☆ Garder » pour le conserver.`) : null) : null;
     const grid = list.length ? h('div', { class: 'clb-grid' }, list.slice(0, CLB.n).map((x) => h('button', { class: 'clb-card' + (CL.sel === x.path && !CLM.on ? ' on' : '') + (CLM.on ? ' picking' : '') + (CLM.pick.has(x.path) ? ' picked' : ''), 'aria-pressed': CLM.on ? String(CLM.pick.has(x.path)) : null, onclick: (e) => {
         if (CLM.on || e.ctrlKey || e.metaKey || e.shiftKey) {

@@ -1577,6 +1577,12 @@ ipcMain.handle('cache:clear', async () => {
 });
 ipcMain.handle('cache:size', () => session.defaultSession.getCacheSize().catch(() => 0));
 // Windows sait baisser le son des autres applications pendant un appel : on ouvre directement ce réglage.
+// Fin de partie : FIRE passe devant pour montrer les clips de la game (seulement à la fin, jamais pendant).
+ipcMain.handle('win:front', () => {
+  if (!mainWin || mainWin.isDestroyed()) return false;
+  try { if (mainWin.isMinimized()) mainWin.restore(); mainWin.show(); mainWin.moveTop(); mainWin.focus(); if (!mainWin.isFocused()) mainWin.flashFrame(true); } catch (e) { /* */ }
+  return true;
+});
 ipcMain.handle('win:soundComms', () => {
   if (process.platform !== 'win32') return false;
   try { require('child_process').spawn('control', ['mmsys.cpl,,3'], { detached: true, stdio: 'ignore', windowsHide: true }).unref(); return true; } catch (e) { return false; }

@@ -3435,3 +3435,25 @@ html[data-calm] .jeu-ombre.torch .om-light{animation:none}
 .acc-news{all:unset;display:block;cursor:pointer;margin:4px 0 10px;color:inherit;opacity:.92;line-height:1.45}
 .acc-news b{color:var(--fire1,#ffb02e)}
 .acc-news:hover{opacity:1;text-decoration:underline;text-underline-offset:3px}
+/* Couper un clip */
+.clt-box{margin-top:10px;padding:12px;border-radius:12px;background:rgb(255 255 255 / 4%);border:1px solid var(--line)}
+.clt-head{gap:10px;align-items:center;margin-bottom:8px}
+.clt-lab{font-variant-numeric:tabular-nums;opacity:.85}
+.clt-track{position:relative;height:28px;margin:4px 0 8px}
+.clt-track::before{content:'';position:absolute;left:0;right:0;top:12px;height:4px;border-radius:2px;background:rgb(255 255 255 / 12%)}
+.clt-fill{position:absolute;top:10px;height:8px;border-radius:4px;background:var(--fire1,#ff8a2e)}
+.clt-r{position:absolute;left:0;right:0;top:0;width:100%;margin:0;height:28px;background:none;pointer-events:none;-webkit-appearance:none;appearance:none}
+.clt-r::-webkit-slider-thumb{pointer-events:auto;-webkit-appearance:none;width:16px;height:22px;border-radius:5px;background:#fff;border:2px solid var(--fire1,#ff8a2e);cursor:ew-resize}
+.clt-r::-webkit-slider-runnable-track{background:none}
+.clt-act{gap:8px;align-items:center;flex-wrap:wrap}
+/* Fin de partie : clips de la game */
+#clip-recap{position:fixed;inset:0;z-index:2000;background:rgb(0 0 0 / 62%);display:flex;align-items:center;justify-content:center;padding:24px}
+#clip-recap .rc-in{width:min(1100px,96vw);max-height:90vh;overflow:auto;background:var(--panel,#16121a);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:0 20px 60px rgb(0 0 0 / 50%)}
+#clip-recap .rc-head{align-items:center;gap:8px;margin-bottom:10px}
+#clip-recap .rc-head h2{margin:0;font-size:18px}
+#clip-recap .rc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+#clip-recap .rc-card{background:rgb(255 255 255 / 4%);border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px}
+#clip-recap video{width:100%;aspect-ratio:16/9;border-radius:8px;background:#000}
+#clip-recap .rc-t{display:flex;align-items:center;gap:6px;font-size:13px;min-width:0}
+#clip-recap .rc-t b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#clip-recap .rc-act{gap:6px;flex-wrap:wrap}

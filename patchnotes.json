@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "1.10.184",
+   "date": "2026-11-17",
+   "titre": "Couper ses clips, et ses clips à la fin de la partie",
+   "items": [
+    [
+     "new",
+     "Clips › ✂️ Couper : choisis le début et la fin du passage (curseurs, ou « Début ici » / « Fin ici » pendant la lecture), regarde l’aperçu, puis « Enregistrer le passage ». Il devient un nouveau clip ; le clip entier reste, tu peux le supprimer après."
+    ],
+    [
+     "new",
+     "Fin de partie : FIRE passe devant et ouvre une page avec les clips de ta game. Tu peux les revoir, les garder ⭐, les couper ✂️ ou les partager 🌐. Ça se désactive dans Clips › « Mes clips à la fin de la partie »."
+    ]
+   ]
+  },
+  {
    "v": "1.10.183",
    "date": "2026-11-17",
    "titre": "Le son du PC dans les clips, pour de vrai",
