@@ -1,0 +1,26 @@
+name: Apps du FIRE Launcher (Kiting, Listen)
+# Branche « apps » : FIRE-Kiting.exe et FIRE-Listen.exe. À chaque envoi, la release « apps » est mise à jour,
+# et FIRE Launcher télécharge les nouvelles versions chez tout le monde.
+on:
+  push:
+    branches: [apps]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sha256sum *.exe && ls -l *.exe
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apps
+          target_commitish: ${{ github.sha }}
+          name: Apps du FIRE Launcher (Kiting, Listen)
+          body: Fichiers téléchargés et mis à jour automatiquement par FIRE Launcher.
+          make_latest: false
+          overwrite_files: true
+          files: |
+            FIRE-Kiting.exe
+            FIRE-Listen.exe
