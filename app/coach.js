@@ -1171,6 +1171,7 @@ function appCfgClean(c) {
     capture: c.capture === 'off' ? 'off' : '',
     captureOk: [...new Set((Array.isArray(c.captureOk) ? c.captureOk : []).map((x) => str(x, 80)).filter(Boolean))].slice(0, 60),
     petsOff: !!c.petsOff,
+    bans: (Array.isArray(c.bans) ? c.bans : []).slice(0, 100).map((b) => ({ slug: str(b && b.slug, 80), why: str(b && b.why, 200), at: Number(b && b.at) || 0 })).filter((b) => b.slug),
     fxOff: !!c.fxOff,
     // Catégories du menu : [[titre, [rubriques]]]
     groups: (Array.isArray(c.groups) ? c.groups : []).slice(0, 20).map((g) => [str(Array.isArray(g) ? g[0] : '', 40), (Array.isArray(g) && Array.isArray(g[1]) ? g[1] : []).map(sid).filter(Boolean).slice(0, 60)]),

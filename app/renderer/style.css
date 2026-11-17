@@ -3526,3 +3526,9 @@ html[data-calm] .jeu-ombre.torch .om-light{animation:none}
 .adm-bar .row{flex-wrap:wrap}
 .adm-ph .adm-ico{flex:0 0 70px;width:70px!important}
 .adm-gh .adm-gt{flex:1 1 auto}
+#ban-ovl{position:fixed;inset:0;z-index:100000;background:rgb(5 5 8 / 96%);display:grid;place-items:center;padding:20px;backdrop-filter:blur(8px)}
+#ban-ovl .ban-in{max-width:460px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;padding:28px!important}
+#ban-ovl .ban-ico{font-size:56px}
+#ban-ovl h1{margin:0;font-size:24px}
+.adm-ban{border-color:color-mix(in srgb,var(--bad,#ef5a5a) 60%,transparent)!important;color:var(--bad,#ef5a5a)!important}
+#ban-ovl .ban-ico{line-height:1;margin-bottom:6px}

@@ -375,6 +375,7 @@
     try { S.version = await window.fire.version(); } catch (e) { /* inconnue */ }
     S.players = (S.cfg && S.cfg.joueurs) || [];
     membresMerge(load('fire.membres', []));
+    banFilter();
     S.coachs = (S.cfg && Array.isArray(S.cfg.coachs) && S.cfg.coachs) || [];
     S.cfgObj = (S.cfg && S.cfg.objectif && S.cfg.objectif.debut) ? S.cfg.objectif : null;
     S.obj = weeklyObj(S.cfgObj);
@@ -472,7 +473,7 @@
     // Personnalisation du créateur (menu Admin) : appliquée tout de suite (copie gardée), puis relue en ligne.
     try { appCfgApply(); } catch (e) { /* */ }
     setTimeout(() => appCfgLoad().catch(() => {}), 2500); setInterval(() => appCfgLoad().catch(() => {}), REFRESH_EVERY);
-    setInterval(() => { try { appCapture(); } catch (e) { /* */ } }, 60000);
+    setInterval(() => { try { appCapture(); banCheck(); } catch (e) { /* */ } }, 30000);
     // Créneaux avec un coach : tant qu'une demande attend (ou sur le PC d'un coach), on regarde chaque minute
     // pour prévenir le joueur dès que le coach accepte ou refuse.
     setInterval(() => {
@@ -554,6 +555,7 @@
         // Les membres acceptés (et ma demande en attente) ne sont pas dans joueurs.json : on les garde.
         S.players = c.joueurs.slice();
         membresMerge(load('fire.membres', []));
+        banFilter();
         try { markDuoFlex(); } catch (e) { /* données pas encore là */ }
         S.coachs = Array.isArray(c.coachs) ? c.coachs : [];
         S.cfgObj = (c.objectif && c.objectif.debut) ? c.objectif : null;
@@ -10252,7 +10254,7 @@
           x.text ? h('p', { class: 'fo-ex muted small' }, x.text.length > 160 ? x.text.slice(0, 160) + '…' : x.text) : null))));
   }
   const chatConvOf = (m, me) => (!m.to ? (m.ch ? (isChan('ch:' + m.ch) ? 'ch:' + m.ch : null) : 'team') : m.from === me ? m.to : m.to === me ? (dmAllowedFrom(m.from) ? m.from : null) : null);
-  const chatVisible = (m, me) => chatConvOf(m, me) != null;
+  const chatVisible = (m, me) => chatConvOf(m, me) != null && !isBanned(m.from);
   const chatSeenAt = (conv) => (conv === 'team' ? CH.seen : (CH.seenBy[conv] || 0));
   function chatMerge(list, live) {
     const by = new Map(CH.msgs.map((m) => [m.id, m]));
@@ -11107,11 +11109,34 @@
       c.css || '',
     ].join('\n');
     appCapture();
+    try { banCheck(); banFilter(); } catch (e) { /* */ }
     const brand = c.brand || '';
     document.querySelectorAll('.v2-brand span, .brand-sm span, #lock .brand').forEach((e) => { if (!e.dataset.orig) e.dataset.orig = e.textContent; e.textContent = brand || e.dataset.orig; });
     document.title = brand || 'FIRE LoL';
     // Thème par défaut de l'équipe : seulement pour ceux qui n'en ont pas choisi un.
     if (c.theme && localStorage.getItem('fire.theme') == null && THEMES.some(([id]) => id === c.theme)) { try { applyTheme(c.theme); } catch (e) { /* */ } }
+  }
+  // ----- Bannissements (publiés par le créateur) -----
+  // Le membre banni : son FIRE se verrouille (même s'il change de pseudo sur ce PC), il quitte le vocal.
+  // Chez les autres : il disparaît des listes de joueurs et ses messages ne s'affichent plus.
+  function banList() { try { return acfg().bans || []; } catch (e) { return []; } }
+  function isBanned(slug) { return !!slug && banList().some((b) => b.slug === slug); }
+  function banFilter() { try { if (banList().length && !isAdmin()) S.players = S.players.filter((p) => !isBanned(p.slug)); } catch (e) { /* */ } }
+  function banCheck() {
+    const me = vocalMe();
+    let b = banList().find((x) => x.slug === me);
+    const was = load('fire.banned', null);
+    if (!b && was) { b = banList().find((x) => x.slug === was.slug); if (!b) save('fire.banned', null); }
+    let ov = document.getElementById('ban-ovl');
+    if (!b || isAdmin()) { if (ov) ov.remove(); return; }
+    save('fire.banned', { slug: b.slug, at: b.at });
+    try { if (FV().state().on) FV().leave(); } catch (e) { /* */ }
+    if (!ov) {
+      ov = h('div', { id: 'ban-ovl' }, h('div', { class: 'card ban-in' }, h('div', { class: 'ban-ico' }, '🚫'), h('h1', null, 'Tu as été banni de FIRE'),
+        h('p', { class: 'muted' }, b.why ? 'Raison : ' + b.why : 'Le créateur de FIRE a retiré ton accès.'),
+        h('p', { class: 'muted small' }, 'Si tu penses que c’est une erreur, contacte le créateur ou un coach de l’équipe.')));
+      document.body.append(ov);
+    }
   }
   // Anti capture : actif pour tous, sauf si le créateur l'a coupé ou l'autorise à ce membre.
   function appCapture() {
@@ -11167,8 +11192,8 @@
 
   // ----- Page Admin -----
   const clone = (x) => JSON.parse(JSON.stringify(x || {}));
-  function admOpen() { if (!ADM.draft) ADM.draft = { hide: [], rename: {}, hero: {}, fun: [], accent: '', theme: '', brand: '', css: '', font: '', groups: [], pages: [], ...clone(APPCFG) }; }
-  const admDirty = () => JSON.stringify(ADM.draft) !== JSON.stringify({ hide: [], rename: {}, hero: {}, fun: [], accent: '', theme: '', brand: '', css: '', font: '', groups: [], pages: [], ...clone(APPCFG) });
+  function admOpen() { if (!ADM.draft) ADM.draft = { hide: [], rename: {}, hero: {}, fun: [], accent: '', theme: '', brand: '', css: '', font: '', groups: [], pages: [], bans: [], ...clone(APPCFG) }; }
+  const admDirty = () => JSON.stringify(ADM.draft) !== JSON.stringify({ hide: [], rename: {}, hero: {}, fun: [], accent: '', theme: '', brand: '', css: '', font: '', groups: [], pages: [], bans: [], ...clone(APPCFG) });
   function admGroups(D) {
     if (D.groups && D.groups.length) return D.groups;
     const base = window.FIREV2 && window.FIREV2.groups ? window.FIREV2.groups() : [['Rubriques', (S.navAll || []).map(([id]) => id)]];
@@ -11275,9 +11300,17 @@
           h('textarea', { class: 'inp', rows: 10, placeholder: 'Bonnes games !\nPense à ward 👁️\n…', onchange: (e) => set({ fun: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 80) }) }, (D.fun || []).join('\n'))),
         h('div', { class: 'card' }, h('b', null, '📣 Annonce à toute l’équipe'), h('p', { class: 'muted small' }, 'Un message qui s’affiche chez tout le monde jusqu’à ce qu’on clique « Accepter ».'), h('button', { class: 'btn-ghost', onclick: () => go('annonces') }, 'Écrire une annonce →')));
     } else if (ADM.tab === 'team') {
+      const B = D.bans || (D.bans = []);
+      const everyone = [...new Map([...(S.players || []), ...((S.cfg && S.cfg.joueurs) || [])].filter((p) => p.slug).map((p) => [p.slug, p])).values()];
+      const banRow = (p) => { const b = B.find((x) => x.slug === p.slug);
+        return h('div', { class: 'adm-it' + (b ? ' off' : '') }, avatarEl(p.slug, 'adm-av'), h('b', { class: 'adm-ptitle' }, vocalName(p.slug)), b ? h('small', { class: 'bad' }, '🚫 banni' + (b.why ? ' · ' + b.why : '')) : null,
+          b ? h('button', { class: 'btn-ghost small-btn', onclick: () => set({ bans: B.filter((x) => x.slug !== p.slug) }) }, '↺ Débannir')
+            : p.slug === vocalMe() ? h('small', { class: 'muted' }, 'c’est toi') : h('button', { class: 'btn-ghost small-btn adm-ban', onclick: () => { const why = prompt(`Bannir ${vocalName(p.slug)} ? Raison (facultatif) :`, ''); if (why === null) return; set({ bans: B.concat([{ slug: p.slug, why: String(why).slice(0, 200), at: Date.now() }]) }); } }, '🚫 Bannir')); };
       body = h('div', { class: 'adm-sec' },
+        h('div', { class: 'card adm-grp' }, h('b', null, '🚫 Bannir ou débannir'), h('p', { class: 'muted small' }, 'Un membre banni voit son FIRE se verrouiller (même s’il change de pseudo), il quitte le vocal, disparaît des listes et ses messages ne s’affichent plus. Ça s’applique à la publication. Pour une coupure totale, le coach peut aussi changer le code d’équipe.'),
+          everyone.map(banRow)),
         h('div', { class: 'card' }, h('b', null, '👥 Membres, rôles et modérateurs'), h('p', { class: 'muted small' }, 'Valider les nouveaux, choisir les modérateurs, voir l’activité : dans le carnet de bord.'), h('button', { class: 'btn-ghost', onclick: () => go('carnet') }, 'Ouvrir le carnet de bord →')),
-        h('div', { class: 'card' }, h('b', null, '🚫 Bannir quelqu’un'), h('p', { class: 'muted small' }, 'Arrive dans la prochaine étape : bannir un membre verrouille son FIRE, le retire des listes, du vocal et de la discussion.')));
+        null);
     } else if (ADM.tab === 'shop') {
       body = h('div', { class: 'adm-sec' }, h('div', { class: 'card' }, h('b', null, '🛍️ Ajouter dans la Boutique'), h('p', { class: 'muted small' }, 'Arrive dans une prochaine étape : ajouter toi-même des compagnons, bannières et cadres en envoyant une image.')));
     } else {

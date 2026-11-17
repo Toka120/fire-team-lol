@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.194",
+   "date": "2026-11-17",
+   "titre": "Admin : bannir",
+   "items": [
+    [
+     "new",
+     "Admin › Équipe : bannir ou débannir un membre, avec une raison. Son FIRE se verrouille (même s’il change de pseudo sur son PC), il quitte le vocal, il disparaît des listes de joueurs et ses messages ne s’affichent plus chez les autres. Raccourci vers le carnet de bord pour les rôles et les nouveaux membres."
+    ]
+   ]
+  },
+  {
    "v": "1.10.193",
    "date": "2026-11-17",
    "titre": "Menu Admin : modifier FIRE sans mise à jour",
