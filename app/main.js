@@ -272,6 +272,18 @@ const AD_CSS = '[id^="div-gpt-ad"],[id*="google_ads_iframe"],[class*="adthrive"]
 // « gênes » comme les bandeaux de cookies), mis à jour au lancement et gardé en cache ; nos régies en plus.
 // Sans connexion la première fois : on se rabat sur notre propre liste de régies.
 let adWebOn = false;
+// YouTube ne marche pas avec le bloqueur (lecteur gris ou noir, même avec des exceptions) : le bloqueur est coupé
+// tant que le navigateur de FIRE est sur YouTube, et remis dès qu'on va sur un autre site.
+let webBlocker = null, webBlockerOn = false;
+function webBlockFor(url) {
+  if (!webBlocker || !/^https?:/.test(String(url || ''))) return;
+  const s = session.fromPartition('persist:fire-web');
+  const yt = isYt(url) || /^https:\/\/([\w-]+\.)*(youtu\.be|googlevideo\.com)\//.test(String(url));
+  try {
+    if (yt && webBlockerOn) { webBlocker.disableBlockingInSession(s); webBlockerOn = false; }
+    else if (!yt && !webBlockerOn) { webBlocker.enableBlockingInSession(s); webBlockerOn = true; }
+  } catch (e) { /* */ }
+}
 function adFallback(s) {
   s.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
     let host = '';
@@ -294,6 +306,7 @@ async function adblockWeb() {
     // On laisse YouTube tranquille pour que les vidéos des matchups et des guides marchent toujours.
     try { blocker.updateFromDiff({ added: ['@@||youtube.com^$document', '@@||youtube-nocookie.com^$document', '@@||googlevideo.com^', '@@||ytimg.com^', '@@||ggpht.com^'] }); } catch (e) { /* */ }
     blocker.enableBlockingInSession(s);
+    webBlocker = blocker; webBlockerOn = true;
   } catch (e) {
     try { adFallback(s); } catch (x) { /* */ }
   }
@@ -410,6 +423,7 @@ function ensureWebView() {
   wc.setWindowOpenHandler(({ url }) => { if (isInstaller(url)) shell.openExternal(url); else if (WEB_OK.test(url)) wc.loadURL(url).catch(() => {}); return { action: 'deny' }; });
   wc.on('will-navigate', (e, url) => { if (!WEB_OK.test(url)) e.preventDefault(); });
   ['did-start-loading', 'did-stop-loading', 'page-title-updated', 'did-navigate', 'did-navigate-in-page'].forEach((ev) => wc.on(ev, webState));
+  wc.on('did-start-navigation', (e, u, inPlace, isMain) => { const url = typeof u === 'string' ? u : e && e.url; const main = typeof isMain === 'boolean' ? isMain : !!(e && e.isMainFrame); if (main) webBlockFor(url); });
   wc.on('did-fail-load', (e, code, desc, url, main) => { if (main && code !== -3 && mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('web:state', { url, title: '', loading: false, error: desc || 'page introuvable' }); });
   return webView;
 }
@@ -426,6 +440,7 @@ ipcMain.handle('web:load', (e, url, rect) => {
   const v = ensureWebView();
   if (!mainWin.contentView.children.includes(v)) mainWin.contentView.addChildView(v);
   if (rect) v.setBounds(rect);
+  webBlockFor(url);
   v.webContents.loadURL(url).catch(() => {});
   return true;
 });
@@ -1024,7 +1039,7 @@ async function dpmChampGrab() {
   const down = () => { window.scrollBy(0, 600); const sc = [...document.querySelectorAll('main, body *')].find((e) => e.scrollHeight > e.clientHeight + 200 && /auto|scroll/.test(getComputedStyle(e).overflowY)); if (sc) sc.scrollBy(0, 600); };
   for (let i = 0; i < 120 && !(tabs().length && panel() && cards(panel()).length); i++) { if (i % 6 === 5) down(); await sleep(250); }
   const tb = tabs()[0]; if (tb) tb.scrollIntoView({ block: 'start' });
-  if (!panel()) return { err: 'panneau des synergies introuvable' };
+  if (!panel()) return { err: 'bloc des synergies introuvable sur la page « ' + document.title.slice(0, 60) + ' » : ' + (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 120) };
   const t = tabs().find((x) => /synerg/i.test(x.textContent));
   if (t && t.getAttribute('data-state') !== 'active') { const s = sig(panel()); press(t); await settle(s); }
   const roles = {};
@@ -1067,8 +1082,12 @@ ipcMain.handle('dpm:champ', (e, champ, lane, tier) => {
   if (hit && Date.now() - hit.at < 6 * 3600e3) return hit.r;
   const run = async () => {
     const again = champCache.get(url); if (again && Date.now() - again.at < 6 * 3600e3) return again.r;
-    const win = new BrowserWindow({ show: false, width: 1400, height: 2000, webPreferences: { session: dpmSession(), offscreen: true, backgroundThrottling: false, contextIsolation: true, sandbox: true } });
+    // dpm.lol ne charge le bloc des synergies que quand il est réellement affiché : une fenêtre cachée ou « hors écran »
+    // ne s'affiche jamais, et le bloc restait vide. On ouvre donc une vraie fenêtre, mais invisible (opacité 0),
+    // placée hors de l'écran, sans barre des tâches, qui ne prend jamais le focus ni les clics.
+    const win = new BrowserWindow({ show: false, x: -32000, y: -32000, width: 1400, height: 1500, frame: false, skipTaskbar: true, focusable: false, resizable: false, webPreferences: { session: dpmSession(), backgroundThrottling: false, contextIsolation: true, sandbox: true } });
     win.webContents.setAudioMuted(true);
+    try { win.setOpacity(0); win.setIgnoreMouseEvents(true); win.showInactive(); } catch (e) { /* */ }
     try {
       await win.loadURL(url).catch(() => { /* la page peut se recharger */ });
       const res = await Promise.race([

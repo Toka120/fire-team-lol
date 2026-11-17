@@ -3526,6 +3526,45 @@
     pins = pins.filter((x) => x !== id); if (on) pins.push(id);
     accSave({ pins });
   }
+  // Petit message au hasard sous le bonjour (un nouveau à chaque visite de l'accueil).
+  const ACC_FUN = [
+    'Bonne game ! Et n’oublie pas : la wave ne se push pas toute seule.',
+    'Aujourd’hui, on ward. Si si. Même toi.',
+    'Rappel amical : le drake ne se fait pas à 3 contre 5.',
+    'Un back au bon moment vaut mieux que deux kills sous la tour.',
+    'Respire, mute si besoin, puis carry.',
+    'Le jungler adverse est forcément top. Ou bot. Ou mid. Bref : warde.',
+    'Ton KDA te remercie d’avance de ne pas facecheck ce buisson.',
+    'GL HF ! Et si ça part en vrille : c’était le lag.',
+    'Objectif du jour : zéro flash dans le mur.',
+    'Petit rappel : le ping « ? » n’a jamais fait gagner une game.',
+    'Farm d’abord, flex ensuite.',
+    'Aujourd’hui c’est le jour du pentakill. Probablement. Peut-être.',
+    'Un bon support, c’est un ADC qui ne meurt pas. Un bon ADC, c’est un support qui a des wards.',
+    'Si tu tilts, va boire de l’eau. Même les champions boivent des potions.',
+    '« Je peux le 1v1 » : la phrase la plus dangereuse du jeu.',
+    'Les tours adverses ne sont pas tes amies. La tienne, si.',
+    'Les crabes sont importants. Personne ne sait vraiment pourquoi, mais ils le sont.',
+    'Une ward posée, c’est une mort évitée. Deux wards, c’est un Baron.',
+    'Rappel : le Nashor n’est pas un buff de farm solo à 20 minutes.',
+    'Bonne game ! Que tes skillshots touchent et que les leurs ratent.',
+    'Pense à regarder la minimap. Elle se sent seule.',
+    'Le meilleur build, c’est celui qui gagne. Le deuxième meilleur, c’est celui du coach.',
+    'Recall, achète, reviens plus fort. Comme dans la vie.',
+    'Ce soir on ne chase pas le Singed. Promis ?',
+    'Il y a deux sortes de joueurs : ceux qui wardent et ceux qui se demandent pourquoi ils meurent.',
+  ];
+  const ACC_NIGHT = ['Encore une petite game ? On sait tous que ce ne sera pas la dernière.', 'Il est tard : la meilleure macro du moment, c’est d’aller dormir.', 'Les games de nuit comptent double. Pour le tilt aussi.'];
+  const ACC_MORNING = ['Café, échauffement, puis ranked. Dans cet ordre.', 'Bien réveillé ? Les adversaires, eux, ne le sont pas encore.'];
+  function accFun(hr) {
+    if (!ACCE.fun || Date.now() - ACCE.funAt > 45000) {
+      const pool = ACC_FUN.concat(hr < 6 || hr >= 23 ? ACC_NIGHT : hr < 11 ? ACC_MORNING : []);
+      let m; do { m = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && m === ACCE.fun);
+      ACCE.fun = m;
+    }
+    ACCE.funAt = Date.now();
+    return ACCE.fun;
+  }
   function renderAccueil() {
     const view = $('view');
     const A = accPrefs(), hid = new Set(A.hide || []);
@@ -3597,7 +3636,7 @@
     view.replaceChildren(...[
       h('header', { class: 'acc-hero' },
         h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE LoL'), h('h1', null, `${hello}${me ? ' ' + String(me.pseudo).split('#')[0] : ''} 👋`),
-          h('p', null, 'L’essentiel de ta journée. Tout le reste est dans le menu à gauche.'),
+          h('p', { class: 'acc-fun', title: 'Un nouveau message à chaque visite' }, accFun(hr)),
           h('button', { class: 'btn-ghost small-btn acc-cust', title: 'Choisir ce qui s’affiche sur ton accueil', onclick: () => { ACCE.edit = !ACCE.edit; renderAccueil(); } }, ACCE.edit ? 'Fermer' : '✏️ Personnaliser'),
           h('div', { class: 'row acc-quick' },
             live ? h('button', { class: 'chip acc-live', onclick: () => go('stats') }, `🔴 ${live} coéquipier${live > 1 ? 's' : ''} en game`) : null,

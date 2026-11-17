@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "1.10.181",
+   "date": "2026-11-17",
+   "titre": "Synergies, YouTube et petits mots sur l’accueil",
+   "items": [
+    [
+     "fix",
+     "Synergies (Draft › Tier list) : elles se chargent maintenant. dpm.lol n’affiche le bloc des synergies que quand la page est vraiment visible, et la fenêtre cachée de FIRE ne l’était jamais. FIRE ouvre maintenant une fenêtre invisible (transparente, hors de l’écran, qui ne prend ni le focus ni les clics). Si ça bloque encore, le message d’erreur dit ce que dpm.lol a affiché."
+    ],
+    [
+     "fix",
+     "Vidéos YouTube (matchups, guides) : le lecteur ne reste plus gris. Le bloqueur de pubs se coupe complètement tant que tu es sur YouTube, et se remet dès que tu vas sur un autre site."
+    ],
+    [
+     "new",
+     "Accueil : sous le bonjour, un petit message au hasard à chaque visite (« Aujourd’hui, on ward. Si si. Même toi. », « Pense à regarder la minimap. Elle se sent seule. »…), avec des messages spéciaux la nuit et le matin."
+    ]
+   ]
+  },
+  {
    "v": "1.10.180",
    "date": "2026-11-17",
    "titre": "Accueil : tous les widgets que tu veux",
