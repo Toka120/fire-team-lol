@@ -1,82 +1,172 @@
 {
  "versions": [
   {
-   "version": "2.0.4",
+   "v": "2.0.4",
    "date": "2026-11-17",
    "titre": "Mode jeu : FIRE se fait oublier pendant tes parties",
-   "notes": [
-    "Nouveau Mode jeu (automatique) : pendant une partie et quand FIRE n’est pas au premier plan, plus aucune animation (compagnons, défilements, fonds animés, flous) n’est calculée.",
-    "Pendant une partie, FIRE passe en priorité basse pour Windows : le jeu passe d’abord. Le service audio garde sa priorité pour que le vocal ne hache pas.",
-    "Pendant une partie, les stats (dpm.lol) ne se rechargent plus en arrière-plan : elles se mettent à jour après la partie. Le bouton ⟳ marche toujours.",
-    "En partie, FIRE derrière le jeu : les vidéos du vocal (caméras, streams des coéquipiers) ne sont plus affichées. Le son continue, et elles reviennent dès que tu reviens sur FIRE.",
-    "Correction : le bandeau des nouveautés de l’Accueil calculait 60 images par seconde en permanence, même sur les autres pages. Il ne tourne plus que s’il est affiché.",
-    "Paramètres › Avancé › Performances : choix du Mode jeu (automatique, seulement en partie, jamais)."
+   "items": [
+    [
+     "new",
+     "Nouveau Mode jeu (automatique) : pendant une partie et quand FIRE n’est pas au premier plan, plus aucune animation (compagnons, défilements, fonds animés, flous) n’est calculée."
+    ],
+    [
+     "improve",
+     "Pendant une partie, FIRE passe en priorité basse pour Windows : le jeu passe d’abord. Le service audio garde sa priorité pour que le vocal ne hache pas."
+    ],
+    [
+     "improve",
+     "Pendant une partie, les stats (dpm.lol) ne se rechargent plus en arrière-plan : elles se mettent à jour après la partie. Le bouton ⟳ marche toujours."
+    ],
+    [
+     "improve",
+     "En partie, FIRE derrière le jeu : les vidéos du vocal (caméras, streams des coéquipiers) ne sont plus affichées. Le son continue, et elles reviennent dès que tu reviens sur FIRE."
+    ],
+    [
+     "fix",
+     "Correction : le bandeau des nouveautés de l’Accueil calculait 60 images par seconde en permanence, même sur les autres pages. Il ne tourne plus que s’il est affiché."
+    ],
+    [
+     "new",
+     "Paramètres › Avancé › Performances : choix du Mode jeu (automatique, seulement en partie, jamais)."
+    ]
    ]
   },
   {
-   "version": "2.0.3",
+   "v": "2.0.3",
    "date": "2026-11-17",
    "titre": "Clips : le son est enfin là",
-   "notes": [
-    "Clips : le son du PC (et ta voix en vocal) est bien enregistré. L’image de l’écran et le son n’avaient pas la même horloge : au moment de couper le clip, tout le son était jeté. Ils sont maintenant calés sur une seule horloge.",
-    "Même correction pour les vidéos de parties entières (Revue de parties).",
-    "Le mélange du son des clips démarre tout seul, même sans clic dans l’app."
+   "items": [
+    [
+     "fix",
+     "Clips : le son du PC (et ta voix en vocal) est bien enregistré. L’image de l’écran et le son n’avaient pas la même horloge : au moment de couper le clip, tout le son était jeté. Ils sont maintenant calés sur une seule horloge."
+    ],
+    [
+     "fix",
+     "Même correction pour les vidéos de parties entières (Revue de parties)."
+    ],
+    [
+     "fix",
+     "Le mélange du son des clips démarre tout seul, même sans clic dans l’app."
+    ]
    ]
   },
   {
-   "version": "2.0.2",
+   "v": "2.0.2",
    "date": "2026-11-17",
    "titre": "Clés admin pour FIRE Kiting et FIRE Listen",
-   "notes": [
-    "Admin › Clés des apps (créateur) : crée une clé pour une personne, valable pour FIRE Kiting, FIRE Listen ou les deux. Elle ouvre leur menu admin. Chaque clé est signée par ta clé de créateur, et tu peux la retirer ou la rétablir quand tu veux.",
-    "FIRE Team envoie à toute l’équipe les niveaux, personnages, sorts et sons publiés depuis le menu admin de FIRE Kiting et FIRE Listen, après avoir vérifié la signature de la clé.",
-    "FIRE Kiting : nouvelle version Dodge 3D (Ezreal, Ahri, Lux, Blitzcrank, Flash), avec un menu admin pour créer des niveaux (vitesse et complexité en %), d’autres personnages et des sorts.",
-    "FIRE Listen : menu admin pour créer des niveaux de quiz (touches, vies, chrono, sons coupés) et ajouter des sons."
+   "items": [
+    [
+     "new",
+     "Admin › Clés des apps (créateur) : crée une clé pour une personne, valable pour FIRE Kiting, FIRE Listen ou les deux. Elle ouvre leur menu admin. Chaque clé est signée par ta clé de créateur, et tu peux la retirer ou la rétablir quand tu veux."
+    ],
+    [
+     "new",
+     "FIRE Team envoie à toute l’équipe les niveaux, personnages, sorts et sons publiés depuis le menu admin de FIRE Kiting et FIRE Listen, après avoir vérifié la signature de la clé."
+    ],
+    [
+     "new",
+     "FIRE Kiting : nouvelle version Dodge 3D (Ezreal, Ahri, Lux, Blitzcrank, Flash), avec un menu admin pour créer des niveaux (vitesse et complexité en %), d’autres personnages et des sorts."
+    ],
+    [
+     "new",
+     "FIRE Listen : menu admin pour créer des niveaux de quiz (touches, vies, chrono, sons coupés) et ajouter des sons."
+    ]
    ]
   },
   {
-   "version": "2.0.1",
+   "v": "2.0.1",
    "date": "2026-11-17",
    "titre": "FIRE Launcher en un clic depuis FIRE Team",
-   "notes": [
-    "Accueil : un bandeau propose FIRE Launcher, avec un bouton « Installer ». Un clic suffit : FIRE Team le télécharge, l’installe et l’ouvre, et son raccourci arrive sur le bureau.",
-    "« Plus tard » cache le bandeau pendant une semaine. Rien ne s’installe sans ton clic.",
-    "Paramètres › Version de l’application : bouton « Installer FIRE Launcher », ou « Ouvrir FIRE Launcher » s’il est déjà là."
+   "items": [
+    [
+     "new",
+     "Accueil : un bandeau propose FIRE Launcher, avec un bouton « Installer ». Un clic suffit : FIRE Team le télécharge, l’installe et l’ouvre, et son raccourci arrive sur le bureau."
+    ],
+    [
+     "improve",
+     "« Plus tard » cache le bandeau pendant une semaine. Rien ne s’installe sans ton clic."
+    ],
+    [
+     "new",
+     "Paramètres › Version de l’application : bouton « Installer FIRE Launcher », ou « Ouvrir FIRE Launcher » s’il est déjà là."
+    ]
    ]
   },
   {
-   "version": "2.0.0",
+   "v": "2.0.0",
    "date": "2026-11-17",
    "titre": "FIRE Team 2.0 : FIRE LoL devient FIRE Team, et voici FIRE Launcher",
-   "notes": [
-    "Nouveau : FIRE Launcher, une app à part (comme un launcher de jeu) qui regroupe FIRE Team, FIRE Kiting et FIRE Listen. Il les installe, les met à jour d’un coup vers la dernière version et les lance.",
-    "FIRE Kiting (entraînement à l’attaque-déplacement et à l’esquive de sorts) et FIRE Listen (reconnaître les sons du jeu) s’installent en un clic depuis le launcher.",
-    "FIRE LoL s’appelle maintenant FIRE Team : nouveau nom partout (fenêtre, raccourci, menu, téléphone). Ton code d’équipe, tes réglages et tes messages restent, rien à réinstaller.",
-    "Ouvert depuis le launcher, FIRE Team démarre directement (le launcher a déjà fait la mise à jour).",
-    "Lien du launcher sur la page de téléchargement de l’équipe."
+   "items": [
+    [
+     "new",
+     "Nouveau : FIRE Launcher, une app à part (comme un launcher de jeu) qui regroupe FIRE Team, FIRE Kiting et FIRE Listen. Il les installe, les met à jour d’un coup vers la dernière version et les lance."
+    ],
+    [
+     "new",
+     "FIRE Kiting (entraînement à l’attaque-déplacement et à l’esquive de sorts) et FIRE Listen (reconnaître les sons du jeu) s’installent en un clic depuis le launcher."
+    ],
+    [
+     "improve",
+     "FIRE LoL s’appelle maintenant FIRE Team : nouveau nom partout (fenêtre, raccourci, menu, téléphone). Ton code d’équipe, tes réglages et tes messages restent, rien à réinstaller."
+    ],
+    [
+     "improve",
+     "Ouvert depuis le launcher, FIRE Team démarre directement (le launcher a déjà fait la mise à jour)."
+    ],
+    [
+     "improve",
+     "Lien du launcher sur la page de téléchargement de l’équipe."
+    ]
    ]
   },
   {
-   "version": "1.10.198",
+   "v": "1.10.198",
    "date": "2026-11-17",
    "titre": "Launcher : FIRE se met à jour avant de s’ouvrir",
-   "notes": [
-    "PC : nouveau launcher au lancement de FIRE. Il cherche la mise à jour, télécharge directement la toute dernière version (jamais les intermédiaires) et l’installe avant d’ouvrir l’app : plus de mises à jour en chaîne.",
-    "Pas de connexion ou GitHub trop lent : FIRE s’ouvre quand même au bout de quelques secondes, et la mise à jour continue en arrière-plan.",
-    "Lancement avec Windows : la mise à jour se fait en silence, sans fenêtre.",
-    "Téléphone : plus de message « mise à jour disponible » ni de lien vers GitHub. L’app charge toujours la dernière version à l’ouverture, et se met à jour toute seule quand tu reviens dessus.",
-    "Téléphone : correction de la version affichée (« web » au lieu du vrai numéro), qui faisait croire qu’une mise à jour manquait."
+   "items": [
+    [
+     "new",
+     "PC : nouveau launcher au lancement de FIRE. Il cherche la mise à jour, télécharge directement la toute dernière version (jamais les intermédiaires) et l’installe avant d’ouvrir l’app : plus de mises à jour en chaîne."
+    ],
+    [
+     "improve",
+     "Pas de connexion ou GitHub trop lent : FIRE s’ouvre quand même au bout de quelques secondes, et la mise à jour continue en arrière-plan."
+    ],
+    [
+     "improve",
+     "Lancement avec Windows : la mise à jour se fait en silence, sans fenêtre."
+    ],
+    [
+     "improve",
+     "Téléphone : plus de message « mise à jour disponible » ni de lien vers GitHub. L’app charge toujours la dernière version à l’ouverture, et se met à jour toute seule quand tu reviens dessus."
+    ],
+    [
+     "fix",
+     "Téléphone : correction de la version affichée (« web » au lieu du vrai numéro), qui faisait croire qu’une mise à jour manquait."
+    ]
    ]
   },
   {
-   "version": "1.10.197",
+   "v": "1.10.197",
    "date": "2026-11-17",
    "titre": "Boutique Admin : tous les types d’articles",
-   "notes": [
-    "Admin › Boutique : 9 types d’articles à ajouter soi-même, chacun expliqué (format d’image conseillé) : compagnon, cadre d’avatar, carte de visite, bannière de profil, effet de profil animé, plaque de nom, effet de messages, fond d’app et dégradé de pseudo (deux couleurs, sans image).",
-    "Les articles sont rangés par type avec un aperçu, se renomment et se retirent en un clic.",
-    "Boutique : nouvelles sections « Bannière de profil », « Fond d’app » et « Effet de messages », et les articles du créateur (✨) apparaissent dans toutes les catégories.",
-    "Les coéquipiers voient enfin les articles du créateur que tu portes : cadre, carte, bannière, effet, plaque et fond de tes messages dans la discussion."
+   "items": [
+    [
+     "new",
+     "Admin › Boutique : 9 types d’articles à ajouter soi-même, chacun expliqué (format d’image conseillé) : compagnon, cadre d’avatar, carte de visite, bannière de profil, effet de profil animé, plaque de nom, effet de messages, fond d’app et dégradé de pseudo (deux couleurs, sans image)."
+    ],
+    [
+     "improve",
+     "Les articles sont rangés par type avec un aperçu, se renomment et se retirent en un clic."
+    ],
+    [
+     "new",
+     "Boutique : nouvelles sections « Bannière de profil », « Fond d’app » et « Effet de messages », et les articles du créateur (✨) apparaissent dans toutes les catégories."
+    ],
+    [
+     "fix",
+     "Les coéquipiers voient enfin les articles du créateur que tu portes : cadre, carte, bannière, effet, plaque et fond de tes messages dans la discussion."
+    ]
    ]
   },
   {

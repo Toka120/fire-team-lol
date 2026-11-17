@@ -276,7 +276,7 @@
     document.body.dataset.app = cur;
     renderRail(); renderArt(); render(); fx();
     await refresh();
-    fl.patchnotes().then((p) => { PN = p || []; if (cur === 'team') render(); }).catch(() => {});
+    fl.patchnotes().then((p) => { PN = (p || []).map((x) => ({ ...x, version: x.version || x.v, notes: x.notes || (x.items || []).map((i) => (Array.isArray(i) ? i[1] : i)) })); if (cur === 'team') render(); }).catch(() => {});
     setInterval(() => { if (!document.hidden && !Object.keys(PROG).length) refresh(); }, 6000);
   })();
 })();

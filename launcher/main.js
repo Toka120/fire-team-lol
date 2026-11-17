@@ -256,7 +256,14 @@ ipcMain.handle('apps:uninstall', async (e, id) => {
   if ((await running()).has(String(a.exe).toLowerCase())) return { ok: false, error: `Ferme d'abord ${a.name}.` };
   try { fs.rmSync(appDir(id), { recursive: true, force: true }); return { ok: true }; } catch (err) { return { ok: false, error: String(err.message || err) }; }
 });
-ipcMain.handle('data:patchnotes', async () => { const p = await getJson('patchnotes.json'); return ((p && p.versions) || []).slice(0, 12); });
+// Notes de version de FIRE Team (format « v / items », et l'ancien « version / notes »).
+ipcMain.handle('data:patchnotes', async () => {
+  const p = await getJson('patchnotes.json');
+  return ((p && p.versions) || []).filter((x) => x && (x.v || x.version)).slice(0, 12).map((x) => ({
+    version: String(x.v || x.version), date: x.date || '', titre: x.titre || '',
+    notes: Array.isArray(x.items) ? x.items.map((it) => (Array.isArray(it) ? String(it[1] || '') : String(it || ''))).filter(Boolean) : (Array.isArray(x.notes) ? x.notes.map(String) : []),
+  }));
+});
 ipcMain.handle('prefs:get', () => ({ ...prefs(), version: app.getVersion(), store: STORE }));
 ipcMain.handle('prefs:set', (e, p) => setPrefs(p || {}));
 ipcMain.handle('open:url', (e, u) => { if (/^https:\/\//.test(String(u))) shell.openExternal(String(u)); });
