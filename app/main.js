@@ -1287,8 +1287,8 @@ app.whenReady().then(() => { setTimeout(() => coach.appsRelay().catch(() => {}),
 ipcMain.handle('appcfg:post', (e, cfg, who) => coach.appCfgPost(cfg, String(who || '')));
 ipcMain.handle('appcfg:assetPut', (e, id, data) => coach.appAssetPut(String(id || ''), String(data || '')));
 ipcMain.handle('appcfg:asset', (e, id, sum) => coach.appAssetGet(String(id || ''), String(sum || '')));
-ipcMain.handle('ann:get', (e, f) => coach.annonceGet(f && typeof f === 'object' ? f : null));
-ipcMain.handle('ann:post', (e, texte, who, retirer) => coach.annoncePost(String(texte || ''), String(who || ''), !!retirer));
+ipcMain.handle('ann:get', (e, f, moi) => coach.annonceGet(f && typeof f === 'object' ? f : null, String(moi || '')));
+ipcMain.handle('ann:post', (e, texte, who, retirer, to, subs) => coach.annoncePost(String(texte || ''), String(who || ''), typeof retirer === 'string' ? retirer.slice(0, 30) : !!retirer, Array.isArray(to) ? to : [], Array.isArray(subs) ? subs : []));
 ipcMain.handle('ann:lu', (e, id, slug, at) => coach.annonceLu(id, slug, at));
 ipcMain.handle('ann:lus', (e, slugs) => coach.annonceLus(slugs));
 ipcMain.handle('staff:save', (e, note, who) => coach.staffNoteSave(note, who));

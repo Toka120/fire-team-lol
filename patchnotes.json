@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "2.0.6",
+   "date": "2026-11-18",
+   "titre": "Annonces privées",
+   "items": [
+    [
+     "new",
+     "Annonces : en plus de « Toute l’équipe », tu peux maintenant envoyer une annonce privée aux seuls membres que tu coches (un ou plusieurs, coachs et remplaçants compris)."
+    ],
+    [
+     "new",
+     "Le destinataire la reçoit comme une annonce normale (au milieu de l’écran, 5 secondes, puis « Accepter et continuer »), marquée 🔒 « Annonce privée ». Les autres membres ne la voient nulle part."
+    ],
+    [
+     "improve",
+     "Une annonce privée ne remplace pas l’annonce d’équipe en cours : chacune a sa carte, avec qui l’a lue et un bouton pour la retirer."
+    ],
+    [
+     "improve",
+     "Si un membre a plusieurs annonces à lire, elles s’affichent l’une après l’autre, de la plus ancienne à la plus récente."
+    ],
+    [
+     "improve",
+     "Les destinataires sont signés avec ta clé de créateur, avec le message : personne ne peut changer à qui elle est adressée."
+    ]
+   ]
+  },
+  {
    "v": "2.0.5",
    "date": "2026-11-17",
    "titre": "Rubriques en travaux",

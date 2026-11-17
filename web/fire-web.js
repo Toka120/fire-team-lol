@@ -87,7 +87,7 @@ window.fire = {
     notes: () => coach.staffNotes(), noteSave: (n, w) => coach.staffNoteSave(n, w), chatDelete: (id, w) => coach.chatDelete(id, w) },
   forum: { get: (id) => coach.forumGet(id), op: (id, op) => coach.forumOp(id, op || {}) },
   appcfg: { get: () => coach.appCfgGet(), post: no, assetPut: no, asset: (id, sum) => coach.appAssetGet(id, sum) },
-  annonce: { get: (f) => coach.annonceGet(f || null), post: (t, w, r) => coach.annoncePost(String(t || ''), String(w || ''), !!r), lu: (id, s, at) => coach.annonceLu(id, s, at), lus: (s) => coach.annonceLus(s) },
+  annonce: { get: (f, moi) => coach.annonceGet(f || null, String(moi || '')), post: (t, w, r, to, subs) => coach.annoncePost(String(t || ''), String(w || ''), typeof r === 'string' ? r.slice(0, 30) : !!r, Array.isArray(to) ? to : [], Array.isArray(subs) ? subs : []), lu: (id, s, at) => coach.annonceLu(id, s, at), lus: (s) => coach.annonceLus(s) },
   bugs: { send: (b) => coach.sendBug(b || {}), list: () => coach.listBugs(), close: (id) => coach.closeBug(id), reply: (o) => coach.bugReply(o || {}), replies: (s) => coach.bugReplies(s) },
   coach: {
     state: async () => coach.coachState(), unlock: (c) => coach.coachUnlock(c), leave: async () => coach.coachLeave(),

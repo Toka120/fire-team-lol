@@ -10918,29 +10918,32 @@
   // ===== Annonces du créateur =====
   // Toks écrit un message : il apparaît au milieu de tous les FIRE (tout de suite pour ceux qui sont ouverts, à
   // l'ouverture pour les autres), bloque l'écran 5 s, puis « Accepter et continuer ». Il voit qui l'a lu.
-  const ANN = { cur: null, hist: [], file: null, lus: null, busy: false, shown: null, draft: '', err: '', confirm: null, timer: null };
+  const ANN = { cur: null, priv: [], hist: [], file: null, lus: null, busy: false, shown: null, draft: '', err: '', confirm: null, timer: null, mode: 'all', to: [] };
+  const annForMe = (a) => !!(a && Array.isArray(a.to) && S.moi && a.to.includes(S.moi));
   const annOk = () => load('fire.ann.ok', []);
   const annMine = () => !!(S.coachState && S.coachState.admin);
   async function annCheck(file) {
     if (!window.fire.annonce) return;
     let r;
-    try { r = await window.fire.annonce.get(file || null); } catch (e) { return; }
+    try { r = await window.fire.annonce.get(file || null, S.moi || ''); } catch (e) { return; }
     if (!r || !r.ok) return;
-    if (file && !r.annonce) return; // paquet reçu illisible ou pas signé par le créateur : on l'ignore
+    if (file && !r.annonce && !(r.priv || []).length) return; // paquet reçu illisible ou pas signé par le créateur : on l'ignore
     ANN.cur = r.annonce;
+    ANN.priv = Array.isArray(r.priv) ? r.priv : [];
     if (r.hist && r.hist.length) ANN.hist = r.hist;
     annMaybeShow();
     if (S.section === 'annonces' && !typing()) render();
   }
   function annMaybeShow() {
-    const a = ANN.cur;
-    if (!a || annOk().includes(a.id) || ANN.shown === a.id || $('ann-modal')) return;
-    if (Date.now() - a.at > 14 * 86400000) return;
+    if ($('ann-modal')) return;
+    // L'annonce d'équipe et celles qui me sont adressées, la plus ancienne non lue d'abord.
+    const a = [ANN.cur].concat(ANN.priv.filter(annForMe)).filter((x) => x && !annOk().includes(x.id) && ANN.shown !== x.id && Date.now() - x.at <= 14 * 86400000).sort((x, y) => x.at - y.at)[0];
+    if (!a) return;
     if (annMine()) { save('fire.ann.ok', annOk().concat(a.id).slice(-50)); return; } // l'auteur
     ANN.shown = a.id;
     annModal(a, false);
     const p = notifPrefs();
-    if (p.on && window.fire.notify) deskNotify({ title: '📢 Annonce de ' + vocalName(a.by), body: 'Ouvre FIRE pour la lire.', section: 'accueil', force: true }).catch(() => {});
+    if (p.on && window.fire.notify) deskNotify({ title: (a.to ? '🔒 Message privé de ' : '📢 Annonce de ') + vocalName(a.by), body: 'Ouvre FIRE pour la lire.', section: 'accueil', force: true }).catch(() => {});
   }
   // La fenêtre bloquante : les 5 s ne comptent que quand FIRE est vraiment devant toi (pas pendant une partie).
   function annModal(a, demo) {
@@ -10973,12 +10976,13 @@
       clearInterval(tick);
       window.removeEventListener('keydown', keys, true);
       el.classList.add('out'); setTimeout(() => el.remove(), 250);
-      if (!demo) annAccept(a);
+      if (!demo) { annAccept(a); setTimeout(annMaybeShow, 600); }
     };
     btn.onclick = done;
     const el = h('div', { id: 'ann-modal', class: 'ann-ov', role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'ann-t', 'aria-describedby': 'ann-x' },
       h('div', { class: 'ann-box' },
-        h('div', { class: 'ann-kicker' }, '📢 Annonce'),
+        h('div', { class: 'ann-kicker' + (a.to ? ' priv' : '') }, a.to ? '🔒 Annonce privée' : '📢 Annonce'),
+        a.to ? h('div', { class: 'ann-for' }, a.to.length > 1 ? `Pour toi et ${a.to.length - 1} autre${a.to.length > 2 ? 's' : ''} personne${a.to.length > 2 ? 's' : ''} seulement` : 'Ce message n’est que pour toi') : null,
         h('h2', { id: 'ann-t', class: 'ann-title' }, 'Message de ' + vocalName(a.by)),
         h('div', { class: 'ann-date' }, cap(dayFrT(a.at)) + ' à ' + hm(a.at)),
         h('div', { id: 'ann-x', class: 'ann-txt' }, a.texte),
@@ -11037,28 +11041,39 @@
     for (const c of (S.coachs || [])) if (c.slug && !seen.has(c.slug)) { seen.add(c.slug); out.push({ slug: c.slug, name: c.pseudo, tag: 'Coach' }); }
     return out;
   };
+  const annNames = (to) => { const r = annRoster(); const n = (to || []).map((sl) => { const x = r.find((y) => y.slug === sl); return x ? x.name : vocalName(sl); });
+    return n.length <= 1 ? (n[0] || '') : n.slice(0, -1).join(', ') + ' et ' + n[n.length - 1]; };
   async function annLoadLus() {
     if (!window.fire.annonce) return;
     const r = await window.fire.annonce.lus(annRoster().map((x) => x.slug)).catch(() => null);
     if (r && r.ok) { ANN.lus = r.lus || {}; ANN.lusAt = Date.now(); }
     if (S.section === 'annonces' && !typing()) render();
   }
-  function annBroadcast(f) {
+  function annBroadcast(f, only) {
     const me = vocalMe();
-    const to = new Set(S.players.map((p) => p.slug).filter(Boolean).concat((S.coachs || []).map((c) => c.slug), 'coach'));
+    const to = new Set(only && only.length ? only : S.players.map((p) => p.slug).filter(Boolean).concat((S.coachs || []).map((c) => c.slug), 'coach'));
     to.delete(me);
     for (const x of to) { try { FV().hallSend(x, { t: 'ann', f }).catch(() => {}); } catch (e) { /* */ } }
   }
+  // retirer : true pour l'annonce d'équipe, ou l'id d'une annonce privée.
   async function annPublish(retirer) {
     if (ANN.busy) return;
+    const to = !retirer && ANN.mode === 'some' ? ANN.to.slice() : [];
+    if (!retirer && ANN.mode === 'some' && !to.length) { ANN.err = 'Choisis au moins un destinataire.'; render(); return; }
+    const subs = to.filter((sl) => { const p = S.players.find((x) => x.slug === sl); return p && isSub(p); });
     ANN.busy = true; ANN.err = ''; ANN.confirm = null; render();
     let r;
-    try { r = await window.fire.annonce.post(retirer ? '' : ANN.draft, vocalMe() || S.moi || '', !!retirer); } catch (e) { r = { ok: false, error: String(e) }; }
+    try { r = await window.fire.annonce.post(retirer ? '' : ANN.draft, vocalMe() || S.moi || '', retirer || false, to, subs); } catch (e) { r = { ok: false, error: String(e) }; }
     ANN.busy = false;
     if (r && r.ok) {
-      ANN.cur = r.annonce; ANN.hist = r.hist || ANN.hist;
-      if (r.annonce) { save('fire.ann.ok', annOk().concat(r.annonce.id).slice(-50)); ANN.draft = ''; annBroadcast(r.file); S.flash = '📢 Annonce envoyée : elle s’affiche sur tous les FIRE ouverts, et à l’ouverture pour les autres.'; actLog('annonce', 'Annonce publiée'); }
-      else S.flash = 'Annonce retirée : ceux qui ne l’ont pas encore vue ne la verront pas.';
+      ANN.cur = r.annonce; ANN.hist = r.hist || ANN.hist; if (Array.isArray(r.priv)) ANN.priv = r.priv;
+      const sent = r.sent || null;
+      if (sent) {
+        save('fire.ann.ok', annOk().concat(sent.id).slice(-50)); ANN.draft = ''; annBroadcast(r.file, sent.to);
+        S.flash = sent.to ? `🔒 Annonce privée envoyée à ${annNames(sent.to)} : personne d’autre ne la voit.` : '📢 Annonce envoyée : elle s’affiche sur tous les FIRE ouverts, et à l’ouverture pour les autres.';
+        if (sent.to) { ANN.mode = 'all'; ANN.to = []; }
+        actLog('annonce', sent.to ? 'Annonce privée publiée' : 'Annonce publiée');
+      } else S.flash = 'Annonce retirée : ceux qui ne l’ont pas encore vue ne la verront pas.';
       annLoadLus();
     } else ANN.err = 'Non envoyée : ' + ((r && r.error) || 'erreur');
     render();
@@ -11077,20 +11092,31 @@
   function renderAnnonces() {
     const view = $('view');
     const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📢'), h('div', null, h('h1', { class: 'title' }, 'Annonces'),
-      h('p', { class: 'muted' }, 'Ton message s’affiche en plein milieu de tous les FIRE : tout de suite pour ceux qui sont ouverts, à l’ouverture pour les autres. Il bloque l’écran 5 secondes, puis chacun clique « Accepter et continuer ». Tu vois ici qui l’a lu.')));
+      h('p', { class: 'muted' }, 'Ton message s’affiche en plein milieu des FIRE : tout de suite pour ceux qui sont ouverts, à l’ouverture pour les autres. Il bloque l’écran 5 secondes, puis chacun clique « Accepter et continuer ». Envoie-le à toute l’équipe, ou en privé aux seuls membres que tu choisis. Tu vois ici qui l’a lu.')));
     if (!annMine()) { view.replaceChildren(hero, h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Les annonces sont réservées au créateur, sur son PC.'))); return; }
     if (ANN.lus === null && !ANN.loading) { ANN.loading = true; annLoadLus().finally(() => { ANN.loading = false; }); if (!ANN.cur) annCheck(); }
     const ta = h('textarea', { class: 'inp ann-in', rows: '6', maxlength: '2000', placeholder: 'Écris ton annonce… (ex. : Séance obligatoire ce soir 20h, vocal « Équipe ».)', oninput: (e) => { ANN.draft = e.target.value; cnt.textContent = `${ANN.draft.length} / 2000`; pub.disabled = !ANN.draft.trim() || ANN.busy ? true : null; prev.disabled = !ANN.draft.trim() ? true : null; } });
     ta.value = ANN.draft;
     const cnt = h('span', { class: 'muted small' }, `${ANN.draft.length} / 2000`);
-    const prev = h('button', { class: 'btn-ghost', disabled: ANN.draft.trim() ? null : true, onclick: () => annModal({ id: 'demo', at: Date.now(), by: vocalMe() || S.moi || '', texte: ANN.draft.trim(), min: 5 }, true) }, '👁 Aperçu');
-    const pub = h('button', { class: 'btn-fire', disabled: !ANN.draft.trim() || ANN.busy ? true : null, onclick: () => { ANN.confirm = 'pub'; render(); } }, ANN.busy ? 'Envoi…' : '📢 Publier l’annonce');
-    const write = h('div', { class: 'card ann-write' }, h('h2', null, 'Nouvelle annonce'), ta,
+    const priv = ANN.mode === 'some';
+    const prev = h('button', { class: 'btn-ghost', disabled: ANN.draft.trim() ? null : true, onclick: () => annModal({ id: 'demo', at: Date.now(), by: vocalMe() || S.moi || '', texte: ANN.draft.trim(), min: 5, to: priv && ANN.to.length ? ANN.to.slice() : undefined }, true) }, '👁 Aperçu');
+    const pub = h('button', { class: 'btn-fire', disabled: !ANN.draft.trim() || ANN.busy || (priv && !ANN.to.length) ? true : null, onclick: () => { ANN.confirm = 'pub'; render(); } }, ANN.busy ? 'Envoi…' : priv ? '🔒 Envoyer en privé' : '📢 Publier l’annonce');
+    const me = vocalMe() || S.moi || '';
+    const who = annRoster().filter((x) => x.slug !== me && x.slug !== S.moi);
+    const dest = h('div', { class: 'ann-dest' },
+      h('div', { class: 'ann-mode', role: 'radiogroup', 'aria-label': 'Destinataires' },
+        h('button', { class: 'ann-pill' + (!priv ? ' on' : ''), role: 'radio', 'aria-checked': String(!priv), onclick: () => { ANN.mode = 'all'; ANN.confirm = null; render(); } }, '👥 Toute l’équipe'),
+        h('button', { class: 'ann-pill' + (priv ? ' on' : ''), role: 'radio', 'aria-checked': String(priv), onclick: () => { ANN.mode = 'some'; ANN.confirm = null; render(); } }, '🔒 Privée : membres choisis')),
+      priv ? h('div', { class: 'ann-who-pick' },
+        who.map((x) => { const on = ANN.to.includes(x.slug);
+          return h('label', { class: 'ann-chip' + (on ? ' on' : '') }, h('input', { type: 'checkbox', checked: on ? true : null, onchange: (e) => { ANN.to = e.target.checked ? ANN.to.concat(x.slug) : ANN.to.filter((y) => y !== x.slug); ANN.confirm = null; render(); } }), x.name, x.tag ? h('span', { class: 'ann-tag' }, x.tag) : null); }),
+        h('p', { class: 'muted small' }, ANN.to.length ? `Seul${ANN.to.length > 1 ? 's' : ''} ${annNames(ANN.to)} ${ANN.to.length > 1 ? 'verront' : 'verra'} ce message. Il ne remplace pas l’annonce d’équipe en cours.` : 'Coche le ou les membres qui recevront ce message.')) : null);
+    const write = h('div', { class: 'card ann-write' }, h('h2', null, 'Nouvelle annonce'), dest, ta,
       h('div', { class: 'row ann-actions' }, cnt, h('span', { class: 'spacer' }), prev, pub),
-      ANN.confirm === 'pub' ? h('div', { class: 'ann-confirm' }, h('b', null, 'Tous les FIRE vont afficher ce message et rester bloqués 5 secondes. Publier ?'),
-        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => annPublish(false) }, 'Oui, publier'), h('button', { class: 'btn-ghost small-btn', onclick: () => { ANN.confirm = null; render(); } }, 'Annuler'))) : null,
+      ANN.confirm === 'pub' ? h('div', { class: 'ann-confirm' }, h('b', null, priv ? `Seul${ANN.to.length > 1 ? 's' : ''} ${annNames(ANN.to)} ${ANN.to.length > 1 ? 'vont' : 'va'} voir ce message et rester bloqué${ANN.to.length > 1 ? 's' : ''} 5 secondes. Envoyer ?` : 'Tous les FIRE vont afficher ce message et rester bloqués 5 secondes. Publier ?'),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => annPublish(false) }, priv ? 'Oui, envoyer' : 'Oui, publier'), h('button', { class: 'btn-ghost small-btn', onclick: () => { ANN.confirm = null; render(); } }, 'Annuler'))) : null,
       ANN.err ? h('p', { class: 'bad small' }, ANN.err) : null,
-      ANN.cur ? h('p', { class: 'muted small' }, 'Une nouvelle annonce remplace celle en cours.') : null);
+      ANN.cur && !priv ? h('p', { class: 'muted small' }, 'Une nouvelle annonce d’équipe remplace celle en cours.') : null);
     const roster = annRoster().filter((x) => x.slug !== (ANN.cur ? ANN.cur.by : vocalMe()));
     const lusOf = (id) => roster.filter((x) => ANN.lus && ANN.lus[x.slug] && ANN.lus[x.slug][id]);
     let cur = null;
@@ -11118,13 +11144,29 @@
             h('button', { class: 'btn-ghost small-btn', onclick: () => annPublish(true) }, 'Oui, retirer'), h('button', { class: 'btn-ghost small-btn', onclick: () => { ANN.confirm = null; render(); } }, 'Annuler')]
             : h('button', { class: 'btn-ghost small-btn', disabled: ANN.busy ? true : null, onclick: () => { ANN.confirm = 'del'; render(); } }, '🗑 Retirer l’annonce')));
     }
-    const old = (ANN.hist || []).filter((x) => !ANN.cur || x.id !== ANN.cur.id).slice(0, 10);
+    const privCards = ANN.priv.slice(0, 10).map((a) => {
+      const dests = annRoster().filter((x) => a.to.includes(x.slug));
+      const nLu = dests.filter((x) => ANN.lus && ANN.lus[x.slug] && ANN.lus[x.slug][a.id]).length;
+      return h('div', { class: 'card ann-cur ann-priv' },
+        h('div', { class: 'row' }, h('h2', null, '🔒 Annonce privée'), h('span', { class: 'spacer' }),
+          h('span', { class: 'ann-count' + (nLu === dests.length ? ' all' : '') }, ANN.lus ? `${nLu} / ${dests.length} ${nLu > 1 ? 'ont' : 'a'} lu` : 'Chargement…')),
+        h('div', { class: 'muted small' }, 'Envoyée ' + dayFrT(a.at) + ' à ' + hm(a.at) + ' · seulement à ' + annNames(a.to)),
+        h('div', { class: 'ann-quote' }, a.texte),
+        h('div', { class: 'ann-list' }, dests.map((x) => { const t = ANN.lus && ANN.lus[x.slug] && ANN.lus[x.slug][a.id];
+          return h('div', { class: 'ann-row' + (t ? ' ok' : '') }, h('span', { class: 'ann-who' }, x.name, x.tag ? h('span', { class: 'ann-tag' }, x.tag) : null),
+            h('span', { class: 'ann-st ' + (t ? 'st-ok' : 'muted') }, t ? `✅ Lu ${FC.ymd(new Date(t)) === todayYmd() ? '' : dayFrT(t) + ', '}à ${hm(t)}` : '⏳ Pas encore lu')); })),
+        h('div', { class: 'row ann-actions' }, h('span', { class: 'spacer' }),
+          ANN.confirm === 'del:' + a.id ? [h('span', { class: 'small' }, 'Retirer ? S’il ne l’a pas vue, il ne la verra pas. '),
+            h('button', { class: 'btn-ghost small-btn', onclick: () => annPublish(a.id) }, 'Oui, retirer'), h('button', { class: 'btn-ghost small-btn', onclick: () => { ANN.confirm = null; render(); } }, 'Annuler')]
+            : h('button', { class: 'btn-ghost small-btn', disabled: ANN.busy ? true : null, onclick: () => { ANN.confirm = 'del:' + a.id; render(); } }, '🗑 Retirer')));
+    });
+    const old = (ANN.hist || []).filter((x) => (!ANN.cur || x.id !== ANN.cur.id) && !ANN.priv.some((y) => y.id === x.id)).slice(0, 10);
     const hist = old.length ? h('div', { class: 'card ann-hist' }, h('h2', null, 'Anciennes annonces'),
-      old.map((x) => h('details', { class: 'ann-old' }, h('summary', null, h('span', null, dayFrT(x.at) + ' à ' + hm(x.at)), h('span', { class: 'muted small' }, ANN.lus ? ` · ${lusOf(x.id).length} / ${roster.length} ont lu` : ''),
+      old.map((x) => h('details', { class: 'ann-old' }, h('summary', null, h('span', null, (x.to ? '🔒 ' : '') + dayFrT(x.at) + ' à ' + hm(x.at)), h('span', { class: 'muted small' }, x.to ? ' · pour ' + annNames(x.to) : ANN.lus ? ` · ${lusOf(x.id).length} / ${roster.length} ont lu` : ''),
         h('span', { class: 'ann-sum' }, x.texte.length > 80 ? x.texte.slice(0, 80) + '…' : x.texte)), h('div', { class: 'ann-quote' }, x.texte)))) : null;
-    view.replaceChildren(...[hero, write, cur || h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Aucune annonce en cours.')), hist].filter(Boolean));
+    view.replaceChildren(...[hero, write, cur || h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Aucune annonce d’équipe en cours.')), ...privCards, hist].filter(Boolean));
     clearTimeout(ANN.auto);
-    ANN.auto = setTimeout(() => { if (S.section === 'annonces' && !typing() && ANN.cur) annLoadLus(); }, 45000);
+    ANN.auto = setTimeout(() => { if (S.section === 'annonces' && !typing() && (ANN.cur || ANN.priv.length)) annLoadLus(); }, 45000);
   }
   function chatInit() {
     if (CH.started || !window.fire.chat) return;

@@ -3565,3 +3565,16 @@ html[data-lite] #fire-pet,html[data-lite] .acc-tick,html[data-lite] #fire-fx,htm
 .adm-it.works{flex-wrap:wrap}
 .adm-wkmsg{flex-basis:100%;margin-top:4px}
 .navworks{opacity:.75}
+/* Annonces privées */
+.ann-dest{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
+.ann-mode{display:flex;gap:8px;flex-wrap:wrap}
+.ann-pill{border:1px solid var(--border,#ffffff22);background:none;color:inherit;border-radius:999px;padding:6px 14px;cursor:pointer;font:inherit;font-size:13px}
+.ann-pill.on{background:var(--accent,#f5a623);border-color:var(--accent,#f5a623);color:#111;font-weight:600}
+.ann-who-pick{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ann-who-pick>p{flex-basis:100%;margin:4px 0 0}
+.ann-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border,#ffffff22);border-radius:999px;padding:4px 10px;cursor:pointer;font-size:13px}
+.ann-chip input{margin:0;accent-color:var(--accent,#f5a623)}
+.ann-chip.on{border-color:var(--accent,#f5a623);background:#f5a62322}
+.ann-kicker.priv{color:#c9a7ff}
+.ann-for{font-size:12px;opacity:.75;margin:-4px 0 6px}
+.ann-priv{border-color:#9b6bff55}

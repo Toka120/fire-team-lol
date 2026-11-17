@@ -1092,7 +1092,9 @@ async function teamWrite(p, fn, label) {
 // en publier une, même avec le code d'équipe. Chacun dit qu'il l'a lue dans son petit fichier (pas de conflit).
 const ANN = 'annonces/annonce.json';
 const annLuPath = (slug) => 'annonces/lu/' + crypto.createHash('sha256').update(String(slug)).digest('hex').slice(0, 24) + '.json';
-const annCanon = (a) => 'FIRE-annonce:' + JSON.stringify([String(a.id), Number(a.at), String(a.by || ''), String(a.texte || ''), Number(a.min) || 5]);
+// Annonce privée : « to » liste les destinataires ; il est signé avec le reste (absent = toute l'équipe, comme avant).
+const annTo = (to) => [...new Set((Array.isArray(to) ? to : []).map((x) => String(x || '').slice(0, 80)).filter(Boolean))].slice(0, 30);
+const annCanon = (a) => 'FIRE-annonce:' + JSON.stringify([String(a.id), Number(a.at), String(a.by || ''), String(a.texte || ''), Number(a.min) || 5].concat(annTo(a.to).length ? [annTo(a.to)] : []));
 function annVerify(a) {
   if (!a || !a.sig) return false;
   for (const k of (getConfig().admins || [])) {
@@ -1102,9 +1104,11 @@ function annVerify(a) {
   }
   return false;
 }
-const annClean = (a) => ({ id: String(a.id), at: Number(a.at), by: String(a.by || ''), texte: String(a.texte || ''), min: Number(a.min) || 5 });
+const annClean = (a) => { const o = { id: String(a.id), at: Number(a.at), by: String(a.by || ''), texte: String(a.texte || ''), min: Number(a.min) || 5 }; const to = annTo(a.to); if (to.length) o.to = to; if (a.sig) o.sig = String(a.sig); return o; };
+const annPub = (a) => { const o = annClean(a); delete o.sig; return o; };
 // Lit l'annonce (fichier reçu de PC à PC, sinon le dépôt) ; null si elle n'est pas signée par le créateur.
-async function annonceGet(f) {
+// « moi » : les annonces privées ne sont rendues qu'à leurs destinataires (le créateur et le staff les voient toutes).
+async function annonceGet(f, moi) {
   try {
     if (!f) {
       const dr = getConfig().data_repo || null;
@@ -1113,15 +1117,21 @@ async function annonceGet(f) {
       try { f = await readPublic(ANN, dr, tok); if (f) saveCache('annonce', f); } catch (e) { f = loadCache('annonce'); }
     }
     if (!f || typeof f !== 'object') return { ok: true, annonce: null };
-    let cur = null, hist = [];
+    let cur = null, hist = [], priv = [];
     if (teamKey() && f.team) {
-      try { const d = open(f.team); cur = d && d.cur; hist = (d && Array.isArray(d.hist) ? d.hist : []).map(annClean); } catch (e) { cur = null; }
-    } else if (f.remp) cur = rempOpen(f.remp);
-    const ok = cur && annVerify(cur);
-    return { ok: true, annonce: ok ? annClean(cur) : null, hist: adminOn() || isStaffHere() ? hist : [], file: f };
+      try { const d = open(f.team); cur = d && d.cur; hist = (d && Array.isArray(d.hist) ? d.hist : []).map(annPub); priv = d && Array.isArray(d.priv) ? d.priv : []; } catch (e) { cur = null; }
+    } else if (f.remp) { cur = rempOpen(f.remp); priv = (Array.isArray(f.rempPriv) ? f.rempPriv : []).map(rempOpen).filter(Boolean); }
+    const all = adminOn() || isStaffHere();
+    const me = String(moi || '');
+    priv = priv.filter((a) => a && annTo(a.to).length && annVerify(a) && (all || (me && annTo(a.to).includes(me)))).map(annPub);
+    const ok = cur && !annTo(cur.to).length && annVerify(cur);
+    return { ok: true, annonce: ok ? annPub(cur) : null, priv, hist: all ? hist : [], file: f };
   } catch (e) { return { ok: false, error: String((e && e.message) || e), annonce: null }; }
 }
-async function annoncePost(texte, who, retirer) {
+// to : destinataires d'une annonce privée (vide = toute l'équipe). retirer : true (l'annonce d'équipe) ou l'id à retirer.
+// subs : destinataires remplaçants (ils ne lisent que la partie « remp » du fichier).
+async function annoncePost(texte, who, retirer, to, subs) {
+  to = annTo(to); subs = annTo(subs).filter((x) => to.includes(x));
   if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
   const k = adminKey();
   const dr = getConfig().data_repo || null;
@@ -1132,6 +1142,7 @@ async function annoncePost(texte, who, retirer) {
     texte = str(texte, 2000);
     if (!texte) return { ok: false, error: 'le message est vide' };
     a = { id: Date.now().toString(36) + crypto.randomBytes(3).toString('hex'), at: Date.now(), by: String(who || '').slice(0, 80), texte, min: 5 };
+    if (to.length) a.to = to;
     a.sig = crypto.sign('sha256', Buffer.from(annCanon(a)), crypto.createPrivateKey(k.priv)).toString('base64');
   }
   try {
@@ -1141,9 +1152,19 @@ async function annoncePost(texte, who, retirer) {
       try { old = cur && cur.json && cur.json.team ? open(cur.json.team) : null; } catch (e) { old = null; }
       const hist = (old && Array.isArray(old.hist) ? old.hist : []);
       if (a) hist.unshift(annClean(a));
-      const file = { v: 1, id: a ? a.id : null, at: Date.now(), team: seal({ cur: a, hist: hist.slice(0, 30) }, ANN), remp: a ? rempSeal(a) : null };
-      const r = await ghPut(tok, ANN, file, cur && cur.sha, a ? 'Annonce' : 'Annonce retirée', dr);
-      if (r.ok) { saveCache('annonce', file); return { ok: true, annonce: a ? annClean(a) : null, hist: hist.slice(0, 30), file }; }
+      // Les annonces privées des 14 derniers jours restent à côté de celle d'équipe, sans la remplacer.
+      let pub = old && old.cur && !annTo(old.cur.to).length ? old.cur : null;
+      let priv = (old && Array.isArray(old.priv) ? old.priv : []).filter((x) => x && Date.now() - Number(x.at) < 14 * 86400000);
+      let rp = Array.isArray(cur && cur.json && cur.json.rempPriv) ? cur.json.rempPriv : [];
+      if (a && to.length) { priv.unshift(annClean(a)); if (subs.length) rp = [rempSeal(a)].concat(rp); }
+      else if (a) pub = a;
+      else if (retirer === true || (pub && retirer === pub.id)) pub = null;
+      else { const n = priv.length; priv = priv.filter((x) => x.id !== retirer); if (priv.length === n) return { ok: false, error: 'annonce introuvable' }; rp = rp.filter((b) => { const x = rempOpen(b); return x && x.id !== retirer; }); }
+      priv = priv.slice(0, 30); rp = rp.filter(Boolean).slice(0, 15);
+      const pubRemp = pub ? (pub === a ? rempSeal(a) : ((cur && cur.json && cur.json.remp) || rempSeal(pub))) : null;
+      const file = { v: 1, id: a ? a.id : null, at: Date.now(), team: seal({ cur: pub, hist: hist.slice(0, 30), priv }, ANN), remp: pubRemp, rempPriv: rp };
+      const r = await ghPut(tok, ANN, file, cur && cur.sha, a ? (to.length ? 'Annonce privée' : 'Annonce') : 'Annonce retirée', dr);
+      if (r.ok) { saveCache('annonce', file); return { ok: true, annonce: pub ? annPub(pub) : null, priv: priv.map(annPub), sent: a ? annPub(a) : null, hist: hist.slice(0, 30).map(annPub), file }; }
     }
     throw new Error("l'annonce a changé pendant l'envoi, réessaie");
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
