@@ -1584,6 +1584,18 @@ ipcMain.handle('notify', (e, m) => notify(String((m && m.title) || 'FIRE Team').
 const gpuPath = () => path.join(app.getPath('userData'), 'gpu.json');
 const gpuOff = () => { try { return JSON.parse(fs.readFileSync(gpuPath(), 'utf8')).off === true; } catch (e) { return false; } };
 ipcMain.handle('gpu:get', () => ({ off: gpuOff(), active: !gpuAtStart }));
+// Mode jeu : pendant une partie, tous les processus de FIRE passent en priorité « inférieure à la normale » pour Windows,
+// pour que le jeu passe d'abord. Le service audio garde sa priorité (le vocal ne doit pas hacher).
+let perfGame = false;
+function firePriority(low) {
+  const P = require('os').constants.priority;
+  for (const m of app.getAppMetrics()) {
+    if (/audio/i.test(String(m.serviceName || m.name || ''))) continue;
+    try { require('os').setPriority(m.pid, low ? P.PRIORITY_BELOW_NORMAL : P.PRIORITY_NORMAL); } catch (e) { /* processus déjà fermé */ }
+  }
+}
+ipcMain.handle('perf:game', (e, on) => { perfGame = !!on; firePriority(perfGame); return perfGame; });
+setInterval(() => { if (perfGame) firePriority(true); }, 30000);
 ipcMain.handle('gpu:set', (e, off) => { try { fs.writeFileSync(gpuPath(), JSON.stringify({ off: !!off })); } catch (err) { return false; } return true; });
 ipcMain.handle('app:restart', () => { quitting = true; app.relaunch(); app.exit(0); });
 // Vider le cache (images, scripts téléchargés) : les réglages, le code d'équipe et les messages restent.

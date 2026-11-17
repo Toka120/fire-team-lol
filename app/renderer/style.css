@@ -3551,3 +3551,7 @@ html[data-calm] .jeu-ombre.torch .om-light{animation:none}
 .adm-keys{display:flex;flex-direction:column;gap:6px}
 .adm-key{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px}
 .adm-key.off{opacity:.6}
+/* Mode jeu : plus rien ne bouge ni ne se recalcule (le jeu d'abord). Les vidéos du vocal continuent. */
+html[data-lite] *,html[data-lite] *::before,html[data-lite] *::after{animation-play-state:paused!important;transition:none!important}
+html[data-lite] *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+html[data-lite] #fire-pet,html[data-lite] .acc-tick,html[data-lite] #fire-fx,html[data-lite] .fire-fx{display:none!important}

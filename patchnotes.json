@@ -1,6 +1,19 @@
 {
  "versions": [
   {
+   "version": "2.0.4",
+   "date": "2026-11-17",
+   "titre": "Mode jeu : FIRE se fait oublier pendant tes parties",
+   "notes": [
+    "Nouveau Mode jeu (automatique) : pendant une partie et quand FIRE n’est pas au premier plan, plus aucune animation (compagnons, défilements, fonds animés, flous) n’est calculée.",
+    "Pendant une partie, FIRE passe en priorité basse pour Windows : le jeu passe d’abord. Le service audio garde sa priorité pour que le vocal ne hache pas.",
+    "Pendant une partie, les stats (dpm.lol) ne se rechargent plus en arrière-plan : elles se mettent à jour après la partie. Le bouton ⟳ marche toujours.",
+    "En partie, FIRE derrière le jeu : les vidéos du vocal (caméras, streams des coéquipiers) ne sont plus affichées. Le son continue, et elles reviennent dès que tu reviens sur FIRE.",
+    "Correction : le bandeau des nouveautés de l’Accueil calculait 60 images par seconde en permanence, même sur les autres pages. Il ne tourne plus que s’il est affiché.",
+    "Paramètres › Avancé › Performances : choix du Mode jeu (automatique, seulement en partie, jamais)."
+   ]
+  },
+  {
    "version": "2.0.3",
    "date": "2026-11-17",
    "titre": "Clips : le son est enfin là",

@@ -173,13 +173,29 @@
   function setUx(patch) { UX = { ...UX, ...patch }; save('fire.ux', UX); applyFonts(); applyUx(); applyFx(); statusPush(); }
   applyUx();
   setTimeout(applyFx, 0);
-  // Pendant une partie, le fond animé se met en pause (rien ne doit prendre de la puissance au jeu).
-  setInterval(() => {
-    const inGame = typeof LIVE !== 'undefined' && !!LIVE.mine;
-    if (window.FireFX) window.FireFX.pause(inGame);
+  // ----- Mode jeu : pendant une partie (et quand FIRE n'est pas au premier plan), FIRE consomme le moins possible -----
+  // Plus aucune animation, plus de fond animé ni de compagnon, pas de rafraîchissement des stats (dpm.lol), et pendant
+  // une partie FIRE passe en priorité basse pour Windows (le jeu d'abord). Le vocal, le partage d'écran et les clips continuent.
+  const LITE = { on: false, game: false };
+  window.FIRE_LITE = false;
+  function liteApply() {
+    const game = typeof LIVE !== 'undefined' && !!LIVE.mine;
+    const mode = UX.lite || 'auto';
+    const on = mode === 'off' ? false : game || (mode === 'auto' && !document.hasFocus());
+    if (game !== LITE.game) { LITE.game = game; try { window.fire.perf && window.fire.perf.game(game); } catch (e) { /* */ } if (!game && LITE.refreshLater) { LITE.refreshLater = false; setTimeout(() => refreshContent(), 20000); } }
+    if (window.FireFX) window.FireFX.pause(on);
+    // En partie, FIRE derrière le jeu : les vidéos du vocal (caméras, streams) s'arrêtent d'être affichées. Le son continue.
+    const still = game && on && !document.hasFocus();
+    try { Object.values(VX.vids).forEach((el) => { if (still) { if (!el.paused) { el.pause(); el.dataset.lpause = '1'; } } else if (el.dataset.lpause) { delete el.dataset.lpause; if (el.srcObject && !el.dataset.mfrozen) el.play().catch(() => {}); } }); } catch (e) { /* vocal pas prêt */ }
     const v = document.getElementById('fire-bgv');
-    if (v) { if (inGame || document.hidden) { if (!v.paused) v.pause(); } else if (v.paused) v.play().catch(() => {}); }
-  }, 4000);
+    if (v) { if (on || document.hidden) { if (!v.paused) v.pause(); } else if (v.paused) v.play().catch(() => {}); }
+    if (on === LITE.on) return;
+    LITE.on = on; window.FIRE_LITE = on;
+    document.documentElement.toggleAttribute('data-lite', on);
+  }
+  window.addEventListener('focus', () => setTimeout(liteApply, 50));
+  window.addEventListener('blur', () => setTimeout(liteApply, 50));
+  setInterval(liteApply, 2000);
   // Notifications Windows : coupées pendant une partie (si choisi), aux heures calmes et en statut « Occupé » ; son au choix.
   const inQuiet = () => {
     if (!UX.quiet.on) return false;
@@ -282,7 +298,7 @@
       src: `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${f.champ}_${f.skin}.jpg`, onerror: (e) => e.target.remove() })));
   }
   // Un seul minuteur pour toute l'app : chaque fond passe au skin suivant toutes les 7 s (fondu enchaîné).
-  setInterval(() => !UX.calm && document.querySelectorAll('.skin-bg').forEach((b) => {
+  setInterval(() => !UX.calm && !LITE.on && document.querySelectorAll('.skin-bg').forEach((b) => {
     const imgs = [...b.querySelectorAll('img')];
     if (imgs.length < 2) return;
     const i = imgs.findIndex((x) => x.classList.contains('on'));
@@ -528,7 +544,7 @@
       render();
     };
     since.onchange = () => { if (since.value && since.validity.valid) { S.since = since.value; S.jour = 'tous'; render(); } };
-    $('refresh').onclick = () => refreshContent();
+    $('refresh').onclick = () => refreshContent(true);
     $('back').onclick = () => {
       if (S.section === 'stats') { S.view = 'hub'; S.player = null; } else if (S.section === 'guides') { if (S.theme) S.theme = null; else S.guideCat = null; } else S.ficheId = null;
       render();
@@ -549,7 +565,9 @@
     }).catch(() => { S.guides = S.guides || []; });
   }
 
-  async function refreshContent() {
+  async function refreshContent(force) {
+    // Pendant une partie : pas de chargement de dpm.lol (c'est un site entier à afficher) ; on le fera après.
+    if (force !== true && typeof LITE !== 'undefined' && LITE.game) { LITE.refreshLater = true; return; }
     try {
       const c = await window.fire.config();
       if (c && Array.isArray(c.joueurs) && c.joueurs.length) {
@@ -1449,6 +1467,9 @@
         h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: exportPrefs }, '💾 Exporter mes réglages'), h('button', { class: 'btn-ghost', onclick: () => imp.click() }, '📂 Importer un fichier'), imp),
         ADV.msg ? h('p', { class: 'small' }, ADV.msg) : null),
       A ? uxCard('🖥️ Performances', null,
+        h('label', { class: 'vs-row' }, h('span', null, h('b', null, '🎮 Mode jeu'), h('small', { class: 'muted' }, ' Pendant une partie : aucune animation, pas de chargement des stats, et FIRE passe après le jeu pour Windows. Le vocal, le partage d’écran et les clips continuent.')),
+          h('select', { class: 'inp', style: 'max-width:300px', onchange: (e) => { setUx({ lite: e.target.value }); liteApply(); renderSettings(); } },
+            [['auto', 'En partie, et quand FIRE n’est pas au premier plan (conseillé)'], ['game', 'Seulement pendant une partie'], ['off', 'Jamais']].map(([v, l]) => h('option', { value: v, selected: (UX.lite || 'auto') === v }, l)))),
         uxBox(ADV.gpu && ADV.gpu.off === false, 'Accélération matérielle', 'Utilise la carte graphique pour l’affichage. Désactive-la si FIRE rame ou scintille pendant une partie. Il faut redémarrer FIRE.',
           (v) => A.setGpu(!v).then(() => { ADV.gpu = { ...ADV.gpu, off: !v, changed: true }; renderSettings(); })),
         ADV.gpu && ADV.gpu.changed ? h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => A.restart() }, '🔄 Redémarrer FIRE maintenant')) : null,
@@ -1524,7 +1545,7 @@
         row('Stats dpm.lol', S.refreshing ? 'mise à jour en cours…' : (S.lastRefresh ? 'à jour à ' + hm(S.lastRefresh) : '—')),
         row('Thèmes « Lanes et principes »', S.guides ? `${S.guides.length} thèmes` : '…'),
         row('Fiches du coach', S.fiches ? String(S.fiches.length) : '…'),
-        h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: S.refreshing ? true : null, onclick: () => { refreshContent(); setTimeout(renderSettings, 300); } }, '⟳ Tout mettre à jour maintenant')),
+        h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: S.refreshing ? true : null, onclick: () => { refreshContent(true); setTimeout(renderSettings, 300); } }, '⟳ Tout mettre à jour maintenant')),
         h('p', { class: 'muted small' }, 'Tout se met aussi à jour tout seul à chaque ouverture, puis toutes les 10 minutes.'));
     C.access = h('div', { class: 'card settings-card' },
         h('h2', null, '🔐 Accès'),
@@ -3631,20 +3652,25 @@
     TICK.track = h('div', { class: 'tk-track' }, ...news.map(card), ...news.map(card));
     TICK.el = h('div', { class: 'acc-tick', onmouseenter: () => { TICK.hover = true; }, onmouseleave: () => { TICK.hover = false; } },
       h('span', { class: 'tk-lab' }, '🆕 Nouveautés'), h('div', { class: 'tk-win' }, TICK.track));
-    if (!TICK.raf) {
-      const step = (now) => {
-        TICK.raf = requestAnimationFrame(step);
-        if (!TICK.el || !TICK.el.isConnected) { TICK.last = now; return; }
-        const dt = Math.min(100, now - (TICK.last || now)); TICK.last = now;
-        if (!TICK.hover && !document.documentElement.hasAttribute('data-calm')) TICK.x += dt * 0.045;
-        const half = TICK.track.scrollWidth / 2;
-        if (half > 0 && TICK.x >= half) TICK.x -= half;
-        TICK.track.style.transform = `translateX(${-TICK.x}px)`;
-      };
-      TICK.raf = requestAnimationFrame(step);
-    }
+    tickWake();
     return TICK.el;
   }
+  // Le défilement ne tourne que si le bandeau est affiché et que FIRE est regardé (sinon : aucune image calculée).
+  function tickWake() {
+    if (TICK.raf || !TICK.el || !TICK.el.isConnected || window.FIRE_LITE || document.hidden) return;
+    TICK.last = 0;
+    const step = (now) => {
+      if (!TICK.el || !TICK.el.isConnected || window.FIRE_LITE || document.hidden) { TICK.raf = 0; return; }
+      TICK.raf = requestAnimationFrame(step);
+      const dt = Math.min(100, now - (TICK.last || now)); TICK.last = now;
+      if (!TICK.hover && !document.documentElement.hasAttribute('data-calm')) TICK.x += dt * 0.045;
+      const half = TICK.track.scrollWidth / 2;
+      if (half > 0 && TICK.x >= half) TICK.x -= half;
+      TICK.track.style.transform = `translateX(${-TICK.x}px)`;
+    };
+    TICK.raf = requestAnimationFrame(step);
+  }
+  setInterval(tickWake, 1000);
   function accFun(hr) {
     if (!ACCE.fun || Date.now() - ACCE.funAt > 45000) {
       const news = accNews();
@@ -5214,7 +5240,7 @@
   // quand on le remet : après chaque affichage du salon (changement d'onglet, quelqu'un qui coupe son micro…),
   // on relance la lecture des vidéos visibles.
   function resumeVideos() {
-    requestAnimationFrame(() => Object.values(VX.vids).forEach((el) => { if (el.isConnected && el.paused && el.srcObject && !el.dataset.mfrozen) el.play().catch(() => {}); }));
+    requestAnimationFrame(() => Object.values(VX.vids).forEach((el) => { if (el.isConnected && el.paused && el.srcObject && !el.dataset.mfrozen && !el.dataset.lpause) el.play().catch(() => {}); }));
   }
   // Élément vidéo gardé d'un rendu à l'autre : l'image ne clignote pas.
   function vidEl(key, stream, mirror) {
@@ -5591,7 +5617,7 @@
     // Jauge du micro (et rendu remis à plus tard pendant qu'on règle un curseur).
     setInterval(() => {
       if (FV().state().screen) try { mirrorGuard(); } catch (e) { /* */ }
-      if (S.section !== 'vocal') return;
+      if (S.section !== 'vocal' || LITE.on) return;
       if (VX.pending && !typing() && !document.fullscreenElement) { VX.pending = false; renderVocal(); }
       const l = FV().level(), open = FV().gateOpen() && !FV().state().mute;
       document.querySelectorAll('.vc-meter-fill').forEach((f) => { f.style.width = Math.min(100, l / 1.28) + '%'; f.classList.toggle('open', open); });
@@ -7753,6 +7779,7 @@
         onerror: (e) => { const im = e.target, box = im.parentNode, wasOn = im.classList.contains('on'); im.remove(); if (wasOn && box && box.firstElementChild) box.firstElementChild.classList.add('on'); } })));
   }
   setInterval(() => {
+    if (LITE.on) return;
     const now = Date.now();
     document.querySelectorAll('.lane-skins').forEach((b) => {
       const next = Number(b.dataset.next || 0);
@@ -10468,6 +10495,7 @@
     document.addEventListener('keydown', petLook, true);
     PET.seen = { chat: chatUnread(), live: !!LIVE.mine, clips: cfUnseen() };
     setInterval(() => {
+      if (LITE.on) return;
       petSync();
       if (!PET.el) return;
       // Ce qui se passe dans FIRE
