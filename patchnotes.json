@@ -1,6 +1,17 @@
 {
  "versions": [
   {
+   "v": "1.10.185",
+   "date": "2026-11-17",
+   "titre": "Ta voix dans les clips",
+   "items": [
+    [
+     "new",
+     "Clips : ta voix est enregistrée avec le son du jeu, même quand tu n’es pas en vocal (ton micro choisi dans Vocal › Paramètres). En vocal, c’est ta voix telle que le salon l’entend, et les voix de tes coéquipiers y sont aussi. Ça se coupe dans Clips › « Ma voix dans les clips »."
+    ]
+   ]
+  },
+  {
    "v": "1.10.184",
    "date": "2026-11-17",
    "titre": "Couper ses clips, et ses clips à la fin de la partie",

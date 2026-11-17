@@ -1789,6 +1789,7 @@
     if (!src && window.fire.screen) { const l = await window.fire.screen.sources().catch(() => []); const sc = (l || []).find((x) => x.screen); src = sc && sc.id; }
     if (!src) return;
     await FireClips.start({ sourceId: src, seconds: c.seconds, quality: c.quality, mic: () => FV().micStream() });
+    clipMicApply();
   }
   // Combats : les kills à moins de 20 s d'intervalle forment un combat ; on le relie à l'objectif pris juste après.
   function rvFights(g) {
@@ -5455,7 +5456,7 @@
       }
       // Fin de l'appel : le tableau tactique repart de zéro.
       if (!v.on && VX.prevIn && window.FireBoard) FireBoard.reset();
-      if (window.FireClips && !!v.on !== !!VX.prevIn) FireClips.setMic(v.on ? FV().micStream() : null);
+      if (window.FireClips && !!v.on !== !!VX.prevIn) clipMicApply();
       VX.prevIn = v.on ? now : null;
       const sig = vocalSig(v);
       if (sig !== VX.sig) {
@@ -5741,11 +5742,29 @@
   // Réglages (sur ce PC) : activés ou non, durée, qualité, écran filmé.
   const clipCfg = () => ({ on: false, seconds: 30, quality: '1080p30', src: '', keepDays: 14, ...load('fire.clips', {}) });
   const CL = { list: [], sel: null, recv: {}, sending: {}, open: false };
+  // Ta voix dans les clips : en appel, celle que le salon entend ; hors appel, ton micro (choisi dans Vocal › Paramètres).
+  const CLV = { st: null, busy: null };
+  function clipOwnMic() {
+    if (clipCfg().voice === false) { clipOwnMicStop(); return Promise.resolve(null); }
+    if (CLV.st && CLV.st.getAudioTracks().some((t) => t.readyState === 'live')) return Promise.resolve(CLV.st);
+    if (CLV.busy) return CLV.busy;
+    const c = (FV().state().cfg) || {};
+    CLV.busy = navigator.mediaDevices.getUserMedia({ audio: { deviceId: c.mic ? { exact: c.mic } : undefined, echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } })
+      .then((st) => { CLV.st = st; return st; }).catch(() => null).finally(() => { CLV.busy = null; });
+    return CLV.busy;
+  }
+  function clipOwnMicStop() { if (CLV.st) { CLV.st.getTracks().forEach((t) => t.stop()); CLV.st = null; } }
+  async function clipMicApply() {
+    if (!window.FireClips || !FireClips.state().on) return;
+    const v = FV().state();
+    if (v.on) { clipOwnMicStop(); FireClips.setMic(clipCfg().voice === false ? null : FV().micStream()); return; }
+    FireClips.setMic(await clipOwnMic());
+  }
   async function clipsApply() {
     const c = clipCfg();
     if (!window.FireClips || !window.fire.clips) return;
     FireClips.stop();
-    if (!c.on) { syncKeys(true); return; }
+    if (!c.on) { clipOwnMicStop(); syncKeys(true); return; }
     let src = c.src;
     if (!src && window.fire.screen) {
       const list = await window.fire.screen.sources().catch(() => []);
@@ -5754,6 +5773,7 @@
     }
     if (!src) return;
     await FireClips.start({ sourceId: src, seconds: c.seconds, quality: c.quality, mic: () => FV().micStream() });
+    clipMicApply();
     syncKeys(true);
   }
   async function saveClip() {
@@ -6205,6 +6225,8 @@
     const cfg = h('div', { class: 'card clb-cfg' },
       h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Enregistrement continu'), h('small', null, `FIRE garde en mémoire les ${c.seconds} dernières secondes de ton écran, du son du jeu et du vocal. Rien n’est écrit tant qu’il n’y a pas de clip.`)),
         h('input', { type: 'checkbox', class: 'vs-tog', checked: c.on ? true : null, onchange: (e) => upd({ on: e.target.checked }) })),
+      h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Ma voix dans les clips'), h('small', null, 'Ton micro est enregistré avec le son du jeu, même quand tu n’es pas en vocal (en vocal : ta voix telle que le salon l’entend). Les voix de tes coéquipiers y sont aussi quand tu es en appel.')),
+        h('input', { type: 'checkbox', class: 'vs-tog', checked: c.voice !== false ? true : null, onchange: (e) => { save('fire.clips', { ...clipCfg(), voice: e.target.checked }); clipMicApply(); renderClipsPage(); } })),
       h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Mes clips à la fin de la partie'), h('small', null, 'Quand ta game se termine, FIRE passe devant et ouvre une page avec les clips de la partie : revois-les, garde, coupe ou partage les meilleurs.')),
         h('input', { type: 'checkbox', class: 'vs-tog', checked: c.recap !== false ? true : null, onchange: (e) => upd({ recap: e.target.checked }) })),
       h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Clips automatiques'), h('small', null, 'Un clip à chaque kill ou assist, à chaque objectif où tu participes (dragon, Nashor, Héraut, larves, Atakhan) et à chaque tour ou inhibiteur pris juste après un kill ou une assist. Pas les camps de la jungle, ni les vagues, ni un TP ou un ignite sans kill. Un combat entier = un seul clip.')),
