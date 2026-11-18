@@ -73,6 +73,7 @@ window.fire = {
   fiches: () => coach.list(),
   pools: () => coach.pools(),
   planning: () => coach.planning(),
+  plan: { get: () => coach.planGet(), set: (k) => coach.planSet(String(k || '').slice(0, 2000)), clear: () => coach.planClear(), make: (w, p) => coach.planKeyMake(w, p) },
   savePlanning: (a) => coach.savePlanning(a || {}),
   champions: () => coach.champions(),
   jeux: { data: () => jeux.data(), lore: (s) => jeux.lore(s) },

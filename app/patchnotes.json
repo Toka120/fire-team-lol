@@ -1,6 +1,37 @@
 {
  "versions": [
   {
+   "v": "2.0.12",
+   "date": "2026-11-18",
+   "titre": "Les formules : Basique, Premium Joueur, Premium Élite",
+   "items": [
+    [
+     "new",
+     "Nouvelle version Basique : sur l’écran du code, « Continuer en version Basique » ouvre FIRE Team sans code d’équipe. On y a les clips sur son PC, l’e-sport, les patchs LoL, le stream, les outils et quelques apparences de base."
+    ],
+    [
+     "new",
+     "Premium Joueur : une clé donnée par le créateur débloque en plus Lanes et principes, les scénarios, les quiz, les puzzles, le parcours, Micro, Détente, les patch notes et une boutique plus large."
+    ],
+    [
+     "improve",
+     "Premium Élite : l’équipe Alpha, avec son code d’équipe, garde tout comme avant. Rien ne change pour les joueurs d’Alpha."
+    ],
+    [
+     "new",
+     "Les rubriques verrouillées affichent un cadenas et une page qui explique quelle formule les débloque, avec « J’ai une clé Premium » et « J’ai un code d’équipe »."
+    ],
+    [
+     "new",
+     "Admin › Clés des apps : création et retrait des clés Premium Joueur. Admin › Boutique : choix des apparences de la version Basique."
+    ],
+    [
+     "improve",
+     "En version Basique, personne ne rejoint le salon ni la discussion de l’équipe : aucune donnée d’Alpha n’est visible."
+    ]
+   ]
+  },
+  {
    "v": "2.0.11",
    "date": "2026-11-18",
    "titre": "20 scénarios par lane",

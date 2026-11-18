@@ -404,8 +404,16 @@
     let ok;
     if (S.cfg && S.cfg.code_scrypt) ok = await window.fire.unlocked();
     else { const need = S.cfg && S.cfg.code_sha256; ok = !need || load('fire.unlock', null) === need; }
-    if (!ok) showLock();
-    else showApp();
+    if (!ok) { if (load('fire.basique', false)) enterBasic(); else showLock(); }
+    else { save('fire.basique', false); showApp(); }
+  }
+  // Version Basique : FIRE sans code d'équipe. Une clé Premium Joueur (donnée par le créateur) en débloque une partie.
+  async function enterBasic() {
+    S.basic = true; S.planKey = null; S.planWho = '';
+    try { const r = window.fire.plan ? await window.fire.plan.get() : null; if (r && r.plan) { S.planKey = r.plan; S.planWho = r.who || ''; } } catch (e) { /* */ }
+    $('lock').hidden = true;
+    if (S.section && !planOk(S.section)) S.section = 'accueil';
+    showApp();
   }
 
   const newer = (a, b) => {
@@ -447,6 +455,7 @@
       $('code-ok').textContent = 'Entrer';
       if (ok) {
         $('lock').hidden = true;
+        save('fire.basique', false); S.basic = false;
         showApp();
       } else {
         $('code-err').textContent = why ? `Le code n'a pas pu être vérifié (${why}). Envoie ce message à Toka120.` : 'Code incorrect. Demande-le à ton coach.';
@@ -456,6 +465,9 @@
     };
     $('code-ok').onclick = go;
     inp.onkeydown = (e) => { $('code-err').hidden = true; if (e.key === 'Enter') go(); };
+    if (!$('lock-basic')) $('code-ok').parentElement.after(h('div', { id: 'lock-basic', class: 'lock-basic' },
+      h('button', { class: 'btn-ghost', onclick: () => { save('fire.basique', true); enterBasic(); } }, 'Continuer en version Basique'),
+      h('small', { class: 'muted' }, 'Sans code d’équipe : Kiting, Listen, tes clips, la boutique de base, l’e-sport et les patchs LoL. Une clé Premium Joueur débloque l’apprentissage.')));
   }
 
   function showApp() {
@@ -1076,7 +1088,8 @@
   function profilCards() {
     const me = vocalMe();
     return [
-      uxCard('👤 Qui es-tu ?', 'Choisis ton pseudo : FIRE te reconnaît (tierlist dans POOL, discussion, vocal).', h('div', { class: 'row' }, meSelect())),
+      S.basic ? uxCard('👤 Ton pseudo', `Affiché sur ton profil et dans la boutique${S.moi ? ' : ' + S.moi : ''}.`, h('div', { class: 'row' }, h('button', { class: 'btn-ghost small-btn', onclick: askWho }, '✏️ Changer mon pseudo')))
+        : uxCard('👤 Qui es-tu ?', 'Choisis ton pseudo : FIRE te reconnaît (tierlist dans POOL, discussion, vocal).', h('div', { class: 'row' }, meSelect())),
       uxCard('🟢 Statut', 'Ce que l’équipe voit à côté de ton nom. « Occupé » coupe aussi tes notifications. « En game » s’affiche tout seul pendant une partie.',
         uxSeg(['online', 'busy', 'away', 'invisible'].map((k) => [k, ST_LABEL[k].join(' ')]), UX.status, (v) => { setUx({ status: v }); actLog('statut', 'Statut : ' + ST_LABEL[v][1]); renderSettings(); }),
         LIVE.mine ? h('p', { class: 'good small' }, '🎮 Tu es en game : l’équipe le voit.') : null),
@@ -1243,7 +1256,19 @@
   ];
   const looks = () => UX.look || {};
   const shopRedraw = () => { if (S.section === 'boutique') { const y = $('view').scrollTop, w = window.scrollY; renderBoutique(); $('view').scrollTop = y; window.scrollTo(0, w); } else renderSettings(); };
-  const setLook = (k, v) => { const L = { ...looks() }; if (v == null || v === '') delete L[k]; else L[k] = v; setUx({ look: Object.keys(L).length ? L : null }); shopRedraw(); petSync(); if (k !== 'pet') petReact('look'); };
+  // Formules : en Basique, quelques apparences (choisies par le créateur dans Admin › Boutique) ; en Premium Joueur,
+  // toutes les apparences simples ; les packs, compagnons, effets de profil et articles de l'admin restent à l'équipe.
+  const SHOP_BASIC0 = ['fx:"shine"', 'font:"cinzel"', 'grad:["#ff5e3a","#ffb02e"]', 'deco:"halo"', 'plate:"nuit"'];
+  const shopKey = (k, v) => k + ':' + JSON.stringify(v == null || v === '' ? null : v);
+  function shopAllowed(k, v) {
+    const p = PLAN();
+    if (p === 'elite' || v == null || v === '') return true;
+    if (p === 'joueur' && ['fx', 'font', 'grad', 'deco', 'plate', 'card'].includes(k)) return true;
+    const list = (acfg().shopBasic || []).length ? acfg().shopBasic : SHOP_BASIC0;
+    return list.includes(shopKey(k, v));
+  }
+  const shopLocked = () => { popup('🔒 Apparence Premium', `Ta formule ${PLAN_NAMES[PLAN()]} donne accès à quelques apparences. Les autres sont réservées à la formule ${PLAN() === 'basique' ? 'Premium Joueur ou à l’équipe Alpha' : 'Premium Élite (équipe Alpha)'}.`, null); };
+  const setLook = (k, v) => { if (!shopAllowed(k, v)) { shopLocked(); return; } const L = { ...looks() }; if (v == null || v === '') delete L[k]; else L[k] = v; setUx({ look: Object.keys(L).length ? L : null }); shopRedraw(); petSync(); if (k !== 'pet') petReact('look'); };
   function shopCards() {
     const me = vocalMe();
     if (!me) return [uxCard('🛍️ Boutique FIRE', 'Choisis d’abord qui tu es pour personnaliser ton profil.', h('button', { class: 'btn-fire small-btn', onclick: askWho }, 'Qui es-tu ?'))];
@@ -1251,9 +1276,9 @@
     const same = (a, b) => JSON.stringify(a || null) === JSON.stringify(b || null);
     // Essayer : survoler (ou sélectionner au clavier) un objet l'affiche tout de suite sur l'aperçu, sans l'équiper.
     const tryOn = (k, val) => { const P = document.querySelector('.shop-preview'); if (P) P.replaceWith(previewOf(val === undefined ? L : { ...L, [k]: val || undefined }, val !== undefined)); };
-    const item = (k, val, label, desc, prev) => { const on = same(L[k] || (k === 'grad' || k === 'card' ? null : ''), val); return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => setLook(k, val),
+    const item = (k, val, label, desc, prev) => { const on = same(L[k] || (k === 'grad' || k === 'card' ? null : ''), val), lock = !shopAllowed(k, val); return h('button', { class: 'shop-it' + (on ? ' on' : '') + (lock ? ' locked' : ''), onclick: () => setLook(k, val),
       onmouseenter: () => tryOn(k, val), onfocus: () => tryOn(k, val), onmouseleave: () => tryOn(k, undefined), onblur: () => tryOn(k, undefined) },
-      h('div', { class: 'shop-prev' }, prev), h('b', null, label), desc ? h('small', { class: 'muted' }, desc) : null, h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); };
+      h('div', { class: 'shop-prev' }, prev), h('b', null, label), desc ? h('small', { class: 'muted' }, desc) : null, h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : lock ? '🔒 Premium' : 'Gratuit · Équiper')); };
     const name = (fx, font, grad) => h('span', { class: 'nm' + (grad ? ' nm-grad' : '') + (fx ? ' nm-' + fx : ''), style: (grad ? `--n1:${grad[0]};--n2:${grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (font && LOOK_FONT[font] ? `font-family:${LOOK_FONT[font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
     // L'aperçu : la carte de profil, une ligne de discussion, la liste des membres et la case du vocal, avec le look donné.
     const lname = (X) => h('span', { class: 'nm' + (X.grad ? ' nm-grad' : '') + (X.fx ? ' nm-' + X.fx : ''), style: (X.grad ? `--n1:${X.grad[0]};--n2:${X.grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (X.font && LOOK_FONT[X.font] ? `font-family:${LOOK_FONT[X.font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
@@ -1276,7 +1301,7 @@
       uxCard('🛍️ Boutique FIRE', 'Comme la boutique de Discord, mais tout est gratuit. Survole un objet pour l’essayer sur l’aperçu, clique pour l’équiper. Tes coéquipiers voient ce que tu portes dans la discussion, le vocal et sur ta carte de profil.',
         h('div', { class: 'row' }, h('button', { class: 'linkbtn small', onclick: () => { setUx({ look: null }); shopRedraw(); } }, '↺ Tout déséquiper'), h('button', { class: 'linkbtn small', onclick: () => { setClose(true); promoShop(true); } }, '▶ Revoir la présentation'))),
       sec('🎁 Packs', 'Tout un style d’un coup : survole pour l’essayer, clique pour l’équiper.', PACKS.map(([id, l, d, P]) => { const on = JSON.stringify(L) === JSON.stringify(P);
-        return h('button', { class: 'shop-it shop-pack' + (on ? ' on' : ''), onclick: () => { setUx({ look: { ...P } }); shopRedraw(); }, onmouseenter: () => { const Pv = document.querySelector('.shop-preview'); if (Pv) Pv.replaceWith(previewOf(P, true)); }, onmouseleave: () => tryOn('fx', undefined) },
+        return h('button', { class: 'shop-it shop-pack' + (on ? ' on' : '') + (PLAN() !== 'elite' ? ' locked' : ''), onclick: () => { if (PLAN() !== 'elite') { shopLocked(); return; } setUx({ look: { ...P } }); shopRedraw(); }, onmouseenter: () => { const Pv = document.querySelector('.shop-preview'); if (Pv) Pv.replaceWith(previewOf(P, true)); }, onmouseleave: () => tryOn('fx', undefined) },
           h('div', { class: 'shop-prev shop-packprev' + (P.card ? ' pf-themed' : ''), style: P.card ? `--pc1:${P.card[0]};--pc2:${P.card[1]}` : '' }, P.pfx ? pfxEl(P.pfx) : null, lav(P, 'shop-av')), h('b', null, l), h('small', { class: 'muted' }, d), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Tout équiper')); })),
       sec('✨ Effet de pseudo', 'Il s’anime partout où ton pseudo apparaît.', SHOP.fx.map(([v, l, d]) => item('fx', v, l, d, name(v, L.font, L.grad)))),
       sec('🎨 Dégradé de pseudo', 'Deux couleurs pour ton pseudo (sinon, ta couleur de Profil).', shopList('grad').map(([v, l]) => item('grad', v, l, '', name(L.fx, L.font, v)))),
@@ -1288,9 +1313,9 @@
       sec('🃏 Thème de carte de profil', null, shopList('card').map(([v, l]) => item('card', v, l, '', h('div', { class: 'shop-card' + (v ? ' pf-themed' : ''), style: v ? `--pc1:${v[0]};--pc2:${v[1]}` : '' })))),
       shopList('bubble').length > 1 ? sec('💬 Effet de messages', 'Le fond de tes messages dans la discussion, chez tout le monde.', shopList('bubble').map(([v, l]) => item('bubble', v, l, '', h('div', { class: 'chat-m' + (v ? ' bub-' + v : '') }, h('div', { class: 'chat-tx' }, 'GG !'))))) : null,
       shopItems('banner').length ? sec('🖼️ Bannière de profil', 'En haut de ta carte de profil.', [h('button', { class: 'shop-it' + (!(UX.banner && UX.banner.a) ? ' on' : ''), onclick: () => { if (UX.banner && UX.banner.a) setUx({ banner: null }); shopRedraw(); } }, h('div', { class: 'shop-prev' }, h('span', { class: 'muted' }, '—')), h('b', null, 'Aucune'), h('span', { class: 'shop-tag' }, 'Gratuit'))]
-        .concat(shopItems('banner').map((x) => { const on = !!(UX.banner && UX.banner.a === x.id); return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => { setUx({ banner: { a: x.id } }); shopRedraw(); } }, h('div', { class: 'shop-prev shop-ban', style: banStyle({ a: x.id }) }), h('b', null, x.name + ' ✨'), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); }))) : null,
+        .concat(shopItems('banner').map((x) => { const on = !!(UX.banner && UX.banner.a === x.id); return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => { if (PLAN() !== 'elite') { shopLocked(); return; } setUx({ banner: { a: x.id } }); shopRedraw(); } }, h('div', { class: 'shop-prev shop-ban', style: banStyle({ a: x.id }) }), h('b', null, x.name + ' ✨'), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); }))) : null,
       shopItems('appbg').length ? sec('🌄 Fond d’app', 'Derrière tout FIRE, chez toi seulement (flou et assombrissement dans Paramètres › Apparence).', [h('button', { class: 'shop-it' + ((UX.bg || {}).type !== 'admin' ? ' on' : ''), onclick: () => { if ((UX.bg || {}).type === 'admin') setUx({ bg: { ...(UX.bg || {}), type: 'none' } }); shopRedraw(); } }, h('div', { class: 'shop-prev' }, h('span', { class: 'muted' }, '—')), h('b', null, 'Aucun'), h('span', { class: 'shop-tag' }, 'Gratuit'))]
-        .concat(shopItems('appbg').map((x) => { const on = (UX.bg || {}).type === 'admin' && UX.bg.a === x.id; return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => { setUx({ bg: { blur: 6, dim: 60, ...(UX.bg || {}), type: 'admin', a: x.id } }); shopRedraw(); } }, h('div', { class: 'shop-prev shop-ban', style: (() => { const u = shopAsset(x.id); return u ? `background-image:url("${u}");background-size:cover;background-position:center` : ''; })() }), h('b', null, x.name + ' ✨'), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); }))) : null,
+        .concat(shopItems('appbg').map((x) => { const on = (UX.bg || {}).type === 'admin' && UX.bg.a === x.id; return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => { if (PLAN() !== 'elite') { shopLocked(); return; } setUx({ bg: { blur: 6, dim: 60, ...(UX.bg || {}), type: 'admin', a: x.id } }); shopRedraw(); } }, h('div', { class: 'shop-prev shop-ban', style: (() => { const u = shopAsset(x.id); return u ? `background-image:url("${u}");background-size:cover;background-position:center` : ''; })() }), h('b', null, x.name + ' ✨'), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); }))) : null,
     ].filter(Boolean);
   }
   // Aperçu du fond d'écran : une mini-FIRE (menu, cartes) par-dessus l'image, avec le flou et l'assombrissement choisis.
@@ -1547,8 +1572,9 @@
         row('Fiches du coach', S.fiches ? String(S.fiches.length) : '…'),
         h('div', { class: 'row' }, h('button', { class: 'btn-ghost', disabled: S.refreshing ? true : null, onclick: () => { refreshContent(true); setTimeout(renderSettings, 300); } }, '⟳ Tout mettre à jour maintenant')),
         h('p', { class: 'muted small' }, 'Tout se met aussi à jour tout seul à chaque ouverture, puis toutes les 10 minutes.'));
-    C.access = h('div', { class: 'card settings-card' },
+    C.access = S.basic ? planCardEl() : h('div', { class: 'card settings-card' },
         h('h2', null, '🔐 Accès'),
+        row('Formule', 'Premium Élite (équipe Alpha)'),
         row("Code d'équipe", 'enregistré sur cet ordinateur ✓'),
         row('Mode coach', st.coach ? `activé (Claude ${st.claude ? '✓' : '✗'} · GitHub ${st.github ? '✓' : '✗'})` : 'non activé'),
         coachAccess());
@@ -3458,6 +3484,8 @@
     const gc = catOf(S.guideCat);
     back.textContent = S.section === 'stats' ? '← Équipe' : S.section === 'guides' ? (S.theme && gc ? `← ${gc.titre}` : '← Lanes et principes') : '← Parole du coach';
     if (worksBlocked(S.section)) renderWorks();
+    else if (S.basic && !planOk(S.section)) renderPlanLock();
+    else if (S.basic && S.section === 'accueil') renderBasicHome();
     else if (S.section === 'admin') renderAdmin();
     else if (String(S.section).startsWith('p_')) renderCustomPage();
     else if (S.section === 'settings') renderSettings();
@@ -3692,6 +3720,7 @@
     return h('button', { class: 'acc-fun acc-news', title: 'Voir', onclick: () => go(f.go) }, h('b', null, f.ico + ' ' + f.lab + ' : '), f.txt, ' →');
   }
   function renderAccueil() {
+    if (S.basic) { renderBasicHome(); return; }
     const view = $('view');
     const A = accPrefs(), hid = new Set(A.hide || []);
     const items = S.navItems || [];
@@ -5634,12 +5663,13 @@
       if (np.app) popup(t, b, 'vocal');
       if (np.on && window.fire.notify) deskNotify({ title: t, body: b, section: 'vocal' }).catch(() => {});
     };
-    const hall = () => { if (S.players.length && vocalMe()) FV().lobby({ me: vocalMe(), ids: vocalIds(), code: 'FIRE-salon-equipe', onInvite, noChat: subSlugs() }).catch(() => {}); };
+    // Version Basique : jamais dans le salon de l'équipe (ni présence, ni invitations, ni vocal).
+    const hall = () => { if (!S.basic && S.players.length && vocalMe()) FV().lobby({ me: vocalMe(), ids: vocalIds(), code: 'FIRE-salon-equipe', onInvite, noChat: subSlugs() }).catch(() => {}); };
     setTimeout(hall, 3000); setInterval(hall, 10000);
     // Rejoindre tout seul au lancement, si le joueur l'a demandé.
     let tries = 0;
     const auto = setInterval(() => {
-      if (++tries > 20 || !load('fire.vocal.auto', false)) return clearInterval(auto);
+      if (++tries > 20 || S.basic || !load('fire.vocal.auto', false)) return clearInterval(auto);
       if (S.players.length && vocalMe()) { clearInterval(auto); if (!FV().state().on) vocalJoin(); }
     }, 1500);
   }
@@ -7534,8 +7564,10 @@
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips', cfUnseen() || null], ['boutique', '🛍️', 'Boutique', shopNew() ? 'NEW' : null], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['apprendre', '🎓', 'Apprendre en jouant'], ['puzdraft', '🧩', 'Puzzles de draft', pzDue() ? '!' : null], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
       ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(annMine() ? [['annonces', '📢', 'Annonces']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', bugRepUnseen() ? String(bugRepUnseen()) : patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
+    if (S.basic) { const keep = items.filter(([id]) => !['admin', 'annonces', 'carnet', 'reunion'].includes(id)); items.length = 0; items.push(...keep); }
     if (MOBILE) { const keep = items.filter(([id]) => !MOBILE_OFF.has(id)); items.length = 0; items.push(...keep); }
     try { navCustom(items); } catch (e) { console.error(e); }
+    if (S.basic) for (const it of items) if (!planOk(it[0])) { it[3] = it[0] === 'patch' ? null : '🔒'; it[4] = ((it[4] || '') + ' navlock').trim(); }
     S.navItems = items;
     if (S.section === 'accueil' && document.querySelector('.acc-grid') && !typing()) accBadges();
     // Paramètres et Patch notes passent dans le menu de mon profil (rond en haut à droite) : la barre de gauche respire.
@@ -7555,7 +7587,7 @@
   }
   function flRedraw() {
     if (typing()) return;
-    if (S.section === 'accueil') renderAccueil();
+    if (S.section === 'accueil') { if (S.basic) renderBasicHome(); else renderAccueil(); }
     else if (S.section === 'settings') renderSettings();
   }
   if (window.fire.flauncher) window.fire.flauncher.on((m) => { FLS.prog = m && m.state !== 'done' ? m : null; flRedraw(); });
@@ -11189,7 +11221,7 @@
     ANN.auto = setTimeout(() => { if (S.section === 'annonces' && !typing() && (ANN.cur || ANN.priv.length)) annLoadLus(); }, 45000);
   }
   function chatInit() {
-    if (CH.started || !window.fire.chat) return;
+    if (CH.started || !window.fire.chat || S.basic) return; // version Basique : pas d'espace d'équipe
     CH.started = true;
     try { if (FV() && FV().onChat) FV().onChat((m) => chatMerge([m], true)); } catch (e) { /* */ }
     applySalons(SAL.data);
@@ -11464,14 +11496,27 @@
           h('datalist', { id: 'ak-who' }, roster.map((p) => h('option', { value: String(p.pseudo || p.slug).split('#')[0] }))),
           ['kiting', 'listen'].map((a) => h('label', { class: 'adm-chk' }, h('input', { type: 'checkbox', checked: AK.apps[a] ? true : null, onchange: (e) => { AK.apps[a] = e.target.checked; } }), a === 'kiting' ? ' FIRE Kiting' : ' FIRE Listen')),
           h('button', { class: 'btn-fire small-btn', disabled: AK.busy ? true : null, onclick: make }, '🔑 Créer la clé'))),
-      AK.last ? h('div', { class: 'card adm-grp' }, h('b', null, `Clé de ${AK.last.who} (${appsTxt(AK.last.apps)})`),
+      AK.last ? h('div', { class: 'card adm-grp' }, h('b', null, `Clé de ${AK.last.who} (${AK.last.plan ? PLAN_NAMES[AK.last.plan] : appsTxt(AK.last.apps)})`),
         h('textarea', { class: 'inp adm-keybox', readonly: true, rows: 4, onclick: (e) => e.target.select() }, AK.last.key),
         h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => akCopy(AK.last.key) }, '📋 Copier la clé')),
-        h('p', { class: 'muted small' }, 'Envoie-la en message privé. Dans FIRE Kiting ou FIRE Listen : bouton « 🔧 Admin », puis colle la clé. Garde-la secrète : elle permet de publier au nom de cette personne.')) : null,
+        h('p', { class: 'muted small' }, AK.last.plan ? 'Envoie-la en message privé. Dans FIRE Team (version Basique) : Accueil ou Paramètres › « J’ai une clé Premium », puis colle la clé. Tu peux la retirer quand tu veux.' : 'Envoie-la en message privé. Dans FIRE Kiting ou FIRE Listen : bouton « 🔧 Admin », puis colle la clé. Garde-la secrète : elle permet de publier au nom de cette personne.')) : null,
+      // Clés Premium Joueur : la version Basique + l'apprentissage, pour un joueur hors de l'équipe Alpha.
+      window.fire.plan ? h('div', { class: 'card adm-grp' }, h('b', null, '⭐ Nouvelle clé Premium Joueur'),
+        h('p', { class: 'muted small' }, 'Pour un joueur hors de l’équipe Alpha : il ouvre FIRE Team en version Basique, puis colle la clé (Accueil ou Paramètres). Il débloque Lanes et principes, les scénarios, les quiz, les puzzles, le parcours, Micro, Détente et une boutique plus large.'),
+        h('div', { class: 'row' }, h('input', { class: 'inp', placeholder: 'Pour qui ? (pseudo)', value: AK.pwho || '', maxlength: 40, style: 'max-width:240px', oninput: (e) => { AK.pwho = e.target.value; } }),
+          h('button', { class: 'btn-fire small-btn', disabled: AK.busy ? true : null, onclick: async () => {
+            if (!(AK.pwho || '').trim()) { AK.msg = '⚠ Indique pour qui est la clé.'; renderAdmin(); return; }
+            AK.busy = true; renderAdmin();
+            const r = await window.fire.plan.make(AK.pwho.trim(), 'joueur').catch((e) => ({ ok: false, error: String(e) }));
+            AK.busy = false;
+            if (r && r.ok) { AK.last = { who: AK.pwho.trim(), apps: [], plan: 'joueur', key: r.key }; AK.pwho = ''; AK.msg = r.warn ? '⚠ Clé créée, mais la liste de l’équipe n’a pas pu être mise à jour : ' + r.warn : '✅ Clé Premium Joueur créée.'; akLoad(); }
+            else AK.msg = '⚠ ' + ((r && r.error) || 'création impossible');
+            renderAdmin();
+          } }, '⭐ Créer la clé'))) : null,
       AK.msg ? h('p', { class: 'small' }, AK.msg) : null,
       h('b', null, 'Clés données'),
       AK.list && AK.list.length ? h('div', { class: 'adm-keys' }, AK.list.map((k) => h('div', { class: 'card adm-key' + (k.revoked ? ' off' : '') },
-        h('div', null, h('b', null, k.who), h('span', { class: 'muted small' }, ` · ${appsTxt(k.apps)} · ${new Date(k.at).toLocaleDateString('fr-FR')}`), k.revoked ? h('span', { class: 'bad small' }, ' · retirée') : null),
+        h('div', null, h('b', null, k.who), h('span', { class: 'muted small' }, ` · ${k.plan ? '⭐ ' + (PLAN_NAMES[k.plan] || k.plan) : appsTxt(k.apps)} · ${new Date(k.at).toLocaleDateString('fr-FR')}`), k.revoked ? h('span', { class: 'bad small' }, ' · retirée') : null),
         h('div', { class: 'row' }, k.key && !k.revoked ? h('button', { class: 'linkbtn small', onclick: () => akCopy(k.key) }, '📋 Copier') : null,
           h('button', { class: 'linkbtn small', onclick: () => revoke(k, !k.revoked) }, k.revoked ? '↺ Rétablir' : '🚫 Retirer'))))) : h('p', { class: 'muted small' }, 'Aucune clé pour l’instant.'),
       h('p', { class: 'muted small' }, 'Les créations de l’admin sont envoyées à l’équipe par FIRE Team ouvert sur son PC (il doit être connecté avec le code d’équipe).'));
@@ -11624,7 +11669,15 @@
         if (['card', 'banner', 'appbg', 'plate', 'bubble'].includes(x.kind)) return h('div', { class: 'adm-shop-wide', style: `background-image:url("${u}")` }, x.kind === 'bubble' ? h('span', null, 'GG !') : x.kind === 'plate' ? h('span', null, vocalName(vocalMe() || '') || 'Pseudo') : null);
         return h('img', { class: 'adm-shop-img', src: u, alt: '' });
       };
-      body = h('div', { class: 'adm-sec' },
+      // Apparences de la version Basique : celles que tout le monde peut porter sans code d'équipe ni clé Premium.
+      const basicNow = (D.shopBasic && D.shopBasic.length) ? D.shopBasic : SHOP_BASIC0.slice();
+      const basicTog = (key) => { const cur = basicNow.slice(); const i = cur.indexOf(key); if (i >= 0) cur.splice(i, 1); else cur.push(key); set({ shopBasic: cur }); };
+      const basicCard = h('div', { class: 'card adm-grp' }, h('b', null, '🎁 Apparences de la version Basique'),
+        h('p', { class: 'muted small' }, 'Coche ce que les joueurs sans code d’équipe peuvent porter. Premium Joueur a en plus tous les effets de pseudo, polices, dégradés, décorations, plaques et cartes. Les packs, compagnons, effets de profil et tes articles restent à l’équipe Alpha.'),
+        ...[['fx', '✨ Effet de pseudo'], ['font', '🔤 Police'], ['grad', '🎨 Dégradé'], ['deco', '💫 Décoration'], ['plate', '🏷️ Plaque'], ['card', '🃏 Carte']].map(([k, t]) =>
+          h('div', { class: 'adm-basic' }, h('small', { class: 'muted' }, t), h('div', { class: 'sal-chips' }, SHOP[k].filter(([v]) => v != null && v !== '').map(([v, l]) => { const key = shopKey(k, v), on = basicNow.includes(key);
+            return h('button', { class: 'chip' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick: () => basicTog(key) }, (on ? '✓ ' : '') + l); })))));
+      body = h('div', { class: 'adm-sec' }, basicCard,
         h('div', { class: 'card adm-grp' }, h('b', null, '➕ Ajouter un article'),
           h('div', { class: 'sal-chips adm-kinds' }, Object.entries(KIND).map(([k, [l]]) => h('button', { class: 'chip' + (kind === k ? ' on' : ''), 'aria-pressed': String(kind === k), onclick: () => { ADM.nk = k; renderAdmin(); } }, l))),
           h('p', { class: 'muted small' }, KIND[kind][1] + (kind === 'grad' ? '' : ' PNG, GIF, WebP ou JPEG, 1,5 Mo au maximum.')),
@@ -11661,6 +11714,73 @@
   }
   const MOBILE = !!window.FIRE_MOBILE;
   const MOBILE_OFF = new Set(['train', 'clips', 'parties', 'reunion', 'lolpatch', 'web']);
+  // ===== Formules : Basique (sans code), Premium Joueur (clé du créateur), Premium Élite (code d'équipe d'Alpha) =====
+  const PLAN_BASIC = new Set(['accueil', 'clips', 'boutique', 'outils', 'worlds', 'lolpatch', 'stream', 'settings', 'web']);
+  const PLAN_JOUEUR = new Set([...PLAN_BASIC, 'guides', 'apprendre', 'puzzle', 'puzdraft', 'parcours', 'train', 'jeux', 'patch']);
+  const PLAN_NAMES = { basique: 'Basique', joueur: 'Premium Joueur', elite: 'Premium Élite' };
+  const PLAN = () => (S.basic ? (S.planKey === 'joueur' ? 'joueur' : 'basique') : 'elite');
+  function planOk(sec) { const p = PLAN(); return p === 'elite' || (p === 'joueur' ? PLAN_JOUEUR : PLAN_BASIC).has(sec); }
+  const planNeed = (sec) => (PLAN_JOUEUR.has(sec) ? 'joueur' : 'elite');
+  const PLAN_LIST = {
+    basique: ['FIRE Kiting et FIRE Listen en solo', 'Tes clips, enregistrés sur ton PC', 'La boutique : quelques apparences de base', 'E-sport, patchs LoL, stream Twitch et outils'],
+    joueur: ['Tout le Basique', 'Lanes et principes : slides, 20 scénarios par lane et quiz', 'Apprendre en jouant, puzzle du jour, puzzles de draft, parcours', 'Micro, Détente et patch notes', 'Une boutique plus large'],
+    elite: ['Tout le Premium Joueur', 'L’espace de l’équipe : stats, POOL, planning, draft, salons, vocal, scrims, clips partagés', 'Le coaching : parole du coach, créneaux, salle de réunion, revues, analyses par l’IA', 'La boutique complète et les apparences de l’équipe'],
+  };
+  async function planKeyEnter(box) {
+    const inp = h('textarea', { class: 'inp', rows: 3, placeholder: 'Colle ici ta clé Premium (FIREPLAN1.…)', spellcheck: 'false' });
+    const msg = h('p', { class: 'small muted' });
+    box.replaceChildren(inp, h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: async () => {
+      const r = await window.fire.plan.set(inp.value).catch((e) => ({ ok: false, error: String(e) }));
+      if (r && r.plan) { S.planKey = r.plan; S.planWho = r.who || ''; S.flash = `⭐ ${PLAN_NAMES[r.plan]} activé${r.who ? ' pour ' + r.who : ''} !`; renderNav(); render(); }
+      else { msg.textContent = '⚠ ' + ((r && r.error) || (r && r.revoked ? 'cette clé a été retirée' : 'clé refusée')); msg.className = 'small bad'; }
+    } }, 'Activer')), msg);
+    inp.focus();
+  }
+  const planToTeam = () => { save('fire.basique', false); location.reload(); };
+  // Paramètres › Mon compte : la formule de ce PC.
+  function planCardEl() {
+    const p = PLAN(), keyBox = h('div', { class: 'plan-keybox' });
+    return (h('div', { class: 'card settings-card plan-set' }, h('h2', null, '⭐ Ta formule : ' + PLAN_NAMES[p] + (p === 'elite' ? ' (équipe Alpha)' : '')), S.planWho ? h('p', { class: 'muted small' }, 'Clé de ' + S.planWho) : null,
+      h('p', { class: 'muted small' }, PLAN_LIST[p].join(' · ')),
+      S.basic ? h('div', { class: 'row' },
+        p === 'basique' ? h('button', { class: 'btn-fire small-btn', onclick: () => planKeyEnter(keyBox) }, '🔑 J’ai une clé Premium') : h('button', { class: 'btn-ghost small-btn', onclick: async () => { if (!confirm('Retirer la clé Premium de ce PC ?')) return; await window.fire.plan.clear(); S.planKey = null; S.planWho = ''; renderNav(); render(); } }, 'Retirer ma clé'),
+        h('button', { class: 'btn-ghost small-btn', onclick: planToTeam }, '👥 J’ai un code d’équipe')) : null, keyBox));
+  }
+  function renderPlanLock() {
+    const need = planNeed(S.section);
+    const name = (S.navAll || []).find((x) => x[0] === S.section);
+    const keyBox = h('div', { class: 'plan-keybox' });
+    $('view').replaceChildren(h('div', { class: 'card plan-lock' },
+      h('div', { class: 'plan-lock-ico' }, '🔒'),
+      h('h1', { class: 'title' }, `${name ? name[2] : 'Cette rubrique'} : formule ${PLAN_NAMES[need]}`),
+      h('p', { class: 'muted' }, `Tu as la formule ${PLAN_NAMES[PLAN()]}. Cette rubrique est réservée à la formule ${PLAN_NAMES[need]}${need === 'elite' ? ', celle de l’équipe Alpha' : ''}.`),
+      h('div', { class: 'plan-cols' }, ['joueur', 'elite'].map((k) => h('div', { class: 'plan-col' + (k === need ? ' on' : '') }, h('b', null, '⭐ ' + PLAN_NAMES[k]),
+        h('ul', null, PLAN_LIST[k].map((x) => h('li', null, x))),
+        h('small', { class: 'muted' }, k === 'joueur' ? 'Avec une clé donnée par le créateur de FIRE.' : 'Avec le code d’équipe d’Alpha.')))),
+      h('div', { class: 'row plan-acts' },
+        need === 'joueur' ? h('button', { class: 'btn-fire', onclick: () => planKeyEnter(keyBox) }, '🔑 J’ai une clé Premium') : null,
+        h('button', { class: need === 'elite' ? 'btn-fire' : 'btn-ghost', onclick: planToTeam }, '👥 J’ai un code d’équipe'),
+        h('button', { class: 'btn-ghost', onclick: () => go('accueil') }, '← Accueil')),
+      keyBox));
+  }
+  // Accueil de la version Basique : ce que tu as, ce que la formule suivante ajoute.
+  function renderBasicHome() {
+    const p = PLAN();
+    const tile = (id, ico, t, d) => h('button', { class: 'card bh-tile' + (planOk(id) ? '' : ' locked'), onclick: () => go(id) }, h('span', { class: 'bh-ico' }, ico), h('b', null, t), h('small', { class: 'muted' }, planOk(id) ? d : '🔒 ' + PLAN_NAMES[planNeed(id)]));
+    const keyBox = h('div', { class: 'plan-keybox' });
+    $('view').replaceChildren(
+      h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🔥'), h('div', null, h('h1', { class: 'title' }, 'Bienvenue sur FIRE Team'),
+        h('p', { class: 'muted' }, `Formule ${PLAN_NAMES[p]}${S.planWho ? ' · ' + S.planWho : ''}. Kiting et Listen se lancent depuis le FIRE Launcher.`))),
+      h('div', { class: 'bh-grid' },
+        tile('clips', '🎬', 'Clips', 'Tes meilleurs moments, sur ton PC'), tile('boutique', '🛍️', 'Boutique', 'Personnalise ton profil'),
+        tile('worlds', '🏆', 'E-sport', 'Les matchs pros'), tile('lolpatch', '📜', 'Patchs LoL', 'Ce qui change dans le jeu'), tile('stream', '🟣', 'Stream', 'Le live de l’équipe'), tile('outils', '🧰', 'Outils', 'Les sites utiles'),
+        tile('guides', '🧭', 'Lanes et principes', 'Slides, scénarios et quiz'), tile('apprendre', '🎓', 'Apprendre en jouant', 'Les bases en jouant'), tile('puzzle', '🧩', 'Puzzle du jour', 'Une situation par jour'),
+        tile('stats', '📊', 'Stats de l’équipe', ''), tile('coach', '📣', 'Coaching', '')),
+      p === 'elite' ? null : h('div', { class: 'card plan-up' }, h('b', null, p === 'basique' ? '⭐ Passe en Premium Joueur' : '⭐ Rejoins l’équipe Alpha'),
+        h('p', { class: 'muted small' }, (p === 'basique' ? PLAN_LIST.joueur : PLAN_LIST.elite).slice(1).join(' · ')),
+        h('div', { class: 'row' }, p === 'basique' ? h('button', { class: 'btn-fire small-btn', onclick: () => planKeyEnter(keyBox) }, '🔑 J’ai une clé Premium') : null,
+          h('button', { class: 'btn-ghost small-btn', onclick: planToTeam }, '👥 J’ai un code d’équipe')), keyBox));
+  }
   const SUB_OK = new Set(['boutique', 'accueil', 'stats', 'planning', 'jeux', 'puzzle', 'stream', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);
   const roomOk = (r) => (!SUB() || (r && r.id !== 'coaching' && !r.staff)) && salonOk(r);
   const subSlugs = () => S.players.filter((p) => p.slug && isSub(p)).map((p) => p.slug);
@@ -11828,6 +11948,17 @@
 
   function askWho() {
     if (document.querySelector('.who')) return;
+    // Version Basique : pas de liste d'équipe, chacun tape son pseudo.
+    if (S.basic) {
+      const inp = h('input', { class: 'inp', maxlength: 24, placeholder: 'Ton pseudo LoL (ex. : Toks)', value: S.moi || '' });
+      const done = () => { const v = inp.value.replace(/[^\p{L}\p{N} _#.-]/gu, '').trim().slice(0, 24); save('fire.moi.demande', true); if (v) { S.moi = v; save('fire.moi', v); } bx.remove(); render(); };
+      inp.onkeydown = (e) => { if (e.key === 'Enter') done(); };
+      const bx = h('div', { class: 'who' }, h('div', { class: 'who-card' }, h('div', { class: 'who-t' }, '👋 Ton pseudo'),
+        h('p', { class: 'muted' }, 'Il s’affiche sur ton profil et dans la boutique. Tu pourras le changer plus tard.'), inp,
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: done }, 'Valider'), h('button', { class: 'btn-ghost', onclick: () => { save('fire.moi.demande', true); bx.remove(); } }, 'Plus tard'))));
+      document.body.append(bx); setTimeout(() => inp.focus(), 50);
+      return;
+    }
     const close = (slug) => {
       save('fire.moi.demande', true);
       if (slug) { S.moi = slug; save('fire.moi', slug); }

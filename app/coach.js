@@ -1199,6 +1199,7 @@ function appCfgClean(c) {
     // Interrupteurs : anti capture (pour tous, ou autorisé pour certains membres), compagnons, fonds animés.
     capture: c.capture === 'off' ? 'off' : '',
     captureOk: [...new Set((Array.isArray(c.captureOk) ? c.captureOk : []).map((x) => str(x, 80)).filter(Boolean))].slice(0, 60),
+    shopBasic: [...new Set((Array.isArray(c.shopBasic) ? c.shopBasic : []).map((x) => String(x || '').slice(0, 80)).filter((x) => /^(fx|font|grad|deco|plate|card):/.test(x)))].slice(0, 120),
     petsOff: !!c.petsOff,
     // Articles ajoutés dans la Boutique : compagnon (image) ou cadre d'avatar (image autour de l'avatar).
     shop: (Array.isArray(c.shop) ? c.shop : []).slice(0, 120).map((x) => {
@@ -1929,6 +1930,58 @@ async function appKeyRevoke(id, on = true) {
 
 // Dossier d'envoi partagé avec FIRE Kiting / FIRE Listen (lu seulement sur PC, jamais sur téléphone).
 const outboxDir = () => path.join(process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || process.env.HOME || '.', 'AppData', 'Local'), 'FIRE', 'envois');
+// ---------- Formules : clés Premium Joueur ----------
+// « FIREPLAN1.<certificat>.<signature du créateur> » : le certificat dit qui et quelle formule. Pas de clé privée dedans :
+// la clé ne sert qu'à prouver que le créateur l'a donnée. Elle se retire comme les clés des apps (liste apps/keys.json).
+const PLANS = ['joueur'];
+async function planKeyMake(who, plan) {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  who = String(who || '').trim().slice(0, 40);
+  if (!who) return { ok: false, error: 'indique pour qui est la clé' };
+  if (!PLANS.includes(plan)) return { ok: false, error: 'formule inconnue' };
+  const k = adminKey();
+  const cert = { v: 1, id: 'pl_' + crypto.randomBytes(5).toString('hex'), who, plan, at: Date.now() };
+  const c = b64u(JSON.stringify(cert));
+  const key = 'FIREPLAN1.' + c + '.' + b64u(crypto.sign('sha256', Buffer.from(c), p1363(crypto.createPrivateKey(k.priv))));
+  const d = appKeysLocal();
+  d.issued.push({ id: cert.id, who, apps: [], plan, at: cert.at, key });
+  writeSecret('appkeys.bin', d);
+  let warn = null;
+  try { await appKeysPublish(d); } catch (e) { warn = String((e && e.message) || e); }
+  return { ok: true, id: cert.id, key, warn };
+}
+function planParse(str) {
+  const m = /^FIREPLAN1\.([\w-]+)\.([\w-]+)$/.exec(String(str || '').replace(/\s+/g, ''));
+  if (!m || !byAdmin(m[2], m[1])) return null;
+  try { const c = JSON.parse(Buffer.from(m[1], 'base64url').toString('utf8')); return c && c.v === 1 && PLANS.includes(c.plan) && /^pl_[0-9a-f]{10}$/.test(c.id) ? c : null; } catch (e) { return null; }
+}
+let planRevCache = { at: 0, set: null };
+async function planRevoked() {
+  if (planRevCache.set && Date.now() - planRevCache.at < 600000) return planRevCache.set;
+  const dr = getConfig().data_repo || null;
+  try {
+    const kf = dr ? await readPublic(APPS_KEYS, dr, null) : null;
+    if (kf && kf.payload && byAdmin(kf.sig, canonJ(kf.payload))) { planRevCache = { at: Date.now(), set: new Set((kf.payload.revoked || []).map(String)) }; saveCache('plan-revoked', [...planRevCache.set]); }
+  } catch (e) { /* hors ligne : dernière liste connue */ }
+  if (!planRevCache.set) planRevCache.set = new Set(loadCache('plan-revoked') || []);
+  return planRevCache.set;
+}
+async function planGet() {
+  const s0 = readSecret('plan.bin');
+  if (!s0 || !s0.key) return { ok: true, plan: null };
+  const c = planParse(s0.key);
+  if (!c) return { ok: true, plan: null, error: 'clé invalide' };
+  if ((await planRevoked()).has(c.id)) return { ok: true, plan: null, revoked: true, who: c.who };
+  return { ok: true, plan: c.plan, who: c.who, id: c.id };
+}
+async function planSet(key) {
+  const c = planParse(key);
+  if (!c) return { ok: false, error: 'ce n’est pas une clé FIRE valide (elle commence par FIREPLAN1.)' };
+  if ((await planRevoked()).has(c.id)) return { ok: false, error: 'cette clé a été retirée par le créateur' };
+  writeSecret('plan.bin', { key: String(key).replace(/\s+/g, '') });
+  return planGet();
+}
+function planClear() { removeFile('plan.bin'); return { ok: true }; }
 // ---------- Mode admin sur le PC du créateur ----------
 // Sur ton PC (et seulement là où ta clé de créateur existe), FIRE crée une fois ta propre clé Kiting + Listen et la pose
 // dans les deux apps : leur menu 🔧 Admin s'ouvre sans rien coller. Un repère dit au launcher de passer en mode admin.
@@ -2080,4 +2133,4 @@ async function appsRelay() {
 const appsRelay0 = appsRelay;
 appsRelay = async function () { const r = await appsRelay0(); try { await launcherRelay(); } catch (e) { /* */ } return r; };
 
-module.exports = { appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
