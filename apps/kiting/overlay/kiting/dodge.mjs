@@ -72,7 +72,8 @@ export class DodgeGame extends KitingGame{
   this.stats.spawned++;return h;
  }
  finishHazard(h){if(!h.hit)this.stats.dodged++;h.active=false;}
- hitHazard(h){if(h.hit)return;h.hit=true;const damage=h.damage||25;this.player.hp=Math.max(0,this.player.hp-damage);this.stats.taken+=damage;this.stats.impacts++;this.lastHit=this.time;this.effect(this.player.x,this.player.y,3);this.events.push('hurt');}
+ hitHazard(h){if(h.hit)return;h.hit=true;const damage=this.player.hp; // Esquive : une touche = mort (one shot)
+ this.player.hp=Math.max(0,this.player.hp-damage);this.stats.taken+=damage;this.stats.impacts++;this.lastHit=this.time;this.effect(this.player.x,this.player.y,3);this.events.push('hurt');}
  step(dt=1/120){
   if(this.paused||this.phase!=='running')return;dt=Math.max(0,Math.min(.05,dt));const oldX=this.player.x,oldY=this.player.y;super.step(dt);if(this.phase!=='running')return;
   if(this.moving)this.facing=Math.atan2(this.player.x-oldX,this.player.y-oldY);

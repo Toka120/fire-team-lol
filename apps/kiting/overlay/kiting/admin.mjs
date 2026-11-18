@@ -126,13 +126,15 @@ function editor(kind, ed) {
       'En scénario, tu poses tout sur la carte : position, sort, direction et seconde de lancement.');
     const dodgeOnly = h('div', null, how, scen, pick, check(d, 'flash', 'Flash autorisé (F)'));
     const kitingOnly = h('div', null, field('Ennemis (avant complexité)', range(d, 'enemies', 1, 32, 1)));
-    const showMode = () => { dodgeOnly.hidden = d.mode !== 'dodge'; kitingOnly.hidden = d.mode === 'dodge'; showScript(); };
+    // Esquive de sorts : une touche = mort, la vie ne sert qu'au kiting.
+    const hpField = field('Vie du joueur', range(d, 'hp', 50, 1000, 25), 'En esquive de sorts, c’est toujours une touche = mort.');
+    const showMode = () => { dodgeOnly.hidden = d.mode !== 'dodge'; kitingOnly.hidden = d.mode === 'dodge'; hpField.hidden = d.mode === 'dodge'; showScript(); };
     form = [field('Nom', text(d, 'name', 40)), field('Description', text(d, 'desc', 200, 'Ex. : Lux et Ahri rapides, sans Flash')),
       field('Exercice', select(d, 'mode', MODES, showMode)),
       field('Vitesse', range(d, 'speedPct', 25, 400, 5, ' %'), 'Vitesse des sorts et des ennemis. 100 % = normal. Plus c’est rapide, plus l’avertissement est court.'),
       cx,
       field('Durée', select(d, 'duration', {0: 'Libre', 30: '30 s', 60: '60 s', 90: '90 s', 120: '2 min', 180: '3 min', 300: '5 min'})),
-      field('Vie du joueur', range(d, 'hp', 50, 1000, 25)), dodgeOnly, kitingOnly];
+      hpField, dodgeOnly, kitingOnly];
     showMode();
   } else if (kind === 'champ') {
     const spells = [...Object.entries(BUILTIN_SPELLS), ...allOf('spell').map((it) => [it.id, it.data.name + (it.published ? '' : ' (brouillon)')])];

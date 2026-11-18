@@ -138,7 +138,7 @@ export function levelCard(it, onPlay, extraButtons) {
   return h('div', {class: 'fa-card'},
     h('div', {class: 'fa-card-h'}, h('b', null, L.name), h('span', {class: 'fa-chip'}, MODES[L.mode])),
     L.desc ? h('p', {class: 'fa-muted'}, L.desc) : null,
-    h('p', {class: 'fa-stats'}, (L.scripted ? `🎬 Scénario : ${L.script.length} sort${L.script.length > 1 ? 's' : ''} placé${L.script.length > 1 ? 's' : ''}` + (L.loop ? ` · en boucle (${L.loop} s)` : '') + ' · ' : '') + `⚡ Vitesse ${L.speedPct} % · ` + (L.scripted && !L.random ? '' : `🧩 Complexité ${L.complexityPct} % · `) + `⏱ ${fmtDur(L.duration)} · ❤ ${L.hp}` + (L.mode === 'dodge' && !L.flash ? ' · sans Flash' : '')),
+    h('p', {class: 'fa-stats'}, (L.scripted ? `🎬 Scénario : ${L.script.length} sort${L.script.length > 1 ? 's' : ''} placé${L.script.length > 1 ? 's' : ''}` + (L.loop ? ` · en boucle (${L.loop} s)` : '') + ' · ' : '') + `⚡ Vitesse ${L.speedPct} % · ` + (L.scripted && !L.random ? '' : `🧩 Complexité ${L.complexityPct} % · `) + `⏱ ${fmtDur(L.duration)} · ` + (L.mode === 'dodge' ? '☠ une touche = mort' : `❤ ${L.hp}`) + (L.mode === 'dodge' && !L.flash ? ' · sans Flash' : '')),
     L.mode === 'dodge' && who.length ? h('p', {class: 'fa-muted'}, 'Personnages : ' + who.join(', ')) : null,
     h('div', {class: 'fa-row'}, h('button', {class: 'fa-btn primary', type: 'button', onclick: onPlay}, '▶ Jouer'), extraButtons || null));
 }
