@@ -9876,7 +9876,10 @@
           return h('div', { class: 'pc-req' }, h('span', { class: st.cls }, st.ico), ' ', h('b', null, vocalName(s)),
             past ? null : h('span', { class: 'pc-req-btns' },
               x.statut !== 'ok' ? h('button', { class: 'plan-btn st-ok', disabled: can ? null : true, onclick: () => act({ type: 'decision', slug: s, statut: 'ok' }) }, '✓ Valider') : null,
-              x.statut !== 'refus' ? h('button', { class: 'plan-btn st-bad', disabled: can ? null : true, onclick: () => act({ type: 'decision', slug: s, statut: 'refus' }) }, '✕ Refuser') : null));
+              x.statut !== 'refus' ? h('button', { class: 'plan-btn st-bad', disabled: can ? null : true, onclick: () => act({ type: 'decision', slug: s, statut: 'refus' }) }, '✕ Refuser') : null),
+            // Le joueur a oublié de retirer sa demande : le coach la supprime à sa place (ce n'est pas un refus).
+            h('button', { class: 'plan-btn pc-del', title: 'Supprimer cette demande à la place du joueur (oubli, plus d’actualité). Ce n’est pas un refus : le créneau redevient libre.', disabled: can ? null : true,
+              onclick: () => { if (confirm(`Supprimer la demande de ${vocalName(s)} pour ${lab} ? Le créneau redevient libre${x.statut === 'ok' ? ' (elle était validée)' : ''}.`)) act({ type: 'retrait', slug: s }); } }, '🗑 Supprimer'));
         })) : null;
         const state = h('span', { class: 'pc-state' },
           oks.length ? h('span', { class: 'st-ok' }, `✅ ${oks.map(([s]) => vocalName(s)).join(', ')}`) : null,

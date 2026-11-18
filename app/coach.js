@@ -742,19 +742,20 @@ async function planning() {
 //          { type: 'dispos', coach, debut, jours: { 'AAAA-MM-JJ': { heures, note } } } (coach : ses dispos sur 7 jours)
 //          { type: 'demande', date, coach, heure, slug, on, note } (joueur : demande ou retire sa demande d'un créneau)
 //          { type: 'decision', date, coach, heure, slug, statut } (coach : ok / refus / attente)
+//          { type: 'retrait', date, coach, heure, slug } (coach : supprime la demande d'un joueur qui a oublié de la retirer)
 async function savePlanning(action) {
   const dr = getConfig().data_repo || null;
   const isCoach = coachState().coach;
   const c = readSecret('coach.bin') || {};
   const tok = dr ? await teamToken() : null;
-  const coachPart = ['dispos', 'demande', 'decision'].includes(action.type);
+  const coachPart = ['dispos', 'demande', 'decision', 'retrait'].includes(action.type);
   let repo, token, file, other;
   if (dr && tok) { repo = dr; token = tok; file = coachPart ? PLANNING_C_DATA : 'planning.json'; other = coachPart ? 'planning.json' : PLANNING_C_DATA; }
   else if (isCoach && c.github) { repo = REPO; token = c.github; file = coachPart ? PLANNING_C : PLANNING; other = coachPart ? PLANNING : PLANNING_C; }
   else return { ok: false, error: dr ? "le coach n'a pas encore activé les réponses des joueurs (jeton d'équipe)" : 'réservé au coach' };
   if (action.type === 'semaine' && !isCoach && !chefOn()) return { ok: false, error: "réservé au coach et au chef d'équipe" };
-  if ((action.type === 'dispos' || action.type === 'decision') && !isCoach) return { ok: false, error: 'réservé aux coachs (code coach)' };
-  if (['dispos', 'demande', 'decision'].includes(action.type) && !coachSlugs().includes(action.coach)) return { ok: false, error: 'coach inconnu' };
+  if (['dispos', 'decision', 'retrait'].includes(action.type) && !isCoach) return { ok: false, error: 'réservé aux coachs (code coach)' };
+  if (['dispos', 'demande', 'decision', 'retrait'].includes(action.type) && !coachSlugs().includes(action.coach)) return { ok: false, error: 'coach inconnu' };
   try {
     for (let i = 0; i < 4; i++) {
       const cur = await ghGet(token, file, repo);
@@ -794,6 +795,13 @@ async function savePlanning(action) {
           if (cj && cj.heures.length) d.coachs[day][action.coach] = { heures: cj.heures, note: cj.note, maj: cj.maj };
           else delete d.coachs[day][action.coach];
         }
+      } else if (action.type === 'retrait') {
+        // Le coach retire la demande d'un joueur (oubliée, plus d'actualité), même si le créneau n'est plus proposé.
+        const slug = String(action.slug || '').slice(0, 80);
+        const hr = parseInt(action.heure, 10);
+        const slot = (((d.resas[action.date] || {})[action.coach]) || {})[hr];
+        if (!slot || !slot[slug]) throw new Error("cette demande n'existe plus");
+        delete slot[slug];
       } else if (action.type === 'demande' || action.type === 'decision') {
         const slug = String(action.slug || '').slice(0, 80);
         const hr = parseInt(action.heure, 10);
@@ -814,7 +822,7 @@ async function savePlanning(action) {
       } else throw new Error('action inconnue');
       d = prunePlanning(d);
       const box = coachPart ? seal({ coachs: d.coachs, resas: d.resas }, 'planning-coachs') : seal({ jours: d.jours, reponses: d.reponses }, 'planning');
-      const msg = { reponse: 'Planning : réponse', semaine: 'Planning : semaine', dispos: 'Planning coachs : dispos', demande: 'Planning coachs : demande', decision: 'Planning coachs : décision' }[action.type];
+      const msg = { reponse: 'Planning : réponse', semaine: 'Planning : semaine', dispos: 'Planning coachs : dispos', demande: 'Planning coachs : demande', decision: 'Planning coachs : décision', retrait: 'Planning coachs : demande retirée par le coach' }[action.type];
       const r = await ghPut(token, file, box, cur && cur.sha, msg, repo);
       if (r.ok) { saveCache(coachPart ? 'planning-coachs' : 'planning', box); return { ok: true, ...d }; }
     }

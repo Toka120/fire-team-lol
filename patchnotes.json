@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "2.0.10",
+   "date": "2026-11-18",
+   "titre": "Les coachs peuvent retirer une demande oubliée",
+   "items": [
+    [
+     "new",
+     "Planning › Coachs : sur chaque demande de créneau, le coach a un bouton « 🗑 Supprimer ». Il retire la demande à la place du joueur qui a oublié de le faire."
+    ],
+    [
+     "improve",
+     "Ce n’est pas un refus : la demande disparaît et le créneau redevient libre, même si elle était déjà validée. Une confirmation est demandée avant."
+    ]
+   ]
+  },
+  {
    "v": "2.0.9",
    "date": "2026-11-18",
    "titre": "Studio du launcher",

@@ -3578,3 +3578,4 @@ html[data-lite] #fire-pet,html[data-lite] .acc-tick,html[data-lite] #fire-fx,htm
 .ann-kicker.priv{color:#c9a7ff}
 .ann-for{font-size:12px;opacity:.75;margin:-4px 0 6px}
 .ann-priv{border-color:#9b6bff55}
+.plan-btn.pc-del{border-color:transparent;background:none;color:var(--muted,#aaa);font-weight:600}.plan-btn.pc-del:hover:not(:disabled){color:#ff8a80;border-color:#ff8a8055}
