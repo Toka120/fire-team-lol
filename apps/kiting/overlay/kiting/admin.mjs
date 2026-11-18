@@ -2,6 +2,7 @@
 // Ouvert avec une clé donnée par le créateur. Les créations restent en brouillon sur ce PC jusqu'à « Publier ».
 import * as FA from '../fire-admin.mjs';
 import {TEAM, BUILTIN_CHARS, BUILTIN_SPELLS, SHAPES, MODES, FireLevel, cleanLevel, cleanChamp, cleanSpell, loadTeam, levelCard} from './team.mjs';
+import {scriptEditor} from './level-editor.mjs';
 
 const {h, toast} = FA;
 const DKEY = 'fire.kiting.admin.drafts';
@@ -105,15 +106,31 @@ function editor(kind, ed) {
   let form;
   if (kind === 'level') {
     const casters = [...Object.entries(BUILTIN_CHARS).map(([id, c]) => [id, c.name]), ...allOf('champ').map((it) => [it.id, it.data.name + (it.published ? '' : ' (brouillon)')])];
-    const dodgeOnly = h('div', null,
-      field('Personnages qui attaquent', multi(casters, d.casters, (id) => toggle(d.casters, id)), 'Chacun lance ses propres sorts.'),
-      check(d, 'flash', 'Flash autorisé (F)'));
+    const spellList = [...Object.entries(BUILTIN_SPELLS), ...allOf('spell').map((it) => [it.id, it.data.name + (it.published ? '' : ' (brouillon)')])];
+    const spellsOf = (id) => (BUILTIN_CHARS[id] ? BUILTIN_CHARS[id].spells : ((allOf('champ').find((x) => x.id === id) || {}).data || {}).spells || []).filter((sid) => spellList.some(([x]) => x === sid));
+    // Les sorts et personnages en brouillon doivent exister dans le jeu pour s'afficher sur la carte.
+    try { FireLevel.prepare(draftContent()); } catch { /* */ }
+    const pick = field('Personnages qui attaquent', multi(casters, d.casters, (id) => toggle(d.casters, id)), 'Chacun lance ses propres sorts, au hasard, selon la complexité.');
+    const cx = field('Complexité', range(d, 'complexityPct', 25, 400, 5, ' %'), 'Fréquence des sorts (plusieurs à la fois au-delà de 150 %), nombre et dégâts des ennemis.');
+    const scen = h('div', {class: 'le-host'});
+    let built = false;
+    const showScript = () => {
+      const sc = !!d.scripted;
+      if (sc && !built) { scen.replaceChildren(scriptEditor(d, {casters, spells: spellList, spellsOf, onChange: showScript})); built = true; }
+      scen.hidden = !sc;
+      pick.hidden = sc && !d.random; cx.hidden = sc && !d.random && d.mode === 'dodge';
+    };
+    const how = field('Comment arrivent les sorts ?', h('select', {class: 'fa-inp', onchange: (e) => { d.scripted = e.target.value === 'script'; showScript(); }},
+        h('option', {value: 'random', selected: !d.scripted}, 'Au hasard : les personnages choisis tirent sur toi'),
+        h('option', {value: 'script', selected: !!d.scripted}, 'Scénario : je place chaque ennemi, son sort et sa direction')),
+      'En scénario, tu poses tout sur la carte : position, sort, direction et seconde de lancement.');
+    const dodgeOnly = h('div', null, how, scen, pick, check(d, 'flash', 'Flash autorisé (F)'));
     const kitingOnly = h('div', null, field('Ennemis (avant complexité)', range(d, 'enemies', 1, 32, 1)));
-    const showMode = () => { dodgeOnly.hidden = d.mode !== 'dodge'; kitingOnly.hidden = d.mode === 'dodge'; };
+    const showMode = () => { dodgeOnly.hidden = d.mode !== 'dodge'; kitingOnly.hidden = d.mode === 'dodge'; showScript(); };
     form = [field('Nom', text(d, 'name', 40)), field('Description', text(d, 'desc', 200, 'Ex. : Lux et Ahri rapides, sans Flash')),
       field('Exercice', select(d, 'mode', MODES, showMode)),
       field('Vitesse', range(d, 'speedPct', 25, 400, 5, ' %'), 'Vitesse des sorts et des ennemis. 100 % = normal. Plus c’est rapide, plus l’avertissement est court.'),
-      field('Complexité', range(d, 'complexityPct', 25, 400, 5, ' %'), 'Fréquence des sorts (plusieurs à la fois au-delà de 150 %), nombre et dégâts des ennemis.'),
+      cx,
       field('Durée', select(d, 'duration', {0: 'Libre', 30: '30 s', 60: '60 s', 90: '90 s', 120: '2 min', 180: '3 min', 300: '5 min'})),
       field('Vie du joueur', range(d, 'hp', 50, 1000, 25)), dodgeOnly, kitingOnly];
     showMode();
@@ -177,7 +194,7 @@ async function publishOne(kind, id) {
   const queue = [];
   const needSpell = (sid) => { if (all.spell[sid] && !queue.some((q) => q.id === sid)) queue.push({kind: 'spell', id: sid, data: all.spell[sid]}); };
   const needChamp = (cid) => { if (all.champ[cid] && !queue.some((q) => q.id === cid)) { for (const s of all.champ[cid].spells || []) needSpell(s); queue.push({kind: 'champ', id: cid, data: all.champ[cid]}); } };
-  if (kind === 'level') for (const c of data.casters || []) needChamp(c);
+  if (kind === 'level') { for (const c of data.casters || []) needChamp(c); for (const e of (data.scripted && data.script) || []) { needChamp(e.c); needSpell(e.s); } }
   if (kind === 'champ') for (const s of data.spells || []) needSpell(s);
   if (!queue.some((q) => q.id === id)) queue.push({kind, id, data});
   try {

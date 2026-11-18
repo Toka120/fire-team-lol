@@ -1,6 +1,7 @@
 // FIRE Kiting — contenus de l'équipe : niveaux, personnages et sorts publiés depuis le menu admin.
 // Tout est vérifié (signature d'une clé admin donnée par le créateur) avant d'être utilisé.
 import {registerSpell, SPELLS, BEHAVES} from './dodge.mjs';
+import {WORLD} from './engine.mjs';
 import {registerCharacter} from './dodge-scene.mjs';
 import * as FA from '../fire-admin.mjs';
 
@@ -35,10 +36,27 @@ export function cleanChamp(d = {}) {
       tails: num(st.tails, 0, 9, 0), size: num(st.size, 70, 160, 100), weapon: ['none', 'staff', 'sword', 'bow', 'gauntlet', 'orb'].includes(st.weapon) ? st.weapon : 'none'},
     spells: (Array.isArray(d.spells) ? d.spells : []).map(String).slice(0, 8)};
 }
+// Scénario : jusqu'à 200 sorts placés à la main. t = seconde de lancement, c = personnage, s = sort, (x, y) = lanceur,
+// (ax, ay) = point visé, aim = « fixed » (direction choisie) ou « player » (vise le joueur au moment du lancement).
+const id24 = (v) => String(v || '').replace(/[^\w-]/g, '').slice(0, 24);
+const round = (v) => Math.round(v * 10) / 10;
+export function cleanEvent(e = {}) {
+  const x = num(e.x, 0, WORLD.w, 800), y = num(e.y, 0, WORLD.h, 667);
+  return {t: round(num(e.t, 0, 600, 0)), c: id24(e.c) || 'lux', s: id24(e.s) || 'mystic', x: Math.round(x), y: Math.round(y),
+    ax: Math.round(num(e.ax, 0, WORLD.w, x + 200)), ay: Math.round(num(e.ay, 0, WORLD.h, y)), aim: e.aim === 'player' ? 'player' : 'fixed'};
+}
 export function cleanLevel(d = {}) {
-  return {name: String(d.name || 'Niveau').slice(0, 40), desc: String(d.desc || '').slice(0, 200), mode: MODES[d.mode] ? d.mode : 'dodge',
+  const L = {name: String(d.name || 'Niveau').slice(0, 40), desc: String(d.desc || '').slice(0, 200), mode: MODES[d.mode] ? d.mode : 'dodge',
     speedPct: num(d.speedPct, 25, 400, 100), complexityPct: num(d.complexityPct, 25, 400, 100), duration: num(d.duration, 0, 600, 60), hp: num(d.hp, 50, 2000, 300),
     flash: d.flash !== false, enemies: num(d.enemies, 1, 64, 6), casters: (Array.isArray(d.casters) ? d.casters : []).map(String).slice(0, 16)};
+  if (d.scripted) {
+    L.scripted = true;
+    L.script = (Array.isArray(d.script) ? d.script : []).slice(0, 200).map(cleanEvent).sort((a, b) => a.t - b.t);
+    L.start = d.start && Number.isFinite(Number(d.start.x)) ? {x: Math.round(num(d.start.x, 0, WORLD.w, 763)), y: Math.round(num(d.start.y, 0, WORLD.h, 634))} : null;
+    L.loop = num(d.loop, 0, 600, 0);
+    L.random = !!d.random;
+  }
+  return L;
 }
 
 // Enregistre des sorts et personnages (publiés, ou brouillons de l'admin pour un essai).
@@ -64,14 +82,19 @@ export const FireLevel = {
   apply(base) {
     const L = cleanLevel(this.active);
     const c = {...base, mode: L.mode, duration: L.duration, speedPct: L.speedPct, complexityPct: L.complexityPct, hp: L.hp, level: this.active.id || 'essai'};
-    if (L.mode === 'dodge') { c.pool = poolFor(L.casters); c.noFlash = !L.flash; }
+    if (L.mode === 'dodge') {
+      c.pool = poolFor(L.casters); c.noFlash = !L.flash;
+      if (L.scripted) { c.script = L.script; c.start = L.start; c.scriptLoop = L.loop; c.scriptRandom = L.random; }
+    }
     else c.enemies = Math.max(1, Math.min(128, Math.round(L.enemies * L.complexityPct / 100)));
     return c;
   },
   clear() { this.active = null; badge(); },
+  // Rend disponibles les brouillons de l'admin (sorts, personnages) avant un essai ou dans l'éditeur.
+  prepare(draft) { if (draft) { useContent(draft.spells || [], draft.champs || []); for (const c of draft.champs || []) extra.champs.set(c.id, c.data); } },
   // Joue un niveau. « draft » : brouillon de l'admin (personnages et sorts pas encore publiés).
   play(level, draft) {
-    if (draft) { useContent(draft.spells || [], draft.champs || []); for (const c of draft.champs || []) extra.champs.set(c.id, c.data); }
+    this.prepare(draft);
     this.active = {...cleanLevel(level.data || level), id: level.id, name: (level.data || level).name};
     const mode = $('mode');
     mode.value = this.active.mode; mode.dispatchEvent(new Event('input', {bubbles: true}));
@@ -105,11 +128,11 @@ export async function loadTeam() {
 const fmtDur = (s) => (s ? s + ' s' : 'libre');
 export function levelCard(it, onPlay, extraButtons) {
   const L = cleanLevel(it.data);
-  const who = (L.casters || []).map((id) => champById(id)?.name).filter(Boolean);
+  const who = (L.scripted ? [...new Set(L.script.map((e) => e.c))] : (L.casters || [])).map((id) => champById(id)?.name).filter(Boolean);
   return h('div', {class: 'fa-card'},
     h('div', {class: 'fa-card-h'}, h('b', null, L.name), h('span', {class: 'fa-chip'}, MODES[L.mode])),
     L.desc ? h('p', {class: 'fa-muted'}, L.desc) : null,
-    h('p', {class: 'fa-stats'}, `⚡ Vitesse ${L.speedPct} % · 🧩 Complexité ${L.complexityPct} % · ⏱ ${fmtDur(L.duration)} · ❤ ${L.hp}` + (L.mode === 'dodge' && !L.flash ? ' · sans Flash' : '')),
+    h('p', {class: 'fa-stats'}, (L.scripted ? `🎬 Scénario : ${L.script.length} sort${L.script.length > 1 ? 's' : ''} placé${L.script.length > 1 ? 's' : ''}` + (L.loop ? ` · en boucle (${L.loop} s)` : '') + ' · ' : '') + `⚡ Vitesse ${L.speedPct} % · ` + (L.scripted && !L.random ? '' : `🧩 Complexité ${L.complexityPct} % · `) + `⏱ ${fmtDur(L.duration)} · ❤ ${L.hp}` + (L.mode === 'dodge' && !L.flash ? ' · sans Flash' : '')),
     L.mode === 'dodge' && who.length ? h('p', {class: 'fa-muted'}, 'Personnages : ' + who.join(', ')) : null,
     h('div', {class: 'fa-row'}, h('button', {class: 'fa-btn primary', type: 'button', onclick: onPlay}, '▶ Jouer'), extraButtons || null));
 }
