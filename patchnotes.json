@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "2.0.8",
+   "date": "2026-11-18",
+   "titre": "Le launcher reconnaît enfin ta version",
+   "items": [
+    [
+     "fix",
+     "FIRE Launcher : il annonçait une mise à jour vers la version que tu avais déjà. Il lit maintenant la version installée directement dans les fichiers de FIRE Team, avec trois vérifications de secours."
+    ],
+    [
+     "improve",
+     "FIRE Team indique au launcher la version exacte qui tourne à chaque démarrage."
+    ],
+    [
+     "improve",
+     "Si la version ne peut vraiment pas être lue, le launcher ne force plus de mise à jour : il affiche « version non lue » et le bouton 🔧 Réparer permet de réinstaller la dernière."
+    ],
+    [
+     "new",
+     "FIRE Kiting (menu admin) : éditeur de scénario pour l’Esquive de sorts. Pose chaque ennemi où tu veux sur la carte du mid, tire la flèche dans la direction de son sort, choisis le personnage, le sort et la seconde de lancement."
+    ],
+    [
+     "new",
+     "Dans l’éditeur : point de départ du joueur, « vise le joueur » ou direction fixe, dupliquer, copie en miroir, scénario en boucle, et sorts au hasard en plus si tu veux."
+    ]
+   ]
+  },
+  {
    "v": "2.0.7",
    "date": "2026-11-18",
    "titre": "Clips sans bruit de clavier + mode admin sur ton PC",
