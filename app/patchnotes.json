@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "2.0.13",
+   "date": "2026-11-18",
+   "titre": "Équipes : la page des fans",
+   "items": [
+    [
+     "new",
+     "Nouvelle rubrique 🌐 Équipes, ouverte à tous, y compris en version Basique : la page publique d’Alpha, avec la composition, les rangs, les 3 champions les plus joués, les prochains matchs, les résultats, les actus et les clips choisis."
+    ],
+    [
+     "new",
+     "Bouton « ⭐ Suivre » : les fans reçoivent une notification à chaque nouvelle actu et à chaque résultat de l’équipe qu’ils suivent. Un badge apparaît aussi dans le menu."
+    ],
+    [
+     "new",
+     "Admin › Page publique : description, chaîne Twitch, matchs à venir et résultats (victoire, défaite, score), actus pour les fans et liens de clips. La composition se remplit toute seule. Tout est signé avec la clé du créateur."
+    ],
+    [
+     "new",
+     "Paramètres › Mon compte : chaque joueur choisit d’apparaître ou non sur la page publique. Sans son accord, il est affiché « Joueur » avec son poste."
+    ],
+    [
+     "improve",
+     "Rien de privé ne sort : ni le winrate ou le KDA détaillés, ni le #tag Riot, ni les discussions, ni le planning, ni le coaching."
+    ]
+   ]
+  },
+  {
    "v": "2.0.12",
    "date": "2026-11-18",
    "titre": "Les formules : Basique, Premium Joueur, Premium Élite",

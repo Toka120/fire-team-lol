@@ -3600,3 +3600,22 @@ html[data-lite] #fire-pet,html[data-lite] .acc-tick,html[data-lite] #fire-fx,htm
 .shop-it.locked{opacity:.5}
 .shop-it.locked .shop-tag{color:var(--muted,#aaa)}
 .adm-basic{display:flex;flex-direction:column;gap:4px;margin:6px 0}
+/* Équipes : page publique pour les fans */
+.pub-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.pub-id{display:flex;gap:16px;align-items:center}
+.pub-logo{width:64px;height:64px;border-radius:16px;display:grid;place-items:center;font-weight:900;font-size:20px;background:linear-gradient(135deg,var(--accent,#f5a623),#ff5e3a);color:#120a04}
+.pub-id h2{margin:0;display:flex;align-items:center;gap:10px}
+.pub-roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.pub-pl{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.pub-role{font-size:22px;line-height:1}
+.pub-ch{display:flex;gap:4px;margin-top:6px}
+.pub-m,.pub-n{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line)}
+.pub-m:last-child,.pub-n:last-child{border-bottom:0}
+.pub-n{align-items:baseline}
+.pub-n p{flex-basis:100%;margin:2px 0 0}
+.pub-res{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;font-weight:800;font-size:12px}
+.pub-m.win .pub-res{background:#2e7d4f;color:#fff}
+.pub-m.loss .pub-res{background:#8a2f2f;color:#fff}
+.pub-clips{display:flex;flex-wrap:wrap;gap:8px}
+.pub-clip{padding:8px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);text-decoration:none;color:inherit}
+.pub-clip:hover{border-color:var(--accent,#f5a623)}

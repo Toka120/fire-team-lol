@@ -1575,6 +1575,8 @@
     C.access = S.basic ? planCardEl() : h('div', { class: 'card settings-card' },
         h('h2', null, '🔐 Accès'),
         row('Formule', 'Premium Élite (équipe Alpha)'),
+        S.moi && window.fire.pub && !SUB() && S.players.some((p) => p.slug === S.moi) || (S.moi && (S.coachs || []).some((c) => c.slug === S.moi)) ? h('label', { class: 'vs-sw' }, h('span', null, h('b', null, '🌐 Apparaître sur la page publique'), h('small', null, 'Les fans voient ton pseudo (sans le #), ton rang et tes 3 champions les plus joués. Sinon, tu apparais « Joueur » avec ton poste.')),
+          h('input', { type: 'checkbox', class: 'vs-tog', checked: load('fire.pub.me', false) ? true : null, onchange: async (e) => { const on = e.target.checked; const r = await window.fire.pub.optin(S.moi, on).catch((er) => ({ ok: false, error: String(er) })); if (r && r.ok) { save('fire.pub.me', on); popup('🌐 Page publique', on ? 'C’est noté : tu apparaîtras à la prochaine mise à jour de la page.' : 'C’est noté : tu n’apparaîtras plus, à la prochaine mise à jour de la page.', null); } else { e.target.checked = !on; popup('⚠ Page publique', (r && r.error) || 'Impossible d’enregistrer ton choix.', null); } } })) : null,
         row("Code d'équipe", 'enregistré sur cet ordinateur ✓'),
         row('Mode coach', st.coach ? `activé (Claude ${st.claude ? '✓' : '✗'} · GitHub ${st.github ? '✓' : '✗'})` : 'non activé'),
         coachAccess());
@@ -3097,7 +3099,7 @@
   // ===== Carnet de bord (staff) : ce que fait chaque membre dans FIRE, notes du staff, modération, rôles =====
   // Chaque FIRE note ses actions (pages ouvertes, messages, vocal, planning, POOL, quiz, clips…) et les envoie toutes les
   // 3 minutes dans le fichier d'activité du joueur (chiffré avec le code d'équipe). Le contenu des messages privés n'est jamais noté.
-  const PAGE_NAMES = { annonces: 'Annonces', boutique: 'Boutique', accueil: 'Accueil', apprendre: 'Apprendre en jouant', puzdraft: 'Puzzles de draft', puzzle: 'Puzzle du jour', stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
+  const PAGE_NAMES = { equipes: 'Équipes', annonces: 'Annonces', boutique: 'Boutique', accueil: 'Accueil', apprendre: 'Apprendre en jouant', puzdraft: 'Puzzles de draft', puzzle: 'Puzzle du jour', stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente', guides: 'Lanes et principes',
     coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', puzzle: 'Puzzle du jour', apprendre: 'Apprendre en jouant', puzdraft: 'Puzzles de draft', scrims: 'Scrims', stream: 'Stream Twitch', revue: 'Revue de parties', web: 'navigateur' };
   const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
   function actLog(k, d) {
@@ -3494,6 +3496,7 @@
     else if (S.section === 'carnet') renderCarnet();
     else if (S.section === 'annonces') renderAnnonces();
     else if (S.section === 'boutique') renderBoutique();
+    else if (S.section === 'equipes') renderEquipes();
     else if (S.section === 'clips') renderClipsPage();
     else if (S.section === 'reunion') renderReunion();
     else if (S.section === 'outils') renderOutils();
@@ -7561,7 +7564,7 @@
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
     const items = [['accueil', '🏠', 'Accueil'], ['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
-      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips', cfUnseen() || null], ['boutique', '🛍️', 'Boutique', shopNew() ? 'NEW' : null], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['apprendre', '🎓', 'Apprendre en jouant'], ['puzdraft', '🧩', 'Puzzles de draft', pzDue() ? '!' : null], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
+      ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips', cfUnseen() || null], ['boutique', '🛍️', 'Boutique', shopNew() ? 'NEW' : null], ['equipes', '🌐', 'Équipes', pubUnseen() || null], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['apprendre', '🎓', 'Apprendre en jouant'], ['puzdraft', '🧩', 'Puzzles de draft', pzDue() ? '!' : null], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
       ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(annMine() ? [['annonces', '📢', 'Annonces']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', bugRepUnseen() ? String(bugRepUnseen()) : patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
     if (S.basic) { const keep = items.filter(([id]) => !['admin', 'annonces', 'carnet', 'reunion'].includes(id)); items.length = 0; items.push(...keep); }
@@ -10668,6 +10671,7 @@
     }
   }
   function chatPaint(live) {
+    if (S.basic) { if (CH.el) CH.el.hidden = true; return; } // version Basique : pas de discussion d'équipe
     if (!S.players || !S.players.length || !window.fire.chat) return;
     if (!CH.el) {
       CH.list = h('div', { class: 'chat-list', role: 'log', 'aria-live': 'polite' });
@@ -11521,13 +11525,84 @@
           h('button', { class: 'linkbtn small', onclick: () => revoke(k, !k.revoked) }, k.revoked ? '↺ Rétablir' : '🚫 Retirer'))))) : h('p', { class: 'muted small' }, 'Aucune clé pour l’instant.'),
       h('p', { class: 'muted small' }, 'Les créations de l’admin sont envoyées à l’équipe par FIRE Team ouvert sur son PC (il doit être connecté avec le code d’équipe).'));
   }
+  // ----- Admin › Page publique : ce que les fans voient de l'équipe -----
+  // La composition se remplit toute seule (joueurs d'accord seulement) ; tu ajoutes la description, les actus, les matchs et les clips.
+  const PA = { d: null, optin: null, busy: false, msg: '', m: { vs: '', event: '', date: '', time: '20:00' }, n: { t: '', txt: '' }, c: { title: '', url: '' } };
+  function pubDraft() {
+    if (PA.d) return PA.d;
+    const t0 = ((PUB.page && PUB.page.teams) || []).find((t) => t.id === 'alpha');
+    PA.d = load('fire.pub.draft', null) || { id: 'alpha', name: 'Alpha', tag: 'FIRE', desc: (t0 && t0.desc) || 'L’équipe principale de FIRE.', twitch: (t0 && t0.twitch) || TWITCH.ch,
+      news: (t0 && t0.news) || [], matches: (t0 && t0.matches) || [], clips: (t0 && t0.clips) || [] };
+    return PA.d;
+  }
+  const pubKeep = () => save('fire.pub.draft', PA.d);
+  // Joueurs de l'équipe (titulaires) : seuls ceux qui ont dit oui apparaissent avec leur pseudo, leur rang et 3 champions.
+  function pubRoster() {
+    const ok = PA.optin || {};
+    const players = S.players.filter((p) => p.slug && !p.pending && !isSub(p)).map((p) => {
+      if (!ok[p.slug]) return { name: 'Joueur', role: p.role_id || '' };
+      const d = S.data[p.slug] || {};
+      const champs = (d.champs || []).slice().sort((a, b) => (b.games || 0) - (a.games || 0)).slice(0, 3).map((c) => c.id).filter(Boolean);
+      return { name: shortName(p.pseudo), role: p.role_id || '', rank: String(d.rank || '').replace(/\s*\(ancien compte\)/, ''), champs };
+    });
+    return { players, coachs: (S.coachs || []).filter((c) => ok[c.slug]).map((c) => shortName(c.pseudo)) };
+  }
+  function pubAdminTab() {
+    const D = pubDraft();
+    if (PA.optin === null) { PA.optin = {}; window.fire.pub.optins().then((r) => { PA.optin = (r && r.optin) || {}; if (S.section === 'admin' && ADM.tab === 'pub') renderAdmin(); }).catch(() => {}); }
+    if (!PUB.page && !PUB.loading && !PUB.at) pubLoad(false);
+    const R = pubRoster();
+    const fld = (label, el) => h('label', { class: 'adm-f' }, h('b', null, label), el);
+    const inp = (o, k, max, ph) => h('input', { class: 'inp', value: o[k] || '', maxlength: max, placeholder: ph || '', oninput: (e) => { o[k] = e.target.value; if (o === D) pubKeep(); } });
+    const del = (list, i) => h('button', { class: 'linkbtn small', onclick: () => { list.splice(i, 1); pubKeep(); renderAdmin(); } }, '🗑');
+    const publish = async () => {
+      if (!confirm('Publier la page publique d’Alpha ? Tout le monde pourra la voir dans « Équipes ».')) return;
+      PA.busy = true; PA.msg = 'Publication…'; renderAdmin();
+      const page = { teams: [{ ...D, ...R }] };
+      const r = await window.fire.pub.post(page).catch((e) => ({ ok: false, error: String(e) }));
+      PA.busy = false;
+      if (r && r.ok) { PUB.page = r.page; PA.msg = '✅ Page publiée : les fans la voient tout de suite.'; } else PA.msg = '⚠ ' + ((r && r.error) || 'publication impossible');
+      renderAdmin(); renderNav();
+    };
+    return h('div', { class: 'adm-sec' },
+      h('p', { class: 'muted small' }, 'Ce que les fans voient d’Alpha dans « 🌐 Équipes », en version Basique comme dans l’équipe. Rien d’autre ne sort : ni les discussions, ni le planning, ni le coaching. Signé avec ta clé de créateur.'),
+      h('div', { class: 'card adm-grp' }, h('b', null, '🏷️ L’équipe'),
+        h('div', { class: 'row' }, fld('Nom', inp(D, 'name', 30)), fld('Sigle', inp(D, 'tag', 8, 'FIRE')), fld('Chaîne Twitch', inp(D, 'twitch', 30, 'toks42o'))),
+        fld('Description', inp(D, 'desc', 300, 'L’équipe principale de FIRE.'))),
+      h('div', { class: 'card adm-grp' }, h('b', null, '👥 Composition (automatique)'),
+        h('p', { class: 'muted small' }, 'Chaque joueur choisit dans Paramètres › Mon compte s’il apparaît. Sinon, il est affiché « Joueur » avec son poste. Le rang et les 3 champions viennent de ses stats.'),
+        h('div', { class: 'pub-roster' }, R.players.map((p) => h('div', { class: 'pub-pl' }, h('span', { class: 'pub-role' }, (FC.ROLES[p.role] || {}).ico || '🎮'), h('div', null, h('b', null, p.name), p.rank ? h('div', { class: 'small' }, p.rank) : null,
+          (p.champs || []).length ? h('div', { class: 'pub-ch' }, p.champs.map((c) => champIcon(c, 22))) : null))))),
+      h('div', { class: 'card adm-grp' }, h('b', null, '📅 Matchs et résultats'),
+        h('div', { class: 'row' }, inp(PA.m, 'vs', 40, 'Adversaire'), inp(PA.m, 'event', 60, 'Compétition (facultatif)'),
+          h('input', { class: 'inp', type: 'date', value: PA.m.date, onchange: (e) => { PA.m.date = e.target.value; } }), h('input', { class: 'inp', type: 'time', value: PA.m.time, onchange: (e) => { PA.m.time = e.target.value; } }),
+          h('button', { class: 'btn-fire small-btn', onclick: () => { if (!PA.m.vs.trim() || !PA.m.date) { PA.msg = '⚠ Indique l’adversaire et la date.'; renderAdmin(); return; }
+            D.matches.push({ id: 'm' + Date.now().toString(36), at: new Date(`${PA.m.date}T${PA.m.time || '20:00'}:00`).getTime(), vs: PA.m.vs.trim(), event: PA.m.event.trim(), res: '', score: '' }); PA.m = { vs: '', event: '', date: '', time: '20:00' }; pubKeep(); renderAdmin(); } }, '➕ Ajouter')),
+        D.matches.slice().sort((a, b) => b.at - a.at).map((m) => { const i = D.matches.indexOf(m);
+          return h('div', { class: 'row pub-m' }, h('b', null, 'contre ' + m.vs), h('span', { class: 'muted small' }, pubWhen(m.at) + (m.event ? ' · ' + m.event : '')),
+            h('select', { class: 'inp', style: 'max-width:150px', onchange: (e) => { m.res = e.target.value; pubKeep(); } }, [['', 'À venir'], ['V', '🏆 Victoire'], ['D', '💔 Défaite']].map(([v, l]) => h('option', { value: v, selected: m.res === v ? true : null }, l))),
+            h('input', { class: 'inp', style: 'max-width:90px', value: m.score || '', maxlength: 10, placeholder: '2-1', oninput: (e) => { m.score = e.target.value; pubKeep(); } }), del(D.matches, i)); })),
+      h('div', { class: 'card adm-grp' }, h('b', null, '📰 Actus pour les fans'),
+        h('div', { class: 'row' }, inp(PA.n, 't', 80, 'Titre'), inp(PA.n, 'txt', 500, 'Texte (facultatif)'),
+          h('button', { class: 'btn-fire small-btn', onclick: () => { if (!PA.n.t.trim()) return; D.news.push({ id: 'n' + Date.now().toString(36), t: PA.n.t.trim(), txt: PA.n.txt.trim(), at: Date.now() }); PA.n = { t: '', txt: '' }; pubKeep(); renderAdmin(); } }, '➕ Ajouter')),
+        D.news.slice().sort((a, b) => b.at - a.at).map((n) => h('div', { class: 'row pub-n' }, h('b', null, n.t), h('span', { class: 'muted small' }, n.txt.slice(0, 80)), del(D.news, D.news.indexOf(n))))),
+      h('div', { class: 'card adm-grp' }, h('b', null, '🎬 Clips à montrer'),
+        h('p', { class: 'muted small' }, 'Un lien vers un clip public (YouTube, Twitch, Medal…). Les clips de FIRE restent privés tant que tu ne les publies pas ailleurs.'),
+        h('div', { class: 'row' }, inp(PA.c, 'title', 80, 'Titre'), inp(PA.c, 'url', 300, 'https://…'),
+          h('button', { class: 'btn-fire small-btn', onclick: () => { if (!/^https:\/\//.test(PA.c.url.trim())) { PA.msg = '⚠ Le lien doit commencer par https://'; renderAdmin(); return; } D.clips.push({ id: 'c' + Date.now().toString(36), title: PA.c.title.trim(), url: PA.c.url.trim() }); PA.c = { title: '', url: '' }; pubKeep(); renderAdmin(); } }, '➕ Ajouter')),
+        D.clips.map((c, i) => h('div', { class: 'row pub-n' }, h('b', null, c.title || 'Clip'), h('span', { class: 'muted small' }, c.url), del(D.clips, i)))),
+      h('div', { class: 'row' }, h('button', { class: 'btn-fire', disabled: PA.busy ? true : null, onclick: publish }, '📤 Publier la page publique'),
+        h('button', { class: 'btn-ghost', onclick: () => go('equipes') }, '👁 Voir comme un fan'),
+        PUB.page && PUB.page.at ? h('span', { class: 'muted small' }, 'Dernière publication : ' + pubWhen(PUB.page.at)) : h('span', { class: 'muted small' }, 'Pas encore publiée.')),
+      PA.msg ? h('p', { class: 'small' }, PA.msg) : null);
+  }
   function renderAdmin() {
     const view = $('view');
     if (!isAdmin()) { view.replaceChildren(h('div', { class: 'card' }, h('p', null, '🛠️ Le menu Admin est réservé au créateur de FIRE, sur son PC.'))); return; }
     admOpen();
     const D = ADM.draft;
     const set = (patch) => { Object.assign(D, patch); if (ADM.preview) { ADM.preview = clone(D); appCfgApply(); renderNav(); } renderAdmin(); };
-    const tabs = [['look', '🎨 Apparence'], ['switch', '🔧 Interrupteurs'], ['menu', '🗂️ Menu et catégories'], ['pages', '📄 Pages'], ['texts', '✍️ Textes'], ['home', '🏠 Accueil'], ['team', '👥 Équipe'], ['shop', '🛍️ Boutique'], ['apps', '🔑 Clés des apps'], ['css', '🧪 CSS avancé']];
+    const tabs = [['look', '🎨 Apparence'], ['switch', '🔧 Interrupteurs'], ['menu', '🗂️ Menu et catégories'], ['pages', '📄 Pages'], ['texts', '✍️ Textes'], ['home', '🏠 Accueil'], ['team', '👥 Équipe'], ['shop', '🛍️ Boutique'], ['apps', '🔑 Clés des apps'], ['pub', '🌐 Page publique'], ['css', '🧪 CSS avancé']];
     const field = (label, help, el) => h('label', { class: 'adm-f' }, h('b', null, label), help ? h('small', { class: 'muted' }, help) : null, el);
     let body;
     if (ADM.tab === 'look') {
@@ -11692,6 +11767,8 @@
         L.length ? null : h('p', { class: 'muted' }, 'Aucun article ajouté pour l’instant.'));
     } else if (ADM.tab === 'apps') {
       body = appKeysTab();
+    } else if (ADM.tab === 'pub') {
+      body = pubAdminTab();
     } else {
       body = h('div', { class: 'adm-sec' },
         field('CSS de l’équipe', 'Pour aller au bout : tout ce que tu écris ici s’applique au style de FIRE chez tout le monde (couleurs, tailles, arrondis, cacher un bloc…). « Essayer sur mon PC » pour voir avant de publier.',
@@ -11703,7 +11780,7 @@
         h('p', { class: 'muted' }, 'Modifie FIRE pour toute l’équipe, sans mise à jour : menu, catégories, pages, textes, apparence. Tes changements sont signés par ta clé de créateur : personne d’autre ne peut publier ici.'))),
       h('div', { class: 'row plan-tabs adm-tabs' }, tabs.map(([k, l]) => h('button', { class: 'plan-tab', 'aria-pressed': String(ADM.tab === k), onclick: () => { ADM.tab = k; renderAdmin(); } }, l))),
       h('div', { class: 'card adm-body' }, body),
-      ADM.tab === 'apps' && !dirty ? '' : h('div', { class: 'card adm-bar' },
+      (ADM.tab === 'apps' || ADM.tab === 'pub') && !dirty ? '' : h('div', { class: 'card adm-bar' },
         h('div', { class: 'row' },
           h('button', { class: 'btn-ghost', 'aria-pressed': String(!!ADM.preview), onclick: () => { ADM.preview = ADM.preview ? null : clone(D); appCfgApply(); render(); } }, ADM.preview ? '👁️ Aperçu actif (cliquer pour l’arrêter)' : '👁️ Essayer sur mon PC'),
           h('button', { class: 'btn-fire', disabled: ADM.busy || !dirty ? true : null, onclick: () => admPublish(D) }, '📤 Publier pour toute l’équipe'),
@@ -11714,8 +11791,71 @@
   }
   const MOBILE = !!window.FIRE_MOBILE;
   const MOBILE_OFF = new Set(['train', 'clips', 'parties', 'reunion', 'lolpatch', 'web']);
+  // ===== Équipes : la page publique, pour les fans (et tout le monde) =====
+  // Publiée et signée par le créateur : seulement les joueurs d'accord, leur rang et 3 champions, les actus, les matchs,
+  // les résultats et les clips choisis. Suivre une équipe = notifications pour ses actus et ses résultats.
+  const PUB = { page: null, loading: false, team: null, at: 0 };
+  const follows = () => load('fire.follow', []);
+  const pubSeen = () => load('fire.pub.seen', []);
+  const pubItems = (t) => [...(t.news || []).map((n) => 'n:' + n.id), ...(t.matches || []).filter((m) => m.res).map((m) => 'r:' + m.id)];
+  function pubUnseen() { if (!PUB.page) return 0; const seen = new Set(pubSeen()); return PUB.page.teams.filter((t) => follows().includes(t.id)).reduce((n, t) => n + pubItems(t).filter((k) => !seen.has(k)).length, 0); }
+  async function pubLoad(notify) {
+    if (!window.fire.pub || PUB.loading) return;
+    PUB.loading = true;
+    try { const r = await window.fire.pub.get(); if (r && r.ok) { PUB.page = r.page; PUB.at = Date.now(); } } catch (e) { /* hors ligne */ } finally { PUB.loading = false; }
+    if (notify && PUB.page) {
+      const known = new Set(load('fire.pub.known', []));
+      const fresh = [];
+      for (const t of PUB.page.teams) if (follows().includes(t.id)) {
+        for (const n of t.news || []) if (!known.has('n:' + n.id)) fresh.push([t, '📰 ' + (n.t || 'Nouvelle actu'), n.txt]);
+        for (const m of t.matches || []) if (m.res && !known.has('r:' + m.id)) fresh.push([t, (m.res === 'V' ? '🏆 Victoire contre ' : '💔 Défaite contre ') + m.vs, (m.score ? m.score + ' · ' : '') + (m.event || '')]);
+      }
+      const all = PUB.page.teams.flatMap(pubItems);
+      if (load('fire.pub.known', null) !== null) for (const [t, title, body] of fresh.slice(0, 3)) { popup(`${t.name} : ${title}`, body || '', 'equipes'); if (notifPrefs().on) deskNotify({ title: `${t.name} · ${title}`, body: body || '', section: 'equipes' }).catch(() => {}); }
+      save('fire.pub.known', all.slice(-300));
+    }
+    renderNav();
+    if (S.section === 'equipes' && !typing()) renderEquipes();
+  }
+  setTimeout(() => pubLoad(true), 8000); setInterval(() => pubLoad(true), 5 * 60000);
+  const pubWhen = (at) => new Date(at).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  function renderEquipes() {
+    const view = $('view');
+    if (!PUB.page && !PUB.at) { pubLoad(false); view.replaceChildren(h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Chargement des équipes…'))); return; }
+    const teams = (PUB.page && PUB.page.teams) || [];
+    const hero = h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🌐'), h('div', null, h('h1', { class: 'title' }, 'Équipes FIRE'),
+      h('p', { class: 'muted' }, 'Suis les équipes de ton choix : composition, rangs, matchs, résultats, actus et clips. Tu reçois une notification à chaque actu et à chaque résultat.')));
+    if (!teams.length) { view.replaceChildren(hero, h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Aucune équipe n’a encore publié sa page.'))); return; }
+    const t = teams.find((x) => x.id === PUB.team) || teams[0];
+    PUB.team = t.id;
+    // Ce que l'on regarde est « vu » : le badge du menu disparaît.
+    save('fire.pub.seen', [...new Set(pubSeen().concat(pubItems(t)))].slice(-400));
+    const fol = follows().includes(t.id);
+    const R = (k) => (FC.ROLES[k] || { ico: '🎮', label: k === 'coach' ? 'Coach' : '—' });
+    const live = t.twitch && TWITCH.ch === t.twitch && TWITCH.live;
+    const now = Date.now();
+    const up = (t.matches || []).filter((m) => !m.res && m.at > now - 3 * 3600e3).sort((a, b) => a.at - b.at);
+    const done = (t.matches || []).filter((m) => m.res).sort((a, b) => b.at - a.at);
+    const wins = done.filter((m) => m.res === 'V').length;
+    view.replaceChildren(hero,
+      teams.length > 1 ? h('div', { class: 'row plan-tabs' }, teams.map((x) => h('button', { class: 'plan-tab', 'aria-pressed': String(x.id === t.id), onclick: () => { PUB.team = x.id; renderEquipes(); } }, x.name))) : null,
+      h('div', { class: 'card pub-head' },
+        h('div', { class: 'pub-id' }, h('div', { class: 'pub-logo' }, t.tag || t.name.slice(0, 2)), h('div', null, h('h2', null, t.name, live ? h('span', { class: 'tw-live' }, '🔴 EN LIVE') : null), t.desc ? h('p', { class: 'muted' }, t.desc) : null,
+          done.length ? h('p', { class: 'small' }, `${wins} victoire${wins > 1 ? 's' : ''} · ${done.length - wins} défaite${done.length - wins > 1 ? 's' : ''}`) : null)),
+        h('div', { class: 'row' }, h('button', { class: fol ? 'btn-ghost' : 'btn-fire', onclick: () => { const f = new Set(follows()); if (fol) f.delete(t.id); else f.add(t.id); save('fire.follow', [...f]); S.flash = fol ? `Tu ne suis plus ${t.name}.` : `⭐ Tu suis ${t.name} : tu seras prévenu de ses actus et de ses résultats.`; renderNav(); renderEquipes(); } }, fol ? '✓ Suivie' : '⭐ Suivre'),
+          live ? h('button', { class: 'btn-ghost', onclick: () => go('stream') }, '📺 Regarder le live') : null)),
+      h('div', { class: 'card' }, h('h2', null, '👥 Composition'),
+        h('div', { class: 'pub-roster' }, (t.players || []).map((p) => h('div', { class: 'pub-pl' }, h('span', { class: 'pub-role' }, R(p.role).ico), h('div', null, h('b', null, p.name), h('small', { class: 'muted' }, ' ' + (R(p.role).label || '')),
+          p.rank ? h('div', { class: 'small' }, p.rank) : null, (p.champs || []).length ? h('div', { class: 'pub-ch' }, p.champs.map((c) => champIcon(c, 26))) : null))),
+          (t.coachs || []).map((c) => h('div', { class: 'pub-pl' }, h('span', { class: 'pub-role' }, '🎓'), h('div', null, h('b', null, c), h('small', { class: 'muted' }, ' Coach')))))),
+      up.length ? h('div', { class: 'card' }, h('h2', null, '📅 Prochains matchs'), up.map((m) => h('div', { class: 'pub-m' }, h('b', null, 'contre ' + m.vs), h('span', { class: 'muted small' }, pubWhen(m.at) + (m.event ? ' · ' + m.event : ''))))) : null,
+      done.length ? h('div', { class: 'card' }, h('h2', null, '🏁 Résultats'), done.slice(0, 10).map((m) => h('div', { class: 'pub-m ' + (m.res === 'V' ? 'win' : 'loss') }, h('span', { class: 'pub-res' }, m.res === 'V' ? 'V' : 'D'), h('b', null, 'contre ' + m.vs), h('span', { class: 'muted small' }, (m.score ? m.score + ' · ' : '') + dayFr(FC.ymd(new Date(m.at))) + (m.event ? ' · ' + m.event : ''))))) : null,
+      (t.news || []).length ? h('div', { class: 'card' }, h('h2', null, '📰 Actus'), t.news.slice().sort((a, b) => b.at - a.at).map((n) => h('div', { class: 'pub-n' }, h('b', null, n.t), n.at ? h('small', { class: 'muted' }, ' · ' + dayFr(FC.ymd(new Date(n.at)))) : null, n.txt ? h('p', { class: 'small' }, n.txt) : null))) : null,
+      (t.clips || []).length ? h('div', { class: 'card' }, h('h2', null, '🎬 Clips'), h('div', { class: 'pub-clips' }, t.clips.map((c) => h('a', { class: 'pub-clip', href: c.url, target: '_blank', rel: 'noopener' }, '▶ ', c.title || c.url)))) : null,
+      h('p', { class: 'muted small' }, 'Les joueurs n’apparaissent ici que s’ils l’ont accepté. Mise à jour par le staff de l’équipe' + (PUB.page && PUB.page.at ? ` le ${dayFr(FC.ymd(new Date(PUB.page.at)))}.` : '.')));
+  }
   // ===== Formules : Basique (sans code), Premium Joueur (clé du créateur), Premium Élite (code d'équipe d'Alpha) =====
-  const PLAN_BASIC = new Set(['accueil', 'clips', 'boutique', 'outils', 'worlds', 'lolpatch', 'stream', 'settings', 'web']);
+  const PLAN_BASIC = new Set(['equipes', 'accueil', 'clips', 'boutique', 'outils', 'worlds', 'lolpatch', 'stream', 'settings', 'web']);
   const PLAN_JOUEUR = new Set([...PLAN_BASIC, 'guides', 'apprendre', 'puzzle', 'puzdraft', 'parcours', 'train', 'jeux', 'patch']);
   const PLAN_NAMES = { basique: 'Basique', joueur: 'Premium Joueur', elite: 'Premium Élite' };
   const PLAN = () => (S.basic ? (S.planKey === 'joueur' ? 'joueur' : 'basique') : 'elite');
@@ -11772,7 +11912,7 @@
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🔥'), h('div', null, h('h1', { class: 'title' }, 'Bienvenue sur FIRE Team'),
         h('p', { class: 'muted' }, `Formule ${PLAN_NAMES[p]}${S.planWho ? ' · ' + S.planWho : ''}. Kiting et Listen se lancent depuis le FIRE Launcher.`))),
       h('div', { class: 'bh-grid' },
-        tile('clips', '🎬', 'Clips', 'Tes meilleurs moments, sur ton PC'), tile('boutique', '🛍️', 'Boutique', 'Personnalise ton profil'),
+        tile('equipes', '🌐', 'Équipes FIRE', 'Suis Alpha : joueurs, matchs, résultats'), tile('clips', '🎬', 'Clips', 'Tes meilleurs moments, sur ton PC'), tile('boutique', '🛍️', 'Boutique', 'Personnalise ton profil'),
         tile('worlds', '🏆', 'E-sport', 'Les matchs pros'), tile('lolpatch', '📜', 'Patchs LoL', 'Ce qui change dans le jeu'), tile('stream', '🟣', 'Stream', 'Le live de l’équipe'), tile('outils', '🧰', 'Outils', 'Les sites utiles'),
         tile('guides', '🧭', 'Lanes et principes', 'Slides, scénarios et quiz'), tile('apprendre', '🎓', 'Apprendre en jouant', 'Les bases en jouant'), tile('puzzle', '🧩', 'Puzzle du jour', 'Une situation par jour'),
         tile('stats', '📊', 'Stats de l’équipe', ''), tile('coach', '📣', 'Coaching', '')),
@@ -11781,7 +11921,7 @@
         h('div', { class: 'row' }, p === 'basique' ? h('button', { class: 'btn-fire small-btn', onclick: () => planKeyEnter(keyBox) }, '🔑 J’ai une clé Premium') : null,
           h('button', { class: 'btn-ghost small-btn', onclick: planToTeam }, '👥 J’ai un code d’équipe')), keyBox));
   }
-  const SUB_OK = new Set(['boutique', 'accueil', 'stats', 'planning', 'jeux', 'puzzle', 'stream', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);
+  const SUB_OK = new Set(['equipes', 'boutique', 'accueil', 'stats', 'planning', 'jeux', 'puzzle', 'stream', 'train', 'clips', 'vocal', 'worlds', 'lolpatch', 'patch', 'settings', 'web', 'outils']);
   const roomOk = (r) => (!SUB() || (r && r.id !== 'coaching' && !r.staff)) && salonOk(r);
   const subSlugs = () => S.players.filter((p) => p.slug && isSub(p)).map((p) => p.slug);
   function subInit() {

@@ -63,6 +63,7 @@ contextBridge.exposeInMainWorld('fire', {
   bgVideo: { get: call('bgvid:get'), set: call('bgvid:set'), clear: call('bgvid:clear') },
   perf: { game: call('perf:game') },
   appkeys: { list: call('appkeys:list'), make: call('appkeys:make'), revoke: call('appkeys:revoke'), self: call('appkeys:self') },
+  pub: { get: call('pub:get'), post: call('pub:post'), optin: call('pub:optin'), optins: call('pub:optins') },
   plan: { get: call('plan:get'), set: call('plan:set'), clear: call('plan:clear'), make: call('plan:make') },
   appcfg: { get: call('appcfg:get'), post: call('appcfg:post'), assetPut: call('appcfg:assetPut'), asset: call('appcfg:asset') },
   capture: { protect: call('capture:protect') },

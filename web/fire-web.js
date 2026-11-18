@@ -73,6 +73,7 @@ window.fire = {
   fiches: () => coach.list(),
   pools: () => coach.pools(),
   planning: () => coach.planning(),
+  pub: { get: () => coach.publicGet(), post: (p) => coach.publicPost(p || {}), optin: (s, on) => coach.publicOptin(String(s || ''), !!on), optins: () => coach.publicOptins() },
   plan: { get: () => coach.planGet(), set: (k) => coach.planSet(String(k || '').slice(0, 2000)), clear: () => coach.planClear(), make: (w, p) => coach.planKeyMake(w, p) },
   savePlanning: (a) => coach.savePlanning(a || {}),
   champions: () => coach.champions(),

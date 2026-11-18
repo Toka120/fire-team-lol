@@ -1930,6 +1930,63 @@ async function appKeyRevoke(id, on = true) {
 
 // Dossier d'envoi partagé avec FIRE Kiting / FIRE Listen (lu seulement sur PC, jamais sur téléphone).
 const outboxDir = () => path.join(process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || process.env.HOME || '.', 'AppData', 'Local'), 'FIRE', 'envois');
+// ---------- Page publique des équipes (catégorie Fan) ----------
+// Un fichier en clair, signé par le créateur : composition (seulement les joueurs d'accord), rangs, 3 champions,
+// actus, matchs, résultats et clips choisis. Rien d'autre ne sort de l'équipe.
+const PUBLIC_FILE = 'public/equipes.json', PUB_OPTIN = 'public-optin.json';
+const PUB_ROLES = ['top', 'jungle', 'mid', 'adc', 'support', 'coach', ''];
+function publicClean(p) {
+  p = p && typeof p === 'object' ? p : {};
+  const s2 = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, n);
+  const url = (v) => { const u = s2(v, 300); return /^https:\/\/[^\s"'<>]+$/.test(u) ? u : ''; };
+  const id = (v) => s2(v, 24).replace(/[^\w-]/g, '') || crypto.randomBytes(4).toString('hex');
+  const num = (v) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? Math.round(n) : 0; };
+  return { teams: (Array.isArray(p.teams) ? p.teams : []).slice(0, 4).map((t) => ({
+    id: s2(t && t.id, 20).replace(/[^\w-]/g, '') || 'alpha', name: s2(t && t.name, 30) || 'Équipe', tag: s2(t && t.tag, 8), desc: s2(t && t.desc, 300),
+    twitch: s2(t && t.twitch, 30).replace(/[^\w]/g, '').toLowerCase(),
+    players: (Array.isArray(t && t.players) ? t.players : []).slice(0, 12).map((x) => ({ name: s2(x && x.name, 24).split('#')[0] || 'Joueur', role: PUB_ROLES.includes(x && x.role) ? x.role : '',
+      rank: s2(x && x.rank, 40), champs: (Array.isArray(x && x.champs) ? x.champs : []).map((c) => s2(c, 24)).filter((c) => /^[A-Za-z]+$/.test(c)).slice(0, 3) })),
+    coachs: (Array.isArray(t && t.coachs) ? t.coachs : []).map((c) => s2(c, 24).split('#')[0]).filter(Boolean).slice(0, 6),
+    news: (Array.isArray(t && t.news) ? t.news : []).slice(0, 20).map((n) => ({ id: id(n && n.id), t: s2(n && n.t, 80), txt: s2(n && n.txt, 500), at: num(n && n.at) })).filter((n) => n.t || n.txt),
+    matches: (Array.isArray(t && t.matches) ? t.matches : []).slice(0, 30).map((m) => ({ id: id(m && m.id), at: num(m && m.at), vs: s2(m && m.vs, 40), event: s2(m && m.event, 60),
+      res: ['V', 'D'].includes(m && m.res) ? m.res : '', score: s2(m && m.score, 10) })).filter((m) => m.vs && m.at),
+    clips: (Array.isArray(t && t.clips) ? t.clips : []).slice(0, 12).map((c) => ({ id: id(c && c.id), title: s2(c && c.title, 80), url: url(c && c.url) })).filter((c) => c.url),
+  })) };
+}
+let pubCache = null;
+async function publicGet() {
+  const dr = getConfig().data_repo || null;
+  let f = null;
+  try { f = dr ? await readPublic(PUBLIC_FILE, dr, null) : null; if (f) saveCache('public', f); } catch (e) { f = loadCache('public'); }
+  if (!f) f = loadCache('public');
+  if (!f || !f.payload || !f.sig || !byAdmin(f.sig, canonJ(f.payload))) return { ok: true, page: null };
+  pubCache = { ...publicClean(f.payload), at: Number(f.payload.at) || 0 };
+  return { ok: true, page: pubCache };
+}
+async function publicPost(page) {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, error: "FIRE Team n'est pas connecté à l'équipe" };
+  const payload = { v: 1, at: Date.now(), ...publicClean(page) };
+  const file = { payload, sig: b64u(crypto.sign('sha256', Buffer.from(canonJ(payload)), p1363(crypto.createPrivateKey(adminKey().priv)))) };
+  for (let i = 0; i < 4; i++) {
+    const cur = await ghGet(tok, PUBLIC_FILE, dr);
+    const r = await ghPut(tok, PUBLIC_FILE, file, cur && cur.sha, 'Page publique des équipes', dr);
+    if (r.ok) { saveCache('public', file); return { ok: true, page: { ...publicClean(payload), at: payload.at } }; }
+  }
+  return { ok: false, error: 'la page a changé pendant l’envoi, réessaie' };
+}
+// Chaque joueur choisit d'apparaître (pseudo, rang, 3 champions) ou non : fichier chiffré de l'équipe.
+async function publicOptin(slug, on) {
+  slug = String(slug || '').slice(0, 80);
+  if (!slug) return { ok: false, error: 'choisis d’abord qui tu es' };
+  try { const d = await teamWrite(PUB_OPTIN, (x) => ({ ...(x && typeof x === 'object' ? x : {}), [slug]: !!on }), 'Page publique : choix d’un joueur'); return { ok: true, optin: d }; }
+  catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+async function publicOptins() {
+  try { const d = await teamRead(PUB_OPTIN); return { ok: true, optin: d && typeof d === 'object' ? d : {} }; } catch (e) { return { ok: false, optin: {} }; }
+}
 // ---------- Formules : clés Premium Joueur ----------
 // « FIREPLAN1.<certificat>.<signature du créateur> » : le certificat dit qui et quelle formule. Pas de clé privée dedans :
 // la clé ne sert qu'à prouver que le créateur l'a donnée. Elle se retire comme les clés des apps (liste apps/keys.json).
@@ -2133,4 +2190,4 @@ async function appsRelay() {
 const appsRelay0 = appsRelay;
 appsRelay = async function () { const r = await appsRelay0(); try { await launcherRelay(); } catch (e) { /* */ } return r; };
 
-module.exports = { planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
