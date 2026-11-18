@@ -12,12 +12,18 @@ export const BUILTIN_CHARS = {
   ahri: {name: 'Ahri', spells: ['orb']},
   lux: {name: 'Lux', spells: ['binding', 'zone', 'laser']},
   blitz: {name: 'Blitzcrank', spells: ['hook']},
+  velkoz: {name: 'Vel’Koz', spells: ['velkoz_q', 'velkoz_w', 'velkoz_e', 'velkoz_r']},
+  brand: {name: 'Brand', spells: ['brand_q', 'brand_w']},
+  veigar: {name: 'Veigar', spells: ['veigar_q', 'veigar_w', 'veigar_e']},
 };
 export const BUILTIN_SPELLS = {
   mystic: 'Projectile (Ezreal Q)', orb: 'Orbe aller-retour (Ahri Q)', binding: 'Entrave (Lux Q)',
   zone: 'Zone au sol (Lux E)', laser: 'Laser (Lux R)', hook: 'Grappin (Blitzcrank Q)',
+  velkoz_q: 'Projectile qui se divise (Vel’Koz Q)', velkoz_w: 'Faille en ligne (Vel’Koz W)', velkoz_e: 'Zone qui projette (Vel’Koz E)', velkoz_r: 'Rayon qui te suit (Vel’Koz R)',
+  brand_q: 'Boule de feu (Brand Q)', brand_w: 'Pilier de flammes (Brand W)',
+  veigar_q: 'Frappe (Veigar Q)', veigar_w: 'Matière noire (Veigar W)', veigar_e: 'Cage (Veigar E)',
 };
-export const SHAPES = {mystic: 'Projectile', orb: 'Orbe aller-retour', hook: 'Grappin', laser: 'Laser', line: 'Ligne au sol', zone: 'Zone au sol'};
+export const SHAPES = {mystic: 'Projectile', orb: 'Orbe aller-retour', hook: 'Grappin', laser: 'Laser', line: 'Ligne au sol', zone: 'Zone au sol', split: 'Projectile qui se divise', ray: 'Rayon qui suit le joueur', cage: 'Cage (anneau à ne pas traverser)'};
 export const MODES = {dodge: 'Esquive de sorts', chase: 'Kiting · poursuite', dummy: 'Kiting · mannequins'};
 export const TEAM = {loaded: false, offline: false, levels: [], champs: [], spells: []};
 

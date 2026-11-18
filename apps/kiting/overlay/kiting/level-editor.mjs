@@ -9,7 +9,7 @@ import {cleanEvent} from './team.mjs';
 
 const {h} = FA;
 const START0 = {x: 763, y: 634};
-const COLORS = {mystic: '#80e4ff', fire: '#80e4ff', binding: '#d6aaff', orb: '#619eff', hook: '#e9ae38', laser: '#ff6b5a', line: '#ff9f5a', zone: '#d5e9ff'};
+const COLORS = {split: '#c77dff', ray: '#e85cff', cage: '#b58cff', mystic: '#80e4ff', fire: '#80e4ff', binding: '#d6aaff', orb: '#619eff', hook: '#e9ae38', laser: '#ff6b5a', line: '#ff9f5a', zone: '#d5e9ff'};
 let nav = null, img = null;
 const navigation = () => (nav ??= new MidNavigation());
 function mapImage(onload) {
@@ -59,9 +59,12 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
     const t2 = dt - warn;
     if (r.warn) return r;
     if (t2 > life) { r.done = true; return r; }
-    if (b === 'laser' || b === 'line' || b === 'zone') return r;
+    if (b === 'laser' || b === 'line' || b === 'zone' || b === 'cage' || b === 'ray') return r;
     const dist = (spec.speed || 380) * sp * t2;
     let pos = dist;
+    // Projectile qui se divise : au bout de 380, deux éclats à angle droit (0,9 s).
+    if (b === 'split' && dist >= 380) { const k2 = dist - 380; if (k2 > (spec.speed || 380) * sp * 0.9) { r.done = true; return r; }
+      const bx = o.x + dx * 380, by = o.y + dy * 380; r.px = bx - dy * k2; r.py = by + dx * k2; r.px2 = bx + dy * k2; r.py2 = by - dx * k2; return r; }
     if (b === 'orb' || b === 'hook') { if (dist > 510) pos = 1020 - dist; if (pos <= 0) { r.done = true; return r; } }
     r.px = o.x + dx * pos; r.py = o.y + dy * pos;
     if (r.px < 0 || r.py < 0 || r.px > WORLD.w || r.py > WORLD.h) r.done = true;
@@ -109,15 +112,18 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
     ctx.save();
     if (r.warn) {
       ctx.globalAlpha = 0.5 + 0.5 * r.k;
-      if (r.b === 'zone') { ctx.beginPath(); ctx.arc(sx(r.tg.x), sy(r.tg.y), Math.max(4, r.width * k * (0.65 + 0.35 * r.k)), 0, Math.PI * 2); ctx.strokeStyle = '#ff4935'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.stroke(); }
-      else { const len = (r.b === 'laser' || r.b === 'line' ? 1250 : 470) * k; ctx.strokeStyle = '#ff4935'; ctx.lineWidth = r.b === 'laser' || r.b === 'line' ? Math.max(2, w * 0.25) : 2; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + r.dx * len, oy + r.dy * len); ctx.stroke(); }
-    } else if (r.b === 'laser' || r.b === 'line') {
+      if (r.b === 'zone' || r.b === 'cage') { ctx.beginPath(); ctx.arc(sx(r.tg.x), sy(r.tg.y), Math.max(4, r.width * k * (0.65 + 0.35 * r.k)), 0, Math.PI * 2); ctx.strokeStyle = '#ff4935'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.stroke(); }
+      else { const len = (r.b === 'laser' || r.b === 'line' || r.b === 'ray' ? 1250 : 470) * k; ctx.strokeStyle = '#ff4935'; ctx.lineWidth = r.b === 'laser' || r.b === 'line' ? Math.max(2, w * 0.25) : 2; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + r.dx * len, oy + r.dy * len); ctx.stroke(); }
+    } else if (r.b === 'cage') {
+      ctx.beginPath(); ctx.arc(sx(r.tg.x), sy(r.tg.y), Math.max(4, r.width * k), 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 5; ctx.shadowColor = c; ctx.shadowBlur = 10; ctx.stroke();
+    } else if (r.b === 'laser' || r.b === 'line' || r.b === 'ray') {
       ctx.strokeStyle = c; ctx.globalAlpha = 0.85; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + r.dx * 1250 * k, oy + r.dy * 1250 * k); ctx.stroke();
     } else if (r.b === 'zone') {
       ctx.beginPath(); ctx.arc(sx(r.tg.x), sy(r.tg.y), Math.max(4, w), 0, Math.PI * 2); ctx.fillStyle = c + 'aa'; ctx.fill();
     } else {
       if (r.b === 'hook') { ctx.strokeStyle = '#b88a45'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(sx(r.px), sy(r.py)); ctx.stroke(); }
       ctx.beginPath(); ctx.arc(sx(r.px), sy(r.py), Math.max(3, w * 0.7), 0, Math.PI * 2); ctx.fillStyle = c; ctx.shadowColor = c; ctx.shadowBlur = 12; ctx.fill();
+      if (r.px2 != null) { ctx.beginPath(); ctx.arc(sx(r.px2), sy(r.py2), Math.max(3, w * 0.7), 0, Math.PI * 2); ctx.fill(); }
     }
     ctx.restore();
     ctx.beginPath(); ctx.arc(ox, oy, 12, 0, Math.PI * 2); ctx.fillStyle = '#1b1220'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = c; ctx.stroke();
@@ -127,7 +133,7 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
     const c = spellColor(e.s), x = sx(e.x), y = sy(e.y);
     const tx = e.aim === 'player' ? sx(d.start.x) : sx(e.ax), ty = e.aim === 'player' ? sy(d.start.y) : sy(e.ay);
     ctx.globalAlpha = on ? 1 : 0.8;
-    if (shapeOf(e.s) === 'zone') {
+    if (shapeOf(e.s) === 'zone' || shapeOf(e.s) === 'cage') {
       const r = Math.max(8, ((SPELLS[e.s] && SPELLS[e.s].width) || 110) * k);
       ctx.beginPath(); ctx.arc(tx, ty, r, 0, Math.PI * 2); ctx.fillStyle = c + '33'; ctx.fill(); ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]);
       arrow(x, y, tx, ty, c, true, on ? 2.5 : 1.5);

@@ -14,6 +14,10 @@ function health(parent,color=0x77e24e){const group=new THREE.Group();parent.add(
 // Personnages ajoutés par l'équipe (menu admin) : silhouette reconstruite à partir de formes simples, comme les autres.
 export const CUSTOM_CHARACTERS={};
 export function registerCharacter(id,def){CUSTOM_CHARACTERS[id]=def;}
+// Lanceurs ajoutés : silhouettes génériques (formes simples et couleurs propres), avec le nom et les sorts du champion.
+CUSTOM_CHARACTERS.velkoz={name:"Vel'Koz",tag:'Q / W / E / R',colors:{skin:'#6a4c8c',outfit:'#3a2452',hair:'#2a1838',accent:'#c77dff',glow:'#e85cff'},style:{hair:'none',robe:true,weapon:'orb',size:115}};
+CUSTOM_CHARACTERS.brand={name:'Brand',tag:'Q / W',colors:{skin:'#7a3a1a',outfit:'#4a2212',hair:'#ff8a2a',accent:'#ffb02e',glow:'#ff6a1a'},style:{hair:'short',weapon:'gauntlet',bulky:false,size:105}};
+CUSTOM_CHARACTERS.veigar={name:'Veigar',tag:'Q / W / E',colors:{skin:'#5a4a7a',outfit:'#2c2550',hair:'#1c1636',accent:'#9b6bff',glow:'#b58cff'},style:{hair:'none',robe:true,cape:true,weapon:'staff',size:75}};
 const hex=(v,d)=>{const n=parseInt(String(v||'').replace('#',''),16);return Number.isFinite(n)?n:d;};
 function customCharacter(d){
  const root=new THREE.Group(),body=new THREE.Group();root.add(body);
@@ -122,7 +126,7 @@ export class DodgeScene{
   for(const[id,actor]of this.actors)if(!liveIds.has(id)){this.scene.remove(actor.root);const materials=new Set();actor.root.traverse(o=>{if(o.material)materials.add(o.material);if(o.geometry?.type==='RingGeometry')o.geometry.dispose();});for(const m of materials){m.map?.dispose();m.dispose();}this.actors.delete(id);}
   for(let i=0;i<64;i++){
    const h=game.hazards[i],v=this.spellPool[i];v.group.visible=h.active;if(!h.active)continue;
-   const b=h.behave||h.type,warning=h.age<h.warning,beam=b==='laser'||b==='line',zone=b==='zone',custom=h.color?hex(h.color,0x80e4ff):null,color=custom??(b==='hook'?0xe9ae38:b==='orb'?0x619eff:h.type==='binding'?0xd6aaff:0x80e4ff);
+   const b=h.behave||h.type,warning=h.age<h.warning,beam=b==='laser'||b==='line'||b==='ray',zone=b==='zone'||b==='cage',custom=h.color?hex(h.color,0x80e4ff):null,color=custom??(b==='hook'?0xe9ae38:b==='orb'?0x619eff:h.type==='binding'?0xd6aaff:0x80e4ff);
    v.group.position.set(wx(h.x),0,wz(h.y));v.group.rotation.y=0;v.line.rotation.set(0,0,0);v.line.visible=beam||warning||b==='hook';v.circle.visible=zone;v.core.visible=!warning&&!beam&&!zone;v.glow.visible=v.core.visible;
    if(beam){const stretch=Math.hypot(h.dx,h.dy/COS);v.group.rotation.y=Math.atan2(h.dx,h.dy/COS);v.line.position.set(0,warning?.05:.7,3*stretch);v.line.scale.set(warning?.035:h.width*S,warning?.025:.12,44*stretch);v.line.material.color.set(warning?0xff4935:(custom??0xfff4ce));v.line.material.opacity=warning?.6:1;}
    else if(zone){const radius=h.width*S*(warning?.65+.35*h.age/h.warning:1);v.circle.scale.set(radius,radius/COS,1);v.circle.material.opacity=warning?.55:1;v.circle.material.color.set(warning?0x83a3ff:(custom??0xd5e9ff));}
