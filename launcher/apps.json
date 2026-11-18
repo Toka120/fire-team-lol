@@ -5,17 +5,17 @@
    "name": "FIRE Kiting",
    "exe": "FIRE Kiting.exe",
    "url": "https://github.com/Toka120/fire-team-lol/releases/download/apps/FIRE-Kiting.exe",
-   "sha256": "a381db3af58584909215b238fc7206db84ce10470d9c12d7f6dc9c85d67cc70f",
-   "size": 15207623,
-   "version": "2026.11.18-8"
+   "sha256": "99cdb1abbae00ae951fe25d15a48bf0c4241791576728a271e2aa3f4f05a218a",
+   "size": 15207428,
+   "version": "2026.11.18-9"
   },
   "listen": {
    "name": "FIRE Listen",
    "exe": "FIRE Listen.exe",
    "url": "https://github.com/Toka120/fire-team-lol/releases/download/apps/FIRE-Listen.exe",
-   "sha256": "112e040a3ed0817bdb5dab14f918e022c5e2dda4de300b2fceb275104addbef6",
-   "size": 96541882,
-   "version": "2026.11.18-8"
+   "sha256": "2c6611aa1c51f90b335327285107d13e2340555af8ffc4112f81d336489e6ab7",
+   "size": 96540994,
+   "version": "2026.11.18-9"
   }
  }
 }
