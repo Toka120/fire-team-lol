@@ -76,3 +76,8 @@ details > summary { cursor: pointer; margin: 6px 0; font-size: 13.5px; font-weig
 .le-dot{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;color:#111;font-weight:700;font-size:11px}
 .le-t{font-variant-numeric:tabular-nums;opacity:.85}
 .le-opts{align-items:end}
+.le-timeline{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:#ffffff0d}
+.le-timeline input[type=range]{flex:1;min-width:120px}
+.le-play{min-width:150px}
+.le-clock{font-variant-numeric:tabular-nums;font-size:13px;min-width:110px;text-align:right;opacity:.9}
+.le-rate{width:auto;padding:4px 6px}

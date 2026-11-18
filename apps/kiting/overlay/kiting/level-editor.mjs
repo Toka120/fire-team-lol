@@ -24,7 +24,9 @@ const shapeOf = (id) => (SPELLS[id] && SPELLS[id].behave) || id;
 export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
   d.script = Array.isArray(d.script) ? d.script.map(cleanEvent) : [];
   if (!d.start) d.start = {...START0};
-  let sel = d.script.length ? 0 : -1, mode = 'select', drag = null, showAt = null;
+  let sel = d.script.length ? 0 : -1, mode = 'select', drag = null;
+  // Démo : T = seconde affichée (null = vue d'édition, tout visible). play = la démo avance toute seule.
+  let T = null, play = false, rate = 1, raf = 0, last = 0;
   const changed = () => { onChange && onChange(); };
   const nameC = (id) => (casters.find((c) => c[0] === id) || [id, id])[1];
   const nameS = (id) => (spells.find((s) => s[0] === id) || [id, id])[1];
@@ -43,7 +45,27 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
     cv.style.width = W + 'px'; cv.style.height = H + 'px';
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  const visible = (e) => showAt == null || (e.t >= showAt - 0.05 && e.t < showAt + 1);
+  const spPct = () => Math.max(0.25, Math.min(4, (Number(d.speedPct) || 100) / 100));
+  // Ce que fait un sort à l'instant T (mêmes règles que le jeu) : null s'il n'est pas encore lancé ou déjà fini.
+  function sim(e, t) {
+    const spec = SPELLS[e.s] || SPELLS.mystic, sp = spPct(), warn = spec.warning / Math.sqrt(sp), life = spec.life || 2.5, dt = t - e.t;
+    if (dt < 0 || dt > warn + life + 0.55) return null;
+    const o = {x: e.x, y: e.y}, tg = e.aim === 'player' ? d.start : {x: e.ax, y: e.ay};
+    const L = Math.hypot(tg.x - o.x, tg.y - o.y) || 1, dx = (tg.x - o.x) / L, dy = (tg.y - o.y) / L, b = shapeOf(e.s);
+    const r = {o, tg, dx, dy, b, warn: dt < warn, k: dt < warn ? dt / warn : 0, width: spec.width || 20, done: false};
+    const t2 = dt - warn;
+    if (r.warn) return r;
+    if (t2 > life) { r.done = true; return r; }
+    if (b === 'laser' || b === 'line' || b === 'zone') return r;
+    const dist = (spec.speed || 380) * sp * t2;
+    let pos = dist;
+    if (b === 'orb' || b === 'hook') { if (dist > 510) pos = 1020 - dist; if (pos <= 0) { r.done = true; return r; } }
+    r.px = o.x + dx * pos; r.py = o.y + dy * pos;
+    if (r.px < 0 || r.py < 0 || r.px > WORLD.w || r.py > WORLD.h) r.done = true;
+    return r;
+  }
+  const endOf = () => d.script.reduce((m, e) => { const sp = SPELLS[e.s] || SPELLS.mystic; return Math.max(m, e.t + sp.warning / Math.sqrt(spPct()) + (sp.life || 2.5) + 0.6); }, 3);
+  const visible = () => true;
   function arrow(x1, y1, x2, y2, color, dash, width) {
     ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; if (dash) ctx.setLineDash([7, 6]);
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.setLineDash([]);
@@ -60,11 +82,43 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
     const p = d.start;
     ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 11, 0, Math.PI * 2); ctx.fillStyle = '#63e3af'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#0c2a20'; ctx.stroke();
     ctx.font = '600 12px Segoe UI, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#eafff6'; ctx.fillText('Toi', sx(p.x), sy(p.y) - 16);
-    d.script.forEach((e, i) => {
-      if (i === sel || !visible(e)) return;
-      draw(e, i, false);
-    });
-    if (sel >= 0 && d.script[sel]) draw(d.script[sel], sel, true);
+    if (T == null) {
+      d.script.forEach((e, i) => { if (i !== sel) draw(e, i, false); });
+      if (sel >= 0 && d.script[sel]) draw(d.script[sel], sel, true);
+    } else {
+      d.script.forEach((e, i) => { const r = sim(e, T); if (!r || r.done) ghost(e, i); });
+      d.script.forEach((e, i) => { const r = sim(e, T); if (r && !r.done) live(e, i, r); });
+      if (sel >= 0 && d.script[sel] && !play) draw(d.script[sel], sel, true);
+      ctx.font = '700 15px Segoe UI, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#000a'; ctx.fillRect(8, 8, 92, 26); ctx.fillStyle = '#fff'; ctx.fillText((play ? '▶ ' : '⏸ ') + T.toFixed(1).replace('.', ',') + ' s', 16, 27);
+    }
+  }
+  // Ennemi pas encore lancé (ou déjà fini) : juste sa place, en transparence.
+  function ghost(e, i) {
+    if (i === sel && !play) return;
+    ctx.globalAlpha = e.t > T ? 0.32 : 0.14;
+    ctx.beginPath(); ctx.arc(sx(e.x), sy(e.y), 9, 0, Math.PI * 2); ctx.fillStyle = '#1b1220'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = spellColor(e.s); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = '700 10px Segoe UI, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), sx(e.x), sy(e.y) + 0.5); ctx.textBaseline = 'alphabetic';
+    ctx.globalAlpha = 1;
+  }
+  // Sort en cours : avertissement (trait rouge, zone qui grandit), puis le sort qui part.
+  function live(e, i, r) {
+    const c = spellColor(e.s), ox = sx(r.o.x), oy = sy(r.o.y), w = Math.max(2, r.width * k);
+    ctx.save();
+    if (r.warn) {
+      ctx.globalAlpha = 0.5 + 0.5 * r.k;
+      if (r.b === 'zone') { ctx.beginPath(); ctx.arc(sx(r.tg.x), sy(r.tg.y), Math.max(4, r.width * k * (0.65 + 0.35 * r.k)), 0, Math.PI * 2); ctx.strokeStyle = '#ff4935'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.stroke(); }
+      else { const len = (r.b === 'laser' || r.b === 'line' ? 1250 : 470) * k; ctx.strokeStyle = '#ff4935'; ctx.lineWidth = r.b === 'laser' || r.b === 'line' ? Math.max(2, w * 0.25) : 2; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + r.dx * len, oy + r.dy * len); ctx.stroke(); }
+    } else if (r.b === 'laser' || r.b === 'line') {
+      ctx.strokeStyle = c; ctx.globalAlpha = 0.85; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + r.dx * 1250 * k, oy + r.dy * 1250 * k); ctx.stroke();
+    } else if (r.b === 'zone') {
+      ctx.beginPath(); ctx.arc(sx(r.tg.x), sy(r.tg.y), Math.max(4, w), 0, Math.PI * 2); ctx.fillStyle = c + 'aa'; ctx.fill();
+    } else {
+      if (r.b === 'hook') { ctx.strokeStyle = '#b88a45'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(sx(r.px), sy(r.py)); ctx.stroke(); }
+      ctx.beginPath(); ctx.arc(sx(r.px), sy(r.py), Math.max(3, w * 0.7), 0, Math.PI * 2); ctx.fillStyle = c; ctx.shadowColor = c; ctx.shadowBlur = 12; ctx.fill();
+    }
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(ox, oy, 12, 0, Math.PI * 2); ctx.fillStyle = '#1b1220'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = c; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = '700 11px Segoe UI, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), ox, oy + 0.5); ctx.textBaseline = 'alphabetic';
   }
   function draw(e, i, on) {
     const c = spellColor(e.s), x = sx(e.x), y = sy(e.y);
@@ -87,7 +141,7 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
     const s = d.script[sel];
     if (s && s.aim !== 'player' && near(p, {x: s.ax, y: s.ay}, 12)) return {type: 'aim', i: sel};
     if (s && near(p, s, 15)) return {type: 'caster', i: sel};
-    for (let i = d.script.length - 1; i >= 0; i--) if (visible(d.script[i]) && near(p, d.script[i], 14)) return {type: 'caster', i};
+    for (let i = d.script.length - 1; i >= 0; i--) if (near(p, d.script[i], 14)) return {type: 'caster', i};
     if (near(p, d.start, 14)) return {type: 'player'};
     return null;
   }
@@ -95,12 +149,13 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
   cv.addEventListener('pointerdown', (ev) => {
     if (ev.button !== 0) return;
     ev.preventDefault(); cv.setPointerCapture(ev.pointerId); cv.focus({preventScroll: true});
+    if (play) setPlay(false);
     const p = clampW(toWorld(ev));
     if (mode === 'add') {
-      const last = d.script[sel] || d.script[d.script.length - 1];
-      const c = last ? last.c : (casters[0] || ['lux'])[0];
-      const sp = last && last.c === c ? last.s : (spellsOf(c)[0] || 'mystic');
-      const t = last ? Math.round((last.t + 1) * 10) / 10 : 1;
+      const lastEv = d.script[sel] || d.script[d.script.length - 1];
+      const c = lastEv ? lastEv.c : (casters[0] || ['lux'])[0];
+      const sp = lastEv && lastEv.c === c ? lastEv.s : (spellsOf(c)[0] || 'mystic');
+      const t = T != null ? Math.round(T * 10) / 10 : lastEv ? Math.round((lastEv.t + 1) * 10) / 10 : 1;
       d.script.push(cleanEvent({t, c, s: sp, x: p.x, y: p.y, ax: p.x, ay: p.y, aim: 'fixed'}));
       sel = d.script.length - 1; drag = {type: 'new', i: sel, from: p};
       paint(); return;
@@ -127,13 +182,14 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
     if (drag.type === 'new' && Math.hypot(e.ax - e.x, e.ay - e.y) < 25) { e.ax = d.start.x; e.ay = d.start.y; }
     if (drag.type === 'new') setMode('select');
     if (drag.type === 'player') d.start = navigation().project(d.start.x, d.start.y);
-    if (e) Object.assign(e, cleanEvent(e));
+    if (e) { Object.assign(e, cleanEvent(e)); d.script.sort((a, b) => a.t - b.t); sel = d.script.indexOf(e); }
     drag = null; changed(); refresh();
   };
   cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
   cv.addEventListener('keydown', (ev) => {
     if ((ev.key === 'Delete' || ev.key === 'Backspace') && sel >= 0) { ev.preventDefault(); removeSel(); }
     if (ev.key === 'Escape') { setMode('select'); }
+    if (ev.key === ' ') { ev.preventDefault(); setPlay(!play); }
   });
 
   // ---------- Outils ----------
@@ -141,13 +197,41 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
   function setMode(m) {
     mode = m; addBtn.classList.toggle('primary', m === 'add');
     addBtn.textContent = m === 'add' ? '✕ Annuler' : '➕ Ajouter un ennemi';
-    hint.textContent = m === 'add' ? 'Appuie sur la carte là où se tient l’ennemi, garde appuyé et glisse dans la direction du sort, puis relâche. (Un simple clic : il vise ta position de départ.)'
-      : 'Glisse un ennemi pour le déplacer, la pastille blanche pour changer la direction, « Toi » pour le point de départ. Suppr efface l’ennemi choisi.';
+    hint.textContent = m === 'add' ? 'Appuie sur la carte là où se tient l’ennemi, garde appuyé et glisse dans la direction du sort, puis relâche. (Un simple clic : il vise ta position de départ.)' + (T != null ? ` Il partira à ${fmt(T)}, le moment de la démo.` : '')
+      : '▶ lance la démo : les sorts partent comme en jeu. Mets pause, ajoute un ennemi (il part au moment affiché), puis relance. Glisse un ennemi pour le déplacer, la pastille blanche pour la direction, « Toi » pour le départ. Espace = lecture/pause, Suppr = effacer.';
   }
-  const timeOut = h('output', null, 'tous');
-  const timeIn = h('input', {type: 'range', min: '-1', max: '60', step: '0.5', value: '-1', 'aria-label': 'Afficher les sorts autour d’une seconde', oninput: (ev) => {
-    const v = Number(ev.target.value); showAt = v < 0 ? null : v; timeOut.textContent = v < 0 ? 'tous' : `de ${v} à ${v + 1} s`; paint(); }});
-  const fitTime = () => { const max = Math.max(10, Math.ceil((d.script.reduce((m, e) => Math.max(m, e.t), 0) + 2) / 5) * 5); timeIn.max = String(max); };
+  // ---------- Démo : lecture, pause, avance rapide ----------
+  const playBtn = h('button', {class: 'fa-btn primary le-play', type: 'button', title: 'Lecture / pause (Espace)', onclick: () => setPlay(!play)});
+  const stopBtn = h('button', {class: 'fa-btn', type: 'button', title: 'Arrêter la démo et revenir au début', onclick: () => { setPlay(false); T = null; syncTime(); refresh(); }}, '⏹');
+  const timeOut = h('output', {class: 'le-clock'}, '0,0 s');
+  const timeIn = h('input', {type: 'range', min: '0', max: '20', step: '0.1', value: '0', 'aria-label': 'Moment de la démo', oninput: (ev) => {
+    if (play) setPlay(false); T = Number(ev.target.value); syncTime(); paint(); drawProps(); }});
+  const rateSel = h('select', {class: 'fa-inp le-rate', title: 'Vitesse de la démo', onchange: (ev) => { rate = Number(ev.target.value) || 1; }},
+    h('option', {value: '0.25'}, '×0,25'), h('option', {value: '0.5'}, '×0,5'), h('option', {value: '1', selected: true}, '×1'), h('option', {value: '2'}, '×2'));
+  const fmt = (v) => v.toFixed(1).replace('.', ',') + ' s';
+  const fitTime = () => { timeIn.max = String(Math.max(5, Math.ceil(endOf()))); };
+  function syncTime() {
+    fitTime();
+    timeIn.value = String(T == null ? 0 : T);
+    timeOut.textContent = T == null ? 'édition' : `${fmt(T)} / ${fmt(Number(timeIn.max))}`;
+    playBtn.textContent = play ? '⏸ Pause' : T == null ? '▶ Lancer la démo' : '▶ Reprendre';
+    stopBtn.disabled = T == null;
+  }
+  function frame(now) {
+    if (!play) return;
+    if (!cv.isConnected) { play = false; return; }
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    T += dt * rate;
+    if (T >= endOf()) { T = Math.round(endOf() * 10) / 10; setPlay(false); return; }
+    syncTime(); paint();
+    raf = requestAnimationFrame(frame);
+  }
+  function setPlay(on) {
+    if (on === play) return;
+    play = on; cancelAnimationFrame(raf);
+    if (on) { if (T == null || T >= endOf() - 0.05) T = 0; if (mode === 'add') setMode('select'); last = performance.now(); raf = requestAnimationFrame(frame); }
+    syncTime(); paint(); drawProps();
+  }
 
   // ---------- Sort choisi ----------
   const props = h('div', {class: 'le-props'});
@@ -160,7 +244,8 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
     const spellOpts = [...own.map((id) => [id, nameS(id)]), ...spells.filter(([id]) => !own.includes(id))];
     const set = (patch) => { Object.assign(e, cleanEvent({...e, ...patch})); changed(); refresh(); };
     props.replaceChildren(
-      h('div', {class: 'le-row'}, h('b', null, `Ennemi n° ${sel + 1}`), h('span', {class: 'fa-muted'}, `lancé à ${e.t} s`)),
+      h('div', {class: 'le-row'}, h('b', null, `Ennemi n° ${sel + 1}`), h('span', {class: 'fa-muted'}, `lancé à ${e.t} s`),
+        T != null && Math.abs(T - e.t) > 0.05 ? h('button', {class: 'fa-link', type: 'button', onclick: () => { const t = Math.round(T * 10) / 10; Object.assign(e, cleanEvent({...e, t})); d.script.sort((a, b) => a.t - b.t); sel = d.script.indexOf(e); changed(); refresh(); }}, `⏱ Le lancer à ${fmt(T)} (maintenant)`) : null),
       h('div', {class: 'fa-grid'},
         h('label', {class: 'fa-field'}, h('span', null, 'Lancé à (secondes)'), h('input', {class: 'fa-inp', type: 'number', min: '0', max: '600', step: '0.1', value: String(e.t), onchange: (ev) => {
           const t = Number(ev.target.value); set({t}); sel = d.script.indexOf(e); d.script.sort((a, b) => a.t - b.t); sel = d.script.indexOf(e); refresh(); }})),
@@ -183,7 +268,7 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
         h('span', {class: 'le-dot', style: `background:${spellColor(e.s)}`}, String(i + 1)), h('span', {class: 'le-t'}, e.t + ' s'), h('span', null, nameC(e.c) + ' · ' + nameS(e.s)),
         h('span', {class: 'fa-muted'}, e.aim === 'player' ? 'vise le joueur' : 'direction fixe'))));
   }
-  function refresh() { fitTime(); drawProps(); drawList(); paint(); }
+  function refresh() { syncTime(); drawProps(); drawList(); paint(); }
 
   // ---------- Options du scénario ----------
   const loopIn = h('input', {class: 'fa-inp', type: 'number', min: '0', max: '600', step: '0.5', value: String(d.loop || 0), style: 'max-width:110px', onchange: (ev) => { d.loop = Math.max(0, Math.min(600, Number(ev.target.value) || 0)); changed(); }});
@@ -192,11 +277,11 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
     h('label', {class: 'fa-check'}, h('input', {type: 'checkbox', checked: !!d.random, onchange: (ev) => { d.random = ev.target.checked; changed(); }}), 'Ajouter aussi des sorts au hasard (personnages choisis plus bas, selon la complexité)'));
 
   const box = h('div', {class: 'le-box'},
-    h('div', {class: 'fa-row le-tools'}, addBtn, h('button', {class: 'fa-btn', type: 'button', onclick: () => { d.start = {...START0}; changed(); paint(); }}, '🧍 Joueur au centre'),
-      h('span', {class: 'le-time'}, 'Afficher ', timeIn, ' ', timeOut)),
+    h('div', {class: 'fa-row le-tools'}, addBtn, h('button', {class: 'fa-btn', type: 'button', onclick: () => { d.start = {...START0}; changed(); paint(); }}, '🧍 Joueur au centre')),
+    h('div', {class: 'le-timeline'}, playBtn, stopBtn, timeIn, timeOut, rateSel),
     hint, h('div', {class: 'le-wrap'}, cv), props, list, opts);
   setMode('select');
-  const ro = new ResizeObserver(() => { size(); paint(); }); ro.observe(box);
+  const ro = new ResizeObserver(() => { if (!box.isConnected) { setPlay(false); ro.disconnect(); return; } size(); paint(); }); ro.observe(box);
   requestAnimationFrame(() => { size(); refresh(); });
   return box;
 }
