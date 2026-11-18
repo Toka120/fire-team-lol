@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('fl', {
   open: (u) => ipcRenderer.invoke('open:url', u),
   win: { min: () => ipcRenderer.invoke('win:min'), max: () => ipcRenderer.invoke('win:max'), close: () => ipcRenderer.invoke('win:close') },
   selfInstall: () => ipcRenderer.invoke('self:install'),
+  admin: { keys: () => ipcRenderer.invoke('admin:keys'), outbox: () => ipcRenderer.invoke('admin:outbox') },
   onProgress: on('apps:progress'),
   onSelf: on('self'),
   onWin: on('win'),

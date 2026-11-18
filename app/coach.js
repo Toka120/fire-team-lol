@@ -1921,6 +1921,38 @@ async function appKeyRevoke(id, on = true) {
 
 // Dossier d'envoi partagé avec FIRE Kiting / FIRE Listen (lu seulement sur PC, jamais sur téléphone).
 const outboxDir = () => path.join(process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || process.env.HOME || '.', 'AppData', 'Local'), 'FIRE', 'envois');
+// ---------- Mode admin sur le PC du créateur ----------
+// Sur ton PC (et seulement là où ta clé de créateur existe), FIRE crée une fois ta propre clé Kiting + Listen et la pose
+// dans les deux apps : leur menu 🔧 Admin s'ouvre sans rien coller. Un repère dit au launcher de passer en mode admin.
+const localDir = () => process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || process.env.HOME || '.', 'AppData', 'Local');
+const APP_DIRS = { kiting: 'FIRE Kiting', listen: 'FIRE Listen' };
+const creatorMark = () => path.join(localDir(), 'FIRE', 'createur.json');
+function keyIdOf(str) {
+  const m = /^FIREKEY1\.([\w-]+)\./.exec(String(str || '').trim());
+  if (!m) return '';
+  try { return String(JSON.parse(Buffer.from(m[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')).id || ''); } catch (e) { return ''; }
+}
+async function appSelfKey(force) {
+  if (!adminOn()) { try { fs.unlinkSync(creatorMark()); } catch (e) { /* pas de repère */ } return { ok: false, error: 'réservé au créateur' }; }
+  let d = appKeysLocal();
+  let mine = d.issued.find((x) => x.self && x.key && !d.revoked.includes(x.id));
+  if (!mine || force) {
+    const r = await appKeyMake('Créateur (ce PC)', APPS);
+    if (!r.ok) return r;
+    d = appKeysLocal(); mine = d.issued.find((x) => x.id === r.id); mine.self = true; writeSecret('appkeys.bin', d);
+  }
+  const done = {};
+  for (const a of APPS) {
+    const f = path.join(localDir(), APP_DIRS[a], 'cle-admin.txt');
+    let cur = ''; try { cur = fs.readFileSync(f, 'utf8').trim(); } catch (e) { /* aucune clé */ }
+    const id = keyIdOf(cur);
+    // Une clé valable déjà posée (la tienne ou une autre non révoquée) est gardée.
+    if (!force && id && !d.revoked.includes(id) && d.issued.some((x) => x.id === id)) { done[a] = 'déjà là'; continue; }
+    try { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, mine.key, 'utf8'); done[a] = 'posée'; } catch (e) { done[a] = 'erreur : ' + e.message; }
+  }
+  try { fs.mkdirSync(path.dirname(creatorMark()), { recursive: true }); fs.writeFileSync(creatorMark(), JSON.stringify({ v: 1, on: true, at: Date.now(), key: mine.id, apps: APPS })); } catch (e) { /* */ }
+  return { ok: true, key: mine.id, apps: done };
+}
 async function ghPutRaw(token, p, buf, sha, message, repo) {
   const body = { message, content: Buffer.from(buf).toString('base64'), branch: 'main' };
   if (sha) body.sha = sha;
@@ -1996,4 +2028,4 @@ async function appsRelay() {
   return { ok: true, n };
 }
 
-module.exports = { appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

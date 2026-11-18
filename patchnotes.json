@@ -1,6 +1,37 @@
 {
  "versions": [
   {
+   "v": "2.0.7",
+   "date": "2026-11-18",
+   "titre": "Clips sans bruit de clavier + mode admin sur ton PC",
+   "items": [
+    [
+     "new",
+     "Clips : nouvelle réduction de bruit du micro, avec la même IA que le vocal (RNNoise) et l’anti-clavier. Le tapage du clavier, la souris et le ventilateur disparaissent de ta voix, qui reste nette."
+    ],
+    [
+     "new",
+     "Le micro des clips se referme tout seul quand tu ne parles pas : un clic de touche est trop court pour l’ouvrir."
+    ],
+    [
+     "improve",
+     "Clips › Réglages : un interrupteur « Réduction de bruit du micro » (activé par défaut). Le gain automatique du micro est coupé : il remontait le clavier dès que tu te taisais."
+    ],
+    [
+     "new",
+     "Mode admin sur le PC du créateur : FIRE Team pose tout seul ta clé dans FIRE Kiting et FIRE Listen. Le bouton 🔧 Admin de chaque app s’ouvre directement, sans rien coller."
+    ],
+    [
+     "new",
+     "Admin › Clés des apps : une carte « Ce PC » montre si ta clé est posée, avec un bouton pour la recréer et la reposer."
+    ],
+    [
+     "improve",
+     "Le FIRE Launcher de ton PC passe en mode admin : bouton 🛠️ dans la barre de gauche, badge « Admin » sur Kiting et Listen, accès direct aux clés de l’équipe et aux créations en attente d’envoi."
+    ]
+   ]
+  },
+  {
    "v": "2.0.6",
    "date": "2026-11-18",
    "titre": "Annonces privées",

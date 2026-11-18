@@ -1283,6 +1283,19 @@ ipcMain.handle('appkeys:list', () => coach.appKeysList());
 ipcMain.handle('appkeys:make', (e, who, apps) => coach.appKeyMake(who, apps));
 ipcMain.handle('appkeys:revoke', (e, id, on) => coach.appKeyRevoke(String(id || ''), on !== false));
 ipcMain.handle('appsrelay:now', () => coach.appsRelay());
+ipcMain.handle('appkeys:self', (e, force) => coach.appSelfKey(!!force));
+// Sur le PC du créateur : sa clé Kiting + Listen posée dans les deux apps, et le repère « mode admin » du launcher.
+app.whenReady().then(() => { setTimeout(() => coach.appSelfKey(false).catch(() => {}), 12000); setInterval(() => coach.appSelfKey(false).catch(() => {}), 3600000); });
+// Le launcher (mode admin) peut ouvrir directement une page : --open=admin-keys (Clés des apps).
+function openFromArgs(argv) {
+  const m = (argv || []).map(String).find((a) => a.startsWith('--open='));
+  if (!m) return;
+  const sec = m.slice(7) === 'admin-keys' ? 'admin:appkeys' : '';
+  if (!sec) return;
+  const go = () => { if (mainWin && !mainWin.isDestroyed()) { showMain(); mainWin.webContents.send('notify:go', sec); } };
+  if (mainWin && !mainWin.isDestroyed() && !mainWin.webContents.isLoading()) go(); else setTimeout(go, 6000);
+}
+app.whenReady().then(() => openFromArgs(process.argv));
 app.whenReady().then(() => { setTimeout(() => coach.appsRelay().catch(() => {}), 8000); setInterval(() => coach.appsRelay().catch(() => {}), 15000); });
 ipcMain.handle('appcfg:post', (e, cfg, who) => coach.appCfgPost(cfg, String(who || '')));
 ipcMain.handle('appcfg:assetPut', (e, id, data) => coach.appAssetPut(String(id || ''), String(data || '')));
@@ -1811,7 +1824,7 @@ if (!single) {
   // La version Store a déjà son identité Windows (notifications) : on ne la remplace pas.
   if (process.platform === 'win32' && !store) app.setAppUserModelId('lol.fire.team');
   // Un 2e lancement par Windows (démarrage auto) ne doit pas afficher la fenêtre : seulement un double-clic du joueur.
-  app.on('second-instance', (e, argv) => { if (!(argv || []).includes('--hidden')) showMain(); });
+  app.on('second-instance', (e, argv) => { if (!(argv || []).includes('--hidden')) showMain(); openFromArgs(argv); });
   app.whenReady().then(() => { lockPermissions(); blockAds(); adblockWeb().catch(() => {}); screenShare(); launcher().catch(() => { if (!mainWin || mainWin.isDestroyed()) createMainWindow(); setupUpdater(true); }); });
   app.on('window-all-closed', () => { if ((!bgPrefs().bg && !inVoice) || quitting) app.quit(); });
 }

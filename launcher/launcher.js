@@ -61,6 +61,8 @@
           h('img', { src: a.tile || a.icon, alt: '' }), dot ? h('span', { class: 'dot ' + dot }) : null, h('span', { class: 'r-tip' }, a.name));
       }),
       h('div', { class: 'r-sp' }),
+      ST.admin && ST.admin.on ? h('button', { class: 'r-it r-admin', 'aria-label': 'Mode admin', onclick: () => adminModal() }, h('span', { class: 'r-ico' }, '🛠️'),
+        ST.admin.pending ? h('span', { class: 'dot new' }) : null, h('span', { class: 'r-tip' }, 'Mode admin (ce PC)')) : null,
     );
   }
   function pick(id) {
@@ -169,7 +171,7 @@
       h('img', { class: 'logo' + (a.round ? ' round' : ''), src: a.icon, alt: '' }),
       h('h1', null, a.name.replace('FIRE ', '')),
       h('div', { class: 'tag' }, a.tag),
-      h('div', { class: 'status ' + sc }, h('i'), stxt),
+      h('div', { class: 'status ' + sc }, ST.admin && ST.admin.on && id !== 'team' ? h('button', { class: 'adm-pill' + (ST.admin.keys[id] ? '' : ' warn'), title: ST.admin.keys[id] ? 'Mode admin : le bouton 🔧 Admin de l’app s’ouvre directement' : 'Mode admin : ta clé n’est pas encore posée', onclick: () => adminModal() }, ST.admin.keys[id] ? '🛠️ Admin' : '⚠ Admin') : null, h('i'), stxt),
       go,
       h('div', { class: 'ptxt' }, p ? p.text : ''),
       h('div', { class: 'ibtns' }, btns));
@@ -221,6 +223,22 @@
     modal(h('h2', null, a.name), h('p', { style: 'color:var(--mute)' }, a.tag),
       a.news.map(([e, t, d]) => h('div', { class: 'pn' }, h('h3', null, e + ' ' + t), h('p', { style: 'margin:0;color:#fffd' }, d))),
       h('div', { class: 'pn' }, h('h3', null, '💻 Configuration'), h('p', { style: 'margin:0;color:#fffd' }, 'Windows 64 bits et Microsoft Edge WebView2 (déjà présent sur Windows 10 et 11). Pas besoin du client League. Tes réglages et records restent sur ton PC, même après une mise à jour.')));
+  }
+  // ---------- Mode admin (PC du créateur) ----------
+  function adminModal() {
+    const A = ST.admin || {};
+    if (!A.on) return;
+    const row = (title, text, btn) => h('div', { class: 'set-row' }, h('div', null, h('b', null, title), h('p', null, text)), btn || null);
+    const keyRow = (id) => row(APPS[id].name, A.keys[id] ? '✅ Ta clé de créateur est posée : dans l’app, clique 🔧 Admin, le menu s’ouvre sans rien coller.'
+      : '⚠ Ta clé n’est pas posée. Lance FIRE Team une fois : il la pose tout seul dans Kiting et Listen (ou Admin › Clés des apps › Recréer et reposer ma clé).',
+      A.keys[id] ? h('button', { class: 'gbtn', onclick: () => { $('modal').hidden = true; play(id); } }, 'Lancer') : h('button', { class: 'gbtn', onclick: () => { $('modal').hidden = true; play('team'); } }, 'Lancer FIRE Team'));
+    modal(h('h2', null, '🛠️ Mode admin'), h('p', { style: 'color:var(--mute);margin-top:-6px' }, 'Visible seulement sur ton PC, là où se trouve ta clé de créateur.'),
+      keyRow('kiting'), keyRow('listen'),
+      row('🔑 Clés pour l’équipe', 'Donne le menu admin de Kiting ou Listen à quelqu’un : FIRE Team s’ouvre directement sur Admin › Clés des apps.',
+        h('button', { class: 'gbtn', onclick: async () => { const r = await fl.admin.keys(); if (r && r.ok) { $('modal').hidden = true; toast('FIRE Team s’ouvre', 'Sur Admin › Clés des apps.'); } else if (r && r.update) { $('modal').hidden = true; cur !== 'team' && pick('team'); toast('Mise à jour d’abord', r.error, true); } else toast('Impossible', (r && r.error) || 'FIRE Team introuvable', true); } }, 'Ouvrir')),
+      row('📤 Publications en attente', A.pending ? (A.pending === 1 ? '1 création (niveau, son ou personnage) faite dans Kiting ou Listen attend FIRE Team pour partir chez l’équipe : ouvre FIRE Team.' : `${A.pending} créations (niveaux, sons ou personnages) faites dans Kiting ou Listen attendent FIRE Team pour partir chez l’équipe : ouvre FIRE Team.`) : 'Rien en attente : tout ce que tu as créé dans Kiting et Listen est parti chez l’équipe.',
+        h('button', { class: 'gbtn', onclick: () => fl.admin.outbox() }, 'Dossier')),
+      row('📦 Versions', `FIRE Team ${verOf('team')} · Kiting ${verOf('kiting')} · Listen ${verOf('listen')} · Launcher ${ST.launcher || '?'}`));
   }
   async function settingsModal() {
     PREFS = await fl.prefs.get();

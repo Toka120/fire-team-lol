@@ -132,6 +132,7 @@
     C.mix = C.ac.createMediaStreamDestination();
     C.mix.channelCount = 2;
     if (deskTrack) { C.deskSrc = C.ac.createMediaStreamSource(new MediaStream([deskTrack])); C.deskSrc.connect(C.mix); }
+    nrLoad();
     setMic(C.opts.mic ? C.opts.mic() : null);
     // Un son silencieux permanent : la piste audio ne s'arrête jamais, même sans son.
     const sil = C.ac.createConstantSource(); sil.offset.value = 0; sil.connect(C.mix); sil.start();
@@ -159,11 +160,59 @@
       }
     })();
   }
-  // Ta voix (celle que le salon entend) : branchée quand tu es en appel, retirée après.
-  function setMic(stream) {
+  // ---------- Réduction de bruit du micro des clips (hors appel) ----------
+  // Même traitement que le vocal : IA RNNoise (clavier, souris, ventilateur) → filtre anti-souffle → anti-clavier
+  // (voice-fx.js) → porte douce qui referme le micro quand tu ne parles pas. En appel, la voix arrive déjà nettoyée.
+  const NR = { loading: null, ai: false, fx: false, wasm: null };
+  function nrLoad() {
+    if (NR.loading || !C.ac || !C.ac.audioWorklet) return NR.loading || Promise.resolve(false);
+    const ac = C.ac;
+    const buf = (url) => new Promise((ok, ko) => { const x = new XMLHttpRequest(); x.open('GET', url); x.responseType = 'arraybuffer'; x.onload = () => (x.status === 0 || x.status === 200 ? ok(x.response) : ko(new Error('HTTP ' + x.status))); x.onerror = () => ko(new Error('réseau')); x.send(); });
+    const simd = WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11]));
+    NR.loading = Promise.all([
+      Promise.all([buf(simd ? 'vendor/rnnoise_simd.wasm' : 'vendor/rnnoise.wasm'), ac.audioWorklet.addModule('vendor/rnnoise-worklet.js')]).then(([w]) => { NR.wasm = w; NR.ai = ac.sampleRate === 48000; }).catch(() => { NR.ai = false; }),
+      ac.audioWorklet.addModule('voice-fx.js').then(() => { NR.fx = true; }).catch(() => { NR.fx = false; }),
+    ]).then(() => NR.ai);
+    return NR.loading;
+  }
+  function nrDrop() {
+    for (const n of (C.nr || [])) { try { n.disconnect(); } catch (e) { /* */ } try { if (n.port) n.port.postMessage('destroy'); } catch (e) { /* */ } }
+    C.nr = null; clearInterval(C.nrTick); C.nrTick = null;
+  }
+  function nrChain(src) {
+    const ac = C.ac, nodes = [];
+    let last = src;
+    const link = (n) => { last.connect(n); last = n; nodes.push(n); return n; };
+    if (NR.ai && NR.wasm) { try { link(new AudioWorkletNode(ac, '@sapphi-red/web-noise-suppressor/rnnoise', { processorOptions: { maxChannels: 1, wasmBinary: NR.wasm.slice(0) } })); } catch (e) { /* sans IA */ } }
+    const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 85; hp.Q.value = 0.7; link(hp);
+    if (NR.fx) { try { link(new AudioWorkletNode(ac, 'fire-voice-fx', { processorOptions: { keys: true, dry: true } })); } catch (e) { /* */ } }
+    // Porte douce : un clic de clavier est trop court pour l'ouvrir ; une phrase l'ouvre et la garde ouverte 600 ms.
+    const an = ac.createAnalyser(); an.fftSize = 1024; an.smoothingTimeConstant = 0; last.connect(an); nodes.push(an);
+    const dl = ac.createDelay(0.2); dl.delayTime.value = 0.06; link(dl);
+    const gate = ac.createGain(); gate.gain.value = 0; link(gate);
+    const td = new Float32Array(1024); let run = 0, until = 0, nf = -70;
+    C.nrTick = setInterval(() => {
+      an.getFloatTimeDomainData(td);
+      let e = 0; for (let i = 0; i < td.length; i++) e += td[i] * td[i];
+      const db = 10 * Math.log10(e / td.length + 1e-12), now = performance.now();
+      if (db < nf + 6) nf = nf * 0.98 + db * 0.02; else nf = Math.min(-35, nf + 0.02); // bruit de fond appris
+      run = db > Math.max(-58, nf + 12) ? run + 1 : 0;
+      if (run >= 3 || (now < until && db > Math.max(-64, nf + 6))) until = now + 600;
+      gate.gain.setTargetAtTime(now < until ? 1 : 0.06, ac.currentTime, now < until ? 0.005 : 0.09);
+    }, 20);
+    C.nr = nodes;
+    return last;
+  }
+  // Ta voix : en appel, celle que le salon entend (déjà nettoyée) ; hors appel, ton micro, nettoyé ici si clean.
+  function setMic(stream, clean) {
     if (!C.ac) return;
     if (C.micSrc) { try { C.micSrc.disconnect(); } catch (e) { /* */ } C.micSrc = null; }
-    if (stream && stream.getAudioTracks().length) { C.micSrc = C.ac.createMediaStreamSource(stream); C.micSrc.connect(C.mix); }
+    nrDrop();
+    if (!stream || !stream.getAudioTracks().length) return;
+    C.micSrc = C.ac.createMediaStreamSource(stream);
+    if (!clean) { C.micSrc.connect(C.mix); return; }
+    const src = C.micSrc;
+    nrLoad().then(() => { if (C.micSrc !== src || !C.ac) return; nrChain(src).connect(C.mix); });
   }
 
   async function start(opts) {
@@ -193,6 +242,7 @@
     if (C.loop) { C.loop.getTracks().forEach((t) => t.stop()); C.loop = null; }
     C.st = null;
     for (const k of ['venc', 'aenc']) { if (C[k]) { try { C[k].close(); } catch (e) { /* */ } C[k] = null; } }
+    nrDrop(); NR.loading = null; NR.ai = NR.fx = false; // les modules audio appartiennent à l'ancien contexte
     if (C.ac) { C.ac.close().catch(() => {}); C.ac = null; }
     C.mix = C.micSrc = C.deskSrc = null;
     C.v = []; C.a = []; C.w = C.h = 0; C.on = false; C.vOff = C.aOff = null; C.aGot = 0;
@@ -284,6 +334,7 @@
 
   window.FireClips = {
     start, stop, save, setMic, recStart, recStop, recording: () => R.on,
+    nrReady: () => (C.ac ? nrLoad() : Promise.resolve(false)), nrOn: () => !!(C.nr && C.nr.length),
     state: () => ({ audioBlocks: C.aGot || 0, audioBuffered: C.a.length, snd: !!C.snd, on: C.on, starting: !!C.starting, err: C.err, buffered: C.v.length ? Math.round((C.v[C.v.length - 1].ts - C.v[0].ts) / 1e6) : 0, w: C.w, h: C.h, vcodec: C.vcodec, acodec: C.acodec }),
     onChange: (f) => { onChange = f; },
     supported: () => !!(window.VideoEncoder && window.AudioEncoder && window.MediaStreamTrackProcessor && window.Mp4Muxer),

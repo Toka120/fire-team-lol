@@ -466,7 +466,7 @@
       window.fire.update.on((m) => { S.upd = { ...S.upd, ...m }; renderUpdate(); });
       window.fire.update.state().then((m) => { S.upd = { ...m, ...S.upd, auto: m.auto, portable: m.portable, store: m.store }; renderUpdate(); }).catch(() => {});
     }
-    if (window.fire.onNotifyGo) window.fire.onNotifyGo((sec) => { if (sec === 'chat') go('chat'); else if (sec) go(sec); });
+    if (window.fire.onNotifyGo) window.fire.onNotifyGo((sec) => { if (sec === 'admin:appkeys') { if (!isAdmin()) return; admOpen(); ADM.tab = 'apps'; go('admin'); } else if (sec === 'chat') go('chat'); else if (sec) go(sec); });
     if (window.fire.background) window.fire.background.get().then((b) => { S.bg = b; if (S.section === 'settings' && !typing()) renderSettings(); }).catch(() => {});
     renderUpdate();
     // Page d'ouverture choisie dans Paramètres (ou la dernière page ouverte).
@@ -5849,7 +5849,10 @@
     if (CLV.st && CLV.st.getAudioTracks().some((t) => t.readyState === 'live')) return Promise.resolve(CLV.st);
     if (CLV.busy) return CLV.busy;
     const c = (FV().state().cfg) || {};
-    CLV.busy = navigator.mediaDevices.getUserMedia({ audio: { deviceId: c.mic ? { exact: c.mic } : undefined, echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } })
+    // Quand l'IA anti-bruit des clips tourne, la réduction du navigateur est coupée (les deux ensemble rendent la voix
+    // métallique). Pas de gain automatique : il remonte le clavier et la souris dès que tu te tais.
+    CLV.busy = (FireClips.nrReady ? FireClips.nrReady().catch(() => false) : Promise.resolve(false))
+      .then((ai) => navigator.mediaDevices.getUserMedia({ audio: { deviceId: c.mic ? { exact: c.mic } : undefined, echoCancellation: true, noiseSuppression: !(ai && clipCfg().denoise !== false), autoGainControl: false, channelCount: 1 } }))
       .then((st) => { CLV.st = st; return st; }).catch(() => null).finally(() => { CLV.busy = null; });
     return CLV.busy;
   }
@@ -5858,7 +5861,7 @@
     if (!window.FireClips || !FireClips.state().on) return;
     const v = FV().state();
     if (v.on) { clipOwnMicStop(); FireClips.setMic(clipCfg().voice === false ? null : FV().micStream()); return; }
-    FireClips.setMic(await clipOwnMic());
+    FireClips.setMic(await clipOwnMic(), clipCfg().denoise !== false);
   }
   async function clipsApply() {
     const c = clipCfg();
@@ -6327,6 +6330,8 @@
         h('input', { type: 'checkbox', class: 'vs-tog', checked: c.on ? true : null, onchange: (e) => upd({ on: e.target.checked }) })),
       h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Ma voix dans les clips'), h('small', null, 'Ton micro est enregistré avec le son du jeu, même quand tu n’es pas en vocal (en vocal : ta voix telle que le salon l’entend). Les voix de tes coéquipiers y sont aussi quand tu es en appel.')),
         h('input', { type: 'checkbox', class: 'vs-tog', checked: c.voice !== false ? true : null, onchange: (e) => { save('fire.clips', { ...clipCfg(), voice: e.target.checked }); clipMicApply(); renderClipsPage(); } })),
+      c.voice !== false ? h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Réduction de bruit du micro'), h('small', null, 'Efface le clavier, la souris et le ventilateur de ta voix dans les clips, avec la même IA que le vocal. Le micro se referme tout seul quand tu ne parles pas. En vocal, ta voix est déjà nettoyée par les réglages du vocal.')),
+        h('input', { type: 'checkbox', class: 'vs-tog', checked: c.denoise !== false ? true : null, onchange: (e) => { save('fire.clips', { ...clipCfg(), denoise: e.target.checked }); clipOwnMicStop(); clipMicApply(); renderClipsPage(); } })) : null,
       h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Mes clips à la fin de la partie'), h('small', null, 'Quand ta game se termine, FIRE passe devant et ouvre une page avec les clips de la partie : revois-les, garde, coupe ou partage les meilleurs.')),
         h('input', { type: 'checkbox', class: 'vs-tog', checked: c.recap !== false ? true : null, onchange: (e) => upd({ recap: e.target.checked }) })),
       h('label', { class: 'vs-sw' }, h('span', null, h('b', null, 'Clips automatiques'), h('small', null, 'Un clip à chaque kill ou assist, à chaque objectif où tu participes (dragon, Nashor, Héraut, larves, Atakhan) et à chaque tour ou inhibiteur pris juste après un kill ou une assist. Pas les camps de la jungle, ni les vagues, ni un TP ou un ignite sans kill. Un combat entier = un seul clip.')),
@@ -11428,6 +11433,16 @@
     };
     return h('div', { class: 'adm-sec' },
       h('p', { class: 'muted' }, 'Une clé ouvre le menu admin de FIRE Kiting ou FIRE Listen (bouton 🔧 Admin) : créer des niveaux, des personnages, des sorts ou des sons pour toute l’équipe. Chaque clé est signée par ta clé de créateur : personne d’autre ne peut en fabriquer, et tu peux la retirer quand tu veux.'),
+      (() => {
+        if (!window.fire.appkeys.self) return null;
+        const runSelf = async (force) => { AK.selfBusy = true; renderAdmin(); AK.self = await window.fire.appkeys.self(!!force).catch((e) => ({ ok: false, error: String(e) })); AK.selfBusy = false; if (force) akLoad(); renderAdmin(); };
+        if (AK.self === undefined) { AK.self = null; runSelf(false); }
+        const st = AK.self;
+        return h('div', { class: 'card adm-grp' }, h('b', null, '🖥️ Ce PC : mode admin'),
+          h('p', { class: 'muted small' }, st == null ? 'Vérification…' : st.ok ? '✅ Ta clé de créateur est posée dans FIRE Kiting et FIRE Listen sur ce PC : le bouton 🔧 Admin de chaque app s’ouvre directement, rien à coller. Le FIRE Launcher de ce PC passe aussi en mode admin.' : '⚠ ' + (st.error || 'impossible de poser ta clé')),
+          h('div', { class: 'row' }, h('button', { class: 'btn-ghost small-btn', disabled: AK.selfBusy ? true : null, onclick: () => runSelf(true) }, AK.selfBusy ? '…' : '↻ Recréer et reposer ma clé'),
+            h('span', { class: 'muted small' }, 'Ferme Kiting et Listen avant, ils relisent la clé au lancement.')));
+      })(),
       h('div', { class: 'card adm-grp' }, h('b', null, '➕ Nouvelle clé'),
         h('div', { class: 'row' },
           h('input', { class: 'inp', list: 'ak-who', placeholder: 'Pour qui ? (pseudo)', value: AK.who, maxlength: 40, style: 'max-width:240px', oninput: (e) => { AK.who = e.target.value; } }),

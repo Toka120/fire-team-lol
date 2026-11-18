@@ -122,6 +122,21 @@ function running() {
 const appDir = (id) => path.join(APPS_DIR, id);
 const recPath = (id) => path.join(appDir(id), 'installe.json');
 
+// ---------- Mode admin (PC du créateur) ----------
+// FIRE Team pose ce repère seulement là où la clé du créateur existe, avec sa clé Kiting + Listen dans les deux apps.
+// Le repère ne donne aucun droit : il fait juste apparaître les outils admin du launcher sur ce PC.
+const CREATOR = path.join(LOCAL, 'FIRE', 'createur.json');
+const OUTBOX = path.join(LOCAL, 'FIRE', 'envois');
+const keyFile = (id) => path.join(LOCAL, id === 'kiting' ? 'FIRE Kiting' : 'FIRE Listen', 'cle-admin.txt');
+function adminState() {
+  const m = readJson(CREATOR, null);
+  if (!m || !m.on) return { on: false };
+  const keys = {};
+  for (const id of ['kiting', 'listen']) { try { keys[id] = /^FIREKEY1\./.test(fs.readFileSync(keyFile(id), 'utf8').trim()); } catch (e) { keys[id] = false; } }
+  let pending = 0;
+  try { pending = fs.readdirSync(OUTBOX).filter((f) => /\.json$/i.test(f)).length; } catch (e) { /* aucun envoi */ }
+  return { on: true, at: m.at || 0, keys, pending };
+}
 async function stateAll() {
   const [m, latest, run, team] = await Promise.all([manifest(), teamLatest(), running(), teamInstall()]);
   const apps = {
@@ -136,7 +151,7 @@ async function stateAll() {
     apps[id] = { installed: inst, version: (rec && rec.version) || '', latest: a.version || '', running: run.has(String(a.exe).toLowerCase()), available: !!a.url,
       update: !!(inst && a.sha256 && (!rec || rec.sha256 !== a.sha256)), size: a.size || 0 };
   }
-  return { apps, online: !!latest, launcher: app.getVersion(), news: (m && m.news) || null };
+  return { apps, online: !!latest, launcher: app.getVersion(), news: (m && m.news) || null, admin: adminState() };
 }
 
 // ---------- Téléchargement (suit les redirections de GitHub), avec progression et contrôle d'empreinte ----------
@@ -257,6 +272,17 @@ ipcMain.handle('apps:uninstall', async (e, id) => {
   try { fs.rmSync(appDir(id), { recursive: true, force: true }); return { ok: true }; } catch (err) { return { ok: false, error: String(err.message || err) }; }
 });
 // Notes de version de FIRE Team (format « v / items », et l'ancien « version / notes »).
+// Ouvre FIRE Team (mis à jour d'abord si besoin) directement sur Admin › Clés des apps.
+ipcMain.handle('admin:keys', async () => {
+  if (!adminState().on) return { ok: false, error: 'mode admin absent sur ce PC' };
+  const inst = await teamInstall();
+  if (!inst) return { ok: false, error: 'FIRE Team n’est pas installé' };
+  const latest = await teamLatest(true);
+  if (latest && inst.version && newer(latest, inst.version)) return { ok: false, update: true, error: 'FIRE Team a une mise à jour : lance-le une fois depuis le launcher' };
+  launch(inst.exe, ['--from-launcher', '--open=admin-keys']);
+  return { ok: true };
+});
+ipcMain.handle('admin:outbox', () => { if (!adminState().on) return false; fs.mkdirSync(OUTBOX, { recursive: true }); shell.openPath(OUTBOX); return true; });
 ipcMain.handle('data:patchnotes', async () => {
   const p = await getJson('patchnotes.json');
   return ((p && p.versions) || []).filter((x) => x && (x.v || x.version)).slice(0, 12).map((x) => ({
