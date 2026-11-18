@@ -1365,6 +1365,1101 @@
         "#5fd39a"
        ]
       ]
+     },
+     {
+      "titre": "Ta wave revient vers toi",
+      "contexte": [
+       "6:40",
+       "Tu as 2 kills d’avance",
+       "Leur Lee Sin vu à leurs larves"
+      ],
+      "q": "La wave pousse vers ta tour. Que fais-tu ?",
+      "ch": [
+       "Je la laisse venir et je freeze devant ma tour",
+       "Je la push sous sa tour",
+       "Je back tout de suite"
+      ],
+      "good": 0,
+      "why": "Tu es devant et leur jungler rôde en haut : le freeze devant ta tour le force à venir farmer loin de chez lui, sans protection.",
+      "champs": [
+       [
+        8,
+        22,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        14,
+        8,
+        "Gnar",
+        "e",
+        ""
+       ],
+       [
+        34,
+        26,
+        "LeeSin",
+        "e",
+        "vu"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        6,
+        18,
+        "e",
+        6
+       ],
+       [
+        7,
+        22,
+        "a",
+        3
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        33,
+        28,
+        "🐛",
+        "larves"
+       ]
+      ],
+      "fleches": [
+       [
+        9,
+        22,
+        6,
+        26,
+        "#5aa9ff"
+       ]
+      ],
+      "pattern": "Wave management",
+      "suite": {
+       "q": "Pourquoi freeze ici et pas pousser ?",
+       "ch": [
+        "Pousser t’expose à son jungler loin de ta tour",
+        "Pousser fait moins de dégâts",
+        "Le freeze donne plus d’or"
+       ],
+       "good": 0,
+       "why": "Plus la wave est proche de ta tour, plus il prend de risques pour farmer, et moins tu en prends."
+      }
+     },
+     {
+      "titre": "Préparer ton back",
+      "contexte": [
+       "7:30",
+       "1 100 golds",
+       "La wave arrive au milieu de la lane"
+      ],
+      "q": "Tu veux rentrer acheter un objet. Comment ?",
+      "ch": [
+       "Je back tout de suite, au milieu de la lane",
+       "Je prépare une grosse wave puis je la crash avant de back",
+       "J’attends 2 waves de plus sans pousser"
+      ],
+      "good": 1,
+      "why": "Une grosse wave qui crash sous sa tour le bloque : il perd des sbires pendant que tu rentres, et ta wave revient vers toi.",
+      "champs": [
+       [
+        16,
+        6,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        26,
+        5,
+        "Gnar",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        20,
+        5,
+        "a",
+        9
+       ],
+       [
+        24,
+        4,
+        "e",
+        4
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        30,
+        5,
+        "🗼",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        17,
+        7,
+        26,
+        5,
+        "#5fd39a"
+       ],
+       [
+        16,
+        8,
+        8,
+        90,
+        "#5aa9ff"
+       ]
+      ],
+      "pattern": "Base timers"
+     },
+     {
+      "titre": "Ton bot se fait plonger",
+      "contexte": [
+       "11:00",
+       "TP prête",
+       "Ta wave vient de crash",
+       "3 ennemis plongent ta botlane sous tour"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je TP sur la tour du bot",
+       "Je reste farmer",
+       "Je marche vers le bot"
+      ],
+      "good": 0,
+      "why": "Wave crash, TP prête : en arrivant sur la tour, tu transformes un 2 contre 3 en 3 contre 3 sous ta tour, où vous êtes favoris.",
+      "champs": [
+       [
+        14,
+        6,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        72,
+        92,
+        "Zeri",
+        "a",
+        ""
+       ],
+       [
+        68,
+        94,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        78,
+        90,
+        "Jinx",
+        "e",
+        ""
+       ],
+       [
+        76,
+        94,
+        "Leona",
+        "e",
+        ""
+       ],
+       [
+        74,
+        88,
+        "LeeSin",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        24,
+        4,
+        "a",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        70,
+        95,
+        "🗼",
+        "ta tour"
+       ]
+      ],
+      "fleches": [
+       [
+        14,
+        8,
+        70,
+        93,
+        "#b48cff"
+       ]
+      ],
+      "pattern": "Using teleport"
+     },
+     {
+      "titre": "Il n’a plus sa TP",
+      "contexte": [
+       "12:30",
+       "Leur Gnar a utilisé sa TP il y a 30 s",
+       "Ton jungler est près du drake"
+      ],
+      "q": "Le drake se lance dans 20 s. Tu joues comment ?",
+      "ch": [
+       "Je push et je prends des plaques : il ne peut pas aller au drake",
+       "Je recule sous ma tour",
+       "Je back"
+      ],
+      "good": 0,
+      "why": "Sans TP, s’il part au drake il perd sa tour ; s’il reste, le drake se joue à 4 contre 4. Chaque option l’arrange moins que toi.",
+      "champs": [
+       [
+        22,
+        5,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        30,
+        6,
+        "Gnar",
+        "e",
+        "sans TP"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        27,
+        5,
+        "a",
+        7
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        30,
+        5,
+        "🗼",
+        ""
+       ],
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        23,
+        6,
+        30,
+        6,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Tracking teleports",
+      "suite": {
+       "q": "Ce qu’il faut suivre pour jouer ça ?",
+       "ch": [
+        "Les TP adverses et leur recharge",
+        "Ses objets",
+        "Son rang"
+       ],
+       "good": 0,
+       "why": "Une TP utilisée, c’est une fenêtre pour toi : note l’heure."
+      }
+     },
+     {
+      "titre": "Le gank de 3:15",
+      "contexte": [
+       "2:50",
+       "Leur Lee Sin a commencé au bot",
+       "Tu es avancé"
+      ],
+      "q": "Il finit bientôt son premier tour de jungle de ton côté. Tu fais quoi ?",
+      "ch": [
+       "Je ward la rivière et je joue près de ma tour",
+       "Je trade à fond",
+       "Je ne change rien"
+      ],
+      "good": 0,
+      "why": "Un jungler qui commence au bot finit souvent son tour près du top vers 3:15 : c’est le moment le plus probable du premier gank.",
+      "champs": [
+       [
+        16,
+        6,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        22,
+        5,
+        "Gnar",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [
+       [
+        30,
+        24,
+        "Lee Sin ~3:15 ?"
+       ]
+      ],
+      "waves": [],
+      "wards": [
+       [
+        18,
+        18,
+        "a"
+       ]
+      ],
+      "obj": [],
+      "fleches": [
+       [
+        16,
+        8,
+        18,
+        17,
+        "#ffb347"
+       ]
+      ],
+      "pattern": "Early vision"
+     },
+     {
+      "titre": "Plus de Flash",
+      "contexte": [
+       "5:20",
+       "Leur Gnar vient d’utiliser Flash",
+       "Tu es niveau 6, lui 5"
+      ],
+      "q": "Que fais-tu dans les minutes qui suivent ?",
+      "ch": [
+       "Je joue l’all-in : il ne peut plus fuir",
+       "J’attends qu’il récupère Flash",
+       "Je ne change rien"
+      ],
+      "good": 0,
+      "why": "Flash met 5 minutes à revenir. Pendant ce temps, chaque engagement est plus dur à fuir pour lui : note l’heure et force.",
+      "champs": [
+       [
+        18,
+        5,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        24,
+        6,
+        "Gnar",
+        "e",
+        "sans Flash"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        21,
+        5,
+        "a",
+        4
+       ],
+       [
+        22,
+        4,
+        "e",
+        4
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [],
+      "pattern": "Tracking spells",
+      "suite": {
+       "q": "Flash revient à quelle heure ?",
+       "ch": [
+        "Vers 10:20",
+        "Vers 6:20",
+        "Il ne revient pas"
+       ],
+       "good": 0,
+       "why": "5:20 + 5 minutes de recharge = 10:20 : ping-le pour toute l’équipe."
+      }
+     },
+     {
+      "titre": "La course au niveau 2",
+      "contexte": [
+       "1:45",
+       "Première wave",
+       "Mêlée contre mêlée"
+      ],
+      "q": "Comment prends-tu l’avantage ?",
+      "ch": [
+       "Je tape les sbires pour arriver niveau 2 avant lui, puis je trade",
+       "Je last hit seulement",
+       "Je reste derrière ma wave"
+      ],
+      "good": 0,
+      "why": "En solo lane, le niveau 2 arrive avec la 1re wave et un sbire de mêlée de la 2e. Le premier qui l’atteint gagne le premier échange.",
+      "champs": [
+       [
+        14,
+        6,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        24,
+        5,
+        "Gnar",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        18,
+        5,
+        "a",
+        6
+       ],
+       [
+        20,
+        4,
+        "e",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [],
+      "pattern": "Level up timers"
+     },
+     {
+      "titre": "Le split et les 3 disparus",
+      "contexte": [
+       "23:00",
+       "Tu split au bot",
+       "Ton équipe est au mid",
+       "3 ennemis disparaissent de la carte"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je recule tout de suite",
+       "Je finis la tour",
+       "Je vais dans leur jungle"
+      ],
+      "good": 0,
+      "why": "Trois ennemis invisibles, c’est un piège possible sur toi. Recule : ton équipe peut jouer le 4 contre 2 au mid.",
+      "champs": [
+       [
+        88,
+        92,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        52,
+        50,
+        "Orianna",
+        "a",
+        ""
+       ],
+       [
+        50,
+        54,
+        "JarvanIV",
+        "a",
+        ""
+       ],
+       [
+        56,
+        52,
+        "Zeri",
+        "a",
+        ""
+       ],
+       [
+        54,
+        48,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        60,
+        40,
+        "Syndra",
+        "e",
+        ""
+       ],
+       [
+        62,
+        44,
+        "Jinx",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [
+       [
+        80,
+        66,
+        "?"
+       ],
+       [
+        84,
+        74,
+        "?"
+       ],
+       [
+        76,
+        72,
+        "?"
+       ]
+      ],
+      "waves": [],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        86,
+        92,
+        70,
+        94,
+        "#5aa9ff"
+       ]
+      ],
+      "pattern": "Splitpush"
+     },
+     {
+      "titre": "Où poser le Héraut ?",
+      "contexte": [
+       "15:00",
+       "Tu as l’œil du Héraut",
+       "Ton mid et ton jungler sont avec toi"
+      ],
+      "q": "Où le lâches-tu ?",
+      "ch": [
+       "Au mid, avec ton mid et ton jungler",
+       "Au top, seul",
+       "Je le garde pour plus tard"
+      ],
+      "good": 0,
+      "why": "Le Héraut rapporte le plus quand ton équipe peut suivre : au mid, la tour est centrale et ouvre la carte.",
+      "champs": [
+       [
+        48,
+        52,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        50,
+        54,
+        "Orianna",
+        "a",
+        ""
+       ],
+       [
+        46,
+        54,
+        "JarvanIV",
+        "a",
+        ""
+       ],
+       [
+        60,
+        40,
+        "Syndra",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        58,
+        42,
+        "🗼",
+        "tour mid"
+       ]
+      ],
+      "fleches": [
+       [
+        49,
+        51,
+        57,
+        43,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Using Herald"
+     },
+     {
+      "titre": "Le dive",
+      "contexte": [
+       "8:10",
+       "Leur Gnar a 30 % de vie",
+       "Ta wave de 7 sbires entre sous sa tour",
+       "Ton jungler est à côté"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "Dive à deux : ton jungler prend la tour en premier",
+       "Je dive seul",
+       "On attend"
+      ],
+      "good": 0,
+      "why": "Une grosse wave sous sa tour + un jungler pour prendre les tirs : le dive est rentable. Seul, tu prends tous les tirs.",
+      "champs": [
+       [
+        26,
+        6,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        22,
+        8,
+        "JarvanIV",
+        "a",
+        ""
+       ],
+       [
+        32,
+        4,
+        "Gnar",
+        "e",
+        "30 %"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        30,
+        5,
+        "a",
+        7
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        32,
+        6,
+        "🗼",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        22,
+        7,
+        31,
+        5,
+        "#5fd39a"
+       ],
+       [
+        26,
+        7,
+        31,
+        5,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Diving"
+     },
+     {
+      "titre": "Ton champion est fort tôt",
+      "contexte": [
+       "9:00",
+       "Tu joues Renekton, fort en début de partie",
+       "Leur Gnar devient fort plus tard"
+      ],
+      "q": "Quel plan pour les 10 prochaines minutes ?",
+      "ch": [
+       "Forcer les combats et les objectifs tant que tu es plus fort",
+       "Farmer tranquillement",
+       "Attendre les combats à 5"
+      ],
+      "good": 0,
+      "why": "Ta condition de victoire, c’est maintenant : chaque minute qui passe rend ton adversaire plus fort que toi.",
+      "champs": [
+       [
+        20,
+        5,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        28,
+        5,
+        "Gnar",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ],
+       [
+        33,
+        28,
+        "🐛",
+        "larves"
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Win condition identification"
+     },
+     {
+      "titre": "Rien à faire au mid",
+      "contexte": [
+       "19:00",
+       "Ton équipe est groupée au mid",
+       "La wave du bot arrive seule à ta tour",
+       "Aucun objectif avant 1:30"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je vais récupérer la wave du bot, avec une ward",
+       "Je reste au mid sans rien faire",
+       "Je pars seul dans leur jungle"
+      ],
+      "good": 0,
+      "why": "Sans objectif proche, chaque wave non prise est de l’or perdu. Prends-la en sécurité, puis reviens.",
+      "champs": [
+       [
+        48,
+        52,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        52,
+        50,
+        "Orianna",
+        "a",
+        ""
+       ],
+       [
+        50,
+        56,
+        "Zeri",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        74,
+        94,
+        "e",
+        6
+       ]
+      ],
+      "wards": [
+       [
+        78,
+        84,
+        "a"
+       ]
+      ],
+      "obj": [],
+      "fleches": [
+       [
+        50,
+        54,
+        72,
+        92,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Economy optimisation"
+     },
+     {
+      "titre": "Ta ward quand tu splits",
+      "contexte": [
+       "21:00",
+       "Tu split au top",
+       "Ils peuvent venir par leur jungle"
+      ],
+      "q": "Où poses-tu ta ward ?",
+      "ch": [
+       "À l’entrée de leur jungle, sur leur chemin vers toi",
+       "Dans ton tri-buisson",
+       "Au drake"
+      ],
+      "good": 0,
+      "why": "La ward doit voir arriver ceux qui viennent te prendre : sur leur chemin, assez tôt pour reculer.",
+      "champs": [
+       [
+        24,
+        5,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        60,
+        40,
+        "Syndra",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [
+       [
+        40,
+        18,
+        "a"
+       ]
+      ],
+      "obj": [
+       [
+        44,
+        16,
+        "🪨",
+        "leurs krugs"
+       ]
+      ],
+      "fleches": [
+       [
+        24,
+        7,
+        40,
+        17,
+        "#ffb347"
+       ]
+      ],
+      "pattern": "Defensive vision"
+     },
+     {
+      "titre": "Il split au bot",
+      "contexte": [
+       "26:00",
+       "Leur Gnar split au bot",
+       "Ton équipe est à 5 au mid",
+       "Tu le bats en 1 contre 1"
+      ],
+      "q": "Qui va le chercher ?",
+      "ch": [
+       "Moi : je le bats seul, mon équipe garde le 4 contre 4",
+       "Toute l’équipe",
+       "Personne"
+      ],
+      "good": 0,
+      "why": "Envoie celui qui gagne le duel : ton équipe garde un 4 contre 4 au mid et leur split ne rapporte rien.",
+      "champs": [
+       [
+        50,
+        50,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        90,
+        90,
+        "Gnar",
+        "e",
+        "split"
+       ],
+       [
+        52,
+        54,
+        "Orianna",
+        "a",
+        ""
+       ],
+       [
+        56,
+        46,
+        "Syndra",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        84,
+        94,
+        "e",
+        7
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        52,
+        52,
+        86,
+        90,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Reacting to splitpush"
+     },
+     {
+      "titre": "Le dernier combat a coûté cher",
+      "contexte": [
+       "31:00",
+       "Le Baron apparaît bientôt",
+       "3 de tes alliés n’ont pas encore leurs ultimes"
+      ],
+      "q": "Ton équipe veut forcer le Baron. Tu dis quoi ?",
+      "ch": [
+       "On attend nos ultimes avant de forcer",
+       "On y va tout de suite",
+       "On back tous"
+      ],
+      "good": 0,
+      "why": "Un combat se gagne avec les sorts et les ultimes disponibles : forcer sans eux, c’est offrir le combat.",
+      "champs": [
+       [
+        30,
+        34,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        28,
+        38,
+        "JarvanIV",
+        "a",
+        "sans R"
+       ],
+       [
+        32,
+        40,
+        "Orianna",
+        "a",
+        "sans R"
+       ],
+       [
+        26,
+        40,
+        "Zeri",
+        "a",
+        "sans R"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        33,
+        28,
+        "👾",
+        "Baron"
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Tracking ultimates"
+     },
+     {
+      "titre": "Shadow ton jungler",
+      "contexte": [
+       "4:30",
+       "Ton jungler va au top côté rivière",
+       "Ta wave est au milieu"
+      ],
+      "q": "Comment l’aides-tu ?",
+      "ch": [
+       "Je reste bien placé, prêt à suivre dès qu’il engage",
+       "Je fonce dans le buisson",
+       "Je recule pour l’attirer"
+      ],
+      "good": 0,
+      "why": "Reste où ton adversaire ne se méfie pas, mais assez proche pour suivre l’engagement : vous arrivez ensemble, sans le prévenir.",
+      "champs": [
+       [
+        16,
+        6,
+        "Renekton",
+        "a",
+        "toi"
+       ],
+       [
+        22,
+        5,
+        "Gnar",
+        "e",
+        ""
+       ],
+       [
+        14,
+        18,
+        "JarvanIV",
+        "a",
+        "ton jungler"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        19,
+        5,
+        "a",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        14,
+        16,
+        21,
+        6,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Ganking"
      }
     ]
    }
@@ -2449,6 +3544,1066 @@
         "#5fd39a"
        ]
       ]
+     },
+     {
+      "titre": "Ton premier tour de jungle",
+      "contexte": [
+       "Écran de chargement",
+       "Ton top et ton mid gagnent leur lane",
+       "Ton bot perd la sienne"
+      ],
+      "q": "De quel côté finis-tu ton premier tour ?",
+      "ch": [
+       "Côté top, là où mes lanes peuvent m’aider",
+       "Côté bot, pour aider la lane qui perd",
+       "Peu importe"
+      ],
+      "good": 0,
+      "why": "Finis du côté où tes lanes ont l’avantage : le gank y marche mieux et ton invade est couvert.",
+      "champs": [
+       [
+        26,
+        56,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        8,
+        12,
+        "Renekton",
+        "a",
+        "gagne"
+       ],
+       [
+        52,
+        50,
+        "Orianna",
+        "a",
+        "gagne"
+       ],
+       [
+        88,
+        92,
+        "Zeri",
+        "a",
+        "perd"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        51,
+        74,
+        "🔴",
+        "ton red"
+       ],
+       [
+        24,
+        47,
+        "🔵",
+        "ton blue"
+       ]
+      ],
+      "fleches": [
+       [
+        50,
+        72,
+        24,
+        48,
+        "#5fd39a"
+       ],
+       [
+        24,
+        46,
+        10,
+        20,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Jungle clear routes"
+     },
+     {
+      "titre": "Le gank d’une lane qui pousse",
+      "contexte": [
+       "4:00",
+       "Ton bot pousse sous leur tour",
+       "Leur bot est sous sa tour, plein de vie"
+      ],
+      "q": "Tu ganks le bot ?",
+      "ch": [
+       "Non : il est sous sa tour, rien à prendre",
+       "Oui, je dive",
+       "Oui, j’attends dans le buisson"
+      ],
+      "good": 0,
+      "why": "Un gank marche quand la wave est vers ta lane. Ici leur bot est en sécurité sous sa tour : va plutôt là où ça marche.",
+      "champs": [
+       [
+        80,
+        76,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        92,
+        74,
+        "Zeri",
+        "a",
+        ""
+       ],
+       [
+        94,
+        70,
+        "Jinx",
+        "e",
+        "sous tour"
+       ],
+       [
+        96,
+        68,
+        "Leona",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        94,
+        72,
+        "a",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        95,
+        70,
+        "🗼",
+        ""
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Ganking"
+     },
+     {
+      "titre": "Leur jungler se montre top",
+      "contexte": [
+       "6:20",
+       "Leur Lee Sin gank ton top",
+       "Tu es à ton red, côté bot"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je prends le drake avec mon bot",
+       "Je cours au top",
+       "Je farme mon red seulement"
+      ],
+      "good": 0,
+      "why": "Il est à l’autre bout de la carte : c’est le moment de jouer l’objectif du côté opposé.",
+      "champs": [
+       [
+        52,
+        72,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        88,
+        92,
+        "Zeri",
+        "a",
+        ""
+       ],
+       [
+        84,
+        90,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        10,
+        14,
+        "LeeSin",
+        "e",
+        "gank top"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        54,
+        72,
+        66,
+        70,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Crossmap"
+     },
+     {
+      "titre": "Contre-gank",
+      "contexte": [
+       "5:40",
+       "Ward : leur Lee Sin entre dans ta rivière côté top",
+       "Tu es à ton blue"
+      ],
+      "q": "Ton top est avancé. Que fais-tu ?",
+      "ch": [
+       "Je vais vers le top pour contre-gank",
+       "Je continue mon farm",
+       "Je vais au bot"
+      ],
+      "good": 0,
+      "why": "Tu sais où il va et tu es à côté : arrive pendant son gank, c’est un 2 contre 2 qu’il n’a pas prévu.",
+      "champs": [
+       [
+        24,
+        46,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        8,
+        20,
+        "Renekton",
+        "a",
+        ""
+       ],
+       [
+        22,
+        26,
+        "LeeSin",
+        "e",
+        "vu"
+       ],
+       [
+        10,
+        10,
+        "Gnar",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [
+       [
+        24,
+        28,
+        "a"
+       ]
+      ],
+      "obj": [],
+      "fleches": [
+       [
+        24,
+        44,
+        12,
+        22,
+        "#5fd39a"
+       ],
+       [
+        22,
+        26,
+        10,
+        18,
+        "#ff6b6b"
+       ]
+      ],
+      "pattern": "Counter ganking"
+     },
+     {
+      "titre": "Le drake à 4 contre 5 ?",
+      "contexte": [
+       "10:30",
+       "Ton top est mort",
+       "Leur équipe est à 5 près du drake"
+      ],
+      "q": "Ton équipe veut quand même le drake. Tu dis quoi ?",
+      "ch": [
+       "On le laisse, et on prend autre chose",
+       "On y va",
+       "Je le smite en solo"
+      ],
+      "good": 0,
+      "why": "À 4 contre 5 sans prio, le drake coûte un combat perdu. Échange : larves, camps, tours.",
+      "champs": [
+       [
+        60,
+        76,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        72,
+        64,
+        "LeeSin",
+        "e",
+        ""
+       ],
+       [
+        74,
+        66,
+        "Syndra",
+        "e",
+        ""
+       ],
+       [
+        70,
+        68,
+        "Jinx",
+        "e",
+        ""
+       ],
+       [
+        76,
+        68,
+        "Leona",
+        "e",
+        ""
+       ],
+       [
+        68,
+        62,
+        "Gnar",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ],
+       [
+        33,
+        28,
+        "🐛",
+        "larves"
+       ]
+      ],
+      "fleches": [
+       [
+        60,
+        74,
+        36,
+        30,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Objective prioritization"
+     },
+     {
+      "titre": "Prépare le drake",
+      "contexte": [
+       "Drake dans 1:00",
+       "Ton bot a la prio",
+       "Pas de vision autour"
+      ],
+      "q": "Que fais-tu avant le drake ?",
+      "ch": [
+       "Je pose de la vision et je nettoie leurs wards autour",
+       "Je lance le drake tout de suite",
+       "Je farme jusqu’à l’apparition"
+      ],
+      "good": 0,
+      "why": "Un objectif se prépare : vision posée, wards adverses enlevées, lanes poussées. Sinon tu joues à l’aveugle.",
+      "champs": [
+       [
+        64,
+        74,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        88,
+        90,
+        "Zeri",
+        "a",
+        ""
+       ],
+       [
+        84,
+        88,
+        "Nautilus",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [
+       [
+        70,
+        62,
+        "a"
+       ],
+       [
+        62,
+        66,
+        "a"
+       ]
+      ],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        64,
+        72,
+        70,
+        63,
+        "#ffb347"
+       ]
+      ],
+      "pattern": "Objective set-ups"
+     },
+     {
+      "titre": "Ses buffs repoussent",
+      "contexte": [
+       "Leur blue tué à 6:00 par ton équipe"
+      ],
+      "q": "Il réapparaît à quelle heure ?",
+      "ch": [
+       "11:00",
+       "8:00",
+       "6:30"
+      ],
+      "good": 0,
+      "why": "Les buffs reviennent 5 minutes après leur mort. Note l’heure : tu peux revenir le voler ou le défendre.",
+      "champs": [
+       [
+        70,
+        50,
+        "JarvanIV",
+        "a",
+        "toi"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        74,
+        53,
+        "🔵",
+        "leur blue"
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Tracking tempo"
+     },
+     {
+      "titre": "Smite ou pas ?",
+      "contexte": [
+       "Tu fais le drake",
+       "Leur Lee Sin arrive dans la fosse",
+       "Le drake a encore beaucoup de vie"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je garde le smite pour la fin, et je surveille sa vie",
+       "Je smite tout de suite",
+       "Je quitte la fosse"
+      ],
+      "good": 0,
+      "why": "Le smite sert à la toute fin. L’utiliser trop tôt, c’est laisser le dernier coup à son smite à lui.",
+      "champs": [
+       [
+        66,
+        72,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        72,
+        64,
+        "LeeSin",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        72,
+        64,
+        68,
+        69,
+        "#ff6b6b"
+       ]
+      ],
+      "pattern": "Objective prioritization"
+     },
+     {
+      "titre": "Il envahit ta jungle",
+      "contexte": [
+       "2:50",
+       "Ton red a disparu sans que tu le prennes",
+       "Ton bot et ton mid ont la prio"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je vais vers lui avec mon mid et mon bot",
+       "Je vais farmer ailleurs",
+       "Je back"
+      ],
+      "good": 0,
+      "why": "Il est chez toi et tes lanes arrivent avant les siennes : c’est un piège pour lui, à 3 contre 1.",
+      "champs": [
+       [
+        40,
+        66,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        50,
+        56,
+        "Orianna",
+        "a",
+        ""
+       ],
+       [
+        52,
+        76,
+        "LeeSin",
+        "e",
+        "?"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        51,
+        74,
+        "🔴",
+        "ton red"
+       ]
+      ],
+      "fleches": [
+       [
+        42,
+        66,
+        50,
+        73,
+        "#5fd39a"
+       ],
+       [
+        50,
+        58,
+        51,
+        72,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Invades & counter invades"
+     },
+     {
+      "titre": "Le plan à 12 minutes",
+      "contexte": [
+       "12:00",
+       "Leur ADC est très en avance",
+       "Ton top gagne contre le leur"
+      ],
+      "q": "Quel plan ?",
+      "ch": [
+       "Jouer autour du top pour ouvrir la carte",
+       "Ganker leur ADC en boucle",
+       "Farmer seul"
+      ],
+      "good": 0,
+      "why": "Joue autour de ton côté fort : chaque avance de ton top te rapporte plus qu’une lane qui ne peut plus être gagnée.",
+      "champs": [
+       [
+        30,
+        40,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        12,
+        8,
+        "Renekton",
+        "a",
+        "gagne"
+       ],
+       [
+        90,
+        88,
+        "Jinx",
+        "e",
+        "en avance"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        33,
+        28,
+        "🐛",
+        "larves"
+       ]
+      ],
+      "fleches": [
+       [
+        30,
+        38,
+        14,
+        12,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Win condition identification"
+     },
+     {
+      "titre": "Les larves en danger",
+      "contexte": [
+       "Larves dans 0:30",
+       "Ton top a la prio",
+       "Leur mid est sur ta wave"
+      ],
+      "q": "Tu y vas avec qui ?",
+      "ch": [
+       "Mon top, et mon mid si sa wave le permet",
+       "Seul",
+       "Je ne joue pas les larves"
+      ],
+      "good": 0,
+      "why": "Les objectifs se jouent avec la prio des lanes les plus proches : ici le top, et le mid s’il peut pousser.",
+      "champs": [
+       [
+        26,
+        40,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        8,
+        14,
+        "Renekton",
+        "a",
+        "prio"
+       ],
+       [
+        48,
+        52,
+        "Orianna",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        33,
+        28,
+        "🐛",
+        "larves"
+       ]
+      ],
+      "fleches": [
+       [
+        26,
+        38,
+        32,
+        30,
+        "#5fd39a"
+       ],
+       [
+        10,
+        14,
+        30,
+        28,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Using lane priority"
+     },
+     {
+      "titre": "Le gank à travers le mur",
+      "contexte": [
+       "7:00",
+       "Ton mid a la prio",
+       "Leur Syndra est avancée, sans Flash"
+      ],
+      "q": "Comment arrives-tu ?",
+      "ch": [
+       "Par le côté où elle ne regarde pas, sans passer devant ses wards",
+       "Droit au milieu de la lane",
+       "Je ping et j’attends"
+      ],
+      "good": 0,
+      "why": "Le gank réussit quand il est imprévu : évite les wards, arrive par son flanc.",
+      "champs": [
+       [
+        44,
+        40,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        50,
+        52,
+        "Orianna",
+        "a",
+        ""
+       ],
+       [
+        56,
+        46,
+        "Syndra",
+        "e",
+        "sans Flash"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [
+       [
+        56,
+        54,
+        "e"
+       ]
+      ],
+      "obj": [],
+      "fleches": [
+       [
+        44,
+        40,
+        55,
+        44,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Ganking"
+     },
+     {
+      "titre": "Tu prends ses camps ?",
+      "contexte": [
+       "9:30",
+       "Leur jungler vu au bot",
+       "Ton mid a la prio"
+      ],
+      "q": "Tu es près de leurs raptors. Que fais-tu ?",
+      "ch": [
+       "Je vole ses raptors, avec une ward sur son chemin",
+       "Je retourne dans ma jungle",
+       "Je back"
+      ],
+      "good": 0,
+      "why": "Il est loin et ton mid te couvre : chaque camp volé lui coûte de l’or et de l’expérience.",
+      "champs": [
+       [
+        52,
+        42,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        48,
+        50,
+        "Orianna",
+        "a",
+        "prio"
+       ],
+       [
+        88,
+        90,
+        "LeeSin",
+        "e",
+        "vu"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [
+       [
+        62,
+        46,
+        "a"
+       ]
+      ],
+      "obj": [
+       [
+        53,
+        38,
+        "🐦",
+        "ses raptors"
+       ]
+      ],
+      "fleches": [
+       [
+        52,
+        42,
+        53,
+        39,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Invades & counter invades"
+     },
+     {
+      "titre": "Ton bot dans 30 s",
+      "contexte": [
+       "3:20",
+       "Leur jungler est top",
+       "Ton bot a le niveau 3 avant eux"
+      ],
+      "q": "Ton premier tour est fini. Où vas-tu ?",
+      "ch": [
+       "Au bot, pour un 3 contre 2 rapide",
+       "Je refais un tour de jungle",
+       "Au top"
+      ],
+      "good": 0,
+      "why": "Leur jungler est de l’autre côté et ton bot a l’avantage de niveau : c’est la fenêtre du gank.",
+      "champs": [
+       [
+        48,
+        70,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        84,
+        92,
+        "Zeri",
+        "a",
+        "niv. 3"
+       ],
+       [
+        90,
+        90,
+        "Jinx",
+        "e",
+        ""
+       ],
+       [
+        12,
+        10,
+        "LeeSin",
+        "e",
+        "top"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        50,
+        72,
+        82,
+        88,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Ganking"
+     },
+     {
+      "titre": "Le Baron à 4 contre 5",
+      "contexte": [
+       "27:00",
+       "Leur ADC est mort",
+       "Ton équipe est autour du Baron"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "On lance le Baron tout de suite",
+       "On attend",
+       "On back"
+      ],
+      "good": 0,
+      "why": "Il leur manque leur ADC : leur combat est plus faible et le Baron va vite. C’est le moment.",
+      "champs": [
+       [
+        30,
+        32,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        34,
+        34,
+        "Orianna",
+        "a",
+        ""
+       ],
+       [
+        28,
+        36,
+        "Zeri",
+        "a",
+        ""
+       ],
+       [
+        32,
+        38,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        26,
+        32,
+        "Renekton",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [
+       [
+        52,
+        30,
+        "4 ennemis ?"
+       ]
+      ],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        33,
+        28,
+        "👾",
+        "Baron"
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Objective prioritization"
+     },
+     {
+      "titre": "Le contrôle de la vision",
+      "contexte": [
+       "18:00",
+       "Drake dans 1:30",
+       "Ils ont 3 wards autour"
+      ],
+      "q": "Comment gagner la vision ?",
+      "ch": [
+       "À plusieurs, avec une ward de contrôle et le balayeur",
+       "Seul, en entrant dans leurs buissons",
+       "Je ne m’en occupe pas"
+      ],
+      "good": 0,
+      "why": "On reprend la vision en groupe : seul, tu te fais prendre dans le noir.",
+      "champs": [
+       [
+        62,
+        72,
+        "JarvanIV",
+        "a",
+        "toi"
+       ],
+       [
+        60,
+        76,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        64,
+        78,
+        "Orianna",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [
+       [
+        70,
+        62,
+        "e"
+       ],
+       [
+        72,
+        66,
+        "e"
+       ],
+       [
+        64,
+        64,
+        "e"
+       ]
+      ],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        62,
+        72,
+        70,
+        64,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Contesting vision"
      }
     ]
    }
@@ -3579,6 +5734,949 @@
         "#ff6b6b"
        ]
       ]
+     },
+     {
+      "titre": "Push puis bouge",
+      "contexte": [
+       "6:00",
+       "Ta wave et la sienne arrivent",
+       "Ton jungler est près des larves"
+      ],
+      "q": "Ton jungler veut les larves. Que fais-tu ?",
+      "ch": [
+       "Je push vite ma wave, puis je le rejoins",
+       "J’y vais tout de suite",
+       "Je reste au mid"
+      ],
+      "good": 0,
+      "why": "Pousser d’abord te donne la prio : leur mid doit prendre sa wave, toi tu arrives en premier.",
+      "champs": [
+       [
+        50,
+        50,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        58,
+        42,
+        "Syndra",
+        "e",
+        ""
+       ],
+       [
+        30,
+        38,
+        "JarvanIV",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        53,
+        47,
+        "a",
+        6
+       ],
+       [
+        55,
+        45,
+        "e",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        33,
+        28,
+        "🐛",
+        "larves"
+       ]
+      ],
+      "fleches": [
+       [
+        51,
+        49,
+        57,
+        43,
+        "#ffb347"
+       ],
+       [
+        54,
+        46,
+        36,
+        32,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Using lane priority"
+     },
+     {
+      "titre": "Leur mid roam",
+      "contexte": [
+       "8:20",
+       "Leur Syndra disparaît vers le bot",
+       "Ta wave arrive sous sa tour"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je ping le bot et je prends des plaques",
+       "Je la suis jusqu’au bot",
+       "Je recule"
+      ],
+      "good": 0,
+      "why": "Préviens d’abord. Ensuite, chaque roam a un prix : sa tour et ses sbires.",
+      "champs": [
+       [
+        54,
+        46,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        88,
+        92,
+        "Zeri",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [
+       [
+        68,
+        60,
+        "Syndra ?"
+       ]
+      ],
+      "waves": [
+       [
+        57,
+        43,
+        "a",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        58,
+        42,
+        "🗼",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        56,
+        44,
+        58,
+        42,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Using lane priority"
+     },
+     {
+      "titre": "Le roam vers le top",
+      "contexte": [
+       "7:10",
+       "Ta wave crash",
+       "Leur top est très avancé",
+       "Ton jungler est en haut"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je pars au top avec mon jungler",
+       "Je reste au mid",
+       "Je pars au bot"
+      ],
+      "good": 0,
+      "why": "Prio + jungler à côté + adversaire avancé : 3 contre 1 au top.",
+      "champs": [
+       [
+        54,
+        46,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        28,
+        34,
+        "JarvanIV",
+        "a",
+        ""
+       ],
+       [
+        24,
+        6,
+        "Gnar",
+        "e",
+        "avancé"
+       ],
+       [
+        16,
+        8,
+        "Renekton",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        57,
+        43,
+        "a",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        52,
+        46,
+        30,
+        18,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Crossmap"
+     },
+     {
+      "titre": "Tu n’as plus de mana",
+      "contexte": [
+       "5:30",
+       "15 % de mana",
+       "Ta wave arrive au milieu",
+       "Un composant d’objet coûte 900 golds, tu en as 1 000"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je push la wave, puis je back",
+       "Je reste sans mana",
+       "Je back sans pousser"
+      ],
+      "good": 0,
+      "why": "Sans mana tu ne peux plus défendre : pousse pour ne rien perdre, puis rentre acheter.",
+      "champs": [
+       [
+        50,
+        50,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        58,
+        42,
+        "Syndra",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        53,
+        47,
+        "a",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        51,
+        49,
+        57,
+        43,
+        "#5fd39a"
+       ],
+       [
+        48,
+        52,
+        10,
+        90,
+        "#5aa9ff"
+       ]
+      ],
+      "pattern": "Base timers"
+     },
+     {
+      "titre": "Ward de mid",
+      "contexte": [
+       "3:00",
+       "Leur jungler a commencé au top",
+       "Tu n’as pas de vision"
+      ],
+      "q": "Où poses-tu ta ward ?",
+      "ch": [
+       "Dans la rivière côté top, sur son chemin",
+       "Dans ton buisson de lane",
+       "Je la garde"
+      ],
+      "good": 0,
+      "why": "Il va passer par la rivière : la ward sur son chemin te donne le temps de reculer.",
+      "champs": [
+       [
+        50,
+        50,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        58,
+        42,
+        "Syndra",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [
+       [
+        40,
+        32,
+        "Lee Sin ?"
+       ]
+      ],
+      "waves": [],
+      "wards": [
+       [
+        42,
+        40,
+        "a"
+       ]
+      ],
+      "obj": [],
+      "fleches": [
+       [
+        48,
+        48,
+        42,
+        41,
+        "#ffb347"
+       ]
+      ],
+      "pattern": "Vision placement"
+     },
+     {
+      "titre": "Son ultime est utilisé",
+      "contexte": [
+       "10:40",
+       "Leur Syndra vient d’utiliser son ultime au bot",
+       "Elle revient au mid"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je trade plus fort : sans ultime, elle ne peut pas me tuer",
+       "Je joue prudemment comme avant",
+       "Je back"
+      ],
+      "good": 0,
+      "why": "Son ultime met longtemps à revenir : c’est sa plus grosse menace. Tant qu’il est en recharge, tu peux être agressif.",
+      "champs": [
+       [
+        50,
+        50,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        56,
+        44,
+        "Syndra",
+        "e",
+        "sans R"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        53,
+        47,
+        "a",
+        5
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [],
+      "pattern": "Tracking ultimates"
+     },
+     {
+      "titre": "Le niveau 6 arrive",
+      "contexte": [
+       "5:50",
+       "Tu es à 80 % du niveau 6",
+       "Elle aussi",
+       "Ta wave arrive"
+      ],
+      "q": "Comment gagner ce moment ?",
+      "ch": [
+       "Prendre l’expérience de la wave en premier pour être 6 avant elle",
+       "Rester loin",
+       "Back maintenant"
+      ],
+      "good": 0,
+      "why": "Le premier qui a son ultime gagne le prochain échange : prends la wave en premier.",
+      "champs": [
+       [
+        50,
+        50,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        56,
+        44,
+        "Syndra",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        52,
+        48,
+        "e",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [],
+      "pattern": "Level up timers"
+     },
+     {
+      "titre": "Le piège",
+      "contexte": [
+       "18:00",
+       "Leur ADC farme seul au bot, sans vision",
+       "Ton jungler et ton support sont près de toi"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "On passe par le brouillard pour l’attraper à 3",
+       "On l’attaque de face",
+       "On reste au mid"
+      ],
+      "good": 0,
+      "why": "Personne ne vous voit et il est seul : arrivez par le brouillard, c’est un kill presque sûr.",
+      "champs": [
+       [
+        56,
+        56,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        58,
+        60,
+        "JarvanIV",
+        "a",
+        ""
+       ],
+       [
+        60,
+        58,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        90,
+        82,
+        "Jinx",
+        "e",
+        "seule"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        58,
+        58,
+        82,
+        78,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Traps & catches"
+     },
+     {
+      "titre": "Leur push au mid",
+      "contexte": [
+       "16:00",
+       "Ils sont 4 à pousser ton mid",
+       "Toi seul sous ta tour"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je prends la wave depuis ma tour sans m’exposer",
+       "J’engage seul",
+       "Je quitte le mid"
+      ],
+      "good": 0,
+      "why": "Seul contre 4, tu protèges la tour à distance et tu attends ton équipe. S’engager, c’est leur offrir un kill et la tour.",
+      "champs": [
+       [
+        42,
+        58,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        50,
+        50,
+        "Syndra",
+        "e",
+        ""
+       ],
+       [
+        52,
+        48,
+        "Jinx",
+        "e",
+        ""
+       ],
+       [
+        48,
+        46,
+        "Leona",
+        "e",
+        ""
+       ],
+       [
+        52,
+        52,
+        "LeeSin",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        46,
+        54,
+        "e",
+        7
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        42,
+        58,
+        "🗼",
+        "ta tour"
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Contesting mid push"
+     },
+     {
+      "titre": "Après ton back",
+      "contexte": [
+       "9:00",
+       "Tu sors de base",
+       "Ton bot se bat sous sa tour",
+       "Ta wave arrive au mid dans 20 s"
+      ],
+      "q": "Où vas-tu ?",
+      "ch": [
+       "Au mid : la wave d’abord, puis je regarde le bot",
+       "Au bot directement",
+       "Dans leur jungle"
+      ],
+      "good": 0,
+      "why": "Le chemin le plus utile : récupère ta wave, puis joue avec la prio. Sinon tu perds or et tour.",
+      "champs": [
+       [
+        14,
+        86,
+        "Orianna",
+        "a",
+        "toi"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        46,
+        54,
+        "e",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        16,
+        84,
+        44,
+        56,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Opening on the map"
+     },
+     {
+      "titre": "Synchroniser avec ton bot",
+      "contexte": [
+       "14:00",
+       "Ta wave et celle du bot vont crash en même temps"
+      ],
+      "q": "Pourquoi c’est utile ?",
+      "ch": [
+       "Vous pouvez vous déplacer ensemble vers le drake",
+       "Ça donne plus d’or",
+       "Ça ne change rien"
+      ],
+      "good": 0,
+      "why": "Deux waves qui crash en même temps : deux lanes libres en même temps, donc un objectif joué à plusieurs.",
+      "champs": [
+       [
+        54,
+        46,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        92,
+        74,
+        "Zeri",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        57,
+        43,
+        "a",
+        6
+       ],
+       [
+        95,
+        72,
+        "a",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        54,
+        48,
+        64,
+        66,
+        "#5fd39a"
+       ],
+       [
+        90,
+        76,
+        70,
+        70,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Synchronizing waves"
+     },
+     {
+      "titre": "Cible prioritaire",
+      "contexte": [
+       "22:00",
+       "Combat au drake",
+       "Leur Jinx est à portée, protégée par Leona"
+      ],
+      "q": "Qui vises-tu avec tes sorts ?",
+      "ch": [
+       "La cible la plus menaçante que je peux atteindre sans mourir",
+       "Toujours le tank devant",
+       "Personne"
+      ],
+      "good": 0,
+      "why": "Tape ce qui fait mal et que tu peux atteindre. Plonger sur Jinx derrière Leona, c’est mourir ; ignorer Jinx, c’est perdre.",
+      "champs": [
+       [
+        62,
+        76,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        70,
+        66,
+        "Leona",
+        "e",
+        ""
+       ],
+       [
+        74,
+        62,
+        "Jinx",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Target prioritisation"
+     },
+     {
+      "titre": "Ils engagent au Baron",
+      "contexte": [
+       "29:00",
+       "Ton équipe fait le Baron",
+       "5 ennemis arrivent"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "On arrête le Baron et on se bat dans de bonnes conditions",
+       "On finit le Baron à tout prix",
+       "On fuit tous"
+      ],
+      "good": 0,
+      "why": "Taper le Baron pendant qu’ils engagent, c’est se battre à moitié de vie. Décidez vite : combat ou retraite, pas les deux.",
+      "champs": [
+       [
+        30,
+        30,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        44,
+        22,
+        "Syndra",
+        "e",
+        ""
+       ],
+       [
+        46,
+        26,
+        "LeeSin",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        33,
+        28,
+        "👾",
+        "Baron"
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Fight outcome prediction"
+     },
+     {
+      "titre": "Le flanc",
+      "contexte": [
+       "24:00",
+       "Ton équipe fait face à eux au mid",
+       "Tu joues un mage avec un gros engage de zone"
+      ],
+      "q": "Où te places-tu ?",
+      "ch": [
+       "Sur le côté, dans le brouillard, pour engager par le flanc",
+       "Devant tout le monde",
+       "Derrière ma tour"
+      ],
+      "good": 0,
+      "why": "Un engage de zone marche mieux par le côté, quand ils ne te voient pas : tu touches plusieurs cibles d’un coup.",
+      "champs": [
+       [
+        48,
+        60,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        50,
+        50,
+        "JarvanIV",
+        "a",
+        ""
+       ],
+       [
+        56,
+        44,
+        "Syndra",
+        "e",
+        ""
+       ],
+       [
+        58,
+        46,
+        "Jinx",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        48,
+        60,
+        56,
+        50,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Advanced teamfighting"
+     },
+     {
+      "titre": "Il est à 4 % du Baron",
+      "contexte": [
+       "33:00",
+       "Leur Lee Sin est au Baron, presque mort",
+       "Tu as ton ultime"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "J’utilise mon ultime au moment où il veut smite",
+       "J’attends",
+       "Je m’en vais"
+      ],
+      "good": 0,
+      "why": "Le smite est leur dernier mot : interromps ou tue au bon moment, sinon le Baron est à eux.",
+      "champs": [
+       [
+        36,
+        34,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        32,
+        28,
+        "LeeSin",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        33,
+        28,
+        "👾",
+        "Baron"
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Teamfighting"
+     },
+     {
+      "titre": "Leur mid est en retard",
+      "contexte": [
+       "12:00",
+       "Tu as 30 sbires d’avance",
+       "Leur mid reste toujours sous sa tour"
+      ],
+      "q": "Comment utiliser ton avance ?",
+      "ch": [
+       "Pousser puis aider les autres lanes et les objectifs",
+       "Rester au mid pour farmer encore",
+       "Dive seul"
+      ],
+      "good": 0,
+      "why": "Une avance au mid sert à toute la carte : tu bouges en premier vers chaque objectif.",
+      "champs": [
+       [
+        54,
+        46,
+        "Orianna",
+        "a",
+        "toi"
+       ],
+       [
+        58,
+        42,
+        "Syndra",
+        "e",
+        "en retard"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        57,
+        43,
+        "a",
+        7
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ],
+       [
+        33,
+        28,
+        "🐛",
+        "larves"
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Using lane priority"
      }
     ]
    }
@@ -4713,6 +7811,952 @@
         "#5fd39a"
        ]
       ]
+     },
+     {
+      "titre": "Le niveau 2 en botlane",
+      "contexte": [
+       "1:40",
+       "Première wave",
+       "Leur Leona attend dans le buisson"
+      ],
+      "q": "Quand êtes-vous niveau 2 ?",
+      "ch": [
+       "Après la 1re wave et 3 sbires de mêlée de la 2e",
+       "Après 2 waves entières",
+       "Après la 1re wave"
+      ],
+      "good": 0,
+      "why": "En botlane, l’expérience est partagée : il faut la 1re wave + 3 mêlées. Le premier duo niveau 2 peut engager.",
+      "champs": [
+       [
+        84,
+        94,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        82,
+        90,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        90,
+        92,
+        "Jinx",
+        "e",
+        ""
+       ],
+       [
+        92,
+        88,
+        "Leona",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        87,
+        94,
+        "a",
+        6
+       ],
+       [
+        89,
+        94,
+        "e",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [],
+      "pattern": "Level up timers",
+      "suite": {
+       "q": "Ils sont niveau 2 avant vous. Que faites-vous ?",
+       "ch": [
+        "On recule le temps d’arriver niveau 2",
+        "On engage",
+        "Rien"
+       ],
+       "good": 0,
+       "why": "Leona niveau 2 a son engage complet : ne lui offrez pas la fenêtre."
+      }
+     },
+     {
+      "titre": "Le slow push",
+      "contexte": [
+       "7:00",
+       "Leur jungler est top",
+       "Vous voulez back dans 1 minute"
+      ],
+      "q": "Comment préparer le back ?",
+      "ch": [
+       "Je laisse la wave grossir doucement, puis on la crash et on back",
+       "On back maintenant",
+       "On push tout de suite"
+      ],
+      "good": 0,
+      "why": "Le slow push construit une grosse wave : elle crash sous leur tour pendant que vous rentrez, et vous ne perdez rien.",
+      "champs": [
+       [
+        86,
+        94,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        84,
+        90,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        94,
+        76,
+        "Jinx",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        90,
+        94,
+        "a",
+        9
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        88,
+        94,
+        95,
+        74,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Wave management"
+     },
+     {
+      "titre": "Le freeze devant ta tour",
+      "contexte": [
+       "9:00",
+       "Vous avez 2 kills d’avance",
+       "La wave revient vers vous"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "On freeze devant notre tour",
+       "On push sous leur tour",
+       "On roam au mid"
+      ],
+      "good": 0,
+      "why": "Devant, le freeze les oblige à venir chercher l’or près de chez vous, sans défense : chaque sbire leur coûte.",
+      "champs": [
+       [
+        72,
+        94,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        70,
+        90,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        84,
+        94,
+        "Jinx",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        74,
+        94,
+        "e",
+        6
+       ],
+       [
+        72,
+        95,
+        "a",
+        3
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        70,
+        95,
+        "🗼",
+        ""
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Wave management"
+     },
+     {
+      "titre": "Leur jungler est bot",
+      "contexte": [
+       "6:10",
+       "Ward : leur Lee Sin vu dans la rivière bot",
+       "Vous êtes avancés"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "On recule vers notre tour",
+       "On continue à trade",
+       "On va dans la rivière"
+      ],
+      "good": 0,
+      "why": "Un jungler vu près de vous = 3 contre 2. Reculez : ce qui ne meurt pas ne lui rapporte rien.",
+      "champs": [
+       [
+        86,
+        92,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        84,
+        88,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        74,
+        72,
+        "LeeSin",
+        "e",
+        "vu"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [
+       [
+        74,
+        76,
+        "a"
+       ]
+      ],
+      "obj": [],
+      "fleches": [
+       [
+        84,
+        92,
+        72,
+        94,
+        "#5aa9ff"
+       ]
+      ],
+      "pattern": "Counter ganking"
+     },
+     {
+      "titre": "Dans le combat",
+      "contexte": [
+       "20:00",
+       "Combat au drake",
+       "Leur Leona engage sur ton support"
+      ],
+      "q": "Où tapes-tu ?",
+      "ch": [
+       "La cible la plus proche que je touche en sécurité",
+       "Je plonge sur leur ADC",
+       "Je recule et j’attends"
+      ],
+      "good": 0,
+      "why": "Un ADC gagne les combats en tapant en vie. La cible la plus proche et sûre, c’est souvent la bonne.",
+      "champs": [
+       [
+        60,
+        78,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        64,
+        74,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        66,
+        72,
+        "Leona",
+        "e",
+        "engage"
+       ],
+       [
+        74,
+        64,
+        "Jinx",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        60,
+        78,
+        65,
+        73,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Positioning"
+     },
+     {
+      "titre": "Leur ADC est sans Flash",
+      "contexte": [
+       "8:30",
+       "Leur Jinx a utilisé Flash à 8:00",
+       "Ton support a son engage"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "On cherche l’engage dans les 5 minutes",
+       "On joue comme d’habitude",
+       "On back"
+      ],
+      "good": 0,
+      "why": "Sans Flash, un engage de Nautilus devient mortel. Notez l’heure : la fenêtre dure jusqu’à 13:00.",
+      "champs": [
+       [
+        86,
+        92,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        84,
+        90,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        92,
+        90,
+        "Jinx",
+        "e",
+        "sans Flash"
+       ],
+       [
+        94,
+        86,
+        "Leona",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [],
+      "fleches": [],
+      "pattern": "Tracking spells"
+     },
+     {
+      "titre": "Ton support roam",
+      "contexte": [
+       "10:00",
+       "Ton support part au mid",
+       "Leur duo est plein de vie"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je farme prudemment près de ma tour",
+       "Je trade seul contre deux",
+       "Je le suis"
+      ],
+      "good": 0,
+      "why": "Seul contre deux, ton travail est de ne rien perdre : farme sous ta tour pendant que ton support crée l’avantage ailleurs.",
+      "champs": [
+       [
+        74,
+        94,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        60,
+        62,
+        "Nautilus",
+        "a",
+        "roam"
+       ],
+       [
+        84,
+        94,
+        "Jinx",
+        "e",
+        ""
+       ],
+       [
+        86,
+        90,
+        "Leona",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        76,
+        94,
+        "e",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        70,
+        95,
+        "🗼",
+        ""
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Positioning"
+     },
+     {
+      "titre": "L’objet presque fini",
+      "contexte": [
+       "11:00",
+       "2 800 golds : ton premier gros objet",
+       "Wave sous leur tour"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je back maintenant",
+       "Je reste 2 waves de plus",
+       "Je dive la tour"
+      ],
+      "good": 0,
+      "why": "Ton premier gros objet est un pic de puissance : chaque minute sans lui est une minute plus faible.",
+      "champs": [
+       [
+        92,
+        80,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        90,
+        84,
+        "Nautilus",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        95,
+        74,
+        "a",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        90,
+        82,
+        12,
+        88,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Tracking powerspikes"
+     },
+     {
+      "titre": "Les plaques avant 14:00",
+      "contexte": [
+       "13:00",
+       "Leur tour bot a encore 3 plaques",
+       "Leur duo est mort"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "On tape les plaques avant 14:00",
+       "On back",
+       "On va au mid"
+      ],
+      "good": 0,
+      "why": "Les plaques disparaissent à 14:00 : chacune rapporte de l’or à toute l’équipe qui la prend.",
+      "champs": [
+       [
+        94,
+        76,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        92,
+        78,
+        "Nautilus",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        95,
+        74,
+        "a",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [
+       [
+        95,
+        70,
+        "🗼",
+        "3 plaques"
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Economy optimisation"
+     },
+     {
+      "titre": "Le drake dans 1 minute",
+      "contexte": [
+       "Drake dans 1:00",
+       "Vous avez la prio au bot",
+       "Leur jungler est top"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "On push, on pose la vision, puis on se place au drake",
+       "On attend dans la fosse",
+       "On back"
+      ],
+      "good": 0,
+      "why": "Un drake se prépare : prio, vision, puis placement. Ce qui arrive en premier choisit le combat.",
+      "champs": [
+       [
+        90,
+        82,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        88,
+        86,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        10,
+        12,
+        "LeeSin",
+        "e",
+        "top"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        95,
+        74,
+        "a",
+        6
+       ]
+      ],
+      "wards": [
+       [
+        72,
+        62,
+        "a"
+       ]
+      ],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        88,
+        84,
+        70,
+        70,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Objective set-ups"
+     },
+     {
+      "titre": "Tu es seul en side",
+      "contexte": [
+       "25:00",
+       "Ta wave bot arrive",
+       "Tu n’as pas de vision devant toi",
+       "4 ennemis invisibles"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je prends la wave près de ma tour, pas plus loin",
+       "Je pousse jusqu’à leur tour",
+       "Je vais dans leur jungle"
+      ],
+      "good": 0,
+      "why": "Un ADC seul sans vision est la cible idéale. Farme là où ton équipe peut te couvrir.",
+      "champs": [
+       [
+        74,
+        94,
+        "Zeri",
+        "a",
+        "toi"
+       ]
+      ],
+      "inconnus": [
+       [
+        80,
+        70,
+        "?"
+       ],
+       [
+        84,
+        78,
+        "?"
+       ]
+      ],
+      "waves": [
+       [
+        78,
+        94,
+        "e",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [],
+      "pattern": "Positioning"
+     },
+     {
+      "titre": "Le Baron et toi",
+      "contexte": [
+       "32:00",
+       "Ton équipe fait le Baron",
+       "Leur Lee Sin peut le voler"
+      ],
+      "q": "Où te places-tu ?",
+      "ch": [
+       "Près du Baron, prêt à taper dès qu’il arrive, protégé par mes alliés",
+       "Seul devant pour surveiller",
+       "Loin derrière"
+      ],
+      "good": 0,
+      "why": "Tu fais le plus de dégâts : reste en sécurité derrière tes alliés, mais assez près pour taper le Baron et Lee Sin.",
+      "champs": [
+       [
+        32,
+        32,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        30,
+        28,
+        "JarvanIV",
+        "a",
+        ""
+       ],
+       [
+        36,
+        30,
+        "Nautilus",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        33,
+        28,
+        "👾",
+        "Baron"
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Positioning"
+     },
+     {
+      "titre": "Ils engagent sans leur jungler",
+      "contexte": [
+       "22:00",
+       "Leur Lee Sin vient de mourir au top",
+       "Ils engagent à 4 au drake"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "On se bat : 5 contre 4",
+       "On recule",
+       "On laisse le drake"
+      ],
+      "good": 0,
+      "why": "Comptez les vivants : un ennemi en moins change tout. Avec le nombre, acceptez le combat.",
+      "champs": [
+       [
+        62,
+        76,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        64,
+        72,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        66,
+        68,
+        "Orianna",
+        "a",
+        ""
+       ],
+       [
+        60,
+        74,
+        "JarvanIV",
+        "a",
+        ""
+       ],
+       [
+        58,
+        78,
+        "Renekton",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [
+       [
+        72,
+        62,
+        "4 ennemis"
+       ]
+      ],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Fight outcome prediction"
+     },
+     {
+      "titre": "Une tour de plus",
+      "contexte": [
+       "19:00",
+       "Vous venez de prendre le drake",
+       "Leur bot est mort"
+      ],
+      "q": "Que faites-vous ensuite ?",
+      "ch": [
+       "On prend la tour bot",
+       "On back tous",
+       "On va au top"
+      ],
+      "good": 0,
+      "why": "Après un objectif, enchaîne : ce qui est proche et sans défense. La tour bot est à côté.",
+      "champs": [
+       [
+        70,
+        68,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        68,
+        72,
+        "Nautilus",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        95,
+        70,
+        "🗼",
+        "leur tour"
+       ]
+      ],
+      "fleches": [
+       [
+        72,
+        68,
+        93,
+        72,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Objective prioritization"
+     },
+     {
+      "titre": "Le poke avant l’engage",
+      "contexte": [
+       "14:00",
+       "Leur Leona a 40 % de vie",
+       "Ton support a son engage"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "On engage maintenant : elle ne peut plus encaisser",
+       "On attend qu’elle remonte",
+       "Je back"
+      ],
+      "good": 0,
+      "why": "Leur tank affaibli ne peut plus protéger son ADC : c’est le moment d’engager.",
+      "champs": [
+       [
+        86,
+        92,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        84,
+        90,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        92,
+        90,
+        "Leona",
+        "e",
+        "40 %"
+       ],
+       [
+        94,
+        92,
+        "Jinx",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [],
+      "fleches": [],
+      "pattern": "Forcing a fight"
+     },
+     {
+      "titre": "La recharge de leur engage",
+      "contexte": [
+       "7:40",
+       "Leur Leona a manqué son E",
+       "Ton support est à côté"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "On trade maintenant : son engage est en recharge",
+       "On recule",
+       "Rien"
+      ],
+      "good": 0,
+      "why": "Sans son sort d’engage, Leona ne peut pas punir : échangez pendant ces quelques secondes.",
+      "champs": [
+       [
+        86,
+        92,
+        "Zeri",
+        "a",
+        "toi"
+       ],
+       [
+        84,
+        90,
+        "Nautilus",
+        "a",
+        ""
+       ],
+       [
+        90,
+        92,
+        "Leona",
+        "e",
+        "E en recharge"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [],
+      "fleches": [],
+      "pattern": "Tracking skill cooldowns"
      }
     ]
    },
@@ -6026,6 +10070,926 @@
         "#5fd39a"
        ]
       ]
+     },
+     {
+      "titre": "La ward de 2:45",
+      "contexte": [
+       "2:45",
+       "Leur jungler a commencé côté top",
+       "Vous êtes avancés"
+      ],
+      "q": "Où poses-tu ta ward ?",
+      "ch": [
+       "Dans la rivière bot, sur le chemin de son gank",
+       "Dans le tri-buisson adverse",
+       "Je la garde"
+      ],
+      "good": 0,
+      "why": "S’il finit son tour côté bot, il passera par la rivière vers 3:15. La ward doit voir ce chemin.",
+      "champs": [
+       [
+        86,
+        92,
+        "Nautilus",
+        "a",
+        "toi"
+       ],
+       [
+        88,
+        94,
+        "Zeri",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [
+       [
+        70,
+        70,
+        "Lee Sin ~3:15 ?"
+       ]
+      ],
+      "waves": [],
+      "wards": [
+       [
+        76,
+        80,
+        "a"
+       ]
+      ],
+      "obj": [],
+      "fleches": [
+       [
+        84,
+        90,
+        76,
+        80,
+        "#ffb347"
+       ]
+      ],
+      "pattern": "Early vision"
+     },
+     {
+      "titre": "Le niveau 2 pour engager",
+      "contexte": [
+       "1:50",
+       "Vous êtes niveau 2, eux pas encore"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "J’engage tout de suite",
+       "J’attends le niveau 3",
+       "Je recule"
+      ],
+      "good": 0,
+      "why": "Être niveau 2 avant eux te donne un sort de plus pendant quelques secondes : c’est la fenêtre d’engage.",
+      "champs": [
+       [
+        86,
+        92,
+        "Nautilus",
+        "a",
+        "toi"
+       ],
+       [
+        88,
+        94,
+        "Zeri",
+        "a",
+        ""
+       ],
+       [
+        92,
+        92,
+        "Jinx",
+        "e",
+        "niv. 1"
+       ],
+       [
+        94,
+        88,
+        "Leona",
+        "e",
+        "niv. 1"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        86,
+        92,
+        91,
+        92,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Level up timers"
+     },
+     {
+      "titre": "Le roam au mid",
+      "contexte": [
+       "7:00",
+       "Ta wave crash sous leur tour",
+       "Leur mid est avancé",
+       "Ton jungler est près du mid"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je roam au mid avec mon jungler, en prévenant mon ADC",
+       "Je reste au bot",
+       "Je vais au top"
+      ],
+      "good": 0,
+      "why": "Wave crash = ton ADC ne perd rien. Mid avancé + jungler à côté : c’est un roam rentable.",
+      "champs": [
+       [
+        90,
+        84,
+        "Nautilus",
+        "a",
+        "toi"
+       ],
+       [
+        92,
+        80,
+        "Zeri",
+        "a",
+        ""
+       ],
+       [
+        56,
+        48,
+        "Syndra",
+        "e",
+        "avancée"
+       ],
+       [
+        48,
+        58,
+        "JarvanIV",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        95,
+        74,
+        "a",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        88,
+        82,
+        58,
+        52,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Shadowing"
+     },
+     {
+      "titre": "La ward de contrôle",
+      "contexte": [
+       "10:00",
+       "Tu as 75 golds",
+       "Le drake réapparaît dans 2:00"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "J’achète une ward de contrôle et je la pose près du drake",
+       "J’économise",
+       "Je la pose dans mon tri-buisson"
+      ],
+      "good": 0,
+      "why": "Une ward de contrôle près du drake enlève leur vision et garde la tienne jusqu’à ce qu’ils la trouvent.",
+      "champs": [
+       [
+        70,
+        74,
+        "Nautilus",
+        "a",
+        "toi"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [
+       [
+        70,
+        68,
+        "a"
+       ]
+      ],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Objective set-ups"
+     },
+     {
+      "titre": "Le balayage avant le drake",
+      "contexte": [
+       "Drake dans 0:45",
+       "Leur support vient de passer près de la fosse"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je balaye les entrées de la fosse avec mon jungler",
+       "Je pose une ward dans la fosse et je reste seul",
+       "J’attends dans mon tri-buisson"
+      ],
+      "good": 0,
+      "why": "S’il est passé là, il a sûrement posé de la vision : nettoyez à deux pour jouer le drake sans qu’ils vous voient.",
+      "champs": [
+       [
+        66,
+        72,
+        "Nautilus",
+        "a",
+        "toi"
+       ],
+       [
+        62,
+        74,
+        "JarvanIV",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [
+       [
+        72,
+        64,
+        "e"
+       ],
+       [
+        64,
+        66,
+        "e"
+       ]
+      ],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        66,
+        72,
+        71,
+        65,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Contesting vision"
+     },
+     {
+      "titre": "Le piège de la ward",
+      "contexte": [
+       "17:00",
+       "Leur ADC vient chaque fois chercher la wave bot",
+       "Ton jungler est à côté"
+      ],
+      "q": "Comment le prendre ?",
+      "ch": [
+       "On se cache sans vision devant, on attend qu’il entre dans la wave",
+       "On l’attaque de face",
+       "On laisse la wave"
+      ],
+      "good": 0,
+      "why": "Un piège marche quand il ne vous voit pas : nettoyez sa vision, cachez-vous, laissez-le venir.",
+      "champs": [
+       [
+        80,
+        88,
+        "Nautilus",
+        "a",
+        "toi"
+       ],
+       [
+        78,
+        84,
+        "JarvanIV",
+        "a",
+        ""
+       ],
+       [
+        92,
+        78,
+        "Jinx",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [
+       [
+        84,
+        94,
+        "e",
+        6
+       ]
+      ],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        80,
+        88,
+        86,
+        92,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Trap set-ups"
+     },
+     {
+      "titre": "Trop profond ?",
+      "contexte": [
+       "14:00",
+       "Tu veux poser une ward près de leur blue",
+       "Leur jungler et leur mid sont invisibles"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je pose une ward moins profonde, dans la rivière",
+       "J’y vais quand même seul",
+       "Je ne pose rien"
+      ],
+      "good": 0,
+      "why": "La ward profonde vaut le risque quand tu sais où ils sont. Sans info, la rivière te donne de la vision sans risquer ta vie.",
+      "champs": [
+       [
+        78,
+        72,
+        "Nautilus",
+        "a",
+        "toi"
+       ]
+      ],
+      "inconnus": [
+       [
+        72,
+        52,
+        "?"
+       ],
+       [
+        60,
+        42,
+        "?"
+       ]
+      ],
+      "waves": [],
+      "wards": [
+       [
+        72,
+        64,
+        "a"
+       ]
+      ],
+      "obj": [
+       [
+        74,
+        53,
+        "🔵",
+        "leur blue"
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Shallow vs deep vision"
+     },
+     {
+      "titre": "L’engage parfait",
+      "contexte": [
+       "8:00",
+       "Leur Jinx est avancée, sans Flash",
+       "Leur Leona est loin"
+      ],
+      "q": "Tu as ton grappin. Que fais-tu ?",
+      "ch": [
+       "J’engage sur Jinx",
+       "J’engage sur Leona",
+       "J’attends"
+      ],
+      "good": 0,
+      "why": "La cible isolée et sans Flash : ton engage devient presque sûr, et Leona arrive trop tard.",
+      "champs": [
+       [
+        86,
+        92,
+        "Nautilus",
+        "a",
+        "toi"
+       ],
+       [
+        88,
+        94,
+        "Zeri",
+        "a",
+        ""
+       ],
+       [
+        91,
+        91,
+        "Jinx",
+        "e",
+        "sans Flash"
+       ],
+       [
+        96,
+        82,
+        "Leona",
+        "e",
+        "loin"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        86,
+        92,
+        90,
+        91,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Forcing a fight"
+     },
+     {
+      "titre": "Peel ou engage ?",
+      "contexte": [
+       "24:00",
+       "Combat au mid",
+       "Leur Lee Sin plonge sur ton ADC"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je protège mon ADC : contrôle sur Lee Sin",
+       "J’engage sur leur ADC loin derrière",
+       "Je recule"
+      ],
+      "good": 0,
+      "why": "Ton ADC est ta meilleure source de dégâts : s’il meurt, le combat est perdu. Protège-le d’abord.",
+      "champs": [
+       [
+        50,
+        54,
+        "Nautilus",
+        "a",
+        "toi"
+       ],
+       [
+        46,
+        58,
+        "Zeri",
+        "a",
+        "ADC"
+       ],
+       [
+        48,
+        56,
+        "LeeSin",
+        "e",
+        "plonge"
+       ],
+       [
+        60,
+        42,
+        "Jinx",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        50,
+        54,
+        47,
+        57,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Teamfighting"
+     },
+     {
+      "titre": "Après le drake",
+      "contexte": [
+       "15:30",
+       "Vous venez de prendre le drake",
+       "Ton ADC back"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je back aussi et je recharge ma vision",
+       "Je reste seul au bot",
+       "Je pars ward seul dans leur jungle"
+      ],
+      "good": 0,
+      "why": "Après un objectif, rentrez ensemble : nouvelles wards, nouveaux objets, et vous ressortez au même moment.",
+      "champs": [
+       [
+        68,
+        70,
+        "Nautilus",
+        "a",
+        "toi"
+       ],
+       [
+        70,
+        72,
+        "Zeri",
+        "a",
+        "back"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        68,
+        72,
+        12,
+        88,
+        "#5aa9ff"
+       ]
+      ],
+      "pattern": "Base timers"
+     },
+     {
+      "titre": "Vision pour la TP",
+      "contexte": [
+       "20:00",
+       "Ton top a sa TP",
+       "Combat prévu au drake"
+      ],
+      "q": "Où poses-tu une ward ?",
+      "ch": [
+       "Derrière leur position, pour une TP de flanc",
+       "Devant ton équipe",
+       "Dans ta base"
+      ],
+      "good": 0,
+      "why": "Une TP sur le flanc prend leur équipe à revers : la ward doit être là où elle surprendra.",
+      "champs": [
+       [
+        64,
+        76,
+        "Nautilus",
+        "a",
+        "toi"
+       ],
+       [
+        8,
+        14,
+        "Renekton",
+        "a",
+        "TP prête"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [
+       [
+        78,
+        62,
+        "a"
+       ]
+      ],
+      "obj": [
+       [
+        67,
+        70,
+        "🐉",
+        ""
+       ]
+      ],
+      "fleches": [
+       [
+        10,
+        14,
+        78,
+        62,
+        "#b48cff"
+       ]
+      ],
+      "pattern": "Flank TP vision"
+     },
+     {
+      "titre": "Le bait",
+      "contexte": [
+       "11:00",
+       "Ton jungler est caché dans le buisson",
+       "Ils veulent t’engager"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je les laisse s’avancer vers le buisson",
+       "Je recule sous ma tour",
+       "J’engage seul"
+      ],
+      "good": 0,
+      "why": "Montre une cible facile près de ton jungler caché : ils engagent et se retrouvent à 2 contre 3.",
+      "champs": [
+       [
+        82,
+        92,
+        "Nautilus",
+        "a",
+        "toi"
+       ],
+       [
+        78,
+        92,
+        "JarvanIV",
+        "a",
+        "caché"
+       ],
+       [
+        88,
+        92,
+        "Jinx",
+        "e",
+        ""
+       ],
+       [
+        90,
+        88,
+        "Leona",
+        "e",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [],
+      "fleches": [
+       [
+        88,
+        90,
+        83,
+        91,
+        "#ff6b6b"
+       ]
+      ],
+      "pattern": "Baiting"
+     },
+     {
+      "titre": "La ward de défense",
+      "contexte": [
+       "26:00",
+       "Ils ont le Baron",
+       "Vous défendez votre base"
+      ],
+      "q": "Où poses-tu ta vision ?",
+      "ch": [
+       "Devant vos tours, sur leurs chemins d’arrivée",
+       "Dans leur jungle profonde",
+       "Je n’en pose pas"
+      ],
+      "good": 0,
+      "why": "En défense, la vision sert à voir arriver le siège : devant vos tours, sur leurs chemins.",
+      "champs": [
+       [
+        30,
+        70,
+        "Nautilus",
+        "a",
+        "toi"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [
+       [
+        38,
+        62,
+        "a"
+       ],
+       [
+        24,
+        54,
+        "a"
+       ]
+      ],
+      "obj": [
+       [
+        42,
+        58,
+        "🗼",
+        ""
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Defensive vision"
+     },
+     {
+      "titre": "Tu cherches ton jungler",
+      "contexte": [
+       "5:00",
+       "Ta lane est poussée",
+       "Ton jungler veut envahir leur jungle côté bot"
+      ],
+      "q": "Que fais-tu ?",
+      "ch": [
+       "Je l’accompagne avec mon ADC : on a la prio",
+       "Je le laisse y aller seul",
+       "Je back"
+      ],
+      "good": 0,
+      "why": "Votre prio bot vous laisse arriver avant leur duo : l’invade devient un 3 contre 1.",
+      "champs": [
+       [
+        86,
+        84,
+        "Nautilus",
+        "a",
+        "toi"
+       ],
+       [
+        88,
+        88,
+        "Zeri",
+        "a",
+        ""
+       ],
+       [
+        76,
+        62,
+        "JarvanIV",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [],
+      "obj": [
+       [
+        74,
+        53,
+        "🔵",
+        "leur blue"
+       ]
+      ],
+      "fleches": [
+       [
+        84,
+        82,
+        76,
+        58,
+        "#5fd39a"
+       ]
+      ],
+      "pattern": "Invades & counter invades"
+     },
+     {
+      "titre": "Les wards adverses",
+      "contexte": [
+       "12:00",
+       "Leur support pose 2 wards par minute"
+      ],
+      "q": "Comment suivre leur vision ?",
+      "ch": [
+       "Je note leurs chemins et je balaye là où ils passent",
+       "Je ne m’en occupe pas",
+       "Je pose des wards au hasard"
+      ],
+      "good": 0,
+      "why": "Les wards adverses suivent leurs déplacements : retrouve-les là où leur support vient de passer.",
+      "champs": [
+       [
+        80,
+        80,
+        "Nautilus",
+        "a",
+        "toi"
+       ]
+      ],
+      "inconnus": [],
+      "waves": [],
+      "wards": [
+       [
+        74,
+        72,
+        "e"
+       ],
+       [
+        82,
+        70,
+        "e"
+       ]
+      ],
+      "obj": [],
+      "fleches": [],
+      "pattern": "Tracking enemy wards"
+     },
+     {
+      "titre": "Le dernier ennemi inconnu",
+      "contexte": [
+       "28:00",
+       "4 ennemis visibles au top",
+       "Vous êtes 4 au bot"
+      ],
+      "q": "Que faites-vous ?",
+      "ch": [
+       "On joue la tour bot en gardant une ward sur le chemin du 5e",
+       "On rejoint le top",
+       "On attend"
+      ],
+      "good": 0,
+      "why": "Le nombre est pour vous au bot. Le 5e est inconnu : la vision vous dit s’il arrive.",
+      "champs": [
+       [
+        90,
+        80,
+        "Nautilus",
+        "a",
+        "toi"
+       ],
+       [
+        92,
+        78,
+        "Zeri",
+        "a",
+        ""
+       ],
+       [
+        86,
+        82,
+        "JarvanIV",
+        "a",
+        ""
+       ],
+       [
+        88,
+        84,
+        "Orianna",
+        "a",
+        ""
+       ]
+      ],
+      "inconnus": [
+       [
+        70,
+        62,
+        "5e ?"
+       ]
+      ],
+      "waves": [],
+      "wards": [
+       [
+        74,
+        64,
+        "a"
+       ]
+      ],
+      "obj": [
+       [
+        95,
+        70,
+        "🗼",
+        ""
+       ]
+      ],
+      "fleches": [],
+      "pattern": "Fight outcome prediction"
      }
     ]
    }

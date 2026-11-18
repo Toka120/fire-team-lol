@@ -7966,6 +7966,17 @@
 
   // ----- Scénarios sur la vraie carte (comme MOBA Trainer) : une situation, une décision, puis la flèche -----
   const scenName = (c) => ((c.diapo && c.diapo.quizTitre) || '').replace(/^Quiz/, 'Scénarios') || 'Scénarios';
+  // Notion de macro travaillée par chaque scénario (classement des 51 patterns de la carte de MOBA Trainer, page Outils).
+  const SCEN_PAT = { 'Wave management': 'Gestion de la wave', 'Base timers': 'Bons moments pour back', 'Using teleport': 'Utiliser la TP', 'Tracking teleports': 'Suivre les TP adverses',
+    'Early vision': 'Vision du début de partie', 'Tracking spells': 'Suivre les sorts d’invocateur', 'Level up timers': 'Paliers de niveau', 'Splitpush': 'Split push', 'Using Herald': 'Utiliser le Héraut',
+    'Diving': 'Plonger sous tour', 'Win condition identification': 'Condition de victoire', 'Economy optimisation': 'Optimiser son farm', 'Defensive vision': 'Vision défensive',
+    'Reacting to splitpush': 'Répondre à un split push', 'Tracking ultimates': 'Suivre les ultimes', 'Ganking': 'Gank', 'Jungle clear routes': 'Chemins de jungle', 'Crossmap': 'Jouer de l’autre côté de la carte',
+    'Counter ganking': 'Contre-gank', 'Objective prioritization': 'Priorité des objectifs', 'Objective set-ups': 'Préparer un objectif', 'Tracking tempo': 'Suivre les temps',
+    'Invades & counter invades': 'Invade et contre-invade', 'Using lane priority': 'Utiliser la prio', 'Contesting vision': 'Reprendre la vision', 'Vision placement': 'Placer sa vision',
+    'Traps & catches': 'Pièges et prises', 'Contesting mid push': 'Contester un push mid', 'Opening on the map': 'Sortir de base', 'Synchronizing waves': 'Synchroniser les waves',
+    'Target prioritisation': 'Choisir sa cible', 'Fight outcome prediction': 'Prévoir l’issue d’un combat', 'Advanced teamfighting': 'Combat d’équipe avancé', 'Teamfighting': 'Combat d’équipe',
+    'Positioning': 'Placement', 'Tracking powerspikes': 'Pics de puissance', 'Forcing a fight': 'Forcer un combat', 'Tracking skill cooldowns': 'Suivre les recharges', 'Shadowing': 'Suivre dans l’ombre',
+    'Trap set-ups': 'Préparer un piège', 'Shallow vs deep vision': 'Vision proche ou profonde', 'Flank TP vision': 'Vision pour TP de flanc', 'Baiting': 'Appâter', 'Tracking enemy wards': 'Suivre les wards adverses' };
   function scenCard(c) {
     const ss = (c.diapo && c.diapo.scenarios) || [];
     const b = load('fire.scen.' + c.id, null);
@@ -8046,6 +8057,7 @@
           h('p', { class: 'qz-q' }, q.q),
           h('div', { class: 'qz-chs' }, choices),
           picked !== null ? h('div', { class: 'qz-why ' + (picked === q.good ? 'good' : 'bad') }, h('b', null, picked === q.good ? '✅ Bonne décision ! ' : '❌ Pas tout à fait. '), q.why) : null,
+          picked !== null && sc.pattern ? h('p', { class: 'muted small sc-pat' }, '📚 Notion travaillée : ', h('b', null, SCEN_PAT[sc.pattern] || sc.pattern), ' · à revoir dans la carte des patterns de MOBA Trainer (page Outils)') : null,
           picked !== null ? h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: next }, step === 'main' && sc.suite ? 'Pourquoi ? →' : last ? 'Voir mon score' : 'Situation suivante →')) : null,
           h('p', { class: 'muted small' }, '🔵 ta team · 🔴 en face · ❔ position supposée · 👁️ ward')));
     };

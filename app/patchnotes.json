@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "2.0.11",
+   "date": "2026-11-18",
+   "titre": "20 scénarios par lane",
+   "items": [
+    [
+     "new",
+     "Lanes et principes › Scénarios : 16 nouvelles situations par lane, soit 20 pour le top, le jungler, le mid, l’ADC et le support (80 de plus en tout)."
+    ],
+    [
+     "new",
+     "Chaque nouveau scénario travaille une notion de macro précise (gestion de la wave, prio, vision, TP, objectifs, suivi des sorts…). La notion s’affiche après ta réponse."
+    ],
+    [
+     "improve",
+     "Les notions suivent le classement des 51 patterns de macro de MOBA Trainer, que tu retrouves dans la page Outils pour aller plus loin."
+    ]
+   ]
+  },
+  {
    "v": "2.0.10",
    "date": "2026-11-18",
    "titre": "Les coachs peuvent retirer une demande oubliée",
