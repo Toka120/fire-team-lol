@@ -1953,6 +1953,47 @@ async function appSelfKey(force) {
   try { fs.mkdirSync(path.dirname(creatorMark()), { recursive: true }); fs.writeFileSync(creatorMark(), JSON.stringify({ v: 1, on: true, at: Date.now(), key: mine.id, apps: APPS })); } catch (e) { /* */ }
   return { ok: true, key: mine.id, apps: done };
 }
+// ---------- Launcher de l'équipe (mode admin du créateur) ----------
+// Le launcher du créateur dépose sa configuration dans le dossier d'envois ; FIRE Team la nettoie, la signe avec la
+// clé du créateur et la publie (launcher/config.json + images). Chaque launcher vérifie la signature avant d'afficher.
+const LAUNCHER_CFG = 'launcher/config.json';
+async function launcherRelay() {
+  const OUTBOX = outboxDir();
+  let files = [];
+  try { files = fs.readdirSync(OUTBOX).filter((f) => /^launcher-[\w-]+\.json$/.test(f) && !f.endsWith('.resultat.json')); } catch (e) { return { ok: true, n: 0 }; }
+  if (!files.length) return { ok: true, n: 0 };
+  const done = (f, res) => { try { fs.writeFileSync(path.join(OUTBOX, f.replace(/\.json$/, '') + '.resultat.json'), JSON.stringify({ ...res, at: Date.now() })); fs.rmSync(path.join(OUTBOX, f), { force: true }); } catch (e) { /* */ } };
+  if (!adminOn()) { for (const f of files) done(f, { ok: false, error: 'seul le créateur peut publier le launcher' }); return { ok: false, n: 0 }; }
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, n: files.length, error: 'FIRE Team n’est pas connecté à l’équipe' };
+  const { launcherClean, launcherImages } = require('./launcher-clean');
+  // Seul le plus récent compte : les envois plus anciens sont remplacés.
+  files.sort();
+  for (const f of files.slice(0, -1)) done(f, { ok: true, replaced: true });
+  const f = files[files.length - 1];
+  try {
+    const box = JSON.parse(fs.readFileSync(path.join(OUTBOX, f), 'utf8'));
+    const cfg = launcherClean(box && box.cfg);
+    for (const name of launcherImages(cfg)) {
+      const p = 'launcher/img/' + name;
+      const exists = (await http(apiOf(dr) + p + '?ref=main', { method: 'HEAD', headers: ghHeaders(tok) }).catch(() => ({ status: 0 }))).status === 200;
+      if (exists) continue;
+      const buf = fs.readFileSync(path.join(OUTBOX, 'launcher-assets', name));
+      if (buf.length > 3 * 1048576) throw new Error('image trop lourde (3 Mo au maximum)');
+      if (crypto.createHash('sha256').update(buf).digest('hex') !== name.split('.')[0]) throw new Error('image abîmée');
+      await ghPutRaw(tok, p, buf, null, 'FIRE Launcher : image ajoutée', dr);
+    }
+    const k = adminKey();
+    const payload = { v: 1, at: Date.now(), cfg };
+    const file = { payload, sig: b64u(crypto.sign('sha256', Buffer.from(canonJ(payload)), p1363(crypto.createPrivateKey(k.priv)))) };
+    let ok = false;
+    for (let i = 0; i < 4 && !ok; i++) { const cur = await ghGet(tok, LAUNCHER_CFG, dr); const r = await ghPut(tok, LAUNCHER_CFG, file, cur && cur.sha, 'FIRE Launcher : personnalisation', dr); ok = !!r.ok; }
+    if (!ok) throw new Error('la configuration a changé pendant l’envoi, réessaie');
+    done(f, { ok: true });
+    return { ok: true, n: 1 };
+  } catch (e) { done(f, { ok: false, error: String((e && e.message) || e) }); return { ok: false, n: 1 }; }
+}
 async function ghPutRaw(token, p, buf, sha, message, repo) {
   const body = { message, content: Buffer.from(buf).toString('base64'), branch: 'main' };
   if (sha) body.sha = sha;
@@ -2027,5 +2068,8 @@ async function appsRelay() {
   } finally { relayBusy = false; }
   return { ok: true, n };
 }
+// Les envois du launcher passent avec ceux de Kiting et Listen.
+const appsRelay0 = appsRelay;
+appsRelay = async function () { const r = await appsRelay0(); try { await launcherRelay(); } catch (e) { /* */ } return r; };
 
 module.exports = { appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

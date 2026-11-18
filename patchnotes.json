@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "2.0.9",
+   "date": "2026-11-18",
+   "titre": "Studio du launcher",
+   "items": [
+    [
+     "new",
+     "FIRE Launcher, mode admin du créateur : nouveau « Studio du launcher » (bouton 🛠️). Ajoute, modifie, range ou retire des actus avec image, emoji, étiquette et lien, pour chaque app."
+    ],
+    [
+     "new",
+     "Studio : remplace la grande carte « À la une », change la couleur de chaque app, son grand visuel et la phrase sous son nom."
+    ],
+    [
+     "new",
+     "Studio : bandeau d’annonce en haut du launcher, et mode maintenance par app (l’équipe ne peut plus la lancer, avec ton message ; toi oui)."
+    ],
+    [
+     "improve",
+     "Tout reste en brouillon sur ton PC, avec un aperçu, jusqu’à « Publier » : FIRE Team signe la publication avec ta clé de créateur et chaque launcher la vérifie avant de l’afficher."
+    ],
+    [
+     "new",
+     "FIRE Kiting : l’éditeur de scénario a une démo (lecture, pause, ajout d’un ennemi à l’instant affiché, vitesse ×0,25 à ×2) et passe en plein écran."
+    ]
+   ]
+  },
+  {
    "v": "2.0.8",
    "date": "2026-11-18",
    "titre": "Le launcher reconnaît enfin ta version",

@@ -81,3 +81,20 @@ details > summary { cursor: pointer; margin: 6px 0; font-size: 13.5px; font-weig
 .le-play{min-width:150px}
 .le-clock{font-variant-numeric:tabular-nums;font-size:13px;min-width:110px;text-align:right;opacity:.9}
 .le-rate{width:auto;padding:4px 6px}
+.le-sp{flex:1}
+/* Éditeur en plein écran : carte à gauche, réglages à droite */
+.le-box:fullscreen,.le-box.le-full{display:grid;grid-template-columns:1fr 380px;grid-template-rows:auto auto auto auto 1fr auto;gap:10px 14px;padding:14px;background:#0d0914;overflow:hidden;border-radius:0;border:0}
+.le-box.le-full{position:fixed;inset:0;z-index:2147483000}
+.le-box:fullscreen>.le-wrap,.le-box.le-full>.le-wrap{grid-column:1;grid-row:1/span 6;display:flex;align-items:center;justify-content:center;min-height:0}
+.le-box:fullscreen>:not(.le-wrap),.le-box.le-full>:not(.le-wrap){grid-column:2}
+.le-box:fullscreen>.le-list,.le-box.le-full>.le-list{max-height:none;min-height:0;overflow:auto}
+.le-box:fullscreen .le-timeline,.le-box.le-full .le-timeline{flex-wrap:wrap}
+.le-box:fullscreen .fa-grid,.le-box.le-full .fa-grid{grid-template-columns:1fr 1fr}
+.le-box:fullscreen>*,.le-box.le-full>*{min-width:0}
+.le-box .fa-grid>*{min-width:0}
+.le-box .fa-inp{width:100%;box-sizing:border-box;min-width:0}
+.le-it>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.le-box:fullscreen .le-it,.le-box.le-full .le-it{grid-template-columns:24px 44px 1fr}
+.le-box:fullscreen .le-it>span:last-child,.le-box.le-full .le-it>span:last-child{display:none}
+.le-box:fullscreen .le-opts,.le-box.le-full .le-opts{grid-template-columns:1fr}
+.le-box .le-rate{width:auto}

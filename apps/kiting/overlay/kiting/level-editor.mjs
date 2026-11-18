@@ -26,7 +26,7 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
   if (!d.start) d.start = {...START0};
   let sel = d.script.length ? 0 : -1, mode = 'select', drag = null;
   // Démo : T = seconde affichée (null = vue d'édition, tout visible). play = la démo avance toute seule.
-  let T = null, play = false, rate = 1, raf = 0, last = 0;
+  let T = null, play = false, rate = 1, raf = 0, last = 0, box = null;
   const changed = () => { onChange && onChange(); };
   const nameC = (id) => (casters.find((c) => c[0] === id) || [id, id])[1];
   const nameS = (id) => (spells.find((s) => s[0] === id) || [id, id])[1];
@@ -39,7 +39,10 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
   const toWorld = (ev) => { const r = cv.getBoundingClientRect(); return {x: (ev.clientX - r.left) / r.width * WORLD.w, y: (ev.clientY - r.top) / r.height * WORLD.h}; };
   const sx = (x) => x * k, sy = (y) => y * k;
   function size() {
-    const w = Math.max(320, Math.min(780, cv.parentElement ? cv.parentElement.clientWidth : 780));
+    // Plein écran : la carte prend toute la hauteur, les réglages passent dans une colonne à droite.
+    const full = isFull();
+    const avail = full ? Math.min(box.clientWidth - 400, (box.clientHeight - 40) * WORLD.w / WORLD.h) : Math.min(780, cv.parentElement ? cv.parentElement.clientWidth : 780);
+    const w = Math.max(320, Math.floor(avail));
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     W = w; H = Math.round(w * WORLD.h / WORLD.w); k = W / WORLD.w;
     cv.style.width = W + 'px'; cv.style.height = H + 'px';
@@ -200,6 +203,17 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
     hint.textContent = m === 'add' ? 'Appuie sur la carte là où se tient l’ennemi, garde appuyé et glisse dans la direction du sort, puis relâche. (Un simple clic : il vise ta position de départ.)' + (T != null ? ` Il partira à ${fmt(T)}, le moment de la démo.` : '')
       : '▶ lance la démo : les sorts partent comme en jeu. Mets pause, ajoute un ennemi (il part au moment affiché), puis relance. Glisse un ennemi pour le déplacer, la pastille blanche pour la direction, « Toi » pour le départ. Espace = lecture/pause, Suppr = effacer.';
   }
+  // ---------- Plein écran ----------
+  const isFull = () => document.fullscreenElement === box || box.classList.contains('le-full');
+  const fullBtn = h('button', {class: 'fa-btn', type: 'button', title: 'Éditeur en plein écran (Échap pour sortir)', onclick: () => toggleFull()}, '⛶ Plein écran');
+  async function toggleFull() {
+    if (isFull()) { if (document.fullscreenElement) await document.exitFullscreen().catch(() => {}); box.classList.remove('le-full'); }
+    else { try { await box.requestFullscreen(); } catch { box.classList.add('le-full'); } }
+    onFull();
+  }
+  function onFull() { const f = isFull(); fullBtn.textContent = f ? '🗗 Quitter le plein écran' : '⛶ Plein écran'; requestAnimationFrame(() => { size(); paint(); }); }
+  document.addEventListener('fullscreenchange', () => { if (box.isConnected) onFull(); });
+
   // ---------- Démo : lecture, pause, avance rapide ----------
   const playBtn = h('button', {class: 'fa-btn primary le-play', type: 'button', title: 'Lecture / pause (Espace)', onclick: () => setPlay(!play)});
   const stopBtn = h('button', {class: 'fa-btn', type: 'button', title: 'Arrêter la démo et revenir au début', onclick: () => { setPlay(false); T = null; syncTime(); refresh(); }}, '⏹');
@@ -276,8 +290,8 @@ export function scriptEditor(d, {casters, spells, spellsOf, onChange}) {
     h('label', {class: 'fa-field'}, h('span', null, 'Recommencer le scénario toutes les… (s)'), loopIn, h('small', {class: 'fa-muted'}, '0 = une seule fois. Ex. : 8 s pour rejouer la même vague jusqu’à la fin du niveau.')),
     h('label', {class: 'fa-check'}, h('input', {type: 'checkbox', checked: !!d.random, onchange: (ev) => { d.random = ev.target.checked; changed(); }}), 'Ajouter aussi des sorts au hasard (personnages choisis plus bas, selon la complexité)'));
 
-  const box = h('div', {class: 'le-box'},
-    h('div', {class: 'fa-row le-tools'}, addBtn, h('button', {class: 'fa-btn', type: 'button', onclick: () => { d.start = {...START0}; changed(); paint(); }}, '🧍 Joueur au centre')),
+  box = h('div', {class: 'le-box'},
+    h('div', {class: 'fa-row le-tools'}, addBtn, h('button', {class: 'fa-btn', type: 'button', onclick: () => { d.start = {...START0}; changed(); paint(); }}, '🧍 Joueur au centre'), h('span', {class: 'le-sp'}), fullBtn),
     h('div', {class: 'le-timeline'}, playBtn, stopBtn, timeIn, timeOut, rateSel),
     hint, h('div', {class: 'le-wrap'}, cv), props, list, opts);
   setMode('select');

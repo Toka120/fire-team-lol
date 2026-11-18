@@ -172,6 +172,46 @@ function adminState() {
   try { pending = fs.readdirSync(OUTBOX).filter((f) => /\.json$/i.test(f)).length; } catch (e) { /* aucun envoi */ }
   return { on: true, at: m.at || 0, keys, pending };
 }
+// ---------- Personnalisation de l'équipe (actus, mise en avant, couleurs, visuels, bandeau, maintenance) ----------
+// Publiée par le créateur via FIRE Team, signée avec sa clé : un fichier non signé ou modifié est ignoré.
+const { launcherClean, launcherImages, canonJ } = require('./launcher-clean');
+const DATA_RAW = 'https://raw.githubusercontent.com/Toka120/fire-lol-data/main/';
+const CREATOR_KEYS = ['MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5Z236SzaO0W7oSRQlg2TSoR9CQMLmHNg+tIdgtxLR8n02SI73y2nj7cFi7EAOvIXumzgj3z2t6RY5C1Uz5Bf3A=='];
+function signedOk(f) {
+  if (!f || !f.payload || !f.sig) return false;
+  const data = Buffer.from(canonJ(f.payload)), sig = Buffer.from(String(f.sig), 'base64url');
+  return CREATOR_KEYS.some((k) => { try { return crypto.verify('sha256', data, { key: crypto.createPublicKey({ key: Buffer.from(k, 'base64'), format: 'der', type: 'spki' }), dsaEncoding: 'ieee-p1363' }, sig); } catch (e) { return false; } });
+}
+let customCache = { at: 0, cfg: null, when: 0 };
+async function customCfg() {
+  if (Date.now() - customCache.at < 60000) return customCache;
+  const cache = path.join(app.getPath('userData'), 'cache', 'launcher-config.json');
+  let f = null;
+  try { const r = await net.fetch(DATA_RAW + 'launcher/config.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) { f = await r.json(); if (signedOk(f)) writeJson(cache, f); else f = null; } else if (r.status === 404) f = { none: true }; } catch (e) { /* hors ligne */ }
+  if (!f) f = readJson(cache, null);
+  customCache = { at: Date.now(), cfg: f && !f.none && signedOk(f) ? launcherClean(f.payload.cfg) : null, when: f && f.payload ? Number(f.payload.at) || 0 : 0 };
+  return customCache;
+}
+// Images : en cache sur ce PC, vérifiées par leur empreinte, données à l'interface en data: (seule source permise).
+const IMG_RE = /^[0-9a-f]{64}\.(png|jpg|jpeg|webp|gif)$/;
+const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
+const imgDir = () => path.join(app.getPath('userData'), 'images');
+const draftDir = () => path.join(app.getPath('userData'), 'admin', 'images');
+async function imageData(name) {
+  name = String(name || '');
+  if (!IMG_RE.test(name)) return null;
+  const sha = name.split('.')[0], mime = MIME[name.split('.')[1]];
+  const okBuf = (b) => b && crypto.createHash('sha256').update(b).digest('hex') === sha;
+  let buf = null;
+  for (const d of [imgDir(), draftDir()]) { try { const b = fs.readFileSync(path.join(d, name)); if (okBuf(b)) { buf = b; break; } } catch (e) { /* */ } }
+  if (!buf) {
+    try { const r = await net.fetch(DATA_RAW + 'launcher/img/' + name); if (r.ok) { const b = Buffer.from(await r.arrayBuffer()); if (okBuf(b) && b.length <= 3 * 1048576) { buf = b; fs.mkdirSync(imgDir(), { recursive: true }); fs.writeFileSync(path.join(imgDir(), name), b); } } } catch (e) { /* */ }
+  }
+  return buf ? `data:${mime};base64,${buf.toString('base64')}` : null;
+}
+// Brouillon du créateur (sur ce PC), avec aperçu local avant publication.
+const draftPath = () => path.join(app.getPath('userData'), 'admin', 'brouillon.json');
+let preview = false;
 async function stateAll() {
   const [m, latest, run, team] = await Promise.all([manifest(), teamLatest(), running(), teamInstall()]);
   const apps = {
@@ -186,7 +226,11 @@ async function stateAll() {
     apps[id] = { installed: inst, version: (rec && rec.version) || '', latest: a.version || '', running: run.has(String(a.exe).toLowerCase()), available: !!a.url,
       update: !!(inst && a.sha256 && (!rec || rec.sha256 !== a.sha256)), size: a.size || 0 };
   }
-  return { apps, online: !!latest, launcher: app.getVersion(), news: (m && m.news) || null, admin: adminState() };
+  const admin = adminState();
+  const cc = await customCfg();
+  let custom = cc.cfg;
+  if (admin.on && preview) { const d = readJson(draftPath(), null); if (d) custom = launcherClean(d); }
+  return { apps, online: !!latest, launcher: app.getVersion(), news: (m && m.news) || null, admin: { ...admin, preview: admin.on && preview, publishedAt: cc.when }, custom: custom || null };
 }
 
 // ---------- Téléchargement (suit les redirections de GitHub), avec progression et contrôle d'empreinte ----------
@@ -316,6 +360,44 @@ ipcMain.handle('admin:keys', async () => {
   if (latest && inst.version && newer(latest, inst.version)) return { ok: false, update: true, error: 'FIRE Team a une mise à jour : lance-le une fois depuis le launcher' };
   launch(inst.exe, ['--from-launcher', '--open=admin-keys']);
   return { ok: true };
+});
+ipcMain.handle('img:get', (e, name) => imageData(name));
+ipcMain.handle('admin:draft', async () => {
+  if (!adminState().on) return null;
+  const d = readJson(draftPath(), null);
+  return d ? launcherClean(d) : (await customCfg()).cfg || launcherClean({});
+});
+ipcMain.handle('admin:save', (e, cfg) => { if (!adminState().on) return null; const c = launcherClean(cfg); writeJson(draftPath(), c); return c; });
+ipcMain.handle('admin:discard', () => { try { fs.rmSync(draftPath(), { force: true }); } catch (e) { /* */ } preview = false; customCache.at = 0; return true; });
+ipcMain.handle('admin:preview', (e, on) => { preview = !!on && adminState().on; return preview; });
+// Image choisie par le créateur : gardée sous son empreinte (3 Mo au plus, PNG, JPEG, WebP ou GIF).
+ipcMain.handle('admin:image', (e, dataUrl) => {
+  if (!adminState().on) return { ok: false, error: 'mode admin absent' };
+  const m = /^data:image\/(png|jpeg|jpg|webp|gif);base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
+  if (!m) return { ok: false, error: 'format non pris en charge (PNG, JPEG, WebP ou GIF)' };
+  const buf = Buffer.from(m[2], 'base64');
+  if (buf.length > 3 * 1048576) return { ok: false, error: 'image trop lourde : 3 Mo au maximum' };
+  const name = crypto.createHash('sha256').update(buf).digest('hex') + '.' + (m[1] === 'jpeg' ? 'jpg' : m[1]);
+  fs.mkdirSync(draftDir(), { recursive: true }); fs.writeFileSync(path.join(draftDir(), name), buf);
+  return { ok: true, name };
+});
+// Publication : déposée dans le dossier d'envois, FIRE Team la signe et la met en ligne (toutes les 15 s).
+ipcMain.handle('admin:publish', () => {
+  if (!adminState().on) return { ok: false, error: 'mode admin absent' };
+  const c = launcherClean(readJson(draftPath(), null) || {});
+  try {
+    fs.mkdirSync(path.join(OUTBOX, 'launcher-assets'), { recursive: true });
+    for (const name of launcherImages(c)) { const src = path.join(draftDir(), name); if (fs.existsSync(src)) fs.copyFileSync(src, path.join(OUTBOX, 'launcher-assets', name)); }
+    const name = 'launcher-' + Date.now().toString(36);
+    fs.writeFileSync(path.join(OUTBOX, name + '.json'), JSON.stringify({ v: 1, cfg: c }));
+    return { ok: true, name };
+  } catch (err) { return { ok: false, error: String(err.message || err) }; }
+});
+ipcMain.handle('admin:pubstate', (e, name) => {
+  name = String(name || '').replace(/[^\w-]/g, '');
+  const res = readJson(path.join(OUTBOX, name + '.resultat.json'), null);
+  if (res) { if (res.ok) { customCache.at = 0; try { fs.rmSync(draftPath(), { force: true }); } catch (e2) { /* */ } preview = false; } return { done: true, ...res }; }
+  return { done: false, waiting: fs.existsSync(path.join(OUTBOX, name + '.json')) };
 });
 ipcMain.handle('admin:outbox', () => { if (!adminState().on) return false; fs.mkdirSync(OUTBOX, { recursive: true }); shell.openPath(OUTBOX); return true; });
 ipcMain.handle('data:patchnotes', async () => {

@@ -49,6 +49,41 @@
   let PN = null;
   let PREFS = { onPlay: 'min', autostart: false };
 
+  // ---------- Personnalisation de l'équipe (publiée par le créateur) ----------
+  const C = () => ST.custom || {};
+  const IMG = new Map();
+  // Image publiée (ou du brouillon de l'admin) : chargée par le launcher, vérifiée par son empreinte.
+  function pic(name, cls, alt) {
+    const el = h('img', { class: cls || '', alt: alt || '' });
+    if (!name) return el;
+    if (!IMG.has(name)) IMG.set(name, fl.img(name).catch(() => null));
+    IMG.get(name).then((src) => { if (src) el.src = src; else el.remove(); });
+    return el;
+  }
+  function applyColor() {
+    const hx = (C().color || {})[cur], st = document.body.style;
+    if (!hx) { for (const k of ['--ac', '--ac2', '--acrgb']) st.removeProperty(k); return; }
+    const n = parseInt(hx.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255, mix = (v) => Math.round(v + (255 - v) * 0.45);
+    st.setProperty('--ac', hx); st.setProperty('--ac2', `rgb(${mix(r)} ${mix(g)} ${mix(b)})`); st.setProperty('--acrgb', `${r} ${g} ${b}`);
+  }
+  function renderBanner() {
+    const box = $('top-mid');
+    if (box.querySelector('.self')) return;
+    const b = C().banner;
+    if (!b) { box.replaceChildren(); return; }
+    box.replaceChildren(h(b.url ? 'button' : 'span', { class: 'tbanner', style: `--bc:${b.color}`, onclick: b.url ? () => fl.open(b.url) : null }, '📢 ', b.text, b.url ? ' ↗' : ''));
+  }
+  // Une actu de l'équipe : grande fenêtre avec l'image et tout le texte, ou le lien si elle en a un.
+  function newsOpen(n) {
+    if (n.url && !n.text) { fl.open(n.url); return; }
+    modal(n.img ? pic(n.img, 'm-img') : null, h('h2', null, (n.emoji ? n.emoji + ' ' : '') + (n.title || 'Actu')), n.text ? h('p', { class: 'm-txt' }, n.text) : null,
+      n.url ? h('button', { class: 'wbtn', onclick: () => fl.open(n.url) }, 'En savoir plus ↗') : null);
+  }
+  const customCards = (id) => ((C().news || {})[id] || []).map((n) => h('button', { class: 'nc cn', onclick: () => newsOpen(n) },
+    h('div', { class: 'nt' }, n.title), h('div', { class: 'nx' }, n.text), h('div', { class: 'ni' + (n.img ? ' has' : '') }, n.img ? pic(n.img, 'ni-img') : h('span', null, n.emoji || '📣')),
+    h('div', { class: 'nf' }, n.tag || 'ÉQUIPE')));
+  const hidden = (id, k) => ((C().hide || {})[id] || []).includes(k);
+
   // ---------- Barre des apps ----------
   function renderRail() {
     const r = $('rail');
@@ -69,12 +104,18 @@
     if (cur === id) return;
     cur = id; document.body.dataset.app = id;
     fl.prefs.set({ last: id });
-    renderRail(); renderArt(); render();
+    applyColor(); renderRail(); renderArt(); render();
   }
 
   // ---------- Visuels ----------
-  function renderArt() {
+  let artKey = '';
+  function renderArt(force) {
     const a = APPS[cur], art = $('art');
+    const custom = (C().art || {})[cur] || '';
+    const key = cur + '|' + custom;
+    if (!force && key === artKey && art.childElementCount) return;
+    artKey = key;
+    if (custom) { art.replaceChildren(pic(custom, 'big custom-art')); return; }
     if (cur === 'team') art.replaceChildren(h('img', { class: 'big', src: 'assets/fire-cut.png', alt: '' }));
     if (cur === 'kiting') {
       const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 800 800'); s.setAttribute('class', 'rings');
@@ -121,6 +162,7 @@
     if (p) return { label: p.label || 'Patiente…', busy: true, pct: p.pct };
     if (!s.available) return { label: 'Bientôt', dis: true };
     if (!s.installed) return { label: 'Installer', up: true };
+    if ((C().maint || {})[id] && !(ST.admin && ST.admin.on)) return { label: 'En maintenance', dis: true };
     if (s.update) return { label: 'Mettre à jour et jouer', up: true };
     if (s.running) return id === 'team' ? { label: 'Afficher' } : { label: 'Déjà ouvert', dis: true };
     return { label: 'Jouer' };
@@ -128,6 +170,8 @@
   function statusOf(id) {
     const s = ST.apps[id] || {};
     if (!s.available) return ['', 'Pas encore disponible'];
+    const mt = (C().maint || {})[id];
+    if (mt) return ['up', '🚧 ' + mt];
     if (s.installed && s.update) return ['up', 'Mise à jour disponible' + (id === 'team' && s.latest ? ' : v' + s.latest : '') + (s.running ? ' (sera fermé puis relancé)' : '')];
     if (s.running) return ['run', 'Ouvert'];
     if (s.installed && s.unknown) return ['ok', 'Installé · version non lue (🔧 Réparer pour réinstaller la dernière)'];
@@ -171,14 +215,20 @@
       h('span', { class: 'vpill' }, verOf(id)),
       h('img', { class: 'logo' + (a.round ? ' round' : ''), src: a.icon, alt: '' }),
       h('h1', null, a.name.replace('FIRE ', '')),
-      h('div', { class: 'tag' }, a.tag),
+      h('div', { class: 'tag' }, (C().tag || {})[id] || a.tag),
       h('div', { class: 'status ' + sc }, ST.admin && ST.admin.on && id !== 'team' ? h('button', { class: 'adm-pill' + (ST.admin.keys[id] ? '' : ' warn'), title: ST.admin.keys[id] ? 'Mode admin : le bouton 🔧 Admin de l’app s’ouvre directement' : 'Mode admin : ta clé n’est pas encore posée', onclick: () => adminModal() }, ST.admin.keys[id] ? '🛠️ Admin' : '⚠ Admin') : null, h('i'), stxt),
       go,
       h('div', { class: 'ptxt' }, p ? p.text : ''),
       h('div', { class: 'ibtns' }, btns));
 
     let feat;
-    if (id === 'team') {
+    const F = (C().feat || {})[id];
+    if (F) {
+      feat = h('div', { class: 'card feat' + (F.img ? ' has-img' : '') }, h('span', { class: 'ribbon' }, F.ribbon || 'À LA UNE'),
+        F.img ? pic(F.img, 'feat-img') : h('div', { class: 'emb' }, F.emoji || '🔥'),
+        h('h2', null, F.title), h('p', null, F.text),
+        F.url ? h('button', { class: 'wbtn', onclick: () => fl.open(F.url) }, 'En savoir plus') : h('button', { class: 'wbtn', disabled: !s.available, onclick: () => play(id) }, s.installed ? 'Jouer' : 'Installer'));
+    } else if (id === 'team') {
       const v = (PN || [])[0];
       feat = h('div', { class: 'card feat' }, h('span', { class: 'ribbon' }, 'NOUVEAU !'),
         h('div', { class: 'emb' }, emojiFor(v ? v.titre + ' ' + (v.notes || []).join(' ') : '')),
@@ -193,17 +243,19 @@
 
     let cards;
     if (id === 'team') {
-      cards = (PN || []).slice(0, 3).map((v) => h('button', { class: 'nc', onclick: () => newsModal(v.version) },
+      cards = (hidden('team', 'pn') ? [] : (PN || [])).slice(0, 3).map((v) => h('button', { class: 'nc', onclick: () => newsModal(v.version) },
         h('div', { class: 'nt' }, v.titre), h('div', { class: 'nx' }, (v.notes || [])[0] || ''), h('div', { class: 'ni' }, h('span', null, emojiFor(v.titre + ' ' + (v.notes || []).join(' ')))),
         h('div', { class: 'nf' }, 'MAJ ', h('em', null, `v${v.version} · ${dateFr(v.date)}`))));
-      if (!cards.length) cards = [h('div', { class: 'nc' }, h('div', { class: 'nt' }, 'Chargement des actus…'), h('div', { class: 'ni' }, h('span', null, '🔥')))];
+      if (!cards.length && !hidden('team', 'pn')) cards = [h('div', { class: 'nc' }, h('div', { class: 'nt' }, 'Chargement des actus…'), h('div', { class: 'ni' }, h('span', null, '🔥')))];
     } else {
-      cards = a.news.map(([e, t, d, k]) => h('div', { class: 'nc' }, h('div', { class: 'nt' }, t), h('div', { class: 'nx' }, d), h('div', { class: 'ni' }, h('span', null, e)), h('div', { class: 'nf' }, k)));
+      cards = a.news.map(([e, t, d, k], i) => (hidden(id, 'b' + i) ? null : h('div', { class: 'nc' }, h('div', { class: 'nt' }, t), h('div', { class: 'nx' }, d), h('div', { class: 'ni' }, h('span', null, e)), h('div', { class: 'nf' }, k)))).filter(Boolean);
     }
+    cards = customCards(id).concat(cards).slice(0, 3);
     const news = h('div', { class: 'card news' },
       h('div', { class: 'news-h' }, h('b', null, id === 'team' ? 'Actus FIRE Team' : 'À savoir'), id === 'team' ? h('button', { onclick: () => newsModal() }, '+ d’actus') : h('button', { onclick: () => aboutModal(id) }, '+ d’infos')),
       h('div', { class: 'ncards' }, cards));
     $('content').replaceChildren(play_, feat, news);
+    applyColor(); renderBanner(); renderArt();
   }
 
   // ---------- Fenêtres ----------
@@ -215,31 +267,148 @@
     m.onclick = (e) => { if (e.target === m) close(); };
   }
   function newsModal(focus) {
-    modal(h('h2', null, 'Nouveautés de FIRE Team'), (PN || []).map((v) => h('div', { class: 'pn', id: 'pn-' + v.version },
+    modal(h('h2', null, 'Nouveautés de FIRE Team'), ((C().news || {}).team || []).map((n) => h('div', { class: 'pn cpn' }, n.img ? pic(n.img, 'pn-img') : null, h('h3', null, (n.emoji ? n.emoji + ' ' : '') + n.title, n.tag ? h('small', null, n.tag) : null), n.text ? h('p', { style: 'margin:0;color:#fffd' }, n.text) : null, n.url ? h('button', { class: 'gbtn', style: 'margin-top:8px', onclick: () => fl.open(n.url) }, 'En savoir plus ↗') : null)),
+      (PN || []).map((v) => h('div', { class: 'pn', id: 'pn-' + v.version },
       h('h3', null, v.titre, h('small', null, `v${v.version} · ${dateFr(v.date)}`)), h('ul', null, (v.notes || []).map((n) => h('li', null, n))))));
     if (focus) { const el = document.getElementById('pn-' + focus); if (el) el.scrollIntoView(); }
   }
   function aboutModal(id) {
     const a = APPS[id];
-    modal(h('h2', null, a.name), h('p', { style: 'color:var(--mute)' }, a.tag),
-      a.news.map(([e, t, d]) => h('div', { class: 'pn' }, h('h3', null, e + ' ' + t), h('p', { style: 'margin:0;color:#fffd' }, d))),
+    modal(h('h2', null, a.name), h('p', { style: 'color:var(--mute)' }, (C().tag || {})[id] || a.tag),
+      ((C().news || {})[id] || []).map((n) => h('div', { class: 'pn cpn' }, n.img ? pic(n.img, 'pn-img') : null, h('h3', null, (n.emoji ? n.emoji + ' ' : '') + n.title), n.text ? h('p', { style: 'margin:0;color:#fffd' }, n.text) : null, n.url ? h('button', { class: 'gbtn', style: 'margin-top:8px', onclick: () => fl.open(n.url) }, 'En savoir plus ↗') : null)),
+      a.news.filter((x, i) => !hidden(id, 'b' + i)).map(([e, t, d]) => h('div', { class: 'pn' }, h('h3', null, e + ' ' + t), h('p', { style: 'margin:0;color:#fffd' }, d))),
       h('div', { class: 'pn' }, h('h3', null, '💻 Configuration'), h('p', { style: 'margin:0;color:#fffd' }, 'Windows 64 bits et Microsoft Edge WebView2 (déjà présent sur Windows 10 et 11). Pas besoin du client League. Tes réglages et records restent sur ton PC, même après une mise à jour.')));
   }
-  // ---------- Mode admin (PC du créateur) ----------
-  function adminModal() {
+  // ---------- Mode admin (PC du créateur) : studio du launcher ----------
+  // Tout ce qui est changé ici est un brouillon sur ce PC (aperçu possible), puis « Publier » l'envoie à FIRE Team,
+  // qui le signe et le met en ligne : chaque launcher de l'équipe l'affiche à sa prochaine actualisation.
+  const AD = { tab: 'news', app: 'team', dr: null, edit: null, saveT: 0, pub: null, msg: '' };
+  const APPN = { team: 'FIRE Team', kiting: 'FIRE Kiting', listen: 'FIRE Listen' };
+  function adSave(rerender) {
+    clearTimeout(AD.saveT);
+    AD.saveT = setTimeout(async () => { await fl.admin.save(AD.dr); AD.msg = '💾 Brouillon enregistré sur ce PC · pas encore publié'; const m = document.querySelector('.ad-msg'); if (m) m.textContent = AD.msg; if (ST.admin && ST.admin.preview) refresh(); }, 350);
+    if (rerender) adminModal();
+  }
+  const fld = (label, input, help) => h('label', { class: 'ad-f' }, h('span', null, label), input, help ? h('small', null, help) : null);
+  const inp = (obj, k, max, ph) => h('input', { class: 'ad-in', value: obj[k] || '', maxlength: max, placeholder: ph || '', oninput: (e) => { obj[k] = e.target.value; adSave(); } });
+  const area = (obj, k, max, ph) => { const t = h('textarea', { class: 'ad-in', rows: 3, maxlength: max, placeholder: ph || '', oninput: (e) => { obj[k] = e.target.value; adSave(); } }); t.value = obj[k] || ''; return t; };
+  // Choix d'une image sur ce PC : PNG, JPEG, WebP ou GIF, 3 Mo au plus.
+  function imgPick(obj, k, label) {
+    const file = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', hidden: true, onchange: (e) => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      if (f.size > 3 * 1048576) { toast('Image trop lourde', '3 Mo au maximum.', true); return; }
+      const rd = new FileReader();
+      rd.onload = async () => { const r = await fl.admin.image(String(rd.result)); if (r && r.ok) { obj[k] = r.name; adSave(true); } else toast('Image refusée', (r && r.error) || 'format non pris en charge', true); };
+      rd.readAsDataURL(f);
+    } });
+    return h('div', { class: 'ad-img' }, obj[k] ? pic(obj[k], 'ad-thumb') : h('span', { class: 'ad-noimg' }, 'Aucune image'),
+      h('button', { class: 'gbtn', onclick: () => file.click() }, obj[k] ? 'Changer' : (label || 'Choisir une image')),
+      obj[k] ? h('button', { class: 'gbtn', onclick: () => { obj[k] = ''; adSave(true); } }, 'Retirer') : null, file);
+  }
+  const appTabs = () => h('div', { class: 'seg ad-apps' }, IDS.map((a) => h('button', { class: AD.app === a ? 'on' : '', onclick: () => { AD.app = a; AD.edit = null; adminModal(); } }, APPN[a])));
+  function tabNews() {
+    const a = AD.app, D = AD.dr;
+    D.news = D.news || {}; const L = D.news[a] = D.news[a] || [];
+    D.hide = D.hide || {}; const H = D.hide[a] = D.hide[a] || [];
+    if (AD.edit) {
+      const n = L.find((x) => x.id === AD.edit);
+      if (!n) { AD.edit = null; return tabNews(); }
+      return [h('button', { class: 'gbtn', onclick: () => { AD.edit = null; adminModal(); } }, '← Retour aux actus'),
+        h('div', { class: 'ad-grid' }, fld('Titre', inp(n, 'title', 60, 'Ex. : Tournoi interne samedi')), fld('Étiquette', inp(n, 'tag', 16, 'Ex. : ÉVÉNEMENT'), 'En bas de la carte.'), fld('Emoji', inp(n, 'emoji', 8, '🏆'), 'Affiché s’il n’y a pas d’image.')),
+        fld('Texte', area(n, 'text', 280, 'Ce que l’équipe doit savoir.')), fld('Image', imgPick(n, 'img')), fld('Lien (facultatif)', inp(n, 'url', 300, 'https://…'), 'Ouvert par « En savoir plus ».')];
+    }
+    const move = (i, d) => { const j = i + d; if (j < 0 || j >= L.length) return; [L[i], L[j]] = [L[j], L[i]]; adSave(true); };
+    const builtin = a === 'team' ? [['pn', 'Cartes des patch notes (les 3 dernières versions)']] : APPS[a].news.map(([e, t], i) => ['b' + i, e + ' ' + t]);
+    return [h('p', { class: 'ad-help' }, 'Tes actus passent en premier sur la page de l’app (les 3 premières cartes), et en entier dans « + d’actus ».'),
+      h('div', { class: 'ad-list' }, L.length ? L.map((n, i) => h('div', { class: 'ad-row' },
+        n.img ? pic(n.img, 'ad-mini') : h('span', { class: 'ad-emo' }, n.emoji || '📣'), h('div', { class: 'ad-rt' }, h('b', null, n.title || '(sans titre)'), h('small', null, n.text || '')),
+        h('button', { class: 'ib2', title: 'Monter', disabled: i === 0, onclick: () => move(i, -1) }, '↑'), h('button', { class: 'ib2', title: 'Descendre', disabled: i === L.length - 1, onclick: () => move(i, 1) }, '↓'),
+        h('button', { class: 'gbtn', onclick: () => { AD.edit = n.id; adminModal(); } }, 'Modifier'),
+        h('button', { class: 'gbtn', onclick: () => { if (confirm(`Retirer l’actu « ${n.title || 'sans titre'} » ?`)) { L.splice(i, 1); adSave(true); } } }, 'Retirer'))) : h('p', { class: 'ad-help' }, 'Aucune actu ajoutée pour cette app.')),
+      h('button', { class: 'wbtn', disabled: L.length >= 8, onclick: () => { const n = { id: 'n' + Date.now().toString(36), title: '', text: '', emoji: '📣', tag: '', img: '', url: '' }; L.unshift(n); AD.edit = n.id; adSave(true); } }, L.length >= 8 ? '8 actus au maximum' : '➕ Nouvelle actu'),
+      h('h3', { class: 'ad-h3' }, 'Cartes d’origine'),
+      h('div', { class: 'ad-list' }, builtin.map(([k, label]) => { const off = H.includes(k);
+        return h('div', { class: 'ad-row' + (off ? ' off' : '') }, h('div', { class: 'ad-rt' }, h('b', null, label)),
+          h('button', { class: 'sw' + (off ? '' : ' on'), 'aria-pressed': String(!off), title: off ? 'Masquée' : 'Affichée', onclick: () => { if (off) H.splice(H.indexOf(k), 1); else H.push(k); adSave(true); } })); }))];
+  }
+  function tabFeat() {
+    const a = AD.app, D = AD.dr; D.feat = D.feat || {};
+    const F = D.feat[a];
+    const on = !!(F && F.on);
+    const base = a === 'team' ? 'la dernière mise à jour' : `« ${APPS[a].feat[1]} »`;
+    const head = h('div', { class: 'set-row' }, h('div', null, h('b', null, 'Remplacer la grande carte'), h('p', null, `Par défaut : ${base}. Mets en avant ce que tu veux (événement, nouveau niveau, consigne…).`)),
+      h('button', { class: 'sw' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick: () => { D.feat[a] = on ? null : { on: true, title: '', text: '', emoji: '🔥', ribbon: 'À LA UNE', img: '', url: '' }; adSave(true); } }));
+    if (!on) return [head];
+    return [head, h('div', { class: 'ad-grid' }, fld('Bandeau', inp(F, 'ribbon', 16, 'À LA UNE')), fld('Titre', inp(F, 'title', 60)), fld('Emoji', inp(F, 'emoji', 8), 'Si pas d’image.')),
+      fld('Texte', area(F, 'text', 280)), fld('Visuel', imgPick(F, 'img')), fld('Lien (facultatif)', inp(F, 'url', 300, 'https://…'), 'Sans lien, le bouton lance l’app.')];
+  }
+  function tabLook() {
+    const a = AD.app, D = AD.dr; D.color = D.color || {}; D.art = D.art || {}; D.tag = D.tag || {};
+    const def = { team: '#ff7a2e', kiting: '#2ee6b0', listen: '#b06cff' }[a];
+    return [h('div', { class: 'set-row' }, h('div', null, h('b', null, 'Couleur de l’app'), h('p', null, 'Boutons, lueurs, braises et bandeaux de la page.')),
+        h('div', { class: 'ad-color' }, h('input', { type: 'color', value: D.color[a] || def, oninput: (e) => { D.color[a] = e.target.value; adSave(); } }),
+          D.color[a] ? h('button', { class: 'gbtn', onclick: () => { delete D.color[a]; adSave(true); } }, 'Couleur d’origine') : null)),
+      h('div', { class: 'set-row' }, h('div', null, h('b', null, 'Grand visuel'), h('p', null, 'L’image à droite de la page (à la place du logo animé). PNG transparent conseillé.')), imgPick(D.art, a, 'Choisir')),
+      fld('Phrase sous le nom', inp(D.tag, a, 140, APPS[a].tag))];
+  }
+  function tabBanner() {
+    const D = AD.dr; D.banner = D.banner || { on: false, text: '', color: '#ff7a2e', url: '' }; D.maint = D.maint || {};
+    const B = D.banner;
+    return [h('div', { class: 'set-row' }, h('div', null, h('b', null, '📢 Bandeau en haut du launcher'), h('p', null, 'Un message court visible sur toutes les apps (séance ce soir, tournoi, maintenance…).')),
+        h('button', { class: 'sw' + (B.on ? ' on' : ''), 'aria-pressed': String(!!B.on), onclick: () => { B.on = !B.on; adSave(true); } })),
+      B.on ? h('div', { class: 'ad-grid' }, fld('Message', inp(B, 'text', 200, 'Ex. : Séance obligatoire ce soir 20h')), fld('Couleur', h('input', { type: 'color', value: B.color || '#ff7a2e', oninput: (e) => { B.color = e.target.value; adSave(); } })), fld('Lien (facultatif)', inp(B, 'url', 300, 'https://…'))) : null,
+      h('h3', { class: 'ad-h3' }, '🚧 Maintenance'),
+      h('p', { class: 'ad-help' }, 'Une app en maintenance ne se lance plus chez l’équipe (bouton grisé + ton message). Toi, tu peux toujours la lancer.'),
+      ...IDS.map((a) => { const on = D.maint[a] != null;
+        return h('div', { class: 'set-row' }, h('div', { style: 'flex:1' }, h('b', null, APPN[a]), on ? inp(D.maint, a, 160, 'Ex. : mise à jour en cours, retour vers 21h') : null),
+          h('button', { class: 'sw' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick: () => { if (on) delete D.maint[a]; else D.maint[a] = 'En maintenance, retour très vite.'; adSave(true); } })); })];
+  }
+  function tabPc() {
     const A = ST.admin || {};
-    if (!A.on) return;
     const row = (title, text, btn) => h('div', { class: 'set-row' }, h('div', null, h('b', null, title), h('p', null, text)), btn || null);
     const keyRow = (id) => row(APPS[id].name, A.keys[id] ? '✅ Ta clé de créateur est posée : dans l’app, clique 🔧 Admin, le menu s’ouvre sans rien coller.'
       : '⚠ Ta clé n’est pas posée. Lance FIRE Team une fois : il la pose tout seul dans Kiting et Listen (ou Admin › Clés des apps › Recréer et reposer ma clé).',
       A.keys[id] ? h('button', { class: 'gbtn', onclick: () => { $('modal').hidden = true; play(id); } }, 'Lancer') : h('button', { class: 'gbtn', onclick: () => { $('modal').hidden = true; play('team'); } }, 'Lancer FIRE Team'));
-    modal(h('h2', null, '🛠️ Mode admin'), h('p', { style: 'color:var(--mute);margin-top:-6px' }, 'Visible seulement sur ton PC, là où se trouve ta clé de créateur.'),
-      keyRow('kiting'), keyRow('listen'),
+    return [keyRow('kiting'), keyRow('listen'),
       row('🔑 Clés pour l’équipe', 'Donne le menu admin de Kiting ou Listen à quelqu’un : FIRE Team s’ouvre directement sur Admin › Clés des apps.',
         h('button', { class: 'gbtn', onclick: async () => { const r = await fl.admin.keys(); if (r && r.ok) { $('modal').hidden = true; toast('FIRE Team s’ouvre', 'Sur Admin › Clés des apps.'); } else if (r && r.update) { $('modal').hidden = true; cur !== 'team' && pick('team'); toast('Mise à jour d’abord', r.error, true); } else toast('Impossible', (r && r.error) || 'FIRE Team introuvable', true); } }, 'Ouvrir')),
       row('📤 Publications en attente', A.pending ? (A.pending === 1 ? '1 création (niveau, son ou personnage) faite dans Kiting ou Listen attend FIRE Team pour partir chez l’équipe : ouvre FIRE Team.' : `${A.pending} créations (niveaux, sons ou personnages) faites dans Kiting ou Listen attendent FIRE Team pour partir chez l’équipe : ouvre FIRE Team.`) : 'Rien en attente : tout ce que tu as créé dans Kiting et Listen est parti chez l’équipe.',
         h('button', { class: 'gbtn', onclick: () => fl.admin.outbox() }, 'Dossier')),
-      row('📦 Versions', `FIRE Team ${verOf('team')} · Kiting ${verOf('kiting')} · Listen ${verOf('listen')} · Launcher ${ST.launcher || '?'}`));
+      row('📦 Versions', `FIRE Team ${verOf('team')} · Kiting ${verOf('kiting')} · Listen ${verOf('listen')} · Launcher ${ST.launcher || '?'}`)];
+  }
+  async function adminModal() {
+    const A = ST.admin || {};
+    if (!A.on) return;
+    if (!AD.dr) { AD.dr = (await fl.admin.draft()) || {}; if (!AD.msg) AD.msg = A.publishedAt ? 'Dernière publication : ' + new Date(A.publishedAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Rien de publié pour l’instant.'; }
+    const old = document.querySelector('.mbox.studio'), top = old ? old.scrollTop : 0;
+    const TABS = [['news', '📰 Actus'], ['feat', '⭐ À la une'], ['look', '🎨 Apparence'], ['banner', '📢 Bandeau et maintenance'], ['pc', '🖥️ Ce PC']];
+    const body = { news: tabNews, feat: tabFeat, look: tabLook, banner: tabBanner, pc: tabPc }[AD.tab]();
+    const publish = async () => {
+      if (!confirm('Publier ces changements dans le launcher de toute l’équipe ?')) return;
+      await fl.admin.save(AD.dr);
+      const r = await fl.admin.publish();
+      if (!r || !r.ok) { toast('Publication impossible', (r && r.error) || 'erreur', true); return; }
+      AD.pub = r.name; AD.msg = '📤 Envoyé à FIRE Team… (il doit être ouvert et connecté à l’équipe)'; adminModal();
+      const t0 = Date.now();
+      const poll = async () => {
+        const st = await fl.admin.pubstate(r.name).catch(() => null);
+        if (st && st.done) { AD.pub = null; AD.msg = st.ok ? '✅ Publié : l’équipe le voit à la prochaine actualisation de son launcher (moins d’une minute).' : '⚠ Refusé : ' + (st.error || 'erreur'); if (st.ok) { AD.dr = null; toast('Launcher publié', 'Toute l’équipe reçoit tes changements.'); } refresh(); if (!$('modal').hidden && document.querySelector('.mbox.studio')) adminModal(); return; }
+        if (Date.now() - t0 > 20000 && st && st.waiting) { AD.msg = '⏳ En attente de FIRE Team : ouvre-le sur ce PC, la publication partira toute seule.'; const m = document.querySelector('.ad-msg'); if (m) m.textContent = AD.msg; }
+        setTimeout(poll, 3000);
+      };
+      setTimeout(poll, 2500);
+    };
+    modal(h('h2', null, '🛠️ Studio du launcher'),
+      h('p', { class: 'ad-help', style: 'margin-top:-8px' }, 'Visible seulement sur ton PC. Tes changements restent en brouillon ici jusqu’à « Publier » : ensuite chaque launcher de l’équipe les affiche.'),
+      h('div', { class: 'ad-tabs' }, TABS.map(([k, l]) => h('button', { class: AD.tab === k ? 'on' : '', onclick: () => { AD.tab = k; AD.edit = null; adminModal(); } }, l))),
+      ['news', 'feat', 'look'].includes(AD.tab) ? appTabs() : null,
+      h('div', { class: 'ad-body' }, body),
+      AD.tab === 'pc' ? null : h('div', { class: 'ad-foot' },
+        h('span', { class: 'ad-msg' }, AD.msg),
+        h('button', { class: 'gbtn', onclick: async () => { const on = !(ST.admin && ST.admin.preview); await fl.admin.save(AD.dr); await fl.admin.preview(on); await refresh(); adminModal(); } }, ST.admin && ST.admin.preview ? '👁 Aperçu activé' : '👁 Aperçu sur ce PC'),
+        h('button', { class: 'gbtn', onclick: async () => { if (!confirm('Abandonner le brouillon et revenir à ce qui est publié ?')) return; await fl.admin.discard(); AD.dr = null; await refresh(); adminModal(); } }, '↺ Annuler'),
+        h('button', { class: 'wbtn', disabled: !!AD.pub, onclick: publish }, AD.pub ? 'Publication…' : '📤 Publier pour l’équipe')));
+    const box = document.querySelector('#modal .mbox'); box.classList.add('studio'); box.scrollTop = top;
   }
   async function settingsModal() {
     PREFS = await fl.prefs.get();
