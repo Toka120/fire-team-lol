@@ -130,13 +130,14 @@
     if (!s.available) return ['', 'Pas encore disponible'];
     if (s.installed && s.update) return ['up', 'Mise à jour disponible' + (id === 'team' && s.latest ? ' : v' + s.latest : '') + (s.running ? ' (sera fermé puis relancé)' : '')];
     if (s.running) return ['run', 'Ouvert'];
+    if (s.installed && s.unknown) return ['ok', 'Installé · version non lue (🔧 Réparer pour réinstaller la dernière)'];
     if (!s.installed) return ['', 'Non installé' + (s.size ? ' · ' + (s.size / 1048576).toFixed(0) + ' Mo' : '')];
     if (s.update) return ['up', 'Mise à jour disponible' + (id === 'team' && s.latest ? ' : v' + s.latest : '')];
     return ['ok', 'À jour'];
   }
   function verOf(id) {
     const s = ST.apps[id] || {};
-    if (id === 'team') return s.version ? 'v' + s.version : s.latest ? 'v' + s.latest : 'FIRE Team';
+    if (id === 'team') return s.version ? 'v' + s.version : s.installed ? 'Version ?' : s.latest ? 'v' + s.latest : 'FIRE Team';
     const v = s.version || s.latest;
     return v ? 'Version ' + v : APPS[id].name;
   }

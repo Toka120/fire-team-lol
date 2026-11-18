@@ -97,13 +97,48 @@ async function teamInstall() {
     const icon = g('DisplayIcon').replace(/,\s*-?\d+$/, '').replace(/^"|"$/g, '');
     const dir = g('InstallLocation').replace(/^"|"$/g, '');
     const exe = /\.exe$/i.test(icon) ? icon : dir ? path.join(dir, TEAM_EXE) : '';
-    if (exe && fs.existsSync(exe)) return { exe, version: exeVersion(exe) || g('DisplayVersion') };
+    if (exe && fs.existsSync(exe)) return { exe, version: await installedVersion(exe, g('DisplayVersion')) };
   }
   for (const d of ['FIRE LoL', 'fire-lol', 'FIRE Team']) {
     const exe = path.join(LOCAL, 'Programs', d, TEAM_EXE);
-    if (fs.existsSync(exe)) return { exe, version: exeVersion(exe) };
+    if (fs.existsSync(exe)) return { exe, version: await installedVersion(exe, '') };
   }
   return null;
+}
+// Version réellement installée, par ordre de fiabilité : le package.json dans app.asar (lu octet par octet, sans
+// dépendre de la lecture « asar » d'Electron), le repère que FIRE Team écrit à chaque démarrage, la version du
+// fichier .exe, puis celle de la liste des programmes. Sans version sûre, le launcher ne propose pas de mise à jour.
+const ofs = (() => { try { return require('original-fs'); } catch (e) { return fs; } })();
+function asarVersion(asar) {
+  let fd = null;
+  try {
+    fd = ofs.openSync(asar, 'r');
+    const head = Buffer.alloc(16); ofs.readSync(fd, head, 0, 16, 0);
+    const headerSize = head.readUInt32LE(4), jsonLen = head.readUInt32LE(12);
+    if (!jsonLen || jsonLen > 64 * 1048576) return '';
+    const jb = Buffer.alloc(jsonLen); ofs.readSync(fd, jb, 0, jsonLen, 16);
+    const f = (JSON.parse(jb.toString('utf8')).files || {})['package.json'];
+    if (!f || f.unpacked || !(f.size > 0) || f.size > 1048576) return '';
+    const b = Buffer.alloc(f.size); ofs.readSync(fd, b, 0, f.size, 8 + headerSize + Number(f.offset));
+    return String(JSON.parse(b.toString('utf8')).version || '');
+  } catch (e) { return ''; } finally { if (fd != null) try { ofs.closeSync(fd); } catch (e) { /* */ } }
+}
+const TEAM_MARK = path.join(LOCAL, 'FIRE', 'team.json');
+function fileVersion(exe) {
+  if (process.platform !== 'win32') return Promise.resolve('');
+  const q = String(exe).replace(/'/g, "''");
+  return new Promise((res) => execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `(Get-Item -LiteralPath '${q}').VersionInfo.ProductVersion`], { windowsHide: true, timeout: 8000 },
+    (e, out) => { const m = /(\d+\.\d+\.\d+)/.exec(String(out || '')); res(e || !m ? '' : m[1]); }));
+}
+const verOk = (v) => /^\d+\.\d+\.\d+$/.test(String(v || ''));
+async function installedVersion(exe, regVer) {
+  const dir = path.dirname(exe);
+  for (const f of [path.join(dir, 'resources', 'app.asar')]) { const v = asarVersion(f); if (verOk(v)) return v; }
+  const v0 = exeVersion(exe); if (verOk(v0)) return v0;
+  const m = readJson(TEAM_MARK, null);
+  if (m && verOk(m.version) && m.exe && path.resolve(String(m.exe)).toLowerCase() === path.resolve(exe).toLowerCase()) return m.version;
+  const v1 = await fileVersion(exe); if (verOk(v1)) return v1;
+  return verOk(regVer) ? regVer : '';
 }
 // Electron lit directement dans app.asar : on y trouve le package.json, donc la version exacte installée.
 function exeVersion(exe) {
@@ -141,7 +176,7 @@ async function stateAll() {
   const [m, latest, run, team] = await Promise.all([manifest(), teamLatest(), running(), teamInstall()]);
   const apps = {
     team: { installed: !!team, version: (team && team.version) || '', latest, running: run.has(TEAM_EXE.toLowerCase()), available: true,
-      update: !!(team && latest && (!team.version || newer(latest, team.version))) },
+      update: !!(team && latest && team.version && newer(latest, team.version)), unknown: !!(team && !team.version) },
   };
   for (const id of ['kiting', 'listen']) {
     const a = m.apps[id];
@@ -195,7 +230,7 @@ async function playTeam(P, opts) {
   const latest = await teamLatest(true);
   let inst = await teamInstall();
   const isRun = (await running()).has(TEAM_EXE.toLowerCase());
-  const need = !inst || opts.repair || !!(latest && (!inst.version || newer(latest, inst.version)));
+  const need = !inst || opts.repair || !!(latest && inst.version && newer(latest, inst.version));
   if (need) {
     const tmp = path.join(os.tmpdir(), 'FIRE-Team-Setup-' + Date.now() + '.exe');
     const t = inst ? `Mise à jour vers la version ${latest || 'la plus récente'}…` : 'Téléchargement de FIRE Team…';

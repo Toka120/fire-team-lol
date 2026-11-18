@@ -1284,6 +1284,8 @@ ipcMain.handle('appkeys:make', (e, who, apps) => coach.appKeyMake(who, apps));
 ipcMain.handle('appkeys:revoke', (e, id, on) => coach.appKeyRevoke(String(id || ''), on !== false));
 ipcMain.handle('appsrelay:now', () => coach.appsRelay());
 ipcMain.handle('appkeys:self', (e, force) => coach.appSelfKey(!!force));
+// Repère pour le FIRE Launcher : la version exacte qui tourne, et où elle est installée.
+app.whenReady().then(() => { try { const f = path.join(process.env.LOCALAPPDATA || path.join(require('os').homedir(), 'AppData', 'Local'), 'FIRE', 'team.json'); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify({ v: 1, version: app.getVersion(), exe: process.execPath, at: Date.now() })); } catch (e) { /* */ } });
 // Sur le PC du créateur : sa clé Kiting + Listen posée dans les deux apps, et le repère « mode admin » du launcher.
 app.whenReady().then(() => { setTimeout(() => coach.appSelfKey(false).catch(() => {}), 12000); setInterval(() => coach.appSelfKey(false).catch(() => {}), 3600000); });
 // Le launcher (mode admin) peut ouvrir directement une page : --open=admin-keys (Clés des apps).
