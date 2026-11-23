@@ -295,5 +295,23 @@
   ],
   "puuids": {
     "mortarius#2303": "eYQcVTmrJigK2-Mi85f0urFwjeS1a14Ck4NzbqR6zy3FEtnbcPXMbXvxzf3p87nyU9ffJQmC6TjZ3w"
+  },
+  "equipes": {
+    "bravo": {
+      "equipe": "Bravo",
+      "plan": "equipe",
+      "code_scrypt": {
+        "salt": "16b8fabf3743100f0eee945c85436d89",
+        "hash": "476efe4f1ce2b0a2a48b9e754065d37c7e375c210501cbd8a6efb4eb137cd2f6"
+      },
+      "chef_scrypt": {
+        "salt": "c94626ebae0523e9e29a18b93058eef2",
+        "hash": "9f0ff9fefcf888f9cbfcfc9f821f12c7dba2186db64405f15d772b452fdb5e66"
+      },
+      "fiches_salt": "475693311ab12821fa73d4aa1cefcaa8",
+      "chef": "mortarius#2303",
+      "joueurs": [],
+      "coachs": []
+    }
   }
 }

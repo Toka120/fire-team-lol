@@ -62,7 +62,19 @@ async function http(url, opts = {}, ms = 30000) {
 // ---------- Code d'équipe et clé des fiches ----------
 
 let getConfig = () => ({});
-function init(configGetter) { getConfig = configGetter; }
+let getRaw = () => getConfig();
+let onTeam = () => {};
+// configGetter : la config de l'équipe active (Alpha, ou une autre équipe comme Bravo) ; rawGetter : joueurs.json tel quel.
+function init(configGetter, rawGetter, teamChanged) { getConfig = configGetter; if (rawGetter) getRaw = rawGetter; if (teamChanged) onTeam = teamChanged; }
+
+// ---------- Plusieurs équipes : Alpha (dossiers d'origine) et les autres (equipes/<id>/…) ----------
+// L'équipe active de ce PC est choisie par le code d'équipe entré. Ses données sont rangées dans equipes/<id>/,
+// chiffrées avec sa propre clé : une équipe ne voit jamais celles d'une autre.
+let teamCache = null;
+function activeTeam() { if (teamCache === null) { const s = readSecret('team.bin'); teamCache = (s && s.id) || ''; } const id = teamCache; return id && getRaw().equipes && getRaw().equipes[id] ? id : ''; }
+function setTeam(id) { if (id) writeSecret('team.bin', { id }); else removeFile('team.bin'); teamCache = id || ''; teamTok = null; removeFile('acces.bin'); try { onTeam(); } catch (e) { /* */ } }
+const GLOBAL_P = /^(apps|public|launcher|equipes)\//;
+const nsPath = (p) => { const t = getConfig().team_id; return t && !GLOBAL_P.test(String(p)) ? 'equipes/' + t + '/' + p : p; };
 
 function teamKey() {
   const s = readSecret('equipe.bin');
@@ -82,9 +94,18 @@ function unwrapTeamKey(coachCode, w) {
 
 // Accepte le code d'équipe ou le code coach. Le code coach ouvre aussi le mode coach.
 async function unlock(code) {
+  const n0 = norm(code);
+  if (!n0) return { ok: false };
+  // Le code d'une autre équipe (Bravo…) bascule ce PC sur elle ; un code d'Alpha le ramène sur Alpha.
+  const raw = getRaw() || {};
+  let target = null;
+  for (const [id, t] of Object.entries(raw.equipes || {})) { try { if (await matches(n0, t.code_scrypt)) { target = id; break; } } catch (e) { /* */ } }
+  if (target === null && activeTeam()) {
+    for (const spec of [raw.code_scrypt, raw.coach_scrypt, raw.remplacant_scrypt]) { try { if (spec && await matches(n0, spec)) { target = ''; break; } } catch (e) { /* */ } }
+  }
+  if (target !== null && target !== activeTeam()) { removeFile('equipe.bin'); removeFile('coach.bin'); removeFile('chef.bin'); removeFile('remp.bin'); setTeam(target); }
   const cfg = getConfig();
-  const n = norm(code);
-  if (!n) return { ok: false };
+  const n = n0;
   let team = false, isCoach = false, err = null;
   try { team = await matches(n, cfg.code_scrypt); } catch (e) { err = e; }
   if (!team && err && cfg.code_sha256) team = sha256(n) === cfg.code_sha256; // secours si scrypt est indisponible
@@ -171,6 +192,18 @@ function seal(obj, id) {
   c.setAAD(Buffer.from(id));
   const data = Buffer.concat([c.update(JSON.stringify(obj), 'utf8'), c.final()]);
   return { v: 1, id, iv: iv.toString('base64'), tag: c.getAuthTag().toString('base64'), data: data.toString('base64') };
+}
+function sealWith(key, obj, id) {
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv('aes-256-gcm', key, iv);
+  c.setAAD(Buffer.from(id));
+  const data = Buffer.concat([c.update(JSON.stringify(obj), 'utf8'), c.final()]);
+  return { v: 1, id, iv: iv.toString('base64'), tag: c.getAuthTag().toString('base64'), data: data.toString('base64') };
+}
+function openWith(key, box) {
+  const d = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(box.iv, 'base64'));
+  d.setAAD(Buffer.from(box.id)); d.setAuthTag(Buffer.from(box.tag, 'base64'));
+  return JSON.parse(Buffer.concat([d.update(Buffer.from(box.data, 'base64')), d.final()]).toString('utf8'));
 }
 function open(box) {
   const key = teamKey();
@@ -433,6 +466,7 @@ async function generate(req) {
 
 const apiOf = (repo) => 'https://api.github.com/repos/' + (repo || REPO) + '/contents/';
 async function ghGet(token, p, repo) {
+  p = nsPath(p);
   const r = await http(apiOf(repo) + p + '?ref=main', { headers: ghHeaders(token) });
   if (r.status === 404) return null;
   if (!r.ok) throw new Error(`GitHub a refusé la lecture (${r.status})`);
@@ -440,6 +474,7 @@ async function ghGet(token, p, repo) {
   return { sha: j.sha, json: j.content ? JSON.parse(Buffer.from(j.content, 'base64').toString('utf8')) : null };
 }
 async function ghPut(token, p, obj, sha, message, repo) {
+  p = nsPath(p);
   const body = { message, content: Buffer.from(JSON.stringify(obj, null, 1), 'utf8').toString('base64'), branch: 'main' };
   if (sha) body.sha = sha;
   const r = await http(apiOf(repo) + p, { method: 'PUT', headers: { ...ghHeaders(token), 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -496,7 +531,7 @@ async function unpublish(id) {
   }
 }
 
-function cachePath(id) { return path.join(dir(), 'fiches', id + '.json'); }
+function cachePath(id) { const t = getConfig().team_id; return path.join(dir(), 'fiches', (t ? t + '-' : '') + id + '.json'); }
 function saveCache(id, box) {
   try { fs.mkdirSync(path.join(dir(), 'fiches'), { recursive: true }); fs.writeFileSync(cachePath(id), JSON.stringify(box)); } catch (e) { /* cache facultatif */ }
 }
@@ -505,6 +540,7 @@ function loadCache(id) { try { return JSON.parse(fs.readFileSync(cachePath(id), 
 async function readPublic(p, repo, token, ref) {
   // API GitHub (toujours à jour), puis copie « raw » si la limite de l'API est atteinte.
   ref = ref || 'main';
+  p = nsPath(p);
   try {
     const headers = { Accept: 'application/vnd.github.raw+json', 'User-Agent': 'FIRE-LoL' };
     if (token) headers.Authorization = 'Bearer ' + token;
@@ -576,7 +612,7 @@ function cleanWeek(w) {
 let teamTok = null;
 async function teamToken() {
   try {
-    const box = await readPublic('coach/acces.json');
+    const box = await readPublic('coach/acces.json', getConfig().team_id ? getConfig().data_repo : undefined);
     if (box) { const d = open(box); teamTok = d.token || null; if (teamTok) writeSecret('acces.bin', { token: teamTok }); }
     else { teamTok = null; removeFile('acces.bin'); }
   } catch (e) {
@@ -1138,7 +1174,7 @@ async function annonceGet(f, moi) {
 }
 // to : destinataires d'une annonce privée (vide = toute l'équipe). retirer : true (l'annonce d'équipe) ou l'id à retirer.
 // subs : destinataires remplaçants (ils ne lisent que la partie « remp » du fichier).
-async function annoncePost(texte, who, retirer, to, subs) {
+async function annoncePost(texte, who, retirer, to, subs, also) {
   to = annTo(to); subs = annTo(subs).filter((x) => to.includes(x));
   if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
   const k = adminKey();
@@ -1172,7 +1208,17 @@ async function annoncePost(texte, who, retirer, to, subs) {
       const pubRemp = pub ? (pub === a ? rempSeal(a) : ((cur && cur.json && cur.json.remp) || rempSeal(pub))) : null;
       const file = { v: 1, id: a ? a.id : null, at: Date.now(), team: seal({ cur: pub, hist: hist.slice(0, 30), priv }, ANN), remp: pubRemp, rempPriv: rp };
       const r = await ghPut(tok, ANN, file, cur && cur.sha, a ? (to.length ? 'Annonce privée' : 'Annonce') : 'Annonce retirée', dr);
-      if (r.ok) { saveCache('annonce', file); return { ok: true, annonce: pub ? annPub(pub) : null, priv: priv.map(annPub), sent: a ? annPub(a) : null, hist: hist.slice(0, 30).map(annPub), file }; }
+      if (r.ok) {
+        saveCache('annonce', file);
+        // Annonce d'équipe aussi envoyée aux autres équipes cochées (Bravo…), chiffrée avec leur clé.
+        const others = (Array.isArray(also) ? also : []).map(String);
+        if (a && !to.length && others.length) await otherTeamsWrite(tok, dr, ANN, (key, curJ) => {
+          let o = null; try { o = curJ && curJ.team ? openWith(key, curJ.team) : null; } catch (e) { o = null; }
+          const hh = (o && Array.isArray(o.hist) ? o.hist : []); hh.unshift(annClean(a));
+          return { v: 1, id: a.id, at: Date.now(), team: sealWith(key, { cur: a, hist: hh.slice(0, 30), priv: (o && o.priv) || [] }, ANN), remp: null, rempPriv: [] };
+        }, 'Annonce', others);
+        return { ok: true, annonce: pub ? annPub(pub) : null, priv: priv.map(annPub), sent: a ? annPub(a) : null, hist: hist.slice(0, 30).map(annPub), file };
+      }
     }
     throw new Error("l'annonce a changé pendant l'envoi, réessaie");
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
@@ -1292,7 +1338,7 @@ async function appCfgPost(cfg, who) {
       const cur = await ghGet(tok, APPCFG, dr);
       const file = { v: 1, at: a.at, team: seal(a, APPCFG), remp: rempSeal(a) };
       const r = await ghPut(tok, APPCFG, file, cur && cur.sha, 'Personnalisation de FIRE', dr);
-      if (r.ok) { saveCache('appcfg', file); return { ok: true, cfg: a.cfg, at: a.at }; }
+      if (r.ok) { saveCache('appcfg', file); await otherTeamsWrite(tok, dr, APPCFG, (key) => ({ v: 1, at: a.at, team: sealWith(key, a, APPCFG), remp: null }), 'Personnalisation de FIRE'); return { ok: true, cfg: a.cfg, at: a.at }; }
     }
     throw new Error('la personnalisation a changé pendant l’envoi, réessaie');
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
@@ -1527,7 +1573,7 @@ async function listBugs() {
   const where = await bugRepo();
   if (!where) return { ok: true, bugs: [], info: "jeton d'équipe pas encore activé" };
   try {
-    const r = await http(apiOf(where.repo) + where.dir.replace(/\/$/, '') + '?ref=main', { headers: ghHeaders(where.token) });
+    const r = await http(apiOf(where.repo) + nsPath(where.dir).replace(/\/$/, '') + '?ref=main', { headers: ghHeaders(where.token) });
     if (r.status === 404) return { ok: true, bugs: [] };
     if (!r.ok) throw new Error('GitHub a refusé la lecture (' + r.status + ')');
     const files = (await r.json()).filter((f) => /\.json$/.test(f.name)).sort((a, b) => b.name.localeCompare(a.name)).slice(0, 40);
@@ -1544,10 +1590,10 @@ async function closeBug(id) {
   const where = await bugRepo();
   if (!where) return { ok: false, error: "jeton d'équipe pas encore activé" };
   try {
-    const r = await http(apiOf(where.repo) + where.dir + id + '.json?ref=main', { headers: ghHeaders(where.token) });
+    const r = await http(apiOf(where.repo) + nsPath(where.dir + id + '.json') + '?ref=main', { headers: ghHeaders(where.token) });
     if (!r.ok) return { ok: true };
     const j = await r.json();
-    const d = await http(apiOf(where.repo) + where.dir + id + '.json', { method: 'DELETE', headers: { ...ghHeaders(where.token), 'content-type': 'application/json' }, body: JSON.stringify({ message: 'Bug réglé ' + id, sha: j.sha, branch: 'main' }) });
+    const d = await http(apiOf(where.repo) + nsPath(where.dir + id + '.json'), { method: 'DELETE', headers: { ...ghHeaders(where.token), 'content-type': 'application/json' }, body: JSON.stringify({ message: 'Bug réglé ' + id, sha: j.sha, branch: 'main' }) });
     if (!d.ok) throw new Error('GitHub a refusé la suppression (' + d.status + ')');
     return { ok: true };
   } catch (e) { return { ok: false, error: String(e.message || e) }; }
@@ -1930,6 +1976,48 @@ async function appKeyRevoke(id, on = true) {
 
 // Dossier d'envoi partagé avec FIRE Kiting / FIRE Listen (lu seulement sur PC, jamais sur téléphone).
 const outboxDir = () => path.join(process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || process.env.HOME || '.', 'AppData', 'Local'), 'FIRE', 'envois');
+// ---------- Autres équipes, vues du PC du créateur ----------
+// Le créateur active une équipe avec son code : FIRE Team calcule sa clé, y range le jeton d'équipe (chiffré avec
+// cette clé) et garde la clé sur ce PC pour lui envoyer la personnalisation et les annonces.
+const teamKeys = () => readSecret('equipes.bin') || {};
+async function otherTeamsWrite(tok, dr, rel, make, label, only) {
+  if (getConfig().team_id || !adminOn()) return;
+  for (const [id, hex] of Object.entries(teamKeys())) {
+    if (only && !only.includes(id)) continue;
+    if (!(getRaw().equipes || {})[id]) continue;
+    const p = 'equipes/' + id + '/' + rel;
+    try { for (let i = 0; i < 4; i++) { const cur = await ghGet(tok, p, dr); const r = await ghPut(tok, p, make(Buffer.from(hex, 'hex'), cur && cur.json), cur && cur.sha, label + ' (' + id + ')', dr); if (r.ok) break; } } catch (e) { /* équipe suivante */ }
+  }
+}
+async function teamsInfo() {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  const dr = getConfig().data_repo || null;
+  const keys = teamKeys();
+  const out = [];
+  for (const [id, t] of Object.entries(getRaw().equipes || {})) {
+    let active = false;
+    try { active = !!(dr && await readPublic('equipes/' + id + '/coach/acces.json', dr, null)); } catch (e) { /* hors ligne */ }
+    out.push({ id, name: t.equipe || id, players: (t.joueurs || []).length, active, key: !!keys[id] });
+  }
+  return { ok: true, teams: out, current: getConfig().team_id || '' };
+}
+async function teamActivate(id, code) {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  if (getConfig().team_id) return { ok: false, error: 'fais-le depuis ton FIRE en équipe Alpha' };
+  const t = (getRaw().equipes || {})[id];
+  if (!t) return { ok: false, error: 'équipe inconnue' };
+  if (!(await matches(code, t.code_scrypt))) return { ok: false, error: 'ce n’est pas le code de cette équipe' };
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, error: "FIRE Team n'est pas connecté à l'équipe" };
+  const key = await scrypt(norm(code), t.fiches_salt);
+  const p = 'equipes/' + id + '/coach/acces.json';
+  try {
+    for (let i = 0; i < 4; i++) { const cur = await ghGet(tok, p, dr); const r = await ghPut(tok, p, sealWith(key, { token: tok }, 'coach/acces.json'), cur && cur.sha, 'Équipe ' + (t.equipe || id) + ' : accès', dr); if (r.ok) break; }
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+  writeSecret('equipes.bin', { ...teamKeys(), [id]: key.toString('hex') });
+  return { ok: true };
+}
 // ---------- Page publique des équipes (catégorie Fan) ----------
 // Un fichier en clair, signé par le créateur : composition (seulement les joueurs d'accord), rangs, 3 champions,
 // actus, matchs, résultats et clips choisis. Rien d'autre ne sort de l'équipe.
@@ -2113,6 +2201,7 @@ async function launcherRelay() {
   } catch (e) { done(f, { ok: false, error: String((e && e.message) || e) }); return { ok: false, n: 1 }; }
 }
 async function ghPutRaw(token, p, buf, sha, message, repo) {
+  p = nsPath(p);
   const body = { message, content: Buffer.from(buf).toString('base64'), branch: 'main' };
   if (sha) body.sha = sha;
   const r = await http(apiOf(repo) + p, { method: 'PUT', headers: { ...ghHeaders(token), 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -2190,4 +2279,4 @@ async function appsRelay() {
 const appsRelay0 = appsRelay;
 appsRelay = async function () { const r = await appsRelay0(); try { await launcherRelay(); } catch (e) { /* */ } return r; };
 
-module.exports = { publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

@@ -1,6 +1,45 @@
 {
  "versions": [
   {
+   "v": "2.0.14",
+   "date": "2026-11-23",
+   "titre": "Espace Bravo, version Classique et aperçu des formules",
+   "items": [
+    [
+     "new",
+     "Équipe Bravo (formule Premium Équipe) : son propre code, son chef, ses stats, POOL, planning, draft, scrims, annonces, sa discussion et son vocal, séparés d'Alpha."
+    ],
+    [
+     "new",
+     "Les données de Bravo sont chiffrées avec sa propre clé : Bravo ne voit rien d'Alpha, et Alpha rien de Bravo."
+    ],
+    [
+     "new",
+     "Bravo garde l'apprentissage (Apprendre en jouant, puzzles, parcours, Micro, Détente). Lanes et principes et le coaching restent à Alpha et au Premium Joueur."
+    ],
+    [
+     "new",
+     "Admin › Équipes FIRE : le créateur active Bravo avec son code. Ses réglages Admin lui sont envoyés automatiquement."
+    ],
+    [
+     "new",
+     "Annonces : une annonce d'équipe peut aussi partir à Bravo (case « Envoyer aussi à »)."
+    ],
+    [
+     "new",
+     "Page publique : une fiche par équipe (Alpha et Bravo) dans « 🌐 Équipes »."
+    ],
+    [
+     "new",
+     "Admin › « Voir FIRE comme… » : le créateur prévisualise FIRE en Classique, Premium Joueur ou Premium Équipe, sans perdre ses droits ni ses réglages."
+    ],
+    [
+     "fix",
+     "La version sans code s'appelle désormais « Classique »."
+    ]
+   ]
+  },
+  {
    "v": "2.0.13",
    "date": "2026-11-18",
    "titre": "Équipes : la page des fans",

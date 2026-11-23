@@ -3619,3 +3619,13 @@ html[data-lite] #fire-pet,html[data-lite] .acc-tick,html[data-lite] #fire-fx,htm
 .pub-clips{display:flex;flex-wrap:wrap;gap:8px}
 .pub-clip{padding:8px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);text-decoration:none;color:inherit}
 .pub-clip:hover{border-color:var(--accent,#f5a623)}
+
+/* Aperçu d'une formule (créateur) */
+.plan-pv-bar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 9000; display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; white-space: nowrap; justify-content: center;
+  padding: 8px 14px; border-radius: 999px; background: rgba(20, 14, 12, .92); border: 1px solid var(--accent, #ff5e3a); box-shadow: 0 6px 24px rgba(0,0,0,.45); color: #fff; font-size: 13px; max-width: calc(100vw - 40px); }
+.plan-pv-bar small { opacity: .7; }
+@media (max-width: 1150px) { .plan-pv-bar small { display: none; } }
+.plan-pv-b { background: transparent; border: 1px solid rgba(255,255,255,.25); color: inherit; border-radius: 999px; padding: 3px 10px; cursor: pointer; font-size: 12px; }
+.plan-pv-b.on { background: var(--accent, #ff5e3a); border-color: transparent; }
+.plan-pv-b:last-child { border-color: var(--accent, #ff5e3a); }
+.adm-pv { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }

@@ -512,11 +512,30 @@ async function remoteJson(url, name) {
   return null;
 }
 
+// Équipe active de ce PC : Alpha (joueurs.json tel quel) ou une autre équipe (Bravo…) qui remplace les champs d'équipe.
+// Les champs communs (créateurs, dépôt de données, versions, liste des équipes) restent ceux de joueurs.json.
+const TEAM_FIELDS = ['equipe', 'code_sha256', 'code_scrypt', 'coach_scrypt', 'chef_scrypt', 'remplacant_scrypt', 'remplacant_salt', 'remplacant_cle', 'fiches_salt', 'fiches_cle_coach', 'objectif', 'joueurs', 'coachs', 'debut_equipe'];
+function teamCfg(raw) {
+  if (!raw) return {};
+  let id = '';
+  try { id = coach.activeTeam(); } catch (e) { id = ''; }
+  const t = id && raw.equipes && raw.equipes[id];
+  if (!t) return { ...raw, team_id: '', team_name: raw.equipe || 'FIRE' };
+  const out = { ...raw };
+  for (const k of TEAM_FIELDS) delete out[k];
+  for (const k of TEAM_FIELDS) if (t[k] !== undefined) out[k] = t[k];
+  out.joueurs = Array.isArray(t.joueurs) ? t.joueurs : [];
+  out.coachs = Array.isArray(t.coachs) ? t.coachs : [];
+  out.team_id = id; out.team_name = t.equipe || id; out.team_plan = t.plan || 'equipe';
+  return out;
+}
 ipcMain.handle('config', async () => {
   const j = (await remoteJson(CONFIG_URL, 'joueurs.json')) || { joueurs: [], _source: 'aucune' };
   lastCfg = j;
-  return j;
+  return teamCfg(j);
 });
+ipcMain.handle('teams:info', () => coach.teamsInfo());
+ipcMain.handle('teams:activate', (e, id, code) => coach.teamActivate(id, code));
 const PUZ_URL = 'https://toka120.github.io/fire-team-lol/puzzles-draft.json';
 const TIER_URL = 'https://toka120.github.io/fire-team-lol/tierlist.json';
 // ---------- Partie en direct : API locale officielle de Riot (Live Client Data, port 2999, seulement pendant une partie) ----------
@@ -1235,7 +1254,7 @@ ipcMain.handle('lolpatch:get', async (e, url) => {
   }
 });
 
-coach.init(() => lastCfg || {});
+coach.init(() => teamCfg(lastCfg || {}), () => lastCfg || {});
 ipcMain.handle('unlock', (e, code) => coach.unlock(code));
 ipcMain.handle('unlocked', () => coach.isUnlocked());
 ipcMain.handle('remp:seal', (e, obj) => coach.rempSeal(obj));
@@ -1311,7 +1330,7 @@ ipcMain.handle('appcfg:post', (e, cfg, who) => coach.appCfgPost(cfg, String(who 
 ipcMain.handle('appcfg:assetPut', (e, id, data) => coach.appAssetPut(String(id || ''), String(data || '')));
 ipcMain.handle('appcfg:asset', (e, id, sum) => coach.appAssetGet(String(id || ''), String(sum || '')));
 ipcMain.handle('ann:get', (e, f, moi) => coach.annonceGet(f && typeof f === 'object' ? f : null, String(moi || '')));
-ipcMain.handle('ann:post', (e, texte, who, retirer, to, subs) => coach.annoncePost(String(texte || ''), String(who || ''), typeof retirer === 'string' ? retirer.slice(0, 30) : !!retirer, Array.isArray(to) ? to : [], Array.isArray(subs) ? subs : []));
+ipcMain.handle('ann:post', (e, texte, who, retirer, to, subs, also) => coach.annoncePost(String(texte || ''), String(who || ''), typeof retirer === 'string' ? retirer.slice(0, 30) : !!retirer, Array.isArray(to) ? to : [], Array.isArray(subs) ? subs : [], Array.isArray(also) ? also.map(String).slice(0, 8) : []));
 ipcMain.handle('ann:lu', (e, id, slug, at) => coach.annonceLu(id, slug, at));
 ipcMain.handle('ann:lus', (e, slugs) => coach.annonceLus(slugs));
 ipcMain.handle('staff:save', (e, note, who) => coach.staffNoteSave(note, who));
