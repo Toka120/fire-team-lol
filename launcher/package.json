@@ -1,7 +1,7 @@
 {
   "name": "fire-launcher",
   "productName": "FIRE Launcher",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "FIRE Launcher : installe, met à jour et lance FIRE Team, FIRE Kiting et FIRE Listen",
   "main": "main.js",
   "author": "Toka120",
