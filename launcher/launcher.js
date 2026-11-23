@@ -21,6 +21,7 @@
     trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
     notes: '<path d="M6 3h9l4 4v14H6Z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+    plans: '<path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9Z"/>',
   };
 
   // Les apps du launcher. FIRE Team = l'ancienne FIRE LoL.
@@ -208,7 +209,7 @@
       if (!confirm(`Désinstaller ${a.name} ? Tes records et réglages ne sont pas effacés.`)) return;
       const r = await fl.uninstall(id); if (!r.ok) toast('Impossible', r.error || 'Désinstallation impossible.', true); refresh();
     }));
-    if (id === 'team') btns.push(ib('notes', 'Nouveautés', () => newsModal()));
+    if (id === 'team') { btns.push(ib('plans', 'Les formules', () => plansModal())); btns.push(ib('notes', 'Nouveautés', () => newsModal())); }
     else btns.push(ib('info', 'À propos', () => aboutModal(id)));
 
     const play_ = h('div', { class: 'card play' },
@@ -229,12 +230,13 @@
         h('h2', null, F.title), h('p', null, F.text),
         F.url ? h('button', { class: 'wbtn', onclick: () => fl.open(F.url) }, 'En savoir plus') : h('button', { class: 'wbtn', disabled: !s.available, onclick: () => play(id) }, s.installed ? 'Jouer' : 'Installer'));
     } else if (id === 'team') {
-      const v = (PN || [])[0];
-      feat = h('div', { class: 'card feat' }, h('span', { class: 'ribbon' }, 'NOUVEAU !'),
-        h('div', { class: 'emb' }, emojiFor(v ? v.titre + ' ' + (v.notes || []).join(' ') : '')),
-        h('h2', null, v ? v.titre : 'Les nouveautés de FIRE Team'),
-        h('p', null, v ? `Version ${v.version} · ${dateFr(v.date)}` : 'Chargement…'),
-        h('button', { class: 'wbtn', onclick: () => newsModal() }, 'Voir les nouveautés'));
+      // À la une par défaut : les formules de FIRE Team (Classique, Premium Joueur, Premium Équipe, Premium Élite).
+      feat = h('div', { class: 'card feat has-img plans-feat', role: 'button', tabindex: '0', onclick: (e) => { if (!e.target.closest('.wbtn')) plansModal(); }, onkeydown: (e) => { if (e.key === 'Enter') plansModal(); } },
+        h('span', { class: 'ribbon' }, 'NOUVEAU !'),
+        h('img', { class: 'feat-img plans-img', src: 'assets/formules.jpg', alt: '' }),
+        h('h2', null, 'Choisis ta formule'),
+        h('p', null, 'Classique sans code, Premium Joueur, Premium Équipe ou Élite : tout comparer en un coup d’œil.'),
+        h('button', { class: 'wbtn', onclick: () => plansModal() }, 'Voir les formules'));
     } else {
       const [e, t, d] = a.feat;
       feat = h('div', { class: 'card feat' }, h('span', { class: 'ribbon' }, 'À ESSAYER'), h('div', { class: 'emb' }, e), h('h2', null, t), h('p', null, d),
@@ -271,6 +273,13 @@
       (PN || []).map((v) => h('div', { class: 'pn', id: 'pn-' + v.version },
       h('h3', null, v.titre, h('small', null, `v${v.version} · ${dateFr(v.date)}`)), h('ul', null, (v.notes || []).map((n) => h('li', null, n))))));
     if (focus) { const el = document.getElementById('pn-' + focus); if (el) el.scrollIntoView(); }
+  }
+  // Le visuel complet des formules, à faire défiler.
+  function plansModal() {
+    modal(h('h2', null, 'Les formules de FIRE Team'),
+      h('p', { style: 'margin:-6px 0 14px;color:var(--mute)' }, 'Commence en Classique sans code, puis monte avec une clé Premium ou le code de ton équipe.'),
+      h('img', { class: 'plans-full', src: 'assets/formules.jpg', alt: 'Comparatif des formules : Classique, Premium Joueur, Premium Équipe et Premium Élite' }));
+    const box = document.querySelector('#modal .mbox'); if (box) box.classList.add('plans');
   }
   function aboutModal(id) {
     const a = APPS[id];
