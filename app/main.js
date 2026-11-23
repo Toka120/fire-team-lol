@@ -534,6 +534,8 @@ ipcMain.handle('config', async () => {
   lastCfg = j;
   return teamCfg(j);
 });
+ipcMain.handle('rw:push', (e, slug, c) => coach.rwPush(slug, c));
+ipcMain.handle('rw:board', (e, slugs) => coach.rwBoard(slugs));
 ipcMain.handle('teams:info', () => coach.teamsInfo());
 ipcMain.handle('teams:activate', (e, id, code) => coach.teamActivate(id, code));
 const PUZ_URL = 'https://toka120.github.io/fire-team-lol/puzzles-draft.json';

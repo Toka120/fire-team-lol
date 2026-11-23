@@ -34,11 +34,11 @@
 
   // Rubriques : identifiant FIRE -> libellé du dictionnaire (et donc son icône).
   const NAV = {
-    accueil: 'Accueil', stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente',
+    accueil: 'Accueil', recompenses: 'Récompenses', stats: 'Stats des joueurs', pool: 'POOL', planning: 'Planning', draft: 'Draft', train: 'Micro', jeux: 'Détente',
     guides: 'Lanes et principes', coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', chat: 'Discussion', vocal: 'Vocal', carnet: 'Carnet de bord', annonces: 'Annonces', boutique: 'Boutique', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', puzzle: 'Puzzle du jour', apprendre: 'Apprendre en jouant', puzdraft: 'Puzzles de draft', scrims: 'Scrims', stream: 'Stream', revue: 'Revue de parties',
     patch: 'Patch notes', settings: 'Paramètres', admin: 'Admin',
   };
-  const GROUPS = [['Équipe', ['accueil', 'stats', 'pool', 'planning']], ['Jeu', ['draft', 'train', 'jeux']],
+  const GROUPS = [['Équipe', ['accueil', 'recompenses', 'stats', 'pool', 'planning']], ['Jeu', ['draft', 'train', 'jeux']],
     ['Apprendre', ['parcours', 'apprendre', 'puzzle', 'puzdraft', 'guides', 'coach', 'worlds', 'lolpatch']], ['Outils', ['revue', 'scrims', 'parties', 'outils', 'reunion']], ['Social', ['chat', 'vocal', 'clips', 'stream', 'boutique']], [null, ['admin', 'annonces', 'carnet', 'patch', 'settings']]];
 
   // items : [{ id, label, badge, cls }] ; go(id) ouvre la rubrique.

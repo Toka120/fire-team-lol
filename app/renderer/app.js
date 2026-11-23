@@ -485,6 +485,9 @@
     { const st = load('fire.start', 'accueil'); const sec = st === 'last' ? load('fire.lastSection', 'stats') : st;
       if (sec && sec !== 'stats' && START_PAGES.some(([k]) => k === sec)) go(sec); }
     render();
+    // Récompenses : la connexion du jour (et au passage de minuit si FIRE reste ouvert).
+    setTimeout(() => { try { rwLogin(); } catch (e) { console.error(e); } }, 4000);
+    setInterval(() => { try { rwLogin(); } catch (e) { /* */ } }, 30 * 60000);
     chatInit();
     actInit();
     modInit(); voiceTrayInit();
@@ -1265,10 +1268,10 @@
     if (p === 'elite' || v == null || v === '') return true;
     if ((p === 'joueur' || p === 'equipe') && ['fx', 'font', 'grad', 'deco', 'plate', 'card'].includes(k)) return true;
     const list = (acfg().shopBasic || []).length ? acfg().shopBasic : SHOP_BASIC0;
-    return list.includes(shopKey(k, v));
+    return list.includes(shopKey(k, v)) || rwOwned(k, v);
   }
   const shopLocked = () => { popup('🔒 Apparence Premium', `Ta formule ${PLAN_NAMES[PLAN()]} donne accès à quelques apparences. Les autres sont réservées à la formule ${PLAN() === 'basique' ? 'Premium Joueur ou à l’équipe Alpha' : 'Premium Élite (équipe Alpha)'}.`, null); };
-  const setLook = (k, v) => { if (!shopAllowed(k, v)) { shopLocked(); return; } const L = { ...looks() }; if (v == null || v === '') delete L[k]; else L[k] = v; setUx({ look: Object.keys(L).length ? L : null }); shopRedraw(); petSync(); if (k !== 'pet') petReact('look'); };
+  const setLook = (k, v) => { if (!shopAllowed(k, v) && !shopBuy(k, v)) return; const L = { ...looks() }; if (v == null || v === '') delete L[k]; else L[k] = v; setUx({ look: Object.keys(L).length ? L : null }); shopRedraw(); petSync(); if (k !== 'pet') petReact('look'); };
   function shopCards() {
     const me = vocalMe();
     if (!me) return [uxCard('🛍️ Boutique FIRE', 'Choisis d’abord qui tu es pour personnaliser ton profil.', h('button', { class: 'btn-fire small-btn', onclick: askWho }, 'Qui es-tu ?'))];
@@ -2728,6 +2731,7 @@
     save('fire.puzzle', sv); renderNav();
     petReact(v === 'P' ? 'win' : v === 'O' ? 'meh' : 'lose');
     actLog('app', v === 'P' ? 'Puzzle réussi' : 'Puzzle tenté');
+    if (v === 'P' && daily && daily.id === p.id) try { rwEvent('puzzle'); } catch (e) { /* */ }
     gpCheckSupply();
     renderGamePuzzle();
   }
@@ -2852,6 +2856,7 @@
         p[n.id] = { done: cur.done || win, best: Math.max(cur.best || 0, PC.ok), at: Date.now() };
         save('fire.parcours', p);
         actLog('jeu', `Parcours : ${n.t} ${win ? 'réussie' : 'ratée'} (${PC.ok}/${n.q.length})`);
+        try { rwEvent('quiz'); } catch (e) { /* */ }
       }
       const next = D.NODES.find((x) => x.th === n.th && x.lv === n.lv + 1);
       return h('div', { class: 'card pc-step pc-end ' + (win ? 'win' : 'lose') }, head,
@@ -3436,6 +3441,7 @@
     S.lastRefresh = Date.now();
     $('refresh').disabled = false;
     markDuoFlex(); save('fire.data', S.data);
+    try { rwCheck(); } catch (e) { /* */ }
     renderStatus();
     if (S.section === 'stats' && !typing()) render();
     if (S.section === 'settings' && !typing()) renderSettings();
@@ -3497,6 +3503,7 @@
     else if (S.section === 'carnet') renderCarnet();
     else if (S.section === 'annonces') renderAnnonces();
     else if (S.section === 'boutique') renderBoutique();
+    else if (S.section === 'recompenses') renderRecompenses();
     else if (S.section === 'equipes') renderEquipes();
     else if (S.section === 'clips') renderClipsPage();
     else if (S.section === 'reunion') renderReunion();
@@ -4380,6 +4387,232 @@
   }
 
   // ----- Page joueur -----
+  // ===== Récompenses : Braises 🔥, connexion du jour, défis du jour et de la semaine, objectif et classement d'équipe =====
+  // Tout est gardé sur ce PC (fire.rw). Les Braises débloquent des apparences de la boutique. Le classement de l'équipe
+  // est pour le plaisir : il ne rapporte rien.
+  const RW_LOGIN = [10, 15, 20, 25, 30, 40, 60];
+  const RW_WEEK = { need: 12, gain: 100 };
+  const RW_PRICE = (k) => (['fx', 'font', 'grad', 'deco', 'plate', 'card'].includes(k) ? 150 : 400);
+  const RW_DEFIS = {
+    g_play: { ico: '🎮', t: 'Jouer une partie classée', gain: 15, game: true, ok: (r) => r.length >= 1 },
+    g_win: { ico: '🏆', t: 'Gagner une partie classée', gain: 20, game: true, ok: (r) => r.some((x) => x.win) },
+    g_d5: { ico: '❤️', t: 'Une partie à 5 morts ou moins', gain: 20, game: true, ok: (r) => r.some((x) => x.morts <= 5) },
+    g_kda3: { ico: '⚔️', t: 'Une partie avec un KDA de 3 ou plus', gain: 25, game: true, ok: (r) => r.some((x) => x.kda >= 3) },
+    g_cs7: { ico: '🌾', t: 'Une partie à 7 CS par minute', gain: 25, game: true, noSup: true, ok: (r) => r.some((x) => x.cs_min >= 7) },
+    g_vis: { ico: '🔦', t: 'Une partie avec 40 de score de vision', gain: 25, game: true, sup: true, ok: (r) => r.some((x) => x.vision >= 40) },
+    g_pink: { ico: '👁️', t: 'Poser 2 balises de contrôle dans une partie', gain: 20, game: true, ok: (r) => r.some((x) => x.pinks >= 2) },
+    a_stats: { ico: '📊', t: 'Regarder tes stats', gain: 10, ev: 'stats', n: 1 },
+    a_draft: { ico: '⚡', t: 'Suivre une sélection dans la Draft en direct', gain: 15, ev: 'draft', n: 1 },
+    a_clip: { ico: '🎬', t: 'Enregistrer un clip', gain: 15, ev: 'clip', n: 1 },
+    a_puz: { ico: '🧩', t: 'Réussir le puzzle du jour', gain: 20, ev: 'puzzle', n: 1, sec: 'puzzle' },
+    a_scen: { ico: '🧭', t: 'Répondre à 3 scénarios de lane', gain: 20, ev: 'scen', n: 3, sec: 'guides' },
+    a_quiz: { ico: '❓', t: 'Finir un quiz ou une étape du parcours', gain: 15, ev: 'quiz', n: 1, sec: 'jeux' },
+    a_vocal: { ico: '🎙️', t: 'Passer dans le vocal de l’équipe', gain: 10, ev: 'vocal', n: 1, sec: 'vocal', team: true },
+  };
+  const rwSt = () => load('fire.rw', null) || { b: 0, tot: 0, streak: 0, last: '', own: [], badges: [], hist: [] };
+  const rwSave = (st) => save('fire.rw', st);
+  const rwLvl = (st) => 1 + Math.floor((st.tot || 0) / 250);
+  function rwWeek(st) {
+    const wk = mondayOf(todayYmd());
+    if (st.wk !== wk) { st.wk = wk; st.wkB = 0; st.wkD = 0; st.wkClaim = false; st.teamClaim = false; }
+    return st;
+  }
+  function rwGain(st, n, txt) {
+    rwWeek(st);
+    st.b = (st.b || 0) + n; st.tot = (st.tot || 0) + n; st.wkB = (st.wkB || 0) + n;
+    st.hist = [{ t: Date.now(), n, txt }, ...(st.hist || [])].slice(0, 12);
+    rwPushSoon();
+  }
+  // Mon compte pour les défis sur les games : le titulaire de ce FIRE, ou le compte de « Mes stats » en Classique.
+  function rwMe() {
+    if (!basicView() && S.moi) { const p = S.players.find((x) => x.slug === S.moi); if (p) return p; }
+    const me = load('fire.solo', null);
+    return me && me.riot ? soloPlayer(me.riot) : null;
+  }
+  function rwToday() {
+    const p = rwMe(); const d = p && S.data[p.slug];
+    if (!d) return null;
+    const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    return FC.toRows(p, d.matches, t0.getTime());
+  }
+  // Les 3 défis du jour : toujours les mêmes pour la journée, différents chaque jour.
+  function rwDay(st) {
+    const day = todayYmd();
+    if (st.day && st.day.d === day) return st.day;
+    const me = rwMe(), sup = me && me.role_id === 'support';
+    const seed = [...(day + (S.moi || ''))].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    const rnd = (i) => ((seed * (i + 3) * 2654435761) >>> 0) / 4294967296;
+    const pick = (list, n) => list.map((k, i) => [k, rnd(i)]).sort((a, b) => a[1] - b[1]).slice(0, n).map((x) => x[0]);
+    const games = Object.keys(RW_DEFIS).filter((k) => { const x = RW_DEFIS[k]; return x.game && !(x.sup && !sup) && !(x.noSup && sup); });
+    const apps = Object.keys(RW_DEFIS).filter((k) => { const x = RW_DEFIS[k]; return !x.game && (!x.sec || planOk(x.sec)) && !(x.team && basicView()); });
+    st.day = { d: day, picks: [...pick(games, 2), ...pick(apps, 1)], ev: {}, done: {}, claimed: {} };
+    return st.day;
+  }
+  function rwDone(st, k) {
+    const x = RW_DEFIS[k], day = rwDay(st);
+    if (day.done[k]) return true;
+    if (x.game) { const r = rwToday(); return !!(r && x.ok(r)); }
+    return (day.ev[x.ev] || 0) >= (x.n || 1);
+  }
+  function rwClaimable(st) {
+    st = st || rwWeek(rwSt());
+    const day = rwDay(st);
+    let n = day.picks.filter((k) => !day.claimed[k] && rwDone(st, k)).length;
+    if (!st.wkClaim && (st.wkD || 0) >= RW_WEEK.need) n++;
+    return n;
+  }
+  // Événements de l'app (puzzle, scénario, clip…) : comptés pour les défis du jour.
+  function rwEventOnce(ev) { const st = rwSt(); if (st.day && st.day.d === todayYmd() && (st.day.ev || {})[ev]) return; rwEvent(ev); }
+  function rwEvent(ev) {
+    const st = rwWeek(rwSt()), day = rwDay(st);
+    day.ev[ev] = (day.ev[ev] || 0) + 1;
+    const newly = day.picks.filter((k) => !day.done[k] && !RW_DEFIS[k].game && RW_DEFIS[k].ev === ev && rwDone(st, k));
+    newly.forEach((k) => { day.done[k] = true; });
+    rwSave(st);
+    if (newly.length) { popup('✅ Défi réussi', `${RW_DEFIS[newly[0]].t} : récupère tes ${RW_DEFIS[newly[0]].gain} Braises.`, 'recompenses'); renderNav(); }
+  }
+  // Nouvelles games lues : on regarde si un défi vient d'être réussi.
+  function rwCheck() {
+    const st = rwWeek(rwSt()), day = rwDay(st);
+    const newly = day.picks.filter((k) => RW_DEFIS[k].game && !day.done[k] && rwDone(st, k));
+    if (!newly.length) return;
+    newly.forEach((k) => { day.done[k] = true; });
+    rwSave(st); renderNav();
+    popup('✅ Défi réussi', `${RW_DEFIS[newly[0]].t} : récupère tes ${RW_DEFIS[newly[0]].gain} Braises.`, 'recompenses');
+    if (S.section === 'recompenses' && !typing()) render();
+  }
+  // Connexion du jour : la série monte de 1 chaque jour ; un jour manqué la fait redescendre de 2 (jamais sous 0).
+  function rwLogin() {
+    const st = rwWeek(rwSt()), day = todayYmd();
+    if (st.last === day) return;
+    const miss = st.last ? Math.max(0, Math.round((dOf(day) - dOf(st.last)) / 86400000) - 1) : 0;
+    st.streak = Math.max(0, (st.streak || 0) - 2 * miss) + 1;
+    st.last = day;
+    const i = (st.streak - 1) % 7, n = RW_LOGIN[i];
+    rwGain(st, n, i === 6 ? `Coffre du 7e jour de suite` : `Connexion du jour (${st.streak} jour${st.streak > 1 ? 's' : ''} de suite)`);
+    rwDay(st); rwSave(st);
+    setTimeout(() => popup(i === 6 ? '🎁 Coffre du 7e jour !' : '🔥 Connexion du jour', `+${n} Braises · ${st.streak} jour${st.streak > 1 ? 's' : ''} de suite${miss ? ` (série réduite : ${miss} jour${miss > 1 ? 's' : ''} manqué${miss > 1 ? 's' : ''})` : ''}.`, 'recompenses'), 2500);
+    renderNav();
+  }
+  function rwClaim(k) {
+    const st = rwWeek(rwSt()), day = rwDay(st);
+    if (day.claimed[k] || !rwDone(st, k)) return;
+    day.done[k] = true; day.claimed[k] = true; st.wkD = (st.wkD || 0) + 1;
+    rwGain(st, RW_DEFIS[k].gain, 'Défi : ' + RW_DEFIS[k].t);
+    rwSave(st); renderNav(); render();
+  }
+  // Classement de l'équipe : chacun envoie ses chiffres de la semaine (chiffrés pour l'équipe), sans aucun gain à la clé.
+  const RWB = { list: null, at: 0, busy: false, t: 0 };
+  function rwPushSoon() {
+    if (basicView() || !window.fire.rw || !vocalMe()) return;
+    clearTimeout(RWB.t);
+    RWB.t = setTimeout(() => { const st = rwWeek(rwSt()); window.fire.rw.push(vocalMe(), { wk: st.wk, b: st.wkB || 0, d: st.wkD || 0, streak: st.streak || 0, lvl: rwLvl(st) }).catch(() => {}); }, 15000);
+  }
+  async function rwBoard(force) {
+    if (basicView() || !window.fire.rw || RWB.busy || (!force && RWB.list && Date.now() - RWB.at < 5 * 60000)) return;
+    RWB.busy = true;
+    const slugs = S.players.filter((p) => p.slug && !p.pending).map((p) => p.slug);
+    const r = await window.fire.rw.board(slugs).catch(() => null);
+    RWB.busy = false; RWB.at = Date.now();
+    if (r && r.ok) RWB.list = r.list || [];
+    if (S.section === 'recompenses' && !typing()) render();
+  }
+  // Objectif d'équipe : un total de games classées à atteindre ensemble cette semaine.
+  function rwTeamGoal() {
+    const tit = S.players.filter((p) => p.slug && !p.pending && !isSub(p));
+    if (tit.length < 2) return null;
+    const mon = dOf(mondayOf(todayYmd())); mon.setHours(0, 0, 0, 0);
+    let n = 0;
+    for (const p of tit) { const d = S.data[p.slug]; if (d) n += FC.toRows(p, d.matches, mon.getTime()).length; }
+    return { n, need: Math.max(20, tit.length * 6), gain: 50 };
+  }
+  function renderRecompenses() {
+    const view = $('view');
+    const st = rwWeek(rwSt()), day = rwDay(st); rwSave(st);
+    const me = rwMe();
+    const lvl = rwLvl(st), into = (st.tot || 0) % 250;
+    const hero = h('header', { class: 'acc-hero rw-hero' },
+      h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE Team · reviens chaque jour'), h('h1', null, '🎁 Récompenses'),
+        h('p', { class: 'muted' }, 'Gagne des Braises en te connectant et en réussissant tes défis. Elles débloquent des apparences dans la boutique.')),
+      h('div', { class: 'rw-wallet' }, h('div', { class: 'rw-b' }, h('span', null, '🔥'), h('b', null, String(st.b || 0)), h('small', null, 'Braises')),
+        h('div', { class: 'rw-lvl' }, h('small', null, `Niveau ${lvl}`), h('span', { class: 'rw-bar' }, h('i', { style: `width:${Math.round(into / 2.5)}%` })), h('small', { class: 'muted' }, `${250 - into} Braises avant le niveau ${lvl + 1}`))));
+    // Connexion du jour
+    const cur = st.streak ? (st.streak - 1) % 7 : -1;
+    const login = h('div', { class: 'card rw-login' }, h('h2', null, '📅 Connexion du jour'),
+      h('p', { class: 'muted small' }, `${st.streak || 0} jour${(st.streak || 0) > 1 ? 's' : ''} de suite. Chaque jour rapporte un peu plus, le 7e jour ouvre un coffre. Un jour manqué fait redescendre la série de 2.`),
+      h('div', { class: 'rw-days' }, RW_LOGIN.map((n, i) => h('div', { class: 'rw-day' + (i < cur || (i === cur) ? ' got' : '') + (i === cur ? ' now' : '') },
+        h('small', null, i === 6 ? 'Coffre' : `Jour ${i + 1}`), h('span', null, i === 6 ? '🎁' : '🔥'), h('b', null, '+' + n)))));
+    // Défis du jour
+    const r = rwToday();
+    const defi = (k) => {
+      const x = RW_DEFIS[k], done = rwDone(st, k), got = day.claimed[k];
+      const prog = !x.game && (x.n || 1) > 1 ? ` (${Math.min(day.ev[x.ev] || 0, x.n)}/${x.n})` : '';
+      return h('div', { class: 'rw-defi' + (got ? ' got' : done ? ' done' : '') },
+        h('span', { class: 'rw-dico' }, x.ico), h('div', { class: 'rw-dt' }, h('b', null, x.t + prog),
+          h('small', { class: 'muted' }, got ? 'Récupéré ✓' : done ? 'Réussi !' : x.game ? (me ? (r ? 'Vérifié sur tes games classées d’aujourd’hui' : 'Tes games ne sont pas encore lues') : 'Indique ton compte dans Mes stats') : x.sec ? 'Dans la rubrique ' + ((S.navItems || []).find((y) => y[0] === x.sec) || [0, 0, x.sec])[2] : 'Dans FIRE')),
+        h('span', { class: 'rw-gain' }, '+' + x.gain + ' 🔥'),
+        got ? null : done ? h('button', { class: 'btn-fire small-btn', onclick: () => rwClaim(k) }, 'Récupérer')
+          : x.game && !me ? h('button', { class: 'btn-ghost small-btn', onclick: () => go('stats') }, 'Mes stats') : x.sec ? h('button', { class: 'btn-ghost small-btn', onclick: () => go(x.sec) }, 'Y aller') : null);
+    };
+    const defis = h('div', { class: 'card rw-defis' }, h('div', { class: 'row' }, h('h2', null, '🎯 Défis du jour'), h('span', { class: 'spacer' }),
+      me && day.picks.some((k) => RW_DEFIS[k].game) ? h('button', { class: 'btn-ghost small-btn', disabled: RWB.games ? true : null, onclick: rwRefreshGames }, RWB.games ? 'Lecture…' : '⟳ Vérifier mes games') : null),
+      h('p', { class: 'muted small' }, 'Trois nouveaux défis chaque jour à minuit. Les défis sur tes games se vérifient tout seuls avec tes stats.'),
+      day.picks.map(defi));
+    // Défi de la semaine
+    const wd = Math.min(st.wkD || 0, RW_WEEK.need);
+    const week = h('div', { class: 'card rw-week' }, h('h2', null, '🏅 Défi de la semaine'),
+      h('p', null, `Réussis ${RW_WEEK.need} défis du jour cette semaine : +${RW_WEEK.gain} Braises et le badge « Régulier ».`),
+      h('div', { class: 'rw-prog' }, h('span', { class: 'rw-bar big' }, h('i', { style: `width:${Math.round(100 * wd / RW_WEEK.need)}%` })), h('b', null, `${wd} / ${RW_WEEK.need}`)),
+      st.wkClaim ? h('p', { class: 'ok small' }, '✓ Récupéré cette semaine') : wd >= RW_WEEK.need ? h('button', { class: 'btn-fire small-btn', onclick: () => {
+        const s2 = rwWeek(rwSt()); if (s2.wkClaim) return; s2.wkClaim = true; s2.badges = [{ id: 'regulier', wk: s2.wk, at: Date.now() }, ...(s2.badges || [])].slice(0, 30);
+        rwGain(s2, RW_WEEK.gain, 'Défi de la semaine'); rwSave(s2); renderNav(); render(); } }, 'Récupérer +' + RW_WEEK.gain + ' 🔥') : null);
+    const parts = [hero, h('div', { class: 'rw-grid' }, login, week), defis];
+    // Équipe : objectif commun et classement pour le plaisir
+    if (!basicView() && S.players.length) {
+      const g = rwTeamGoal();
+      if (g) parts.push(h('div', { class: 'card rw-team' }, h('h2', null, '🤝 Objectif d’équipe'),
+        h('p', null, `${g.need} games classées à vous tous cette semaine. Si l’équipe y arrive, chacun gagne +${g.gain} Braises.`),
+        h('div', { class: 'rw-prog' }, h('span', { class: 'rw-bar big' }, h('i', { style: `width:${Math.min(100, Math.round(100 * g.n / g.need))}%` })), h('b', null, `${Math.min(g.n, g.need)} / ${g.need}`)),
+        st.teamClaim ? h('p', { class: 'ok small' }, '✓ Récupéré cette semaine') : g.n >= g.need ? h('button', { class: 'btn-fire small-btn', onclick: () => {
+          const s2 = rwWeek(rwSt()); if (s2.teamClaim) return; s2.teamClaim = true; rwGain(s2, g.gain, 'Objectif d’équipe'); rwSave(s2); render(); } }, 'Récupérer +' + g.gain + ' 🔥') : null));
+      rwBoard(false);
+      const L = (RWB.list || []).filter((x) => x.wk === st.wk).sort((a, b) => b.b - a.b || b.d - a.d);
+      const medal = ['🥇', '🥈', '🥉'];
+      parts.push(h('div', { class: 'card rw-board' }, h('div', { class: 'row' }, h('h2', null, '🏆 Classement de la semaine'), h('span', { class: 'spacer' }),
+        h('button', { class: 'btn-ghost small-btn', onclick: () => rwBoard(true) }, RWB.busy ? 'Lecture…' : '⟳')),
+        h('p', { class: 'muted small' }, 'Pour le plaisir : les Braises gagnées cette semaine dans l’équipe. Être premier ne rapporte rien de plus. Remis à zéro chaque lundi.'),
+        L.length ? h('div', { class: 'rw-rows' }, L.map((x, i) => h('div', { class: 'rw-row' + (x.slug === vocalMe() ? ' me' : '') },
+          h('span', { class: 'rw-rank' }, medal[i] || String(i + 1)), h('b', null, vocalName(x.slug)),
+          h('small', { class: 'muted' }, `${x.d} défi${x.d > 1 ? 's' : ''} · série ${x.streak} j · niv. ${x.lvl}`), h('span', { class: 'rw-gain' }, x.b + ' 🔥'))))
+          : h('p', { class: 'muted' }, RWB.list === null ? 'Chargement…' : 'Personne n’a encore de Braises cette semaine : sois le premier !')));
+    }
+    // Historique et badges
+    if ((st.badges || []).length || (st.hist || []).length) parts.push(h('div', { class: 'card rw-hist' }, h('h2', null, '📜 Derniers gains'),
+      (st.badges || []).length ? h('p', { class: 'small' }, '🏅 Badges : ', `Régulier × ${(st.badges || []).filter((b) => b.id === 'regulier').length}`) : null,
+      (st.hist || []).slice(0, 8).map((x) => h('div', { class: 'row rw-h' }, h('span', { class: 'rw-gain' }, '+' + x.n + ' 🔥'), h('span', null, x.txt), h('small', { class: 'muted' }, new Date(x.t).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }))))));
+    parts.push(h('div', { class: 'card rw-shop' }, h('b', null, '🛍️ Dépense tes Braises'), h('p', { class: 'muted small' }, 'Dans la boutique, les apparences 🔒 se débloquent aussi avec tes Braises : 150 pour une apparence simple, 400 pour les autres.'),
+      h('button', { class: 'btn-ghost small-btn', onclick: () => go('boutique') }, 'Ouvrir la boutique')));
+    view.replaceChildren(...parts);
+  }
+  async function rwRefreshGames() {
+    const p = rwMe(); if (!p || RWB.games) return;
+    RWB.games = true; render();
+    let res; try { res = await window.fire.fetchPlayer({ slug: p.slug, pseudo: p.pseudo, puuid: p.puuid || (load('fire.puuids', {}) || {})[p.slug] || null }, 7); } catch (e) { res = null; }
+    RWB.games = false;
+    if (res && res.ok) { const old = S.data[p.slug] || {}; S.data[p.slug] = { ...old, matches: res.matches, champs: res.champs, rank: res.rank, record: res.record, at: res.at, acc: res.acc }; if (!p.solo) save('fire.data', S.data); rwCheck(); }
+    else popup('⚠ Lecture impossible', 'dpm.lol ne répond pas pour le moment. Réessaie dans un instant.', null);
+    render();
+  }
+  // Boutique : une apparence 🔒 s'achète avec des Braises.
+  function shopBuy(k, v) {
+    const key = shopKey(k, v), price = RW_PRICE(k), st = rwSt();
+    if ((st.b || 0) < price) { popup('🔒 Apparence verrouillée', `Débloque-la avec ${price} Braises (tu en as ${st.b || 0}), ou avec la formule ${PLAN() === 'basique' ? 'Premium Joueur' : 'Premium Élite'}. Gagne des Braises dans « Récompenses ».`, 'recompenses'); return false; }
+    if (!confirm(`Débloquer cette apparence pour ${price} Braises ? (il t’en restera ${(st.b || 0) - price})`)) return false;
+    st.b -= price; st.own = [...new Set([...(st.own || []), key])];
+    st.hist = [{ t: Date.now(), n: -price, txt: 'Apparence débloquée' }, ...(st.hist || [])].slice(0, 12);
+    rwSave(st); return true;
+  }
+  const rwOwned = (k, v) => (rwSt().own || []).includes(shopKey(k, v));
   // ===== Mes stats (Classique et Premium Joueur) : ton compte Riot, comme sur les sites de stats =====
   const SOLO = { busy: false, err: '', show: null };
   const soloSlug = (riot) => { const [n, t] = String(riot).split('#'); return encodeURIComponent(n.trim()) + '-' + encodeURIComponent((t || '').trim()); };
@@ -4399,6 +4632,7 @@
       if (res.puuid) { const m = load('fire.puuids', {}) || {}; m[p.slug] = res.puuid; save('fire.puuids', m); }
       S.data[p.slug] = { matches: res.matches, champs: res.champs, rank: res.rank, record: res.record, at: res.at, acc: res.acc };
       S.status[p.slug] = { state: 'ok', at: res.at };
+      try { rwCheck(); } catch (e) { /* */ }
     } else { S.status[p.slug] = { state: 'error', error: (res && res.error) || 'erreur' }; SOLO.err = `Compte introuvable ou dpm.lol injoignable (${(res && res.error) || 'erreur'}). Vérifie le pseudo et le #tag.`; }
     if (S.section === 'stats') render();
   }
@@ -4466,6 +4700,7 @@
     }
     const lite = soloLite(p);
     if (lite) S.more = false;
+    try { const m = rwMe(); if (m && m.slug === p.slug) setTimeout(() => rwEventOnce('stats'), 0); } catch (e) { /* */ }
     const rows = FC.toRows(p, d.matches, periodStart(p));
     const s = FC.stats(rows);
     const days = FC.byDay(rows);
@@ -5347,6 +5582,7 @@
   function vocalJoin(roomId) {
     if (!vocalMe()) return;
     if (modBlocked()) { vocalToast(`Tu es exclu du vocal jusqu’à ${hm(MOD.me.until)}.`, false); return; }
+    try { rwEventOnce('vocal'); } catch (e) { /* */ }
     actLog('vocal', 'Rejoint le salon vocal ' + roomOf(typeof roomId === 'string' ? roomId : (VX.room || load('fire.vocal.room', 'equipe'))).name);
     const v = FV().state();
     const id = roomOf(typeof roomId === 'string' ? roomId : (VX.room || load('fire.vocal.room', 'equipe'))).id;
@@ -6006,7 +6242,7 @@
   }
   async function saveClip() {
     if (typeof LIVE !== 'undefined' && noClipGame(LIVE.mine)) { vocalToast('Pas de clip en partie personnalisée', false); return; }
-    actLog('clip', 'Clip instantané enregistré');
+    actLog('clip', 'Clip instantané enregistré'); try { rwEvent('clip'); } catch (e) { /* */ }
     if (!window.FireClips) return;
     const st = FireClips.state();
     if (!st.on) { vocalToast('Les clips ne sont pas activés : Vocal › Paramètres › Clips instantanés', false); return; }
@@ -6117,7 +6353,7 @@
     const kind = ['objectif', 'kill', 'tour', 'assist'].find((k) => q.kinds.includes(k)) || 'kill';
     const me = (q.g.players || []).find((p) => p.n === q.g.me) || {};
     const res = await window.fire.clips.save(r.buf, { auto: true, kind, label, champ: me.c || '', mode: gameModeLabel(q.g) }).catch(() => null);
-    if (res && res.ok) { actLog('clip', 'Clip automatique : ' + label); vocalToast(`🎬 Clip auto : ${label}`, true); clipsRefresh(); }
+    if (res && res.ok) { actLog('clip', 'Clip automatique : ' + label); try { rwEvent('clip'); } catch (e) { /* */ } vocalToast(`🎬 Clip auto : ${label}`, true); clipsRefresh(); }
   }
 
   const CLIP_KINDS = [['tous', 'Tous'], ['auto', '⚡ Automatiques'], ['kill', '⚔️ Kills'], ['assist', '🤝 Assists'], ['objectif', '🐉 Objectifs'], ['tour', '🏰 Tours'], ['manuel', '🎬 Manuels'], ['recu', '📨 Reçus']];
@@ -7505,6 +7741,7 @@
     if (!d.client) return wait('Client League of Legends non détecté.', 'Ouvre League of Legends sur ce PC : FIRE le repère tout seul, rien à configurer.');
     if (!live(d)) return wait('Client détecté ✓ · en attente d’une draft', 'Lance une partie (classée, normale, flex…) : dès la sélection des champions, tout s’affiche ici en direct.');
     const inGame = d.phase === 'InProgress';
+    if (!inGame) setTimeout(() => { try { rwEventOnce('draft'); } catch (e) { /* */ } }, 0);
     const me = d.me || {};
     const opp = opponent(d);
     const row = (p, enemy) => {
@@ -7655,7 +7892,7 @@
     const b = (id, label, badge, cls) => h('button', { class: 'navbtn' + (cls ? ' ' + cls : ''), 'aria-current': S.section === id ? 'page' : null, onclick: () => go(id) }, label, badge ? h('span', { class: 'nbadge' }, badge) : null);
     const u = S.upd || {};
     const upd = !u.store && ((u.auto && u.state === 'ready') || (u.latest && newer(u.latest, S.version))) ? '1' : null;
-    const items = [['accueil', '🏠', 'Accueil'], ['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
+    const items = [['accueil', '🏠', 'Accueil'], ['recompenses', '🎁', 'Récompenses', (() => { try { return rwClaimable() || null; } catch (e) { return null; } })()], ['stats', '📊', 'Stats des joueurs', Object.keys(liveAll()).length ? String(Object.keys(liveAll()).length) : null, Object.keys(liveAll()).length ? 'navlive' : null], ['pool', '🧙', 'POOL', newsCount('pool') || null], ['planning', '📅', 'Planning', planTodo() || null], ['jeux', '🎮', 'Détente', newsCount('jeux') || null], ['train', '🎯', 'Micro'],
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips', cfUnseen() || null], ['boutique', '🛍️', 'Boutique', shopNew() ? 'NEW' : null], ['equipes', '🌐', 'Équipes', pubUnseen() || null], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['apprendre', '🎓', 'Apprendre en jouant'], ['puzdraft', '🧩', 'Puzzles de draft', pzDue() ? '!' : null], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
       ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(annMine() ? [['annonces', '📢', 'Annonces']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', bugRepUnseen() ? String(bugRepUnseen()) : patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
@@ -8068,7 +8305,7 @@
       const choices = q.ch.map((txt, k) => {
         let cls = 'qz-ch';
         if (picked !== null) cls += k === q.good ? ' good' : (k === picked ? ' bad' : ' dim');
-        return h('button', { class: cls, disabled: picked !== null ? true : null, onclick: () => { picked = k; if (k === q.good) ok++; draw(); } },
+        return h('button', { class: cls, disabled: picked !== null ? true : null, onclick: () => { picked = k; if (k === q.good) ok++; try { rwEvent('quiz'); } catch (e) { /* */ } draw(); } },
           h('span', { class: 'qz-l' }, 'ABCDE'[k]), txt);
       });
       const next = () => { if (step === 'main' && base.suite) step = 'suite'; else { i++; step = 'main'; } picked = null; draw(); };
@@ -8170,7 +8407,7 @@
       const choices = q.ch.map((txt, k) => {
         let cls = 'qz-ch';
         if (picked !== null) cls += k === q.good ? ' good' : (k === picked ? ' bad' : ' dim');
-        return h('button', { class: cls, disabled: picked !== null ? true : null, onclick: () => { picked = k; if (k === q.good) ok++; draw(); } }, h('span', { class: 'qz-l' }, 'ABCDE'[k]), txt);
+        return h('button', { class: cls, disabled: picked !== null ? true : null, onclick: () => { picked = k; if (k === q.good) ok++; try { rwEvent('scen'); } catch (e) { /* */ } draw(); } }, h('span', { class: 'qz-l' }, 'ABCDE'[k]), txt);
       });
       const next = () => { if (step === 'main' && sc.suite) step = 'suite'; else { i++; step = 'main'; } picked = null; draw(); };
       const last = i + 1 >= ss.length && (step === 'suite' || !sc.suite);
@@ -9295,6 +9532,7 @@
         const all = qBest();
         if (!all[mode] || R.ok > all[mode].ok) { all[mode] = { ok: R.ok, at: Date.now() }; save('fire.quiz', all); R.record = true; }
         const avgT = (R.times || []).length ? (R.times.reduce((a, b) => a + b, 0) / R.times.length) : 0;
+        try { rwEvent('quiz'); } catch (e) { /* */ }
         actLog('jeu', `Quiz ${(QMODES.find(([k]) => k === mode) || [, mode])[1].replace(/^\S+\s/, '')} : ${R.ok}/${QN} (${qRank(R.ok)[0]}) · ${fr(avgT, 1)} s en moyenne · ${R.late || 0} trop tard (délai ${LIM} s)`);
       } else { R.q = qMake(mode); R.ans = null; }
       render();
@@ -11236,7 +11474,8 @@
     const view = $('view');
     const hero = h('header', { class: 'acc-hero shop-hero' },
       h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE Team · tout est gratuit'), h('h1', null, '🛍️ Boutique FIRE'),
-        h('p', { class: 'muted' }, 'Effets de profil, décorations d’avatar, pseudos animés, packs complets… Survole pour essayer, clique pour équiper.')));
+        h('p', { class: 'muted' }, 'Effets de profil, décorations d’avatar, pseudos animés, packs complets… Survole pour essayer, clique pour équiper.'),
+        PLAN() !== 'elite' ? h('button', { class: 'chip rw-chip', onclick: () => go('recompenses') }, `🔥 ${rwSt().b || 0} Braises · les apparences 🔒 se débloquent aussi avec tes Braises`) : null));
     view.replaceChildren(hero, h('div', { class: 'shop-page' }, ...shopCards()));
   }
   function renderAnnonces() {
@@ -12000,7 +12239,7 @@
       h('p', { class: 'muted small' }, 'Les joueurs n’apparaissent ici que s’ils l’ont accepté. Mise à jour par le staff de l’équipe' + (PUB.page && PUB.page.at ? ` le ${dayFr(FC.ymd(new Date(PUB.page.at)))}.` : '.')));
   }
   // ===== Formules : Basique (sans code), Premium Joueur (clé du créateur), Premium Élite (code d'équipe d'Alpha) =====
-  const PLAN_BASIC = new Set(['equipes', 'accueil', 'stats', 'draft', 'clips', 'boutique', 'outils', 'worlds', 'lolpatch', 'stream', 'settings', 'web']);
+  const PLAN_BASIC = new Set(['equipes', 'accueil', 'recompenses', 'stats', 'draft', 'clips', 'boutique', 'outils', 'worlds', 'lolpatch', 'stream', 'settings', 'web']);
   const PLAN_JOUEUR = new Set([...PLAN_BASIC, 'guides', 'apprendre', 'puzzle', 'puzdraft', 'parcours', 'train', 'jeux', 'patch']);
   // Premium Équipe (Bravo et les autres équipes) : l'espace d'équipe, sans Lanes et principes ni coaching.
   const PLAN_EQUIPE = new Set([...PLAN_JOUEUR, 'stats', 'pool', 'planning', 'draft', 'scrims', 'chat', 'vocal', 'annonces', 'carnet']);

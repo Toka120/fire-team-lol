@@ -1,6 +1,37 @@
 {
  "versions": [
   {
+   "v": "2.0.16",
+   "date": "2026-11-24",
+   "titre": "Récompenses : Braises, défis du jour et classement d'équipe",
+   "items": [
+    [
+     "new",
+     "Nouvelle rubrique 🎁 Récompenses, pour toutes les formules (Classique compris)."
+    ],
+    [
+     "new",
+     "Les Braises 🔥 : la monnaie de FIRE. Elles débloquent les apparences 🔒 de la boutique (150 pour une apparence simple, 400 pour les autres)."
+    ],
+    [
+     "new",
+     "Connexion du jour : de +10 à +40 Braises, et un coffre de +60 au 7e jour de suite. Un jour manqué fait seulement redescendre la série de 2."
+    ],
+    [
+     "new",
+     "3 défis par jour : 2 sur tes vraies games classées (vérifiés tout seuls avec tes stats) et 1 dans FIRE (puzzle, scénarios, quiz, clip, draft en direct…)."
+    ],
+    [
+     "new",
+     "Défi de la semaine : 12 défis réussis donnent +100 Braises et le badge « Régulier ». Un niveau monte avec toutes tes Braises gagnées."
+    ],
+    [
+     "new",
+     "En équipe : un objectif commun de games classées par semaine (+50 Braises pour chacun) et un classement de la semaine, pour le plaisir : être premier ne rapporte rien de plus."
+    ]
+   ]
+  },
+  {
    "v": "2.0.15",
    "date": "2026-11-24",
    "titre": "Classique : tes stats et la draft en direct, gratuites",

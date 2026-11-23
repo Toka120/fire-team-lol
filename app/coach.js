@@ -1366,6 +1366,21 @@ async function annonceLus(slugs) {
   await Promise.all(list.map(async (sl) => { try { const d = await teamRead(annLuPath(sl)); if (d && d.lus) out[sl] = d.lus; } catch (e) { /* illisible */ } }));
   return { ok: true, lus: out };
 }
+// ---------- Récompenses : les chiffres de la semaine de chacun, pour le classement de l'équipe (pour le plaisir) ----------
+const rwPath = (slug) => 'recompenses/' + crypto.createHash('sha256').update(String(slug)).digest('hex').slice(0, 24) + '.json';
+async function rwPush(slug, c) {
+  slug = String(slug || '').slice(0, 80);
+  if (!slug || !teamKey()) return { ok: false };
+  const n = (v, max) => Math.max(0, Math.min(max, Math.round(Number(v) || 0)));
+  const card = { slug, wk: String((c && c.wk) || '').replace(/[^\d-]/g, '').slice(0, 10), b: n(c && c.b, 100000), d: n(c && c.d, 500), streak: n(c && c.streak, 10000), lvl: n(c && c.lvl, 1000), at: Date.now() };
+  try { await teamWrite(rwPath(slug), () => card, 'Récompenses'); return { ok: true }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+async function rwBoard(slugs) {
+  if (!teamKey()) return { ok: false };
+  const list = [];
+  await Promise.all((Array.isArray(slugs) ? slugs : []).map(String).slice(0, 40).map(async (sl) => { try { const d = await teamRead(rwPath(sl)); if (d && d.slug === sl) list.push(d); } catch (e) { /* illisible */ } }));
+  return { ok: true, list };
+}
 const isStaffHere = () => { const st = coachState(); return st.coach || st.chef || st.admin; };
 async function roles() {
   try { const d = await teamRead(ROLES); return { ok: true, modos: (d && Array.isArray(d.modos) ? d.modos : []).map(String).slice(0, 20) }; }
@@ -2279,4 +2294,4 @@ async function appsRelay() {
 const appsRelay0 = appsRelay;
 appsRelay = async function () { const r = await appsRelay0(); try { await launcherRelay(); } catch (e) { /* */ } return r; };
 
-module.exports = { teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
