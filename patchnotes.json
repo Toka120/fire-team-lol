@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "2.0.15",
+   "date": "2026-11-24",
+   "titre": "Classique : tes stats et la draft en direct, gratuites",
+   "items": [
+    [
+     "new",
+     "Classique : nouvelle page « Mes stats ». Entre ton identifiant Riot (pseudo#tag) et ton poste : rang, win rate, KDA, CS, champions et dernières games en Solo/Duo."
+    ],
+    [
+     "new",
+     "Classique : tu peux aussi chercher un autre joueur, comme sur les sites de stats."
+    ],
+    [
+     "new",
+     "Classique : la Draft en direct est ouverte (matchup et runes pendant la sélection), avec la tier list, les matchups et les one-tricks."
+    ],
+    [
+     "new",
+     "En Classique, l'analyse reste en grandes lignes : ton point fort et ton point à travailler. Le détail complet (série, arbre des points forts, jour par jour) vient avec Premium Joueur."
+    ]
+   ]
+  },
+  {
    "v": "2.0.14",
    "date": "2026-11-23",
    "titre": "Espace Bravo, version Classique et aperçu des formules",

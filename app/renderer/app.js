@@ -3480,7 +3480,7 @@
     renderNav();
     try { chatPaint(); } catch (e) { /* discussion pas encore prête */ }
     try { vocalLiveBanner(); } catch (e) { /* salon pas encore prêt */ }
-    $('period-box').hidden = S.section !== 'stats' || S.view === 'team';
+    $('period-box').hidden = S.section !== 'stats' || S.view === 'team' || basicView();
     const back = $('back');
     back.hidden = S.section === 'admin' || String(S.section).startsWith('p_') || S.section === 'carnet' || S.section === 'annonces' || S.section === 'boutique' || S.section === 'parcours' || S.section === 'puzzle' || S.section === 'apprendre' || S.section === 'puzdraft' || S.section === 'accueil' || S.section === 'scrims' || S.section === 'revue' || S.section === 'clips' || S.section === 'reunion' || S.section === 'outils' || S.section === 'parties' || S.section === 'chat' || S.section === 'web' || S.section === 'settings' || S.section === 'pool' || S.section === 'planning' || S.section === 'jeux' || S.section === 'worlds' || S.section === 'patch' || S.section === 'lolpatch' || S.section === 'train' || S.section === 'vocal' || S.section === 'draft' || !(S.section === 'stats' ? (S.view === 'player' || S.view === 'team') : S.section === 'guides' ? !!(S.theme || S.guideCat) : !!S.ficheId);
     const gc = catOf(S.guideCat);
@@ -3488,6 +3488,7 @@
     if (worksBlocked(S.section)) renderWorks();
     else if (planGate() && !planOk(S.section)) renderPlanLock();
     else if (basicView() && S.section === 'accueil') renderBasicHome();
+    else if (basicView() && S.section === 'stats') renderSoloStats();
     else if (S.section === 'admin') renderAdmin();
     else if (String(S.section).startsWith('p_')) renderCustomPage();
     else if (S.section === 'settings') renderSettings();
@@ -4379,8 +4380,80 @@
   }
 
   // ----- Page joueur -----
-  function renderPlayer() {
-    const p = S.players.find((x) => x.slug === S.player);
+  // ===== Mes stats (Classique et Premium Joueur) : ton compte Riot, comme sur les sites de stats =====
+  const SOLO = { busy: false, err: '', show: null };
+  const soloSlug = (riot) => { const [n, t] = String(riot).split('#'); return encodeURIComponent(n.trim()) + '-' + encodeURIComponent((t || '').trim()); };
+  const soloOk = (riot) => /^[^#]{3,16}#[^#\s]{2,5}$/.test(String(riot || '').trim());
+  function soloPlayer(riot) {
+    const me = load('fire.solo', null);
+    const role = riot && me && riot === me.riot ? me.role : (SOLO.show && SOLO.show.role) || (me && me.role) || 'mid';
+    return { pseudo: riot, slug: soloSlug(riot), role_id: role, role: (FC.ROLES[role] || FC.ROLES.mid).label, temp: true, solo: true };
+  }
+  async function soloFetch(p) {
+    if (SOLO.busy) return;
+    SOLO.busy = true; SOLO.err = ''; S.status[p.slug] = { state: 'loading' }; render();
+    let res;
+    try { res = await window.fire.fetchPlayer({ slug: p.slug, pseudo: p.pseudo, puuid: (load('fire.puuids', {}) || {})[p.slug] || null }, 30); } catch (e) { res = { ok: false, error: String(e) }; }
+    SOLO.busy = false;
+    if (res && res.ok) {
+      if (res.puuid) { const m = load('fire.puuids', {}) || {}; m[p.slug] = res.puuid; save('fire.puuids', m); }
+      S.data[p.slug] = { matches: res.matches, champs: res.champs, rank: res.rank, record: res.record, at: res.at, acc: res.acc };
+      S.status[p.slug] = { state: 'ok', at: res.at };
+    } else { S.status[p.slug] = { state: 'error', error: (res && res.error) || 'erreur' }; SOLO.err = `Compte introuvable ou dpm.lol injoignable (${(res && res.error) || 'erreur'}). Vérifie le pseudo et le #tag.`; }
+    if (S.section === 'stats') render();
+  }
+  function soloForm(cur, mine) {
+    const riot = h('input', { class: 'inp', placeholder: 'Pseudo#TAG (ex. : Faker#KR1)', value: cur ? cur.riot : '', maxlength: 24, spellcheck: 'false' });
+    const role = h('select', { class: 'inp', style: 'max-width:160px' }, ['top', 'jungle', 'mid', 'adc', 'support'].map((r) => h('option', { value: r, selected: cur && cur.role === r ? true : null }, FC.ROLES[r].ico + ' ' + FC.ROLES[r].label)));
+    const go_ = () => {
+      const v = riot.value.trim();
+      if (!soloOk(v)) { SOLO.err = 'Écris ton identifiant Riot complet : pseudo, #, puis le tag (ex. : Faker#KR1).'; render(); return; }
+      if (mine) { save('fire.solo', { riot: v, role: role.value }); SOLO.show = null; } else SOLO.show = { riot: v, role: role.value };
+      SOLO.err = ''; const p = soloPlayer(v); if (!S.data[p.slug]) soloFetch(p); else render();
+    };
+    riot.onkeydown = (e) => { if (e.key === 'Enter') go_(); };
+    return h('div', { class: 'row solo-form' }, riot, role, h('button', { class: 'btn-fire small-btn', onclick: go_ }, mine ? 'Afficher mes stats' : '🔎 Chercher'));
+  }
+  function renderSoloStats() {
+    const view = $('view');
+    const me = load('fire.solo', null);
+    const riot = SOLO.show ? SOLO.show.riot : me && me.riot;
+    if (!riot) {
+      view.replaceChildren(h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📊'), h('div', null, h('h1', { class: 'title' }, 'Mes stats'),
+        h('p', { class: 'muted' }, 'Ton rang, ton win rate, tes champions et tes dernières games en Solo/Duo, gratuitement.'))),
+        h('div', { class: 'card solo-start' }, h('h2', null, 'Quel est ton compte League of Legends ?'),
+          h('p', { class: 'muted small' }, 'Ton identifiant Riot (pseudo et #tag, visible dans le client LoL) et ton poste principal. Gardé sur ce PC uniquement.'),
+          soloForm(null, true), SOLO.err ? h('p', { class: 'bad small' }, SOLO.err) : null));
+      return;
+    }
+    const p = soloPlayer(riot);
+    if (!S.data[p.slug] && !SOLO.busy && !(S.status[p.slug] && S.status[p.slug].state === 'error')) { soloFetch(p); return; }
+    const bar = h('div', { class: 'card solo-bar' },
+      h('div', { class: 'row' }, h('b', null, SOLO.show ? '🔎 ' + riot : '👤 ' + riot), h('span', { class: 'spacer' }),
+        SOLO.show ? h('button', { class: 'btn-ghost small-btn', onclick: () => { SOLO.show = null; SOLO.err = ''; render(); } }, '← Mes stats') : null,
+        h('button', { class: 'btn-ghost small-btn', disabled: SOLO.busy ? true : null, onclick: () => soloFetch(p) }, SOLO.busy ? 'Lecture…' : '⟳ Mettre à jour'),
+        h('button', { class: 'linkbtn small', onclick: () => { SOLO.edit = !SOLO.edit; render(); } }, SOLO.edit ? 'Fermer' : SOLO.show ? 'Chercher un autre joueur' : 'Changer de compte · chercher un joueur')),
+      SOLO.edit ? h('div', null, h('p', { class: 'muted small' }, 'Ton compte :'), soloForm(me, true), h('p', { class: 'muted small' }, 'Ou regarde un autre joueur :'), soloForm(null, false)) : null,
+      SOLO.err ? h('p', { class: 'bad small' }, SOLO.err) : null);
+    if (!S.data[p.slug]) {
+      view.replaceChildren(bar, h('div', { class: 'card empty-state' }, SOLO.busy ? `Lecture des stats de ${riot} sur dpm.lol…` : 'Pas de stats à afficher pour ce compte.'));
+      return;
+    }
+    S.player = p.slug;
+    renderPlayer(p);
+    const hero = view.querySelector('.hero');
+    if (hero) view.insertBefore(bar, hero); else view.prepend(bar);
+  }
+  // Classique : les grandes lignes seulement ; l'analyse complète donne envie de passer en Premium.
+  const soloLite = (p) => !!(p && p.solo && PLAN() === 'basique');
+  function liteTeaser(what) {
+    return h('div', { class: 'card lite-up' }, h('div', { class: 'lite-ico' }, '🔒'),
+      h('div', null, h('b', null, what || 'L’analyse complète de tes games'),
+        h('p', { class: 'muted small' }, 'Le détail de chaque point fort et faiblesse, la série game par game, l’arbre des points forts, le jour par jour et tous les repères : avec la formule Premium Joueur.'),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => go('accueil') }, '⭐ Voir Premium Joueur'))));
+  }
+  function renderPlayer(pOver) {
+    const p = pOver || S.players.find((x) => x.slug === S.player);
     const view = $('view');
     if (!p) { S.view = 'hub'; renderHub(); return; }
     const R = roleOf(p);
@@ -4391,6 +4464,8 @@
       view.replaceChildren(h('div', { class: 'empty-state' }, st && st.state === 'error' ? `Impossible de lire dpm.lol pour ${p.pseudo} (${st.error}). Réessaie avec « Mettre à jour ».` : `Lecture des stats de ${p.pseudo} sur dpm.lol…`));
       return;
     }
+    const lite = soloLite(p);
+    if (lite) S.more = false;
     const rows = FC.toRows(p, d.matches, periodStart(p));
     const s = FC.stats(rows);
     const days = FC.byDay(rows);
@@ -4424,17 +4499,31 @@
       later(() => streak(sb, rows));
     }
 
-    const tabs = [['resume', '📊 Résumé'], ['lens', '🌳 Points forts'], ['jours', '📅 Jour par jour'], ['champions', '🧙 Champions'], ['lexique', '📖 Comprendre les stats']];
+    const tabs = lite ? [['resume', '📊 Résumé'], ['champions', '🧙 Champions'], ['lens', '🌳 Points forts 🔒'], ['jours', '📅 Jour par jour 🔒']]
+      : [['resume', '📊 Résumé'], ['lens', '🌳 Points forts'], ['jours', '📅 Jour par jour'], ['champions', '🧙 Champions'], ['lexique', '📖 Comprendre les stats']];
+    if (!tabs.some((t) => t[0] === S.tab)) S.tab = 'resume';
     view.append(h('nav', { class: 'tabs' }, tabs.map(([id, l]) => h('button', { class: 'tab', 'aria-selected': String(S.tab === id), onclick: () => { S.tab = id; render(); } }, l))));
     const page = h('section', { class: 'page' });
     view.append(page);
     if (S.tab === 'resume') pageResume(page, p, R, rep, rows, s, days, d, obj);
+    else if (lite && S.tab === 'lens') pageLensLite(page, p, rows);
+    else if (lite && S.tab === 'jours') page.append(liteTeaser('Le jour par jour'));
     else if (S.tab === 'lens') pageLens(page, p, rows);
     else if (S.tab === 'jours') pageJours(page, p, R, rows, s, days);
     else if (S.tab === 'champions') pageChamps(page, p, champs, obj);
     else pageLexique(page, p, R, rep);
   }
 
+  // Classique : l'arbre en version courte (le point fort et le point à travailler), le détail est réservé au Premium.
+  function pageLensLite(page, p, rows) {
+    if (!window.FireLens || rows.length < 3) { page.append(h('div', { class: 'card empty-state' }, 'Il faut au moins 3 games sur la période pour trouver ton point fort.')); return; }
+    const A = FireLens.analyse(rows, p.role_id);
+    const weak = A.domains.find((d) => d.id === A.weakest), best = A.domains.find((d) => d.id === A.best);
+    page.append(h('div', { class: 'card lens' }, h('h2', null, '🌳 En grandes lignes'),
+      best && weak ? h('p', { class: 'lens-sum' }, h('span', { class: 'lens-tag best' }, best.ico + ' ' + best.label), ' est ton point fort · ', h('span', { class: 'lens-tag weak' }, weak.ico + ' ' + weak.label), ' est à travailler') : null,
+      h('div', { class: 'lite-blur' }, A.domains.map((d) => h('span', { class: 'lite-dom' }, d.ico + ' ' + d.label, h('b', null, '??'))))),
+      liteTeaser('Ton arbre des points forts en détail'));
+  }
   // Arbre des points forts : 6-7 domaines notés sur 100 (lens.js), l'arbre à droite, le détail à gauche.
   function pageLens(page, p, rows) {
     if (!window.FireLens) return;
@@ -4468,6 +4557,7 @@
   }
 
   function pageResume(page, p, R, rep, rows, s, days, d, obj) {
+    const lite = soloLite(p);
     const sup = p.role_id === 'support';
     const tiles = [
       ['🏆', 'Win rate', s.wr == null ? '—' : fr(s.wr, 1) + ' %', rep.wr, s.wr, 'Part des games gagnées.'],
@@ -4485,25 +4575,26 @@
       return h('div', { class: 'card tile', title: expl }, h('div', { class: 'tile-h' }, `${ico} ${label}`), h('div', { class: 'num' }, val), m, S.more ? h('p', { class: 'muted small' }, expl) : null);
     })));
 
-    const ins = FC.insights(p, rows, s, d.champs, obj);
+    const ins = FC.insights(p, rows, s, d.champs, obj).filter((x) => !p.solo || !/pool/i.test(x.title + ' ' + (x.text || '')));
     // Compact : titres seulement, un clic ouvre le détail d'une carte.
     const acard = (x) => {
       const key = x.kind + '|' + x.title;
-      const open = S.more || S.openCard === key;
-      return h('div', { class: 'acard k-' + x.kind + (S.more ? '' : ' click'), onclick: S.more ? null : () => { S.openCard = open ? null : key; render(); } },
+      const open = !lite && (S.more || S.openCard === key);
+      return h('div', { class: 'acard k-' + x.kind + (S.more || lite ? '' : ' click'), onclick: S.more || lite ? null : () => { S.openCard = open ? null : key; render(); } },
         h('div', { class: 'acard-ico' }, x.ico),
         h('div', { class: 'acard-body' }, h('div', { class: 'acard-t' }, x.title, x.chip ? h('span', { class: 'acard-chip' }, x.chip) : null), open ? h('p', null, x.text) : null));
     };
-    const lim = (list) => (S.more ? list : list.slice(0, 3));
+    const lim = (list) => (lite ? list.slice(0, 2) : S.more ? list : list.slice(0, 3));
     const col = (title, cls, list) => h('div', { class: 'acol ' + cls }, h('h3', null, title, h('span', { class: 'acount' }, list.length)), list.length ? lim(list).map(acard) : h('p', { class: 'muted small' }, 'Rien à signaler.'));
     page.append(h('div', { class: 'card' },
       h('h2', null, '🎯 Le bilan en un coup d\'œil'),
-      h('p', { class: 'muted small' }, S.more ? 'Calculé automatiquement à partir des chiffres de la période, à confirmer au replay.' : 'Clique sur une carte pour voir le détail.'),
+      h('p', { class: 'muted small' }, lite ? 'Les grandes lignes de tes 30 derniers jours.' : S.more ? 'Calculé automatiquement à partir des chiffres de la période, à confirmer au replay.' : 'Clique sur une carte pour voir le détail.'),
       h('div', { class: 'acols' },
         col('💪 Points forts', 'good', ins.filter((x) => x.kind === 'plus')),
         col('⚠️ À travailler', 'bad', ins.filter((x) => x.kind === 'warn'))),
       S.more && ins.some((x) => x.kind === 'info') ? h('div', { class: 'ainfo' }, ins.filter((x) => x.kind === 'info').map(acard)) : null));
 
+    if (lite) { page.append(liteTeaser()); return; }
     page.append(h('div', { class: 'more-row' }, h('button', { class: 'btn-ghost more-btn', onclick: () => { S.more = !S.more; render(); } }, S.more ? '➖ Moins de détails' : '➕ Plus de détails')));
     if (days.length && S.more) {
       const c = h('div', { class: 'chart' });
@@ -7568,6 +7659,7 @@
       ['chat', '💬', 'Discussion', chatUnread() || null], ['vocal', '🎙️', 'Vocal', vocalBadge(), vocalLive() ? 'navlive' : null], ['clips', '🎬', 'Clips', cfUnseen() || null], ['boutique', '🛍️', 'Boutique', shopNew() ? 'NEW' : null], ['equipes', '🌐', 'Équipes', pubUnseen() || null], ['stream', '🟣', 'Stream', TWITCH.live ? 'LIVE' : null, TWITCH.live ? 'navlive' : null], ['draft', '⚡', 'Draft', draftBadge()], ['worlds', '🏆', 'E-sport'], ['guides', '📚', 'Lanes et principes', newsCount('guides') || null], ['scrims', '🤝', 'Scrims'], ['parcours', '🗺️', 'Parcours'], ['apprendre', '🎓', 'Apprendre en jouant'], ['puzdraft', '🧩', 'Puzzles de draft', pzDue() ? '!' : null], ['puzzle', '🧩', 'Puzzle du jour', window.FIRE_PUZZLES && !(gpSave().days || {})[gpToday()] ? '!' : null],
       ['coach', '📣', 'Parole du coach', n || null], ['revue', '🎞️', 'Revue de parties'], ['parties', '🔬', 'Analyse de parties'], ['outils', '🧰', 'Outils'], ...(meetOk() ? [['reunion', '🧑‍🏫', 'Salle de réunion']] : []), ...(annMine() ? [['annonces', '📢', 'Annonces']] : []), ...(isStaff() ? [['carnet', '📒', 'Carnet de bord', pendingCount() || null]] : []), ['patch', '🆕', 'Patch notes', bugRepUnseen() ? String(bugRepUnseen()) : patchUnseen() ? '!' : null], ['lolpatch', '📜', 'Patchs LoL', lolUnseen() ? '!' : null], ['settings', '⚙️', 'Paramètres', upd]];
     if (SUB()) { const keep = items.filter(([id]) => SUB_OK.has(id)); items.length = 0; items.push(...keep); }
+    if (basicView()) { const st = items.find((x) => x[0] === 'stats'); if (st) st[2] = 'Mes stats'; }
     if (basicView()) { const keep = items.filter(([id]) => !['annonces', 'carnet', 'reunion'].includes(id) && (id !== 'admin' || !S.basic)); items.length = 0; items.push(...keep); }
     if (MOBILE) { const keep = items.filter(([id]) => !MOBILE_OFF.has(id)); items.length = 0; items.push(...keep); }
     try { navCustom(items); } catch (e) { console.error(e); }
@@ -11908,7 +12000,7 @@
       h('p', { class: 'muted small' }, 'Les joueurs n’apparaissent ici que s’ils l’ont accepté. Mise à jour par le staff de l’équipe' + (PUB.page && PUB.page.at ? ` le ${dayFr(FC.ymd(new Date(PUB.page.at)))}.` : '.')));
   }
   // ===== Formules : Basique (sans code), Premium Joueur (clé du créateur), Premium Élite (code d'équipe d'Alpha) =====
-  const PLAN_BASIC = new Set(['equipes', 'accueil', 'clips', 'boutique', 'outils', 'worlds', 'lolpatch', 'stream', 'settings', 'web']);
+  const PLAN_BASIC = new Set(['equipes', 'accueil', 'stats', 'draft', 'clips', 'boutique', 'outils', 'worlds', 'lolpatch', 'stream', 'settings', 'web']);
   const PLAN_JOUEUR = new Set([...PLAN_BASIC, 'guides', 'apprendre', 'puzzle', 'puzdraft', 'parcours', 'train', 'jeux', 'patch']);
   // Premium Équipe (Bravo et les autres équipes) : l'espace d'équipe, sans Lanes et principes ni coaching.
   const PLAN_EQUIPE = new Set([...PLAN_JOUEUR, 'stats', 'pool', 'planning', 'draft', 'scrims', 'chat', 'vocal', 'annonces', 'carnet']);
@@ -11934,9 +12026,9 @@
   function planOk(sec) { if (S.planPreview && (sec === 'admin' || sec === 'settings')) return true; const p = PLAN(); return p === 'elite' || (p === 'joueur' ? PLAN_JOUEUR : p === 'equipe' ? PLAN_EQUIPE : PLAN_BASIC).has(sec); }
   const planNeed = (sec) => (PLAN_JOUEUR.has(sec) ? 'joueur' : 'elite');
   const PLAN_LIST = {
-    basique: ['FIRE Kiting et FIRE Listen en solo', 'Tes clips, enregistrés sur ton PC', 'La boutique : quelques apparences de base', 'E-sport, patchs LoL, stream Twitch et outils'],
+    basique: ['Tes stats de joueur et la draft en direct', 'FIRE Kiting et FIRE Listen en solo', 'Tes clips, enregistrés sur ton PC', 'La boutique : quelques apparences de base', 'E-sport, patchs LoL, stream Twitch et outils'],
     equipe: ['Tout le Premium Joueur, sauf Lanes et principes', 'L’espace de ton équipe : stats, POOL, planning, draft, salons, vocal, scrims, annonces', 'Séparé d’Alpha : tes données restent dans ton équipe'],
-    joueur: ['Tout le Classique', 'Lanes et principes : slides, 20 scénarios par lane et quiz', 'Apprendre en jouant, puzzle du jour, puzzles de draft, parcours', 'Micro, Détente et patch notes', 'Une boutique plus large'],
+    joueur: ['Tout le Classique', 'L’analyse complète de tes stats : bilan détaillé, série, arbre des points forts, jour par jour', 'Lanes et principes : slides, 20 scénarios par lane et quiz', 'Apprendre en jouant, puzzle du jour, puzzles de draft, parcours', 'Micro, Détente et patch notes', 'Une boutique plus large'],
     elite: ['Tout le Premium Joueur', 'L’espace de l’équipe : stats, POOL, planning, draft, salons, vocal, scrims, clips partagés', 'Le coaching : parole du coach, créneaux, salle de réunion, revues, analyses par l’IA', 'La boutique complète et les apparences de l’équipe'],
   };
   async function planKeyEnter(box) {
@@ -11988,7 +12080,8 @@
         tile('equipes', '🌐', 'Équipes FIRE', 'Suis Alpha : joueurs, matchs, résultats'), tile('clips', '🎬', 'Clips', 'Tes meilleurs moments, sur ton PC'), tile('boutique', '🛍️', 'Boutique', 'Personnalise ton profil'),
         tile('worlds', '🏆', 'E-sport', 'Les matchs pros'), tile('lolpatch', '📜', 'Patchs LoL', 'Ce qui change dans le jeu'), tile('stream', '🟣', 'Stream', 'Le live de l’équipe'), tile('outils', '🧰', 'Outils', 'Les sites utiles'),
         tile('guides', '🧭', 'Lanes et principes', 'Slides, scénarios et quiz'), tile('apprendre', '🎓', 'Apprendre en jouant', 'Les bases en jouant'), tile('puzzle', '🧩', 'Puzzle du jour', 'Une situation par jour'),
-        tile('stats', '📊', 'Stats de l’équipe', ''), tile('coach', '📣', 'Coaching', '')),
+        tile('stats', '📊', 'Mes stats', 'Ton rang, tes champions, tes games'), tile('draft', '⚡', 'Draft en direct', 'Matchup et runes pendant la sélection'),
+        tile('planning', '👥', 'Espace d’équipe', ''), tile('coach', '📣', 'Coaching', '')),
       p === 'elite' ? null : h('div', { class: 'card plan-up' }, h('b', null, p === 'basique' ? '⭐ Passe en Premium Joueur' : '⭐ Rejoins l’équipe Alpha'),
         h('p', { class: 'muted small' }, (p === 'basique' ? PLAN_LIST.joueur : PLAN_LIST.elite).slice(1).join(' · ')),
         h('div', { class: 'row' }, p === 'basique' ? h('button', { class: 'btn-fire small-btn', onclick: () => planKeyEnter(keyBox) }, '🔑 J’ai une clé Premium') : null,
