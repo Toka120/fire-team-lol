@@ -2110,7 +2110,7 @@ function rwClean(p) {
   const gifts = (Array.isArray(p.gifts) ? p.gifts : []).map((g) => ({
     id: s2(g && g.id, 24).replace(/[^\w-]/g, '') || 'g' + crypto.randomBytes(5).toString('hex'),
     to: (Array.isArray(g && g.to) ? g.to : []).map((x) => (x === '*' ? '*' : s2(x, 16).replace(/[^0-9a-f]/g, ''))).filter((x) => x === '*' || x.length === 16).slice(0, 80),
-    n: int(g && g.n, 0, 10000), item: item(g && g.item), msg: s2(g && g.msg, 160), at: int(g && g.at, 0, 4e12),
+    n: int(g && g.n, -100000, 10000), item: item(g && g.item), msg: s2(g && g.msg, 160), at: int(g && g.at, 0, 4e12),
   })).filter((g) => g.to.length && (g.n || g.item) && g.at > old).slice(-200);
   const events = (Array.isArray(p.events) ? p.events : []).map((e) => ({
     id: s2(e && e.id, 24).replace(/[^\w-]/g, '') || 'e' + crypto.randomBytes(5).toString('hex'),

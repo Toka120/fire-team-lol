@@ -1280,7 +1280,7 @@
     return h('span', { class: 'shop-tag' }, exclPrice(k, v) || (rwOwned(k, v) && PLAN() !== 'elite') ? 'Acheté · Équiper' : 'Équiper');
   }
   const shopLocked = () => { popup('🔒 Apparence Premium', `Ta formule ${PLAN_NAMES[PLAN()]} donne accès à quelques apparences. Les autres sont réservées à la formule ${PLAN() === 'basique' ? 'Premium Joueur ou à l’équipe Alpha' : 'Premium Élite (équipe Alpha)'}.`, null); };
-  const setLook = (k, v) => { if (!shopAllowed(k, v) && !shopBuy(k, v)) return; const L = { ...looks() }; if (v == null || v === '') delete L[k]; else L[k] = v; setUx({ look: Object.keys(L).length ? L : null }); shopRedraw(); petSync(); if (k !== 'pet') petReact('look'); };
+  const setLook = (k, v) => { if (!shopAllowed(k, v) && !shopBuy(k, v)) return; try { rwEventOnce('look'); } catch (e) { /* */ } const L = { ...looks() }; if (v == null || v === '') delete L[k]; else L[k] = v; setUx({ look: Object.keys(L).length ? L : null }); shopRedraw(); petSync(); if (k !== 'pet') petReact('look'); };
   function shopCards() {
     const me = vocalMe();
     if (!me) return [uxCard('🛍️ Boutique FIRE', 'Choisis d’abord qui tu es pour personnaliser ton profil.', h('button', { class: 'btn-fire small-btn', onclick: askWho }, 'Qui es-tu ?'))];
@@ -3130,6 +3130,7 @@
     coach: 'Parole du coach', worlds: 'E-sport', lolpatch: 'Patchs LoL', vocal: 'Vocal', chat: 'Discussion', patch: 'Patch notes', settings: 'Paramètres', carnet: 'Carnet de bord', clips: 'Clips', reunion: 'Salle de réunion', outils: 'Outils', parties: 'Analyse de parties', parcours: 'Parcours', puzzle: 'Puzzle du jour', apprendre: 'Apprendre en jouant', puzdraft: 'Puzzles de draft', scrims: 'Scrims', stream: 'Stream Twitch', revue: 'Revue de parties', web: 'navigateur' };
   const ACT = { buf: load('fire.act.buf', []), timer: null, sending: false };
   function actLog(k, d) {
+    try { if (k === 'msg') rwEvent('chat'); else if (k === 'plan' && /^Planning :/.test(String(d))) rwEvent('plan'); } catch (e) { /* */ }
     if (!vocalMe() || !window.fire.staff) return;
     const last = ACT.buf[ACT.buf.length - 1];
     if (last && last.k === k && last.d === d && Date.now() - last.t < 60000) return;
@@ -4413,7 +4414,7 @@
   // Tout est gardé sur ce PC (fire.rw). Les Braises débloquent des apparences de la boutique. Le classement de l'équipe
   // est pour le plaisir : il ne rapporte rien.
   const RW_LOGIN = [10, 15, 20, 25, 30, 40, 60];
-  const RW_WEEK = { need: 12, gain: 100 };
+  const RW_WEEK = { need: 15, gain: 120 };
   // Barème de la boutique en Braises : plus l'objet est animé ou complet, plus il est cher.
   const SHOP_PRICE = { font: 100, grad: 150, card: 150, plate: 250, bubble: 250, fx: 350, deco: 400, banner: 500, appbg: 500, pfx: 600, pet: 800, pack: 1500 };
   // Collection Braises : des objets exclusifs, qui ne s'obtiennent qu'avec des Braises, même pour l'équipe Alpha.
@@ -4438,6 +4439,18 @@
     g_cs7: { ico: '🌾', t: 'Une partie à 7 CS par minute', gain: 25, game: true, noSup: true, ok: (r) => r.some((x) => x.cs_min >= 7) },
     g_vis: { ico: '🔦', t: 'Une partie avec 40 de score de vision', gain: 25, game: true, sup: true, ok: (r) => r.some((x) => x.vision >= 40) },
     g_pink: { ico: '👁️', t: 'Poser 2 balises de contrôle dans une partie', gain: 20, game: true, ok: (r) => r.some((x) => x.pinks >= 2) },
+    g_play2: { ico: '🎮', t: 'Jouer 2 parties classées', gain: 25, game: true, ok: (r) => r.length >= 2 },
+    g_win2: { ico: '🏆', t: 'Gagner 2 parties classées', gain: 40, game: true, ok: (r) => r.filter((x) => x.win).length >= 2 },
+    g_d2: { ico: '🛡️', t: 'Une partie à 2 morts ou moins', gain: 35, game: true, ok: (r) => r.some((x) => x.morts <= 2 && x.duree.length >= 5) },
+    g_k8: { ico: '🗡️', t: 'Faire 8 kills dans une partie', gain: 25, game: true, noSup: true, ok: (r) => r.some((x) => x.kills >= 8) },
+    g_a12: { ico: '🤝', t: 'Faire 12 assists dans une partie', gain: 25, game: true, ok: (r) => r.some((x) => x.assists >= 12) },
+    g_kp: { ico: '🔗', t: 'Participer à 60 % des kills de ton équipe', gain: 25, game: true, ok: (r) => r.some((x) => x.kp != null && (x.kp > 1 ? x.kp : x.kp * 100) >= 60) },
+    g_gold15: { ico: '💰', t: 'Avoir 500 golds d’avance à 15 min', gain: 30, game: true, ok: (r) => r.some((x) => x.gold15 != null && x.gold15 >= 500) },
+    g_cs15: { ico: '🌾', t: 'Avoir 10 CS d’avance à 15 min', gain: 25, game: true, noSup: true, ok: (r) => r.some((x) => x.cs15 != null && x.cs15 >= 10) },
+    g_dmg: { ico: '💥', t: 'Faire 25 % des dégâts de ton équipe', gain: 25, game: true, noSup: true, ok: (r) => r.some((x) => x.part_degats != null && (x.part_degats > 1 ? x.part_degats : x.part_degats * 100) >= 25) },
+    g_solo: { ico: '⚔️', t: 'Faire un solo kill', gain: 20, game: true, ok: (r) => r.some((x) => (x.solo_kills || 0) >= 1) },
+    g_plates: { ico: '🧱', t: 'Prendre 2 plaques de tour dans une partie', gain: 20, game: true, ok: (r) => r.some((x) => (x.plates || 0) >= 2) },
+    g_wards: { ico: '🕯️', t: 'Détruire 4 balises adverses dans une partie', gain: 20, game: true, ok: (r) => r.some((x) => (x.wards_detruites || 0) >= 4) },
     a_stats: { ico: '📊', t: 'Regarder tes stats', gain: 10, ev: 'stats', n: 1 },
     a_draft: { ico: '⚡', t: 'Suivre une sélection dans la Draft en direct', gain: 15, ev: 'draft', n: 1 },
     a_clip: { ico: '🎬', t: 'Enregistrer un clip', gain: 15, ev: 'clip', n: 1 },
@@ -4445,6 +4458,15 @@
     a_scen: { ico: '🧭', t: 'Répondre à 3 scénarios de lane', gain: 20, ev: 'scen', n: 3, sec: 'guides' },
     a_quiz: { ico: '❓', t: 'Finir un quiz ou une étape du parcours', gain: 15, ev: 'quiz', n: 1, sec: 'jeux' },
     a_vocal: { ico: '🎙️', t: 'Passer dans le vocal de l’équipe', gain: 10, ev: 'vocal', n: 1, sec: 'vocal', team: true },
+    a_chat: { ico: '💬', t: 'Écrire un message à l’équipe', gain: 10, ev: 'chat', n: 1, sec: 'chat', team: true },
+    a_plan: { ico: '📅', t: 'Répondre au planning de la semaine', gain: 15, ev: 'plan', n: 1, sec: 'planning', team: true },
+    a_puzdraft: { ico: '🧩', t: 'Résoudre 3 puzzles de draft', gain: 20, ev: 'puzdraft', n: 3, sec: 'puzdraft' },
+    a_tl: { ico: '📊', t: 'Regarder la tier list du moment', gain: 10, ev: 'tl', n: 1, sec: 'draft' },
+    a_lolpatch: { ico: '📜', t: 'Lire le dernier patch de LoL', gain: 10, ev: 'p_lolpatch', n: 1, sec: 'lolpatch' },
+    a_esport: { ico: '🏆', t: 'Suivre l’e-sport', gain: 10, ev: 'p_worlds', n: 1, sec: 'worlds' },
+    a_look: { ico: '🛍️', t: 'Changer une apparence dans la boutique', gain: 10, ev: 'look', n: 1, sec: 'boutique' },
+    a_quiz3: { ico: '🎓', t: 'Finir 3 quiz ou étapes du parcours', gain: 30, ev: 'quiz', n: 3, sec: 'parcours' },
+    a_scen6: { ico: '🧭', t: 'Répondre à 6 scénarios de lane', gain: 30, ev: 'scen', n: 6, sec: 'guides' },
   };
   const rwSt = () => load('fire.rw', null) || { b: 0, tot: 0, streak: 0, last: '', own: [], badges: [], hist: [] };
   const rwSave = (st) => save('fire.rw', st);
@@ -4475,14 +4497,16 @@
   // Les 3 défis du jour : toujours les mêmes pour la journée, différents chaque jour.
   function rwDay(st) {
     const day = todayYmd();
-    if (st.day && st.day.d === day) return st.day;
+    if (st.day && st.day.d === day && st.day.v === 2) return st.day;
+    const keep = st.day && st.day.d === day ? st.day : null; // ancienne liste du jour (3 défis) : on garde ce qui est déjà fait
     const me = rwMe(), sup = me && me.role_id === 'support';
     const seed = [...(day + (S.moi || ''))].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
     const rnd = (i) => ((seed * (i + 3) * 2654435761) >>> 0) / 4294967296;
     const pick = (list, n) => list.map((k, i) => [k, rnd(i)]).sort((a, b) => a[1] - b[1]).slice(0, n).map((x) => x[0]);
     const games = Object.keys(RW_DEFIS).filter((k) => { const x = RW_DEFIS[k]; return x.game && !(x.sup && !sup) && !(x.noSup && sup); });
     const apps = Object.keys(RW_DEFIS).filter((k) => { const x = RW_DEFIS[k]; return !x.game && (!x.sec || planOk(x.sec)) && !(x.team && basicView()); });
-    st.day = { d: day, picks: [...pick(games, 2), ...pick(apps, 1)], ev: {}, done: {}, claimed: {} };
+    st.day = { d: day, v: 2, picks: [...pick(games, 2), ...pick(apps, 2)], ev: {}, done: {}, claimed: {} };
+    if (keep) { st.day.ev = keep.ev || {}; st.day.picks = [...new Set([...(keep.picks || []).filter((k) => RW_DEFIS[k]), ...st.day.picks])].slice(0, 4); st.day.done = keep.done || {}; st.day.claimed = keep.claimed || {}; }
     return st.day;
   }
   function rwDone(st, k) {
@@ -4597,7 +4621,7 @@
     };
     const defis = h('div', { class: 'card rw-defis' }, h('div', { class: 'row' }, h('h2', null, '🎯 Défis du jour'), h('span', { class: 'spacer' }),
       me && day.picks.some((k) => RW_DEFIS[k].game) ? h('button', { class: 'btn-ghost small-btn', disabled: RWB.games ? true : null, onclick: rwRefreshGames }, RWB.games ? 'Lecture…' : '⟳ Vérifier mes games') : null),
-      h('p', { class: 'muted small' }, 'Trois nouveaux défis chaque jour à minuit. Les défis sur tes games se vérifient tout seuls avec tes stats.'),
+      h('p', { class: 'muted small' }, 'Quatre nouveaux défis chaque jour à minuit : deux sur tes games classées (vérifiés tout seuls avec tes stats) et deux dans FIRE.'),
       day.picks.map(defi));
     // Défi de la semaine
     const wd = Math.min(st.wkD || 0, RW_WEEK.need);
@@ -4681,8 +4705,22 @@
     if (!r || !r.ok) return;
     const first = !RWR.data; RWR.data = r;
     const st = rwSt(), got = st.gifts || {};
-    const fresh = (r.gifts || []).filter((g) => !got[g.id]);
-    if (fresh.length && (first || force)) popup('🎁 Un cadeau t’attend !', fresh[0].msg || `Le créateur de FIRE t’offre ${fresh[0].n ? fresh[0].n + ' Braises' : 'une apparence'}.`, 'recompenses');
+    for (const g of (r.gifts || []).filter((x) => x.n < 0 && !got[x.id])) {
+      const s2 = rwSt(); s2.gifts = s2.gifts || {}; if (s2.gifts[g.id]) continue;
+      const before = s2.b || 0; s2.b = Math.max(0, before + g.n); s2.gifts[g.id] = Date.now();
+      s2.hist = [{ t: Date.now(), n: s2.b - before, txt: 'Ajustement du créateur' + (g.msg ? ' : ' + g.msg.slice(0, 40) : '') }, ...(s2.hist || [])].slice(0, 12);
+      rwSave(s2);
+      popup('🔥 Tes Braises ont été ajustées', `${s2.b - before} Braises${g.msg ? ' · ' + g.msg : ''}. Il t’en reste ${s2.b}.`, 'recompenses');
+    }
+    r.gifts = (r.gifts || []).filter((g) => g.n >= 0);
+    const fresh = r.gifts.filter((g) => !got[g.id]);
+    const notSeen = fresh.filter((g) => !(load('fire.gift.seen', {}) || {})[g.id]);
+    if (notSeen.length) {
+      save('fire.gift.seen', { ...(load('fire.gift.seen', {}) || {}), ...Object.fromEntries(notSeen.map((g) => [g.id, Date.now()])) });
+      // Comme une annonce : la fenêtre du cadeau s'ouvre au milieu de FIRE, et une notification de bureau si FIRE est en arrière-plan.
+      if (!document.hasFocus()) deskNotify({ title: '🎁 Tu as reçu un cadeau !', body: notSeen[0].msg || 'Le créateur de FIRE t’a envoyé un cadeau. Ouvre FIRE pour le découvrir.', section: 'recompenses', force: true }).catch(() => {});
+      giftQueue(notSeen);
+    }
     const ev = rwEvents().filter((e) => !(st.evGot || {})[e.id]);
     if (ev.length && first && !fresh.length) popup(`${ev[0].ico} Événement en cours`, ev[0].t + (ev[0].d ? ' : ' + ev[0].d : ''), 'recompenses');
     renderNav();
@@ -4705,14 +4743,86 @@
     const kind = { fx: 'Effet de pseudo', font: 'Police', grad: 'Dégradé', deco: 'Décoration', plate: 'Plaque', card: 'Carte', pfx: 'Effet de profil', pet: 'Compagnon', bubble: 'Effet de messages' }[k] || k;
     return kind + ' « ' + (l ? l[1] : String(v)) + ' »';
   }
-  function rwGiftClaim(g) {
+  // ----- Ouverture d'un cadeau : une fenêtre au milieu de FIRE, la boîte qui s'ouvre, puis ce qu'il y a dedans -----
+  const GIFTQ = { list: [], open: false };
+  function giftQueue(list) {
+    const st = rwSt();
+    for (const g of list) if (!(st.gifts || {})[g.id] && !GIFTQ.list.some((x) => x.id === g.id)) GIFTQ.list.push(g);
+    giftNext();
+  }
+  function giftNext() {
+    if (GIFTQ.open || !GIFTQ.list.length) return;
+    // Une annonce du créateur passe d'abord : le cadeau attend qu'elle soit fermée.
+    if (document.getElementById('ann-modal') || document.getElementById('lock') && !$('lock').hidden) { setTimeout(giftNext, 3000); return; }
+    giftModal(GIFTQ.list.shift());
+  }
+  function giftModal(g) {
+    GIFTQ.open = true;
+    const old = document.getElementById('gift-modal'); if (old) old.remove();
+    const what = [g.n ? `${g.n} Braises` : '', g.item ? lookLabel(g.item.k, g.item.v) : ''].filter(Boolean).join(' + ');
+    const close = () => { el.classList.add('out'); setTimeout(() => { el.remove(); GIFTQ.open = false; giftNext(); }, 350); };
+    const box = h('div', { class: 'gift-box', role: 'img', 'aria-label': 'Un cadeau fermé' }, h('div', { class: 'gift-lid' }, h('i', { class: 'gift-bow' })), h('div', { class: 'gift-body' }), h('div', { class: 'gift-glow' }));
+    const stage = h('div', { class: 'gift-stage' }, box);
+    const btns = h('div', { class: 'gift-btns' });
+    const title = h('h2', { class: 'gift-t' }, '🎁 Tu as reçu un cadeau !');
+    const sub = h('p', { class: 'gift-sub' }, g.all ? 'Le créateur de FIRE fait un cadeau à tout le monde.' : 'Le créateur de FIRE t’a envoyé quelque chose.');
+    const openIt = () => {
+      btns.replaceChildren();
+      box.classList.add('shake');
+      setTimeout(() => {
+        box.classList.remove('shake'); box.classList.add('open');
+        setTimeout(() => box.remove(), 1100);
+        // Confettis et étincelles
+        const burst = h('div', { class: 'gift-burst' });
+        for (let i = 0; i < 46; i++) {
+          const a = Math.random() * Math.PI * 2, d = 120 + Math.random() * 220;
+          burst.append(h('i', { class: 'gift-cf c' + (i % 5), style: `--x:${Math.cos(a) * d}px;--y:${Math.sin(a) * d - 80}px;--r:${Math.round(Math.random() * 720 - 360)}deg;animation-delay:${Math.random() * 0.15}s` }));
+        }
+        stage.append(burst);
+        title.textContent = '✨ ' + what;
+        sub.textContent = g.msg || 'Il est à toi : il t’attend dans tes Récompenses et dans la boutique.';
+        const reveal = h('div', { class: 'gift-reveal' });
+        if (g.n) {
+          const num = h('b', { class: 'gift-n' }, '+0');
+          reveal.append(h('div', { class: 'gift-braises' }, h('span', null, '🔥'), num, h('small', null, 'Braises')));
+          const t0 = performance.now();
+          const step = (t) => { const k = Math.min(1, (t - t0) / 900); num.textContent = '+' + Math.round(g.n * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); };
+          requestAnimationFrame(step);
+        }
+        if (g.item) {
+          const me = vocalMe() || S.moi || '';
+          const k = g.item.k, v = g.item.v;
+          const prev = k === 'fx' || k === 'font' || k === 'grad' ? h('span', { class: 'nm' + (k === 'grad' ? ' nm-grad' : '') + (k === 'fx' ? ' nm-' + v : ''), style: (k === 'grad' ? `--n1:${v[0]};--n2:${v[1]};` : '') + (k === 'font' && LOOK_FONT[v] ? `font-family:${LOOK_FONT[v]};` : ''), 'data-t': vocalName(me) || 'Toi' }, vocalName(me) || 'Toi')
+            : k === 'deco' ? h('span', { class: 'vc-av shop-av dk dk-' + v }, ini(me || '?'), decoExtra(v))
+            : k === 'plate' ? h('div', { class: 'cp-cv shop-plate plate pl-' + v }, h('span', { class: 'chat-cv-l' }, vocalName(me) || 'Toi'))
+            : k === 'card' ? h('div', { class: 'shop-card pf-themed', style: `--pc1:${v[0]};--pc2:${v[1]}` })
+            : k === 'pfx' ? h('div', { class: 'shop-pfx' }, pfxEl(v)) : k === 'pet' ? petEl(v, 'shop-pet') : h('span', null, '🎀');
+          reveal.append(h('div', { class: 'gift-item' }, h('div', { class: 'gift-prev' }, prev), h('b', null, lookLabel(k, v))));
+        }
+        stage.append(reveal);
+        rwGiftClaim(g, true);
+        btns.append(
+          g.item ? h('button', { class: 'btn-fire', onclick: () => { try { const L = { ...looks(), [g.item.k]: g.item.v }; setUx({ look: L }); petSync(); } catch (e) { /* */ } close(); popup('✨ Équipé', lookLabel(g.item.k, g.item.v) + ' : tes coéquipiers le voient déjà.', 'boutique'); } }, '✨ Équiper maintenant') : null,
+          h('button', { class: g.item ? 'btn-ghost' : 'btn-fire', onclick: close }, g.item ? 'Plus tard' : 'Super, merci !'));
+        btns.querySelector('button').focus();
+      }, 900);
+    };
+    btns.append(h('button', { class: 'btn-fire gift-open', onclick: openIt }, '🎁 Ouvrir le cadeau'));
+    const el = h('div', { id: 'gift-modal', class: 'gift-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Cadeau reçu' },
+      h('div', { class: 'gift-card' }, title, sub, stage, btns));
+    document.body.append(el);
+    setTimeout(() => { const b = el.querySelector('.gift-open'); if (b) b.focus(); }, 50);
+    try { petReact('win'); } catch (e) { /* */ }
+  }
+  function rwGiftClaim(g, quiet) {
     const st = rwWeek(rwSt()); st.gifts = st.gifts || {};
     if (st.gifts[g.id]) return;
     st.gifts[g.id] = Date.now();
     if (g.item) st.own = [...new Set([...(st.own || []), shopKey(g.item.k, g.item.v)])];
     if (g.n) rwGain(st, g.n, 'Cadeau du créateur' + (g.msg ? ' : ' + g.msg.slice(0, 40) : ''));
     else st.hist = [{ t: Date.now(), n: 0, txt: 'Cadeau : ' + lookLabel(g.item.k, g.item.v) }, ...(st.hist || [])].slice(0, 12);
-    rwSave(st); renderNav(); render();
+    rwSave(st); renderNav(); if (S.section === 'recompenses' && !typing()) render();
+    if (quiet) return;
     popup('🎁 Cadeau récupéré', [g.n ? `+${g.n} Braises` : '', g.item ? lookLabel(g.item.k, g.item.v) + ' ajouté à ta boutique' : ''].filter(Boolean).join(' · '), g.item ? 'boutique' : null);
   }
   function rwEvClaim(e) {
@@ -4727,7 +4837,7 @@
     if (gifts.length) out.push(h('div', { class: 'card rw-gifts' }, h('h2', null, '🎁 Cadeaux pour toi'),
       gifts.map((g) => h('div', { class: 'rw-defi done' }, h('span', { class: 'rw-dico' }, g.item ? '🎀' : '🔥'),
         h('div', { class: 'rw-dt' }, h('b', null, [g.n ? g.n + ' Braises' : '', g.item ? lookLabel(g.item.k, g.item.v) : ''].filter(Boolean).join(' + ')), h('small', { class: 'muted' }, g.msg || (g.all ? 'Offert à tout le monde par le créateur de FIRE' : 'Offert par le créateur de FIRE'))),
-        h('button', { class: 'btn-fire small-btn', onclick: () => rwGiftClaim(g) }, 'Récupérer')))));
+        h('button', { class: 'btn-fire small-btn', onclick: () => giftModal(g) }, '🎁 Ouvrir')))));
     const evs = rwEvents();
     if (evs.length) out.push(h('div', { class: 'card rw-events' }, h('h2', null, '🎉 Événements'),
       evs.map((e) => {
@@ -4770,15 +4880,16 @@
       const free = RWA.free.split(/[,;\n]/).map((x) => x.trim()).filter(Boolean);
       const all = RWA.to.includes('*');
       const who = all ? ['*'] : RWA.to.flatMap((sl) => { const p = roster.find((x) => x.slug === sl); return [sl, p && p.pseudo].filter(Boolean); }).concat(free);
-      const n = Math.max(0, Math.min(10000, Math.round(Number(RWA.n) || 0)));
+      const n = Math.max(0, Math.min(RWA.take ? 100000 : 10000, Math.round(Number(RWA.n) || 0))) * (RWA.take ? -1 : 1);
       let item = null; try { item = RWA.item ? JSON.parse(RWA.item) : null; } catch (e) { item = null; }
       if (!who.length) { RWA.msg = '⚠ Choisis au moins un joueur, ou « Tout le monde ».'; renderAdmin(); return; }
-      if (!n && !item) { RWA.msg = '⚠ Indique des Braises ou un objet.'; renderAdmin(); return; }
+      if (RWA.take) item = null;
+      if (!n && !item) { RWA.msg = RWA.take ? '⚠ Indique combien de Braises retirer.' : '⚠ Indique des Braises ou un objet.'; renderAdmin(); return; }
       const id = 'g' + Date.now().toString(36);
       const label = all ? 'Tout le monde' : RWA.to.map((sl) => (roster.find((x) => x.slug === sl) || {}).pseudo || sl).concat(free).join(', ');
       save('fire.rw.names', { ...names, [id]: label });
-      if (!confirm(`Offrir ${[n ? n + ' Braises' : '', item ? lookLabel(item.k, item.v) : ''].filter(Boolean).join(' + ')} à ${label} ?`)) return;
-      rwAdminSave({ gifts: [...(A.gifts || []), { id, to: who, n, item, msg: RWA.gmsg.trim(), at: Date.now() }], events: A.events || [] }, '✅ Cadeau envoyé : il apparaîtra dans « Récompenses » à leur prochaine ouverture de FIRE.');
+      if (!confirm(n < 0 ? `Retirer ${-n} Braises à ${label} ? (son solde ne descend jamais sous 0)` : `Offrir ${[n ? n + ' Braises' : '', item ? lookLabel(item.k, item.v) : ''].filter(Boolean).join(' + ')} à ${label} ?`)) return;
+      rwAdminSave({ gifts: [...(A.gifts || []), { id, to: who, n, item, msg: RWA.gmsg.trim(), at: Date.now() }], events: A.events || [] }, n < 0 ? '✅ Retrait envoyé : il s’appliquera à leur prochaine ouverture de FIRE.' : '✅ Cadeau envoyé : il apparaîtra dans « Récompenses » à leur prochaine ouverture de FIRE.');
       RWA.to = []; RWA.free = ''; RWA.gmsg = '';
     };
     const E = RWA.ev;
@@ -4795,16 +4906,17 @@
     return h('div', { class: 'adm-sec' },
       h('p', { class: 'muted small' }, 'Offre des Braises ou un objet de la boutique, et crée des événements. Tout est signé par ta clé de créateur et vaut pour toutes les formules, Classique compris.'),
       A.loading ? h('p', { class: 'muted' }, 'Chargement…') : null,
-      h('div', { class: 'card adm-grp' }, h('b', null, '🎁 Offrir une récompense'),
+      h('div', { class: 'card adm-grp' }, h('div', { class: 'row' }, h('b', null, RWA.take ? '➖ Retirer des Braises' : '🎁 Offrir une récompense'), h('span', { class: 'spacer' }),
+          h('div', { class: 'sal-chips' }, h('button', { class: 'chip' + (!RWA.take ? ' on' : ''), onclick: () => { RWA.take = false; renderAdmin(); } }, '🎁 Offrir'), h('button', { class: 'chip' + (RWA.take ? ' on' : ''), onclick: () => { RWA.take = true; renderAdmin(); } }, '➖ Retirer'))),
         h('p', { class: 'muted small' }, 'Les joueurs de l’équipe, ou un pseudo / identifiant Riot (pseudo#tag) pour un joueur en Classique. Le cadeau l’attend dans « Récompenses ».'),
         h('div', { class: 'adm-who' }, chip('*', '🌍 Tout le monde'), RWA.to.includes('*') ? null : roster.map((p) => chip(p.slug, shortName(p.pseudo || p.slug)))),
         RWA.to.includes('*') ? null : h('input', { class: 'inp', placeholder: 'Autres joueurs : Pseudo#TAG, pseudo… (séparés par des virgules)', value: RWA.free, oninput: (e) => { RWA.free = e.target.value; } }),
         h('div', { class: 'row' }, h('label', { class: 'adm-f' }, h('b', null, '🔥 Braises'), h('input', { class: 'inp', type: 'number', min: 0, max: 10000, step: 10, value: RWA.n, oninput: (e) => { RWA.n = e.target.value; } })),
-          h('label', { class: 'adm-f', style: 'flex:1' }, h('b', null, '🎀 Objet de la boutique (facultatif)'), sel)),
+          RWA.take ? h('p', { class: 'muted small', style: 'flex:1' }, 'Le retrait s’applique tout seul à sa prochaine ouverture de FIRE, avec ton message. Son solde ne descend jamais sous 0.') : h('label', { class: 'adm-f', style: 'flex:1' }, h('b', null, '🎀 Objet de la boutique (facultatif)'), sel)),
         h('input', { class: 'inp', placeholder: 'Message (facultatif) : ex. « Bravo pour le tournoi ! »', maxlength: 160, value: RWA.gmsg, oninput: (e) => { RWA.gmsg = e.target.value; } }),
-        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', disabled: RWA.busy ? true : null, onclick: give }, '🎁 Offrir'))),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', disabled: RWA.busy ? true : null, onclick: give }, RWA.take ? '➖ Retirer' : '🎁 Offrir'))),
       (A.gifts || []).length ? h('div', { class: 'card adm-grp' }, h('b', null, 'Cadeaux envoyés'),
-        A.gifts.slice().reverse().slice(0, 15).map((g) => h('div', { class: 'row rw-h' }, h('span', { class: 'rw-gain' }, g.n ? '+' + g.n + ' 🔥' : '🎀'), h('span', null, (names[g.id] || (g.to.includes('*') ? 'Tout le monde' : g.to.length + ' joueur(s)')) + (g.item ? ' · ' + lookLabel(g.item.k, g.item.v) : '') + (g.msg ? ' · « ' + g.msg + ' »' : '')), h('small', { class: 'muted' }, when(g.at)),
+        A.gifts.slice().reverse().slice(0, 15).map((g) => h('div', { class: 'row rw-h' }, h('span', { class: 'rw-gain' }, g.n ? (g.n > 0 ? '+' : '') + g.n + ' 🔥' : '🎀'), h('span', null, (names[g.id] || (g.to.includes('*') ? 'Tout le monde' : g.to.length + ' joueur(s)')) + (g.item ? ' · ' + lookLabel(g.item.k, g.item.v) : '') + (g.msg ? ' · « ' + g.msg + ' »' : '')), h('small', { class: 'muted' }, when(g.at)),
           h('button', { class: 'linkbtn small', onclick: () => { if (confirm('Retirer ce cadeau ? Ceux qui l’ont déjà récupéré le gardent.')) rwAdminSave({ gifts: A.gifts.filter((x) => x.id !== g.id), events: A.events || [] }, 'Cadeau retiré.'); } }, '🗑')))) : null,
       h('div', { class: 'card adm-grp' }, h('b', null, '🎉 Créer un événement'),
         h('div', { class: 'row' }, h('input', { class: 'inp', style: 'max-width:70px', value: E.ico, maxlength: 4, oninput: (e) => { E.ico = e.target.value; } }), h('input', { class: 'inp', style: 'flex:1', placeholder: 'Nom : ex. « Semaine des Worlds »', maxlength: 60, value: E.t, oninput: (e) => { E.t = e.target.value; } })),
@@ -5369,6 +5481,7 @@
     S.section = sec;
     if (START_PAGES.some(([k]) => k === sec)) save('fire.lastSection', sec);
     if (sec !== S.prevSection || sec === 'settings') actLog('page', 'Page ' + (PAGE_NAMES[sec] || sec));
+    if (sec === 'lolpatch' || sec === 'worlds') setTimeout(() => { try { rwEventOnce('p_' + sec); } catch (e) { /* */ } }, 0);
     if (sec === 'guides') { S.theme = null; S.guideCat = null; }
     if (sec === 'coach') S.ficheId = null;
     if (sec === 'stats') { S.view = 'hub'; S.player = null; }
@@ -7741,6 +7854,7 @@
     return h('div', { class: 'card tl-syn sc' }, h('h3', null, champIcon(C.champ, 28), ` Synergies et counters de ${A}`), head, h('div', { class: 'sc-bar' }, modes, roleChips), body);
   }
   async function renderTierList() {
+    setTimeout(() => { try { rwEventOnce('tl'); } catch (e) { /* */ } }, 0);
     const view = $('view');
     if (!TL.data && !TL.loading) {
       TL.loading = true;
@@ -7843,6 +7957,7 @@
     const p = PZ.cur;
     if (!p || PZ.pick !== null) return;
     PZ.pick = i;
+    try { rwEvent('puzdraft'); } catch (e) { /* */ }
     const st = pzStats();
     const ok = i === p.bon;
     let delta;

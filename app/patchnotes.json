@@ -1,6 +1,37 @@
 {
  "versions": [
   {
+   "v": "2.0.23",
+   "date": "2026-11-24",
+   "titre": "Cadeaux à ouvrir, plus de défis",
+   "items": [
+    [
+     "new",
+     "Cadeau reçu : une fenêtre s'ouvre au milieu de FIRE, comme une annonce, avec une boîte à ouvrir, des confettis et ce qu'il y a dedans (Braises qui défilent, aperçu de l'objet, bouton « Équiper maintenant »)."
+    ],
+    [
+     "new",
+     "Si FIRE est en arrière-plan, une notification de bureau prévient du cadeau."
+    ],
+    [
+     "new",
+     "4 défis par jour au lieu de 3 : 2 sur tes games classées et 2 dans FIRE. Défi de la semaine : 15 défis pour +120 Braises."
+    ],
+    [
+     "new",
+     "Nouveaux défis sur les games : 2 parties, 2 victoires, 2 morts ou moins, 8 kills, 12 assists, 60 % de participation aux kills, +500 golds ou +10 CS à 15 min, 25 % des dégâts, un solo kill, 2 plaques, 4 balises détruites."
+    ],
+    [
+     "new",
+     "Nouveaux défis dans FIRE : message à l'équipe, réponse au planning, 3 puzzles de draft, tier list, patch LoL, e-sport, changer d'apparence, 3 quiz, 6 scénarios."
+    ],
+    [
+     "new",
+     "Admin › Récompenses : le créateur peut aussi retirer des Braises à un joueur (jamais sous 0), avec un message."
+    ]
+   ]
+  },
+  {
    "v": "2.0.22",
    "date": "2026-11-24",
    "titre": "Nouvelle clé : Premium Complet",
