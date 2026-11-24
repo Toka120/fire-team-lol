@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "2.0.25",
+   "date": "2026-11-24",
+   "titre": "Code chef d'équipe plus facile à trouver",
+   "items": [
+    [
+     "fix",
+     "Bravo : la case « 👑 Je suis le chef d'équipe » s'affiche maintenant, même si le chef n'est pas encore dans la liste de l'équipe (avant, elle n'apparaissait que pour le capitaine d'Alpha)."
+    ],
+    [
+     "new",
+     "La case du code chef est aussi dans Paramètres › Mon compte › Accès, à côté du mode coach."
+    ],
+    [
+     "fix",
+     "Paramètres › Accès : la formule affichée est la bonne pour Bravo (Premium Équipe)."
+    ]
+   ]
+  },
+  {
    "v": "2.0.24",
    "date": "2026-11-24",
    "titre": "Lanes réservées à Alpha",

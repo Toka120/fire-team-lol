@@ -1599,12 +1599,13 @@
         h('p', { class: 'muted small' }, 'Tout se met aussi à jour tout seul à chaque ouverture, puis toutes les 10 minutes.'));
     C.access = S.basic ? planCardEl() : h('div', { class: 'card settings-card' },
         h('h2', null, '🔐 Accès'),
-        row('Formule', 'Premium Élite (équipe Alpha)'),
+        row('Formule', S.cfg && S.cfg.team_id ? `Premium Équipe (équipe ${S.cfg.team_name || S.cfg.team_id})` : 'Premium Élite (équipe Alpha)'),
         S.moi && window.fire.pub && !SUB() && S.players.some((p) => p.slug === S.moi) || (S.moi && (S.coachs || []).some((c) => c.slug === S.moi)) ? h('label', { class: 'vs-sw' }, h('span', null, h('b', null, '🌐 Apparaître sur la page publique'), h('small', null, 'Les fans voient ton pseudo (sans le #), ton rang et tes 3 champions les plus joués. Sinon, tu apparais « Joueur » avec ton poste.')),
           h('input', { type: 'checkbox', class: 'vs-tog', checked: load('fire.pub.me', false) ? true : null, onchange: async (e) => { const on = e.target.checked; const r = await window.fire.pub.optin(S.moi, on).catch((er) => ({ ok: false, error: String(er) })); if (r && r.ok) { save('fire.pub.me', on); popup('🌐 Page publique', on ? 'C’est noté : tu apparaîtras à la prochaine mise à jour de la page.' : 'C’est noté : tu n’apparaîtras plus, à la prochaine mise à jour de la page.', null); } else { e.target.checked = !on; popup('⚠ Page publique', (r && r.error) || 'Impossible d’enregistrer ton choix.', null); } } })) : null,
         row("Code d'équipe", 'enregistré sur cet ordinateur ✓'),
         row('Mode coach', st.coach ? `activé (Claude ${st.claude ? '✓' : '✗'} · GitHub ${st.github ? '✓' : '✗'})` : 'non activé'),
-        coachAccess());
+        st.chef ? row('Chef d’équipe', 'activé sur cet ordinateur ✓') : null,
+        coachAccess(), chefAccess());
     C.about = h('div', { class: 'card settings-card' },
         h('h2', null, 'ℹ️ À propos'),
         h('p', { class: 'small' }, 'FIRE Team · ', h('a', { href: 'https://toka120.github.io/fire-team-lol/', target: '_blank' }, 'page de téléchargement'), ' · ',
@@ -10401,7 +10402,10 @@
   // Accès chef d'équipe : visible seulement pour le joueur qui a le bandeau de chef (et sur le PC où il a mis son code).
   function chefAccess() {
     const me = S.players.find((p) => p.slug === S.moi);
-    if (S.coachState.coach || !me || !me.capitaine) return null;
+    // Alpha : seulement le joueur qui a le bandeau de capitaine. Autres équipes (Bravo…) : le chef n'est pas encore dans
+    // la liste (il arrive avec le code de l'équipe), donc la case est visible pour tous ; le code chef reste nécessaire.
+    const other = !!(S.cfg && S.cfg.team_id);
+    if (S.coachState.coach || (!other && (!me || !me.capitaine))) return null;
     if (S.coachState.chef) {
       return h('p', { class: 'muted small chef-on' }, '👑 Mode chef d’équipe : tu peux modifier le planning. ',
         h('button', { class: 'linkbtn', onclick: async () => { S.coachState = await window.fire.coach.chefLeave(); render(); } }, 'Quitter le mode chef'));
@@ -10410,10 +10414,10 @@
     const err = h('span', { class: 'bad small' });
     const goChef = async () => {
       const r = await window.fire.coach.chefUnlock(inp.value);
-      if (r && r.ok) { S.coachState = r; S.flash = '👑 Mode chef d’équipe activé : tu peux modifier le planning.'; render(); } else { err.textContent = 'Code incorrect.'; inp.select(); }
+      if (r && r.ok) { S.coachState = r; S.flash = '👑 Mode chef d’équipe activé : tu peux accepter les membres, choisir les rôles et modifier le planning.'; renderNav(); render(); if (S.section === 'settings') renderSettings(); } else { err.textContent = 'Code incorrect.'; inp.select(); }
     };
     inp.addEventListener('keydown', (e) => { err.textContent = ''; if (e.key === 'Enter') goChef(); });
-    return h('details', { class: 'coach-access' }, h('summary', null, '👑 Je suis le chef d’équipe : modifier le planning'),
+    return h('details', { class: 'coach-access' }, h('summary', null, '👑 Je suis le chef d’équipe : accepter les membres et gérer le planning'),
       h('div', { class: 'row' }, inp, h('button', { class: 'btn-ghost', onclick: goChef }, 'Activer'), err));
   }
 
