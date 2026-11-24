@@ -311,7 +311,17 @@
       "fiches_salt": "475693311ab12821fa73d4aa1cefcaa8",
       "chef": "mortarius#2303",
       "joueurs": [],
-      "coachs": []
+      "coachs": [],
+      "coach_scrypt": {
+        "salt": "a1d9a352d3911b09a2b702c87bfc85b6",
+        "hash": "1dbb6c33fd5990c3601fa5b44429ae08772f80ed338e8616d5a11fe41951c55a"
+      },
+      "fiches_cle_coach": {
+        "salt": "aeb5ef64a2b6dcd2f420b81c373adb9e",
+        "iv": "kLRrRDIq0VhoS1Xk",
+        "tag": "eWVcc3ZBoQnqBl2dUYzIYQ==",
+        "data": "V0p8CZmJGeL3kHTxNUbkJq5amqd4c9yVIqbhSo7gyMA="
+      }
     }
   }
 }

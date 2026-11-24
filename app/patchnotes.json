@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "2.0.30",
+   "date": "2026-11-24",
+   "titre": "Coachs de Bravo et leur planning",
+   "items": [
+    [
+     "new",
+     "Bravo a maintenant son propre code coach. Le coach l'entre avec le bouton 🔑 CODE : FIRE passe sur Bravo en mode coach."
+    ],
+    [
+     "new",
+     "Planning de Bravo › « Dispos des coachs » : le coach s'ajoute lui-même à la liste (son nom), met ses dispos, valide ou refuse les créneaux demandés par les joueurs."
+    ],
+    [
+     "new",
+     "Pour Bravo, le mode coach sert au planning (et à accepter les membres) : la Parole du coach et les revues restent à Alpha."
+    ]
+   ]
+  },
+  {
    "v": "2.0.29",
    "date": "2026-11-24",
    "titre": "Maintenance pour tout le monde, défis adaptés à chaque poste",

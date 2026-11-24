@@ -109,7 +109,7 @@ async function unlock(code) {
   // Le code d'une autre équipe (Bravo…) bascule ce PC sur elle ; un code d'Alpha le ramène sur Alpha.
   const raw = getRaw() || {};
   let target = null;
-  for (const [id, t] of Object.entries(raw.equipes || {})) { try { if (await matches(n0, t.code_scrypt)) { target = id; break; } } catch (e) { /* */ } }
+  for (const [id, t] of Object.entries(raw.equipes || {})) { try { if (await matches(n0, t.code_scrypt) || (t.coach_scrypt && await matches(n0, t.coach_scrypt))) { target = id; break; } } catch (e) { /* */ } }
   if (target === null && activeTeam()) {
     for (const spec of [raw.code_scrypt, raw.coach_scrypt, raw.remplacant_scrypt]) { try { if (spec && await matches(n0, spec)) { target = ''; break; } } catch (e) { /* */ } }
   }
@@ -1391,6 +1391,22 @@ async function rwBoard(slugs) {
   await Promise.all((Array.isArray(slugs) ? slugs : []).map(String).slice(0, 40).map(async (sl) => { try { const d = await teamRead(rwPath(sl)); if (d && d.slug === sl) list.push(d); } catch (e) { /* illisible */ } }));
   return { ok: true, list };
 }
+// ---------- Coachs d'une équipe (Bravo…) : chacun s'ajoute lui-même avec le code coach de l'équipe ----------
+const TEAM_COACHS = 'coachs.json';
+const coachClean = (l) => (Array.isArray(l) ? l : []).map((c) => ({ slug: String((c && c.slug) || '').replace(/[^\w-]/g, '').slice(0, 60), pseudo: String((c && c.pseudo) || '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 30) })).filter((c) => c.slug && c.pseudo).slice(0, 12);
+async function coachsList() {
+  try { const d = await teamRead(TEAM_COACHS); return { ok: true, coachs: coachClean(d && d.coachs) }; } catch (e) { return { ok: false, coachs: [] }; }
+}
+async function coachsAdd(pseudo) {
+  if (!coachState().coach) return { ok: false, error: 'entre d’abord le code coach de ton équipe' };
+  pseudo = String(pseudo || '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 30);
+  if (pseudo.length < 2) return { ok: false, error: 'indique ton nom de coach' };
+  const slug = 'coach-' + pseudo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+  try {
+    const d = await teamWrite(TEAM_COACHS, (cur) => { const l = coachClean(cur && cur.coachs); if (!l.some((x) => x.slug === slug)) l.push({ slug, pseudo }); return { coachs: l }; }, 'Coachs de l’équipe');
+    return { ok: true, slug, coachs: coachClean(d.coachs) };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
 const isStaffHere = () => { const st = coachState(); return st.coach || st.chef || st.admin; };
 async function roles() {
   try { const d = await teamRead(ROLES); return { ok: true, modos: (d && Array.isArray(d.modos) ? d.modos : []).map(String).slice(0, 20) }; }
@@ -2384,4 +2400,4 @@ async function appsRelay() {
 const appsRelay0 = appsRelay;
 appsRelay = async function () { const r = await appsRelay0(); try { await launcherRelay(); } catch (e) { /* */ } return r; };
 
-module.exports = { maintGet, rwRemoteGet, rwRemotePost, rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { coachsList, coachsAdd, maintGet, rwRemoteGet, rwRemotePost, rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

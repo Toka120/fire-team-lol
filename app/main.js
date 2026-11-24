@@ -536,6 +536,8 @@ ipcMain.handle('config', async () => {
   return teamCfg(j);
 });
 ipcMain.handle('maint:get', () => coach.maintGet());
+ipcMain.handle('coachs:list', () => coach.coachsList());
+ipcMain.handle('coachs:add', (e, pseudo) => coach.coachsAdd(pseudo));
 ipcMain.handle('app:quit', () => { quitting = true; setTimeout(() => app.quit(), 200); return true; });
 ipcMain.handle('rw:remote', (e, ids) => coach.rwRemoteGet(ids));
 ipcMain.handle('rw:publish', (e, data) => coach.rwRemotePost(data));

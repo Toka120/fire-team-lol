@@ -488,6 +488,7 @@
     // Récompenses : la connexion du jour (et au passage de minuit si FIRE reste ouvert).
     setTimeout(() => { try { rwLogin(); } catch (e) { console.error(e); } try { rwRemoteLoad(); } catch (e) { /* */ } }, 4000);
     maintStart();
+    setTimeout(() => { try { teamCoachsLoad(); } catch (e) { /* */ } }, 2500);
     setInterval(() => { try { rwLogin(); rwRemoteLoad(); } catch (e) { /* */ } }, 30 * 60000);
     chatInit();
     actInit();
@@ -595,6 +596,7 @@
         banFilter();
         try { markDuoFlex(); } catch (e) { /* données pas encore là */ }
         S.coachs = Array.isArray(c.coachs) ? c.coachs : [];
+        if (c.team_id) setTimeout(() => { try { teamCoachsLoad(); } catch (e) { /* */ } }, 0);
         S.cfgObj = (c.objectif && c.objectif.debut) ? c.objectif : null;
         applyWeek();
         renderUpdate();
@@ -10704,14 +10706,38 @@
     else S.flash = 'Non enregistré : ' + ((r && r.error) || 'erreur');
     if (S.section === 'planning' && !S.planEdit) render(); else renderNav();
   }
+  // Coachs d'une autre équipe (Bravo…) : la liste vient de l'équipe (chacun s'y ajoute avec le code coach).
+  async function teamCoachsLoad() {
+    if (!(S.cfg && S.cfg.team_id) || !window.fire.coachs) return;
+    const r = await window.fire.coachs.list().catch(() => null);
+    if (!r || !r.ok) return;
+    const base = (S.cfg && Array.isArray(S.cfg.coachs) && S.cfg.coachs) || [];
+    const m = new Map([...base, ...r.coachs].map((c) => [c.slug, c]));
+    S.coachs = [...m.values()];
+    if ((S.section === 'planning' && !S.planEdit) && !typing()) render();
+  }
+  function teamCoachAdd(after) {
+    const inp = h('input', { class: 'inp', maxlength: 30, placeholder: 'Ton nom de coach (ex. : Dream)', style: 'max-width:260px' });
+    const err = h('span', { class: 'bad small' });
+    const go_ = async () => {
+      const r = await window.fire.coachs.add(inp.value).catch((e) => ({ ok: false, error: String(e) }));
+      if (r && r.ok) { S.moi = r.slug; save('fire.moi', r.slug); save('fire.moi.demande', true); await teamCoachsLoad(); S.flash = '🎓 Tu es dans la liste des coachs : mets tes dispos dans le planning.'; if (after) after(r.slug); render(); }
+      else err.textContent = (r && r.error) || 'impossible';
+    };
+    inp.onkeydown = (e) => { if (e.key === 'Enter') go_(); };
+    return h('div', { class: 'card pc-coach' }, h('h2', null, '🎓 Tu es coach de ' + (S.cfg.team_name || 'l’équipe')),
+      h('p', { class: 'muted small' }, 'Ajoute-toi à la liste des coachs : tes dispos apparaîtront dans le planning, et les joueurs pourront demander un créneau.'),
+      h('div', { class: 'row' }, inp, h('button', { class: 'btn-fire small-btn', onclick: go_ }, 'M’ajouter comme coach'), err));
+  }
   function coachPlanning(nodes, days, t, mon) {
     if (!S.plan) S.plan = planFrom({});
     const coachMode = !!S.coachState.coach;
     const meP = S.moi && S.players.some((x) => x.slug === S.moi);
     const can = planCanWrite() && !S.planBusy;
     const list = S.coachs || [];
-    if (!list.length) { nodes.push(h('div', { class: 'card plan-empty' }, h('p', { class: 'muted' }, 'Aucun coach dans l’équipe pour le moment.'))); return; }
-    if (!coachMode && S.moi && !meP && coachOf(S.moi)) nodes.push(h('p', { class: 'muted small' }, '🎓 Pour mettre tes dispos et valider les demandes, active le code coach sur ce PC (onglet « Parole du coach »).'));
+    if (coachMode && S.cfg && S.cfg.team_id && window.fire.coachs && !list.some((c) => c.slug === S.moi)) nodes.push(teamCoachAdd());
+    if (!list.length) { nodes.push(h('div', { class: 'card plan-empty' }, h('p', { class: 'muted' }, 'Aucun coach dans l’équipe pour le moment.' + (S.cfg && S.cfg.team_id ? ' Un coach entre son code avec le bouton 🔑 CODE, puis s’ajoute ici.' : '')))); return; }
+    if (!coachMode && S.moi && !meP && coachOf(S.moi)) nodes.push(h('p', { class: 'muted small' }, S.cfg && S.cfg.team_id ? '🎓 Pour mettre tes dispos et valider les demandes, entre le code coach de ton équipe avec le bouton 🔑 CODE.' : '🎓 Pour mettre tes dispos et valider les demandes, active le code coach sur ce PC (onglet « Parole du coach »).'));
     for (const c of list) {
       const daysOn = days.filter((d) => (S.plan.coachs[d] || {})[c.slug]);
       const slotEl = (d, hr, past) => {
@@ -13013,6 +13039,7 @@
         h('span', { class: 'who-ico' }, roleOf(p).ico), h('span', { class: 'who-n' }, String(p.pseudo).split('#')[0]), h('span', { class: 'muted small' }, p.role || roleOf(p).label))),
         (SUB() ? [] : (S.coachs || [])).map((c) => h('button', { class: 'who-p coach', onclick: () => close(c.slug) },
           h('span', { class: 'who-ico' }, '🎓'), h('span', { class: 'who-n' }, c.pseudo), h('span', { class: 'muted small' }, 'Coach')))),
+      S.cfg && S.cfg.team_id && S.coachState && S.coachState.coach && window.fire.coachs && !(S.coachs || []).some((c) => c.slug === S.moi) ? teamCoachAdd((slug) => close(slug)) : null,
       h('div', { class: 'row' }, SUB() ? null : h('button', { class: 'btn-fire small-btn', onclick: () => { box.remove(); askNew(true); } }, '🆕 Je ne suis pas dans la liste'), h('button', { class: 'btn-ghost', onclick: () => close(null) }, 'Plus tard'))));
     document.body.append(box);
   }
