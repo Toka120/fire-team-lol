@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "2.0.32",
+   "date": "2026-11-24",
+   "titre": "Clé Premium Joueur : tout FIRE comme Alpha",
+   "items": [
+    [
+     "new",
+     "La clé Premium Joueur donne maintenant tout FIRE comme l'équipe Alpha : les lanes avec diaporamas, quiz et scénarios, tout l'apprentissage, l'analyse complète des stats, la draft en direct et la boutique complète (packs compris)."
+    ],
+    [
+     "new",
+     "Le joueur n'apparaît pas dans Alpha et ne voit rien de l'équipe : ni stats de l'équipe, ni planning, ni discussion, ni vocal, ni coaching."
+    ],
+    [
+     "fix",
+     "Les anciennes clés Premium Complet donnent la même chose ; il n'y a plus qu'une seule clé Premium à créer."
+    ],
+    [
+     "new",
+     "FIRE Launcher 2.0.12 : le comparatif des formules est mis à jour."
+    ]
+   ]
+  },
+  {
    "v": "2.0.31",
    "date": "2026-11-24",
    "titre": "Corrections des bugs signalés",
