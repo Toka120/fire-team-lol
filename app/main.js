@@ -1276,6 +1276,9 @@ ipcMain.handle('pub:optins', () => coach.publicOptins());
 ipcMain.handle('plan:set', (e, key) => coach.planSet(String(key || '').slice(0, 2000)));
 ipcMain.handle('plan:clear', () => coach.planClear());
 ipcMain.handle('plan:make', (e, who, plan) => coach.planKeyMake(who, plan));
+ipcMain.handle('dev:make', (e, who, niveau) => coach.devKeyMake(who, niveau));
+ipcMain.handle('dev:set', (e, key) => coach.devSet(String(key || '').slice(0, 3000)));
+ipcMain.handle('dev:clear', () => coach.devClear());
 // Repère pour le FIRE Launcher : la version exacte qui tourne, et où elle est installée.
 app.whenReady().then(() => { try { const f = path.join(process.env.LOCALAPPDATA || path.join(require('os').homedir(), 'AppData', 'Local'), 'FIRE', 'team.json'); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify({ v: 1, version: app.getVersion(), exe: process.execPath, at: Date.now() })); } catch (e) { /* */ } });
 // Sur le PC du créateur : sa clé Kiting + Listen posée dans les deux apps, et le repère « mode admin » du launcher.

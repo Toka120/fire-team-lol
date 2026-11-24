@@ -273,7 +273,11 @@ function coachState() {
   // Le créateur a les droits du coach et du chef d'équipe (les clés Claude/GitHub restent celles du coach).
   const remplacant = !teamKey() && rempOn();
   if (remplacant) return { coach: false, claude: false, github: false, chef: false, admin: false, remplacant: true };
-  return { coach: on || admin, claude: on && !!c.anthropic, github: on && !!c.github, chef: chefOn() || admin, admin, remplacant: false };
+  // Code admin donné par le créateur : mêmes droits d'équipe que lui (pas les clés ni les équipes). Code dev : voit tout, ne publie rien.
+  const dv = devCert();
+  const deleg = !admin && !!(dv && dv.niveau === 'admin');
+  const adm = admin || deleg;
+  return { coach: on || adm, claude: on && !!c.anthropic, github: on && !!c.github, chef: chefOn() || adm, admin: adm, createur: admin, dev: admin ? '' : (dv ? dv.niveau : ''), devWho: dv ? dv.who : '', remplacant: false };
 }
 
 // ---------- Chef d'équipe : peut modifier le planning (code chef, donné par le coach) ----------
@@ -1151,7 +1155,7 @@ const annTo = (to) => [...new Set((Array.isArray(to) ? to : []).map((x) => Strin
 const annCanon = (a) => 'FIRE-annonce:' + JSON.stringify([String(a.id), Number(a.at), String(a.by || ''), String(a.texte || ''), Number(a.min) || 5].concat(annTo(a.to).length ? [annTo(a.to)] : []));
 function annVerify(a) {
   if (!a || !a.sig) return false;
-  for (const k of (getConfig().admins || [])) {
+  for (const k of adminPubs()) {
     try {
       if (k && k.pub && crypto.verify('sha256', Buffer.from(annCanon(a)), crypto.createPublicKey({ key: Buffer.from(String(k.pub), 'base64'), format: 'der', type: 'spki' }), Buffer.from(String(a.sig), 'base64'))) return true;
     } catch (e) { /* clé suivante */ }
@@ -1163,6 +1167,7 @@ const annPub = (a) => { const o = annClean(a); delete o.sig; return o; };
 // Lit l'annonce (fichier reçu de PC à PC, sinon le dépôt) ; null si elle n'est pas signée par le créateur.
 // « moi » : les annonces privées ne sont rendues qu'à leurs destinataires (le créateur et le staff les voient toutes).
 async function annonceGet(f, moi) {
+  await planRevoked().catch(() => {}); // admins délégués à jour avant de vérifier les signatures
   try {
     if (!f) {
       const dr = getConfig().data_repo || null;
@@ -1175,7 +1180,7 @@ async function annonceGet(f, moi) {
     if (teamKey() && f.team) {
       try { const d = open(f.team); cur = d && d.cur; hist = (d && Array.isArray(d.hist) ? d.hist : []).map(annPub); priv = d && Array.isArray(d.priv) ? d.priv : []; } catch (e) { cur = null; }
     } else if (f.remp) { cur = rempOpen(f.remp); priv = (Array.isArray(f.rempPriv) ? f.rempPriv : []).map(rempOpen).filter(Boolean); }
-    const all = adminOn() || isStaffHere();
+    const all = adminLike() || isStaffHere();
     const me = String(moi || '');
     priv = priv.filter((a) => a && annTo(a.to).length && annVerify(a) && (all || (me && annTo(a.to).includes(me)))).map(annPub);
     const ok = cur && !annTo(cur.to).length && annVerify(cur);
@@ -1186,8 +1191,9 @@ async function annonceGet(f, moi) {
 // subs : destinataires remplaçants (ils ne lisent que la partie « remp » du fichier).
 async function annoncePost(texte, who, retirer, to, subs, also) {
   to = annTo(to); subs = annTo(subs).filter((x) => to.includes(x));
-  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
-  const k = adminKey();
+  if (!adminLike()) return { ok: false, error: 'réservé au créateur et aux admins' };
+  await planRevoked();
+  const k = signKey();
   const dr = getConfig().data_repo || null;
   const tok = dr ? await teamToken() : null;
   if (!dr || !tok) return { ok: false, error: "le coach n'a pas encore activé le jeton d'équipe" };
@@ -1280,12 +1286,13 @@ function appCfgClean(c) {
 const appCfgCanon = (a) => 'FIRE-appcfg:' + JSON.stringify([Number(a.at), String(a.by || ''), appCfgClean(a.cfg)]);
 function appCfgVerify(a) {
   if (!a || !a.sig) return false;
-  for (const k of (getConfig().admins || [])) {
+  for (const k of adminPubs()) {
     try { if (k && k.pub && crypto.verify('sha256', Buffer.from(appCfgCanon(a)), crypto.createPublicKey({ key: Buffer.from(String(k.pub), 'base64'), format: 'der', type: 'spki' }), Buffer.from(String(a.sig), 'base64'))) return true; } catch (e) { /* clé suivante */ }
   }
   return false;
 }
 async function appCfgGet() {
+  await planRevoked().catch(() => {}); // admins délégués à jour avant de vérifier les signatures
   try {
     const dr = getConfig().data_repo || null;
     if (!dr) return { ok: true, cfg: null };
@@ -1303,7 +1310,7 @@ async function appCfgGet() {
 // dans la personnalisation signée : une image modifiée par quelqu'un d'autre est refusée.
 const assetPath = (id) => 'admin/assets/' + sid(id) + '.json';
 async function appAssetPut(id, data) {
-  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  if (!adminLike()) return { ok: false, error: 'réservé au créateur et aux admins' };
   id = sid(id); data = String(data || '');
   if (!id || !/^data:image\/(png|gif|webp|jpeg);base64,[A-Za-z0-9+/=]+$/.test(data)) return { ok: false, error: 'image PNG, GIF, WebP ou JPEG attendue' };
   if (data.length > 2200000) return { ok: false, error: 'image trop lourde (1,5 Mo au maximum)' };
@@ -1336,8 +1343,8 @@ async function appAssetGet(id, sum) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 async function appCfgPost(cfg, who) {
-  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
-  const k = adminKey();
+  if (!adminLike()) return { ok: false, error: 'réservé au créateur et aux admins' };
+  const k = signKey();
   const dr = getConfig().data_repo || null;
   const tok = dr ? await teamToken() : null;
   if (!dr || !tok) return { ok: false, error: "le coach n'a pas encore activé le jeton d'équipe" };
@@ -1370,7 +1377,7 @@ async function annonceLu(id, slug, at) {
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 async function annonceLus(slugs) {
-  if (!adminOn() && !isStaffHere()) return { ok: false, error: 'réservé au staff' };
+  if (!adminLike() && !isStaffHere()) return { ok: false, error: 'réservé au staff' };
   const list = (Array.isArray(slugs) ? slugs : []).map(String).slice(0, 60);
   const out = {};
   await Promise.all(list.map(async (sl) => { try { const d = await teamRead(annLuPath(sl)); if (d && d.lus) out[sl] = d.lus; } catch (e) { /* illisible */ } }));
@@ -1956,12 +1963,80 @@ function canonJ(v) {
   return '{' + Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + canonJ(v[k])).join(',') + '}';
 }
 const p1363 = (key) => ({ key, dsaEncoding: 'ieee-p1363' });
-function byAdmin(sigB64u, data) {
-  for (const a of (getConfig().admins || [])) {
+// byAdmin : seulement la clé du créateur (clés, certificats, maintenance). byAdminC : aussi les admins délégués (contenus publiés).
+function byAdmin(sigB64u, data, list) {
+  for (const a of (list || getConfig().admins || [])) {
     try { if (crypto.verify('sha256', Buffer.from(data), p1363(crypto.createPublicKey({ key: Buffer.from(String(a.pub), 'base64'), format: 'der', type: 'spki' })), Buffer.from(String(sigB64u), 'base64url'))) return true; } catch (e) { /* clé suivante */ }
   }
   return false;
 }
+const byAdminC = (sig, data) => byAdmin(sig, data, adminPubs());
+// ---------- Codes dev / admin donnés par le créateur ----------
+// FIREDEV1.<certificat>.<signature du créateur>[.<clé privée>] : « dev » voit tout FIRE et les menus Admin sans rien publier ;
+// « admin » publie aussi (annonces, cadeaux, personnalisation, page publique) avec sa propre clé, listée par le créateur
+// dans apps/keys.json (« delegues »). Retirer le code l'enlève de cette liste : ses droits tombent partout.
+const DEV_LV = ['dev', 'admin'];
+function devParse(str) {
+  const m = /^FIREDEV1\.([\w-]+)\.([\w-]+)(?:\.([\w-]+))?$/.exec(String(str || '').replace(/\s+/g, ''));
+  if (!m || !byAdmin(m[2], m[1])) return null;
+  try {
+    const c = JSON.parse(Buffer.from(m[1], 'base64url').toString('utf8'));
+    if (!(c && c.v === 1 && DEV_LV.includes(c.niveau) && /^dv_[0-9a-f]{10}$/.test(c.id))) return null;
+    if (c.niveau === 'admin') {
+      if (!c.pub || !m[3]) return null;
+      // La clé privée collée doit bien être celle du certificat.
+      const pub = crypto.createPublicKey(crypto.createPrivateKey({ key: Buffer.from(m[3], 'base64url'), format: 'der', type: 'pkcs8' })).export({ type: 'spki', format: 'der' }).toString('base64');
+      return pub === c.pub ? { ...c, priv: m[3] } : null;
+    }
+    return c;
+  } catch (e) { return null; }
+}
+const revokedNow = () => (planRevCache && planRevCache.set) || new Set(loadCache('plan-revoked') || []);
+let devMemo = { at: 0, v: null };
+function devCert() {
+  if (Date.now() - devMemo.at < 30000) return devMemo.v;
+  const s = readSecret('dev.bin');
+  const c = s && s.key ? devParse(s.key) : null;
+  devMemo = { at: Date.now(), v: c && !revokedNow().has(c.id) ? c : null };
+  return devMemo.v;
+}
+let delegCache = null;
+const delegPubs = () => { if (!delegCache) delegCache = loadCache('plan-deleg') || []; return delegCache; };
+const adminPubs = () => [...(getConfig().admins || []), ...delegPubs()].filter((a) => a && a.pub);
+const adminLike = () => adminOn() || !!(devCert() && devCert().niveau === 'admin');
+// Clé qui signe ce que publie ce PC : celle du créateur, sinon celle de son code admin.
+function signKey() {
+  if (adminOn()) return adminKey();
+  const c = devCert();
+  return c && c.niveau === 'admin' ? { pub: c.pub, priv: { key: Buffer.from(c.priv, 'base64url'), format: 'der', type: 'pkcs8' } } : null;
+}
+async function devKeyMake(who, niveau) {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  who = String(who || '').trim().slice(0, 40);
+  if (!who) return { ok: false, error: 'indique pour qui est le code' };
+  if (!DEV_LV.includes(niveau)) return { ok: false, error: 'niveau inconnu' };
+  const k = adminKey();
+  const cert = { v: 1, id: 'dv_' + crypto.randomBytes(5).toString('hex'), who, niveau, at: Date.now() };
+  let priv = '';
+  if (niveau === 'admin') { const kp = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' }); cert.pub = kp.publicKey.export({ type: 'spki', format: 'der' }).toString('base64'); priv = b64u(kp.privateKey.export({ type: 'pkcs8', format: 'der' })); }
+  const c = b64u(JSON.stringify(cert));
+  const key = 'FIREDEV1.' + c + '.' + b64u(crypto.sign('sha256', Buffer.from(c), p1363(crypto.createPrivateKey(k.priv)))) + (priv ? '.' + priv : '');
+  const d = appKeysLocal();
+  d.issued.push({ id: cert.id, who, apps: [], dev: niveau, pub: cert.pub || '', at: cert.at, key });
+  writeSecret('appkeys.bin', d);
+  let warn = null;
+  try { await appKeysPublish(d); } catch (e) { warn = String((e && e.message) || e); }
+  return { ok: true, id: cert.id, key, warn };
+}
+async function devSet(key) {
+  const c = devParse(key);
+  if (!c) return { ok: false, error: 'ce n’est pas un code dev valide (il commence par FIREDEV1.)' };
+  if ((await planRevoked(true)).has(c.id)) return { ok: false, error: 'ce code a été retiré par le créateur' };
+  writeSecret('dev.bin', { key: String(key).replace(/\s+/g, '') });
+  devMemo = { at: 0, v: null }; adminCache = null;
+  return { ok: true, niveau: c.niveau, who: c.who };
+}
+function devClear() { removeFile('dev.bin'); devMemo = { at: 0, v: null }; return { ok: true }; }
 function appCert(by) {
   const [c, s] = String(by || '').split('.');
   if (!c || !s || !byAdmin(s, c)) return null;
@@ -1973,7 +2048,8 @@ async function appKeysPublish(d) {
   const dr = getConfig().data_repo || null;
   const tok = dr ? await teamToken() : null;
   if (!dr || !tok) throw new Error("le coach n'a pas encore activé le jeton d'équipe");
-  const payload = { v: 1, at: Date.now(), revoked: d.revoked.slice(), issued: d.issued.map((x) => ({ id: x.id, who: x.who, apps: x.apps, at: x.at })) };
+  const payload = { v: 1, at: Date.now(), revoked: d.revoked.slice(), issued: d.issued.map((x) => ({ id: x.id, who: x.who, apps: x.apps, at: x.at, ...(x.dev ? { dev: x.dev } : {}) })),
+    delegues: d.issued.filter((x) => x.dev === 'admin' && x.pub && !d.revoked.includes(x.id)).map((x) => ({ id: x.id, nom: x.who, pub: x.pub })) };
   const file = { payload, sig: b64u(crypto.sign('sha256', Buffer.from(canonJ(payload)), p1363(crypto.createPrivateKey(k.priv)))) };
   for (let i = 0; i < 4; i++) {
     const cur = await ghGet(tok, APPS_KEYS, dr);
@@ -2106,21 +2182,22 @@ function publicClean(p) {
 }
 let pubCache = null;
 async function publicGet() {
+  await planRevoked().catch(() => {}); // admins délégués à jour avant de vérifier les signatures
   const dr = getConfig().data_repo || null;
   let f = null;
   try { f = dr ? await readPublic(PUBLIC_FILE, dr, null) : null; if (f) saveCache('public', f); } catch (e) { f = loadCache('public'); }
   if (!f) f = loadCache('public');
-  if (!f || !f.payload || !f.sig || !byAdmin(f.sig, canonJ(f.payload))) return { ok: true, page: null };
+  if (!f || !f.payload || !f.sig || !byAdminC(f.sig, canonJ(f.payload))) return { ok: true, page: null };
   pubCache = { ...publicClean(f.payload), at: Number(f.payload.at) || 0 };
   return { ok: true, page: pubCache };
 }
 async function publicPost(page) {
-  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  if (!adminLike()) return { ok: false, error: 'réservé au créateur et aux admins' };
   const dr = getConfig().data_repo || null;
   const tok = dr ? await teamToken() : null;
   if (!dr || !tok) return { ok: false, error: "FIRE Team n'est pas connecté à l'équipe" };
   const payload = { v: 1, at: Date.now(), ...publicClean(page) };
-  const file = { payload, sig: b64u(crypto.sign('sha256', Buffer.from(canonJ(payload)), p1363(crypto.createPrivateKey(adminKey().priv)))) };
+  const file = { payload, sig: b64u(crypto.sign('sha256', Buffer.from(canonJ(payload)), p1363(crypto.createPrivateKey(signKey().priv)))) };
   for (let i = 0; i < 4; i++) {
     const cur = await ghGet(tok, PUBLIC_FILE, dr);
     const r = await ghPut(tok, PUBLIC_FILE, file, cur && cur.sha, 'Page publique des équipes', dr);
@@ -2181,18 +2258,19 @@ function rwClean(p) {
   return { gifts, events };
 }
 async function rwRemoteGet(ids) {
+  await planRevoked().catch(() => {}); // admins délégués à jour avant de vérifier les signatures
   const dr = getConfig().data_repo || null;
   let f = null;
   try { f = dr ? await readPublic(RW_FILE, dr, null) : null; if (f) saveCache('recompenses', f); } catch (e) { f = loadCache('recompenses'); }
   if (!f) f = loadCache('recompenses');
-  if (!f || !f.payload || !f.sig || !byAdmin(f.sig, canonJ(f.payload))) return { ok: true, gifts: [], events: [], all: null };
+  if (!f || !f.payload || !f.sig || !byAdminC(f.sig, canonJ(f.payload))) return { ok: true, gifts: [], events: [], all: null };
   const c = rwClean(f.payload);
   const mine = new Set((Array.isArray(ids) ? ids : []).map(String).filter(Boolean).slice(0, 10).map(rwHash));
   return { ok: true, at: Number(f.payload.at) || 0, gifts: c.gifts.filter((g) => g.to.includes('*') || g.to.some((h) => mine.has(h))).map(({ to, ...g }) => ({ ...g, all: to.includes('*') })),
-    events: c.events, all: adminOn() ? c : null };
+    events: c.events, all: adminLike() ? c : null };
 }
 async function rwRemotePost(data, names) {
-  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  if (!adminLike()) return { ok: false, error: 'réservé au créateur' };
   const dr = getConfig().data_repo || null;
   const tok = dr ? await teamToken() : null;
   if (!dr || !tok) return { ok: false, error: "FIRE Team n'est pas connecté à l'équipe" };
@@ -2200,7 +2278,7 @@ async function rwRemotePost(data, names) {
   const d = { ...(data || {}) };
   d.gifts = (Array.isArray(d.gifts) ? d.gifts : []).map((g) => ({ ...g, to: (g.to || []).map((x) => (x === '*' || /^[0-9a-f]{16}$/.test(x) ? x : rwHash(x))) }));
   const payload = { v: 1, at: Date.now(), ...rwClean(d) };
-  const file = { payload, sig: b64u(crypto.sign('sha256', Buffer.from(canonJ(payload)), p1363(crypto.createPrivateKey(adminKey().priv)))) };
+  const file = { payload, sig: b64u(crypto.sign('sha256', Buffer.from(canonJ(payload)), p1363(crypto.createPrivateKey(signKey().priv)))) };
   for (let i = 0; i < 4; i++) {
     const cur = await ghGet(tok, RW_FILE, dr);
     const r = await ghPut(tok, RW_FILE, file, cur && cur.sha, 'Récompenses : cadeaux et événements', dr);
@@ -2244,12 +2322,16 @@ function planParse(str) {
   try { const c = JSON.parse(Buffer.from(m[1], 'base64url').toString('utf8')); return c && c.v === 1 && PLANS.includes(c.plan) && /^pl_[0-9a-f]{10}$/.test(c.id) ? c : null; } catch (e) { return null; }
 }
 let planRevCache = { at: 0, set: null };
-async function planRevoked() {
-  if (planRevCache.set && Date.now() - planRevCache.at < 600000) return planRevCache.set;
+async function planRevoked(fresh) {
+  if (planRevCache.set && !fresh && Date.now() - planRevCache.at < 600000) return planRevCache.set;
   const dr = getConfig().data_repo || null;
   try {
     const kf = dr ? await readPublic(APPS_KEYS, dr, null) : null;
-    if (kf && kf.payload && byAdmin(kf.sig, canonJ(kf.payload))) { planRevCache = { at: Date.now(), set: new Set((kf.payload.revoked || []).map(String)) }; saveCache('plan-revoked', [...planRevCache.set]); }
+    if (kf && kf.payload && byAdmin(kf.sig, canonJ(kf.payload))) {
+      planRevCache = { at: Date.now(), set: new Set((kf.payload.revoked || []).map(String)) }; saveCache('plan-revoked', [...planRevCache.set]);
+      delegCache = (Array.isArray(kf.payload.delegues) ? kf.payload.delegues : []).filter((x) => x && x.pub && !planRevCache.set.has(String(x.id))).map((x) => ({ id: String(x.id), nom: String(x.nom || ''), pub: String(x.pub) }));
+      saveCache('plan-deleg', delegCache); devMemo = { at: 0, v: null }; adminCache = null;
+    }
   } catch (e) { /* hors ligne : dernière liste connue */ }
   if (!planRevCache.set) planRevCache.set = new Set(loadCache('plan-revoked') || []);
   return planRevCache.set;
@@ -2422,4 +2504,4 @@ async function appsRelay() {
 const appsRelay0 = appsRelay;
 appsRelay = async function () { const r = await appsRelay0(); try { await launcherRelay(); } catch (e) { /* */ } return r; };
 
-module.exports = { planningOf, coachsList, coachsAdd, maintGet, rwRemoteGet, rwRemotePost, rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { devKeyMake, devSet, devClear, planningOf, coachsList, coachsAdd, maintGet, rwRemoteGet, rwRemotePost, rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

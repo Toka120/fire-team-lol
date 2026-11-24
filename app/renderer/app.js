@@ -479,7 +479,7 @@
       window.fire.update.on((m) => { S.upd = { ...S.upd, ...m }; renderUpdate(); });
       window.fire.update.state().then((m) => { S.upd = { ...m, ...S.upd, auto: m.auto, portable: m.portable, store: m.store }; renderUpdate(); }).catch(() => {});
     }
-    if (window.fire.onNotifyGo) window.fire.onNotifyGo((sec) => { if (sec === 'admin:appkeys') { if (!isAdmin()) return; admOpen(); ADM.tab = 'apps'; go('admin'); } else if (sec === 'chat') go('chat'); else if (sec) go(sec); });
+    if (window.fire.onNotifyGo) window.fire.onNotifyGo((sec) => { if (sec === 'admin:appkeys') { if (!isCreator()) return; admOpen(); ADM.tab = 'apps'; go('admin'); } else if (sec === 'chat') go('chat'); else if (sec) go(sec); });
     if (window.fire.background) window.fire.background.get().then((b) => { S.bg = b; if (S.section === 'settings' && !typing()) renderSettings(); }).catch(() => {});
     renderUpdate();
     // Page d'ouverture choisie dans Paramètres (ou la dernière page ouverte).
@@ -3172,7 +3172,7 @@
   const isModo = (slug) => (STF.modos || []).includes(slug || vocalMe());
   const isStaff = () => !!(S.coachState.coach || S.coachState.chef || S.coachState.admin || isModo());
   const roleBadge = (slug) => {
-    if (slug === vocalMe() && S.coachState.admin) return h('span', { class: 'role-b admin', title: 'Créateur de FIRE' }, '👑');
+    if (slug === vocalMe() && S.coachState.admin) return h('span', { class: 'role-b admin', title: isCreator() ? 'Créateur de FIRE' : 'Admin de FIRE' }, '👑');
     if (coachOf(slug)) return h('span', { class: 'role-b coach', title: 'Coach' }, 'COACH');
     if (isModo(slug)) return h('span', { class: 'role-b modo', title: 'Modérateur' }, 'MODO');
     return null;
@@ -3306,7 +3306,7 @@
       body = h('div', null,
         h('div', { class: 'card' }, h('h2', null, '👑 Les rôles'),
           h('p', { class: 'small' }, '👑 Créateur : tous les droits, seulement sur son PC. 🎓 Coachs : code coach. ⭐ Chef d’équipe : code chef. 🛡️ Modérateurs : choisis ici par un coach ou le créateur (carnet de bord, suppression de messages, salons).'),
-          S.coachState.admin ? h('p', { class: 'good small' }, '👑 Tu es le créateur sur ce PC : tous les droits.') : null),
+          S.coachState.admin ? h('p', { class: 'good small' }, isCreator() ? '👑 Tu es le créateur sur ce PC : tous les droits.' : '👑 Tu es admin (code donné par le créateur) : droits de staff et publication.') : null),
         h('div', { class: 'card' }, h('h2', null, '🛡️ Modérateurs'),
           members().filter(([sl]) => !coachOf(sl)).map(([sl, ico, n]) => h('label', { class: 'nrow' }, h('input', { type: 'checkbox', checked: sel.has(sl) ? true : null, disabled: canSet ? null : true,
             onchange: async (e) => { if (e.target.checked) sel.add(sl); else sel.delete(sl); const r = await window.fire.staff.rolesSave([...sel], vocalMe()).catch((er) => ({ ok: false, error: String(er) }));
@@ -3324,6 +3324,9 @@
   // Paramètres › Mon compte : préparer ce PC pour le rôle de créateur (clé gardée par Windows sur ce PC).
   function adminCard() {
     if (!window.fire.staff) return null;
+    if (S.coachState.dev) return uxCard(S.coachState.dev === 'admin' ? '👑 Code admin' : '🧪 Code dev', null,
+      h('p', { class: 'good' }, S.coachState.dev === 'admin' ? `👑 Code admin${S.coachState.devWho ? ' de ' + S.coachState.devWho : ''} : droits de staff, menu Admin, annonces, cadeaux et page publique.` : `🧪 Code dev${S.coachState.devWho ? ' de ' + S.coachState.devWho : ''} : tu vois tout FIRE et le menu Admin, sans rien publier.`),
+      h('button', { class: 'btn-ghost small-btn', onclick: async () => { if (!confirm('Retirer le code dev / admin de ce PC ?')) return; await window.fire.dev.clear().catch(() => {}); location.reload(); } }, 'Retirer le code de ce PC'));
     if (S.coachState.admin) return uxCard('👑 Créateur', null, h('p', { class: 'good' }, '👑 Tu es le créateur de FIRE sur ce PC : tous les droits (coach, chef d’équipe, modération, carnet de bord).'));
     const a = STF.admin;
     return uxCard('👑 Rôle de créateur', 'Tous les droits, seulement sur TON ordinateur. FIRE crée une clé gardée par Windows sur ce PC : elle ne marche sur aucun autre.',
@@ -4860,6 +4863,12 @@
           }
           say('⚠ ' + ((r && r.error) || (r && r.revoked ? 'cette clé a été retirée' : 'clé refusée')), 'bad'); return;
         }
+        // 1b. Code dev / admin donné par le créateur
+        if (/^FIREDEV1\./i.test(v.replace(/\s+/g, ''))) {
+          const r = window.fire.dev ? await window.fire.dev.set(v).catch(() => null) : null;
+          if (r && r.ok) { say(r.niveau === 'admin' ? `👑 Code admin accepté${r.who ? ' (' + r.who + ')' : ''} : FIRE redémarre…` : `🧪 Code dev accepté${r.who ? ' (' + r.who + ')' : ''} : FIRE redémarre…`, 'ok'); setTimeout(() => location.reload(), 1300); return; }
+          say('⚠ ' + ((r && r.error) || 'code refusé'), 'bad'); return;
+        }
         // 2. Code d'équipe, de remplaçant ou de coach (il peut aussi faire passer ce PC sur une autre équipe, comme Bravo)
         const u = await window.fire.unlock(v).catch(() => null);
         if (u && u.ok) {
@@ -4890,7 +4899,8 @@
           h('li', null, '👥 Code d’équipe (Alpha, Bravo…) ou de remplaçant : ouvre l’espace de ton équipe.'),
           h('li', null, '👑 Code chef : à entrer après le code de ton équipe.'),
           h('li', null, '🎓 Code coach : les outils du coach.'),
-          h('li', null, '⭐ Clé Premium (FIREPLAN1…) : Premium Joueur ou Premium Complet, sans équipe.'))));
+          h('li', null, '⭐ Clé Premium (FIREPLAN1…) : Premium Joueur ou Premium Complet, sans équipe.'),
+          h('li', null, '🧪 Code dev ou admin (FIREDEV1…) : donné par le créateur.'))));
     document.body.append(el);
     setTimeout(() => inp.focus(), 30);
   }
@@ -10620,7 +10630,7 @@
   }
 
   // Créateur (FIRE en équipe Alpha) : il peut regarder le planning des autres équipes, sans rien y changer.
-  const planTeamsOk = () => isAdmin() && !(S.cfg && S.cfg.team_id) && !!(window.fire.teams && window.fire.teams.planning);
+  const planTeamsOk = () => isCreator() && !(S.cfg && S.cfg.team_id) && !!(window.fire.teams && window.fire.teams.planning);
   function planTeamBar() {
     if (!planTeamsOk()) return null;
     if (!S.planTeams) { S.planTeams = []; window.fire.teams.info().then((r) => { S.planTeams = r && r.ok ? r.teams : []; if (S.section === 'planning' && !S.planEdit && !typing()) render(); }).catch(() => {}); }
@@ -12045,7 +12055,7 @@
     const me = vocalMe() || S.moi || '';
     const who = annRoster().filter((x) => x.slug !== me && x.slug !== S.moi);
     // Créateur : l'annonce d'équipe peut aussi partir aux autres équipes activées (Bravo…).
-    if (ANN.teams === null && window.fire.teams && S.coachState && S.coachState.admin && !(S.cfg && S.cfg.team_id)) {
+    if (ANN.teams === null && window.fire.teams && isCreator() && !(S.cfg && S.cfg.team_id)) {
       ANN.teams = [];
       window.fire.teams.info().then((r) => { ANN.teams = (r && r.ok ? r.teams : []).filter((t) => t.active && t.key); if (ANN.teams.length && S.section === 'annonces' && !typing()) render(); }).catch(() => {});
     }
@@ -12164,7 +12174,10 @@
   let APPCFG = load('fire.appcfg', null);
   const ADM = { preview: null, draft: null, tab: 'look', page: null, msg: '', busy: false, at: 0 };
   const acfg = () => ADM.preview || APPCFG || {};
-  const isAdmin = () => !!(S.coachState && S.coachState.admin);
+  // isAdmin : menus Admin visibles (créateur, code admin, code dev). isCreator : seulement le PC du créateur (clés, équipes).
+  const isAdmin = () => !!(S.coachState && (S.coachState.admin || S.coachState.dev));
+  const isCreator = () => !!(S.coachState && S.coachState.admin && S.coachState.createur !== false);
+  const devRO = () => !!(S.coachState && S.coachState.dev === 'dev');
   const NEVER_HIDE = new Set(['accueil', 'settings', 'admin']);
   async function appCfgLoad() {
     if (!window.fire.appcfg) return;
@@ -12353,6 +12366,7 @@
     else { ADM.msg = '⚠ ' + ((r && r.error) || 'publication impossible'); renderAdmin(); }
   }
   // ----- Admin › Clés des apps : clés du menu admin de FIRE Kiting et FIRE Listen -----
+  const DEV_NAMES = { dev: '🧪 Code dev', admin: '👑 Code admin' };
   const AK = { list: null, who: '', apps: { kiting: true, listen: true }, last: null, msg: '', busy: false };
   function akLoad() { window.fire.appkeys.list().then((r) => { AK.list = (r && r.ok) ? r.keys : []; if (S.section === 'admin' && ADM.tab === 'apps') renderAdmin(); }).catch(() => { AK.list = []; }); }
   const akCopy = (k) => { try { navigator.clipboard.writeText(k); AK.msg = '📋 Clé copiée : envoie-la en message privé.'; } catch (e) { AK.msg = '⚠ Copie impossible : sélectionne la clé à la main.'; } renderAdmin(); };
@@ -12395,10 +12409,10 @@
           h('datalist', { id: 'ak-who' }, roster.map((p) => h('option', { value: String(p.pseudo || p.slug).split('#')[0] }))),
           ['kiting', 'listen'].map((a) => h('label', { class: 'adm-chk' }, h('input', { type: 'checkbox', checked: AK.apps[a] ? true : null, onchange: (e) => { AK.apps[a] = e.target.checked; } }), a === 'kiting' ? ' FIRE Kiting' : ' FIRE Listen')),
           h('button', { class: 'btn-fire small-btn', disabled: AK.busy ? true : null, onclick: make }, '🔑 Créer la clé'))),
-      AK.last ? h('div', { class: 'card adm-grp' }, h('b', null, `Clé de ${AK.last.who} (${AK.last.plan ? PLAN_NAMES[AK.last.plan] : appsTxt(AK.last.apps)})`),
+      AK.last ? h('div', { class: 'card adm-grp' }, h('b', null, `${AK.last.dev ? 'Code' : 'Clé'} de ${AK.last.who} (${AK.last.dev ? DEV_NAMES[AK.last.dev] : AK.last.plan ? PLAN_NAMES[AK.last.plan] : appsTxt(AK.last.apps)})`),
         h('textarea', { class: 'inp adm-keybox', readonly: true, rows: 4, onclick: (e) => e.target.select() }, AK.last.key),
         h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => akCopy(AK.last.key) }, '📋 Copier la clé')),
-        h('p', { class: 'muted small' }, AK.last.plan ? 'Envoie-la en message privé. Dans FIRE Team (version Classique) : Accueil ou Paramètres › « J’ai une clé Premium », puis colle la clé. Tu peux la retirer quand tu veux.' : 'Envoie-la en message privé. Dans FIRE Kiting ou FIRE Listen : bouton « 🔧 Admin », puis colle la clé. Garde-la secrète : elle permet de publier au nom de cette personne.')) : null,
+        h('p', { class: 'muted small' }, AK.last.dev ? 'Envoie-le en message privé : la personne le colle avec le bouton 🔑 CODE de FIRE Team. Garde-le secret, surtout un code admin : il permet de publier au nom de FIRE.' : AK.last.plan ? 'Envoie-la en message privé. Dans FIRE Team (version Classique) : Accueil ou Paramètres › « J’ai une clé Premium », puis colle la clé. Tu peux la retirer quand tu veux.' : 'Envoie-la en message privé. Dans FIRE Kiting ou FIRE Listen : bouton « 🔧 Admin », puis colle la clé. Garde-la secrète : elle permet de publier au nom de cette personne.')) : null,
       // Clés Premium Joueur : la version Basique + l'apprentissage, pour un joueur hors de l'équipe Alpha.
       window.fire.plan ? h('div', { class: 'card adm-grp' }, h('b', null, '⭐ Nouvelle clé Premium'),
         h('p', { class: 'muted small' }, 'Pour un joueur hors de l’équipe Alpha : il ouvre FIRE Team sans code, puis colle la clé avec le bouton 🔑 CODE (ou Accueil, Paramètres). Il a tout FIRE comme Alpha, sans en faire partie.'),
@@ -12414,10 +12428,26 @@
             else AK.msg = '⚠ ' + ((r && r.error) || 'création impossible');
             renderAdmin();
           } }, '⭐ Créer la clé'))) : null,
+      window.fire.dev ? h('div', { class: 'card adm-grp' }, h('b', null, '🧪 Nouveau code dev ou admin'),
+        h('p', { class: 'muted small' }, 'La personne le colle avec le bouton 🔑 CODE. Tu peux le retirer quand tu veux : ses droits tombent partout.'),
+        h('p', { class: 'muted small' }, '🧪 Dev : voit tout FIRE (toutes les rubriques, menu Admin, aperçus) mais ne publie rien pour les joueurs. 👑 Admin : droits de staff (coach, chef, modération) et publie aussi les annonces, les cadeaux et événements, la personnalisation et la page publique. Les clés, les codes, les équipes et la maintenance restent à toi seul.'),
+        h('div', { class: 'row' }, h('input', { class: 'inp', placeholder: 'Pour qui ? (pseudo)', value: AK.dwho || '', maxlength: 40, style: 'max-width:240px', oninput: (e) => { AK.dwho = e.target.value; } }),
+          h('select', { class: 'inp', style: 'max-width:200px', onchange: (e) => { AK.dlv = e.target.value; } }, [['dev', '🧪 Dev (lecture seule)'], ['admin', '👑 Admin']].map(([v, l]) => h('option', { value: v, selected: (AK.dlv || 'dev') === v ? true : null }, l))),
+          h('button', { class: 'btn-fire small-btn', disabled: AK.busy ? true : null, onclick: async () => {
+            if (!(AK.dwho || '').trim()) { AK.msg = '⚠ Indique pour qui est le code.'; renderAdmin(); return; }
+            const lv = AK.dlv || 'dev';
+            if (lv === 'admin' && !confirm(`Donner un code ADMIN à ${AK.dwho.trim()} ? Il pourra publier des annonces, des cadeaux et la personnalisation au nom de FIRE.`)) return;
+            AK.busy = true; renderAdmin();
+            const r = await window.fire.dev.make(AK.dwho.trim(), lv).catch((e) => ({ ok: false, error: String(e) }));
+            AK.busy = false;
+            if (r && r.ok) { AK.last = { who: AK.dwho.trim(), apps: [], dev: lv, key: r.key }; AK.dwho = ''; AK.msg = r.warn ? '⚠ Code créé, mais la liste de l’équipe n’a pas pu être mise à jour : ' + r.warn : `✅ Code ${lv === 'admin' ? 'admin' : 'dev'} créé.`; akLoad(); }
+            else AK.msg = '⚠ ' + ((r && r.error) || 'création impossible');
+            renderAdmin();
+          } }, '🧪 Créer le code'))) : null,
       AK.msg ? h('p', { class: 'small' }, AK.msg) : null,
       h('b', null, 'Clés données'),
       AK.list && AK.list.length ? h('div', { class: 'adm-keys' }, AK.list.map((k) => h('div', { class: 'card adm-key' + (k.revoked ? ' off' : '') },
-        h('div', null, h('b', null, k.who), h('span', { class: 'muted small' }, ` · ${k.plan ? '⭐ ' + (PLAN_NAMES[k.plan] || k.plan) : appsTxt(k.apps)} · ${new Date(k.at).toLocaleDateString('fr-FR')}`), k.revoked ? h('span', { class: 'bad small' }, ' · retirée') : null),
+        h('div', null, h('b', null, k.who), h('span', { class: 'muted small' }, ` · ${k.dev ? DEV_NAMES[k.dev] : k.plan ? '⭐ ' + (PLAN_NAMES[k.plan] || k.plan) : appsTxt(k.apps)} · ${new Date(k.at).toLocaleDateString('fr-FR')}`), k.revoked ? h('span', { class: 'bad small' }, ' · retirée') : null),
         h('div', { class: 'row' }, k.key && !k.revoked ? h('button', { class: 'linkbtn small', onclick: () => akCopy(k.key) }, '📋 Copier') : null,
           h('button', { class: 'linkbtn small', onclick: () => revoke(k, !k.revoked) }, k.revoked ? '↺ Rétablir' : '🚫 Retirer'))))) : h('p', { class: 'muted small' }, 'Aucune clé pour l’instant.'),
       h('p', { class: 'muted small' }, 'Les créations de l’admin sont envoyées à l’équipe par FIRE Team ouvert sur son PC (il doit être connecté avec le code d’équipe).'));
@@ -12536,7 +12566,9 @@
     admOpen();
     const D = ADM.draft;
     const set = (patch) => { Object.assign(D, patch); if (ADM.preview) { ADM.preview = clone(D); appCfgApply(); renderNav(); } renderAdmin(); };
-    const tabs = [['look', '🎨 Apparence'], ['switch', '🔧 Interrupteurs'], ['menu', '🗂️ Menu et catégories'], ['pages', '📄 Pages'], ['texts', '✍️ Textes'], ['home', '🏠 Accueil'], ['team', '👥 Équipe'], ['shop', '🛍️ Boutique'], ['apps', '🔑 Clés des apps'], ['pub', '🌐 Page publique'], ['rw', '🎁 Récompenses'], ['teams', '👥 Équipes FIRE'], ['css', '🧪 CSS avancé']];
+    const tabs = [['look', '🎨 Apparence'], ['switch', '🔧 Interrupteurs'], ['menu', '🗂️ Menu et catégories'], ['pages', '📄 Pages'], ['texts', '✍️ Textes'], ['home', '🏠 Accueil'], ['team', '👥 Équipe'], ['shop', '🛍️ Boutique'], ['apps', '🔑 Clés et codes'], ['pub', '🌐 Page publique'], ['rw', '🎁 Récompenses'], ['teams', '👥 Équipes FIRE'], ['css', '🧪 CSS avancé']]
+      .filter(([k]) => isCreator() || !['apps', 'teams'].includes(k));
+    if (!tabs.some(([k]) => k === ADM.tab)) ADM.tab = 'look';
     const field = (label, help, el) => h('label', { class: 'adm-f' }, h('b', null, label), help ? h('small', { class: 'muted' }, help) : null, el);
     let body;
     if (ADM.tab === 'look') {
@@ -12716,6 +12748,8 @@
     view.replaceChildren(
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🛠️'), h('div', null, h('h1', { class: 'title' }, 'Admin'),
         h('p', { class: 'muted' }, 'Modifie FIRE pour toute l’équipe, sans mise à jour : menu, catégories, pages, textes, apparence. Tes changements sont signés par ta clé de créateur : personne d’autre ne peut publier ici.'))),
+      devRO() ? h('p', { class: 'plan-ro' }, '🧪 Mode dev : tu vois tout le menu Admin et tu peux essayer sur ton PC, mais rien n’est publié pour l’équipe.')
+        : S.coachState.dev === 'admin' ? h('p', { class: 'plan-ro' }, '👑 Code admin : tes publications sont signées par ta clé admin. Les clés, les codes et les équipes restent au créateur.') : null,
       h('div', { class: 'card adm-pv' }, h('b', null, '👁️ Voir FIRE comme…'), h('small', { class: 'muted' }, 'Un aperçu pour toi seul : ton Admin, tes réglages et tes droits restent intacts.'),
         h('div', { class: 'pv-grid' }, ['basique', 'joueur', 'equipe'].map((k) => h('button', { class: 'pv-opt', onclick: () => { planPreview(k); go('accueil'); } },
           h('b', null, PV_LABEL[k][0]), h('small', { class: 'muted' }, PV_LABEL[k][1]))))),
@@ -12802,7 +12836,7 @@
   const PLAN_EQUIPE = new Set([...PLAN_JOUEUR, 'stats', 'pool', 'planning', 'draft', 'scrims', 'chat', 'vocal', 'annonces', 'carnet']);
   const PLAN_NAMES = { basique: 'Classique', joueur: 'Premium Joueur', complet: 'Premium Complet', equipe: 'Premium Équipe', elite: 'Premium Élite' };
   // Aperçu du créateur : FIRE affiché comme dans une autre formule, sans rien perdre (Admin et Paramètres restent ouverts).
-  const PLAN = () => S.planPreview || (S.basic ? (['joueur', 'complet'].includes(S.planKey) ? 'joueur' : 'basique') : S.cfg && S.cfg.team_id ? 'equipe' : 'elite');
+  const PLAN = () => S.planPreview || (S.basic ? (['joueur', 'complet'].includes(S.planKey) || (S.coachState && S.coachState.dev) ? 'joueur' : 'basique') : S.cfg && S.cfg.team_id ? 'equipe' : 'elite');
   const planGate = () => PLAN() !== 'elite';
   // Noms des aperçus : qui voit quoi, sans le jargon des formules.
   const PV_LABEL = {
@@ -12827,7 +12861,7 @@
     try { chatPaint(); } catch (e) { /* */ }
     renderNav(); render();
   }
-  function planOk(sec) { if (S.planPreview && (sec === 'admin' || sec === 'settings')) return true; const p = PLAN(); return p === 'elite' || (p === 'joueur' || p === 'complet' ? PLAN_JOUEUR : p === 'equipe' ? PLAN_EQUIPE : PLAN_BASIC).has(sec); }
+  function planOk(sec) { if ((S.planPreview || isAdmin()) && (sec === 'admin' || sec === 'settings')) return true; const p = PLAN(); return p === 'elite' || (p === 'joueur' || p === 'complet' ? PLAN_JOUEUR : p === 'equipe' ? PLAN_EQUIPE : PLAN_BASIC).has(sec); }
   const planNeed = (sec) => (PLAN_JOUEUR.has(sec) ? 'joueur' : 'elite');
   const PLAN_LIST = {
     basique: ['Tes stats de joueur et la draft en direct', 'FIRE Kiting et FIRE Listen en solo', 'Tes clips, enregistrés sur ton PC', 'La boutique : quelques apparences de base', 'E-sport, patchs LoL, stream Twitch et outils'],

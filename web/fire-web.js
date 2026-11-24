@@ -79,6 +79,7 @@ window.fire = {
   planning: () => coach.planning(),
   pub: { get: () => coach.publicGet(), post: (p) => coach.publicPost(p || {}), optin: (s, on) => coach.publicOptin(String(s || ''), !!on), optins: () => coach.publicOptins() },
   plan: { get: () => coach.planGet(), set: (k) => coach.planSet(String(k || '').slice(0, 2000)), clear: () => coach.planClear(), make: (w, p) => coach.planKeyMake(w, p) },
+  dev: { make: (w, n) => coach.devKeyMake(w, n), set: (k) => coach.devSet(String(k || '').slice(0, 3000)), clear: () => coach.devClear() },
   savePlanning: (a) => coach.savePlanning(a || {}),
   champions: () => coach.champions(),
   jeux: { data: () => jeux.data(), lore: (s) => jeux.lore(s) },

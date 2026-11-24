@@ -1,6 +1,29 @@
 {
   "versions": [
     {
+      "v": "2.0.34",
+      "date": "2026-11-24",
+      "titre": "Codes dev et codes admin",
+      "items": [
+        [
+          "new",
+          "Créateur : Admin › Clés et codes › « Nouveau code dev ou admin ». La personne le colle avec le bouton 🔑 CODE."
+        ],
+        [
+          "new",
+          "Code dev : voit tout FIRE et le menu Admin (aperçus, essais sur son PC), sans rien publier pour l’équipe."
+        ],
+        [
+          "new",
+          "Code admin : droits de staff, et publie les annonces, les cadeaux et événements, la personnalisation et la page publique avec sa propre clé."
+        ],
+        [
+          "new",
+          "Les clés, les codes, les équipes et la maintenance restent au créateur. Un code retiré fait tomber ses droits partout."
+        ]
+      ]
+    },
+    {
       "v": "2.0.33",
       "date": "2026-11-24",
       "titre": "Le créateur voit le planning de toutes les équipes",

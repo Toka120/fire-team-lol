@@ -70,6 +70,7 @@ contextBridge.exposeInMainWorld('fire', {
   appkeys: { list: call('appkeys:list'), make: call('appkeys:make'), revoke: call('appkeys:revoke'), self: call('appkeys:self') },
   pub: { get: call('pub:get'), post: call('pub:post'), optin: call('pub:optin'), optins: call('pub:optins') },
   plan: { get: call('plan:get'), set: call('plan:set'), clear: call('plan:clear'), make: call('plan:make') },
+  dev: { make: call('dev:make'), set: call('dev:set'), clear: call('dev:clear') },
   appcfg: { get: call('appcfg:get'), post: call('appcfg:post'), assetPut: call('appcfg:assetPut'), asset: call('appcfg:asset') },
   capture: { protect: call('capture:protect') },
   annonce: { get: call('ann:get'), post: call('ann:post'), lu: call('ann:lu'), lus: call('ann:lus') },
