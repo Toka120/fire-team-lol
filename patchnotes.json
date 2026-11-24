@@ -1,6 +1,25 @@
 {
   "versions": [
     {
+      "v": "2.0.36",
+      "date": "2026-11-24",
+      "titre": "Stats des autres équipes et retrait d’un membre",
+      "items": [
+        [
+          "new",
+          "Créateur : dans Stats des joueurs, une barre « Stats de l’équipe » passe d’Alpha à Bravo et montre les stats de ses joueurs acceptés."
+        ],
+        [
+          "new",
+          "Carnet de bord › Demandes : bouton « Retirer de l’équipe » pour un membre déjà accepté."
+        ],
+        [
+          "fix",
+          "ShadowReaper quitte la liste d’Alpha (il garde FIRE avec une clé Premium)."
+        ]
+      ]
+    },
+    {
       "v": "2.0.35",
       "date": "2026-11-24",
       "titre": "Le créateur voit les membres des autres équipes",

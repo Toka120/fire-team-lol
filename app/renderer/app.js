@@ -3219,7 +3219,7 @@
           const sel = { role: m.role };
           return h('div', { class: 'card nm-req' + (m.statut !== 'attente' ? ' done' : '') },
             h('div', { class: 'nm-h' }, h('b', null, (FC.ROLES[roleIdOf(m.role)] || {}).ico + ' ' + m.pseudo), h('span', { class: 'chip' }, m.role),
-              h('small', { class: 'muted' }, `${dayFrT(m.at)} ${hm(m.at)}`), h('span', { class: 'nm-st ' + m.statut }, m.statut === 'attente' ? '⏳ En attente' : m.statut === 'ok' ? `✅ Accepté${m.par ? ' par ' + vocalName(m.par) : ''}` : '❌ Refusé')),
+              h('small', { class: 'muted' }, `${dayFrT(m.at)} ${hm(m.at)}`), h('span', { class: 'nm-st ' + m.statut }, m.statut === 'attente' ? '⏳ En attente' : m.statut === 'ok' ? `✅ Accepté${m.par ? ' par ' + vocalName(m.par) : ''}` : '❌ Refusé ou retiré')),
             m.note ? h('p', { class: 'small' }, '« ' + m.note + ' »') : null,
             h('div', { class: 'row' },
               h('button', { class: 'btn-ghost', onclick: () => webOpen('https://dpm.lol/' + m.slug) }, '📊 Voir son profil dpm.lol'),
@@ -3234,6 +3234,12 @@
                   else msg.textContent = '⚠ ' + ((r && r.error) || 'erreur');
                 } }, 'Enregistrer'), msg));
               } }, '✏️ Corriger le lien') : null,
+              m.statut === 'ok' && canDecide ? h('button', { class: 'btn-ghost', onclick: async () => {
+                if (!confirm(`Retirer ${m.pseudo} de l’équipe ? Il disparaît des stats, du planning et des pools (il pourra refaire une demande).`)) return;
+                const r = await window.fire.staff.decision(m.slug, false, '', vocalMe()).catch((er) => ({ ok: false, error: String(er) }));
+                if (r && r.ok) { NM.list = r.membres; save('fire.membres', NM.list); S.players = S.players.filter((x) => x.slug !== m.slug); delete S.status[m.slug]; membresMerge(NM.list, true); renderNav(); renderCarnet(); }
+                else alert('Impossible : ' + ((r && r.error) || 'erreur'));
+              } }, '🚪 Retirer de l’équipe') : null,
               m.statut === 'attente' && canDecide ? [
                 h('select', { class: 'inp nm-role', onchange: (e) => { sel.role = e.target.value; } }, ['Top', 'Jungle', 'Mid', 'ADC', 'Support'].flatMap((r) => [r, r + ' (Remplaçant)']).map((r) => h('option', { value: r, selected: r === m.role ? true : null }, r))),
                 h('button', { class: 'btn-fire small-btn', onclick: async () => { const r = await window.fire.staff.decision(m.slug, true, sel.role, vocalMe()).catch((e) => ({ ok: false, error: String(e) })); if (r && r.ok) { NM.list = r.membres; save('fire.membres', NM.list); membresMerge(NM.list); refreshAll(); renderNav(); } else alert('⚠ ' + ((r && r.error) || 'erreur')); renderCarnet(); } }, '✅ Accepter'),
@@ -3560,6 +3566,7 @@
     else if (S.section === 'draft') renderDraft();
     else if (S.section === 'guides') { if (S.theme) renderTheme(); else renderGuides(); }
     else if (S.section === 'coach') { if (S.ficheId) renderFicheView(); else renderCoach(); }
+    else if (S.statsTeam && statsTeamsOk() && !S.statsOtherView) renderStatsOther();
     else if (S.view === 'player') renderPlayer();
     else if (S.view === 'team') renderTeam();
     else renderHub();
@@ -3574,9 +3581,72 @@
   }
 
   // ----- Accueil équipe -----
+  // ----- Stats des joueurs des autres équipes (Bravo…), vues par le créateur depuis Alpha -----
+  const statsTeamsOk = () => isCreator() && !(S.cfg && S.cfg.team_id) && !SUB() && !!(window.fire.teams && window.fire.teams.info);
+  function statsTeamBar() {
+    if (!statsTeamsOk()) return null;
+    if (!S.planTeams) { S.planTeams = []; window.fire.teams.info().then((r) => { S.planTeams = r && r.ok ? r.teams : []; if (S.section === 'stats' && !typing()) render(); }).catch(() => {}); }
+    if (!S.planTeams.length) return null;
+    const cur = S.statsTeam || '';
+    const btn = (id, label) => h('button', { class: 'plan-tab', 'aria-pressed': String(cur === id), onclick: () => { S.statsTeam = id; S.view = 'hub'; S.player = null; if (id) statsOtherLoad(id); render(); } }, label);
+    return h('div', { class: 'row plan-teams' }, h('span', { class: 'muted small' }, '👁️ Stats de l’équipe :'),
+      btn('', '🔥 ' + ((S.cfg && S.cfg.equipe) || 'Alpha')), S.planTeams.map((t) => btn(t.id, '🛡️ ' + t.name)));
+  }
+  async function statsOtherLoad(id) {
+    S.statsOther = { id, name: id, players: [], loading: true };
+    let r; try { r = await window.fire.teams.info(); } catch (e) { r = null; }
+    if (S.statsTeam !== id) return;
+    if (r && r.ok) S.planTeams = r.teams;
+    const t = ((r && r.teams) || []).find((x) => x.id === id);
+    const players = ((t && t.membres) || []).filter((m) => m.statut === 'ok').map((m) => ({ slug: m.slug, pseudo: m.pseudo, role: m.role, role_id: roleIdOf(m.role) }));
+    S.statsOther = { id, name: (t && t.name) || id, players, loading: false, err: t && !t.membres ? 'Active d’abord cette équipe dans Admin › Équipes FIRE pour lire ses membres.' : '' };
+    if (S.section === 'stats' && !typing()) render();
+    statsOtherFetch(false);
+  }
+  async function statsOtherFetch(force) {
+    const o = S.statsOther; if (!o || o.busy) return;
+    const list = o.players.filter((p) => force || !S.data[p.slug] || Date.now() - (S.data[p.slug].at || 0) > 30 * 60000);
+    if (!list.length) return;
+    o.busy = true; o.loading = true; if (S.section === 'stats') render();
+    let i = 0;
+    const worker = async () => {
+      while (i < list.length) {
+        const p = list[i++];
+        S.status[p.slug] = { state: 'loading' };
+        let res; try { res = await window.fire.fetchPlayer({ slug: p.slug, pseudo: p.pseudo, puuid: (load('fire.puuids', {}) || {})[p.slug] || ((S.cfg && S.cfg.puuids) || {})[String(p.pseudo || '').toLowerCase()] || null, pages: 14 }, fetchDays(p)); } catch (e) { res = { ok: false, error: String(e) }; }
+        if (res && res.ok) { S.data[p.slug] = { matches: res.matches, champs: res.champs, rank: res.rank, record: res.record, at: res.at, acc: res.acc }; S.status[p.slug] = { state: 'ok', at: res.at }; }
+        else S.status[p.slug] = { state: 'error', error: (res && res.error) || 'erreur inconnue' };
+        if (S.section === 'stats' && S.statsTeam === o.id && !typing()) render();
+      }
+    };
+    await Promise.all([worker(), worker()]);
+    o.busy = false; o.loading = false; save('fire.data', S.data);
+    if (S.section === 'stats' && S.statsTeam === o.id && !typing()) render();
+  }
+  function renderStatsOther() {
+    const o = S.statsOther;
+    if (!o || o.id !== S.statsTeam) { statsOtherLoad(S.statsTeam); $('view').replaceChildren(statsTeamBar() || '', h('p', { class: 'muted' }, 'Chargement des joueurs…')); return; }
+    if (o.err) { $('view').replaceChildren(statsTeamBar() || '', h('div', { class: 'card plan-empty' }, h('p', { class: 'bad' }, '⚠ ' + o.err))); return; }
+    const keep = { players: S.players, coachs: S.coachs, obj: S.obj };
+    Object.assign(S, { players: o.players, coachs: [], obj: null, statsOtherView: true });
+    try { if (S.view === 'player' && o.players.some((p) => p.slug === S.player)) renderPlayer(); else { S.view = 'hub'; renderHub(); } }
+    finally { Object.assign(S, { players: keep.players, coachs: keep.coachs, obj: keep.obj, statsOtherView: false }); }
+  }
   function renderHub() {
     const start = periodStart();
     const view = $('view');
+    const oth = !!S.statsOtherView;
+    if (oth) {
+      view.replaceChildren(...[
+        h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🛡️'), h('div', null, h('h1', { class: 'title' }, S.statsOther.name),
+          h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · vue créateur : les joueurs acceptés dans ${S.statsOther.name}.`))),
+        statsTeamBar(),
+        h('div', { class: 'row' }, h('button', { class: 'btn-ghost small-btn', disabled: S.statsOther.loading ? true : null, onclick: () => statsOtherFetch(true) }, S.statsOther.loading ? 'Lecture des stats…' : '⟳ Mettre à jour leurs stats')),
+        S.players.length ? null : h('div', { class: 'card plan-empty' }, h('p', { class: 'muted' }, 'Aucun joueur accepté dans cette équipe pour le moment.')),
+        h('div', { class: 'more-row hub-more' }, h('button', { class: 'btn-ghost more-btn', onclick: () => { S.hubMore = !S.hubMore; render(); } }, S.hubMore ? '➖ Moins de détails' : '➕ Plus de détails')),
+        ...hubSections(start)].filter(Boolean));
+      return;
+    }
     view.replaceChildren(...[
       newsBanner(), pendingBanner(),
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🔥'), h('div', null,
@@ -3584,6 +3654,7 @@
         h('p', { class: 'muted' }, `Classé Solo/Duo · ${periodLabel()} · clique sur un joueur pour voir tout le détail.`),
         (S.coachs || []).length ? h('p', { class: 'muted small hub-coachs' }, '🎓 Coachs : ', (S.coachs || []).map((c) => h('b', null, c.pseudo)).reduce((a, x, i) => (i ? a.concat(' · ', x) : [x]), [])) : null,
         S.obj && S.obj.games ? h('p', { class: 'muted small' }, `🎯 Objectif : ${S.obj.games} games par semaine (du lundi au dimanche) sur les champions obligatoires, réparties comme chacun veut. Cette semaine : du ${dateFr(S.obj.debut)} au ${dateFr(S.obj.fin)}.`) : null)),
+      statsTeamBar(),
       SUB() ? subBanner() : homeNotes(),
       SUB() ? null : todayPlanCard(),
       SUB() ? null : liveSection(),
@@ -4070,7 +4141,7 @@
     const grid = (list) => h('div', { class: 'hub-grid' + (S.hubMore ? '' : ' compact') }, list.map((p) => hubCard(p, start)));
     const main = S.players.filter((p) => !isSub(p)), subs = S.players.filter(isSub);
     return [
-      h('h2', { class: 'hub-sec' }, h('span', null, '🔥 Team FIRE'), h('small', { class: 'muted' }, `${main.length} titulaire${main.length > 1 ? 's' : ''}`)),
+      h('h2', { class: 'hub-sec' }, h('span', null, S.statsOtherView ? '🛡️ ' + S.statsOther.name : '🔥 Team FIRE'), h('small', { class: 'muted' }, `${main.length} titulaire${main.length > 1 ? 's' : ''}`)),
       grid(main),
       subs.length ? h('h2', { class: 'hub-sec subs' }, h('span', null, '🔁 Remplaçants'), h('small', { class: 'muted' }, `${subs.length} joueur${subs.length > 1 ? 's' : ''}`)) : null,
       subs.length ? grid(subs) : null];
