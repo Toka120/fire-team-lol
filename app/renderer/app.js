@@ -4415,8 +4415,8 @@
   // ===== Récompenses : Braises 🔥, connexion du jour, défis du jour et de la semaine, objectif et classement d'équipe =====
   // Tout est gardé sur ce PC (fire.rw). Les Braises débloquent des apparences de la boutique. Le classement de l'équipe
   // est pour le plaisir : il ne rapporte rien.
-  const RW_LOGIN = [10, 15, 20, 25, 30, 40, 60];
-  const RW_WEEK = { need: 15, gain: 120 };
+  const RW_LOGIN = [20, 30, 40, 50, 60, 80, 150];
+  const RW_WEEK = { need: 20, gain: 250 };
   // Barème de la boutique en Braises : plus l'objet est animé ou complet, plus il est cher.
   const SHOP_PRICE = { font: 100, grad: 150, card: 150, plate: 250, bubble: 250, fx: 350, deco: 400, banner: 500, appbg: 500, pfx: 600, pet: 800, pack: 1500 };
   // Collection Braises : des objets exclusifs, qui ne s'obtiennent qu'avec des Braises, même pour l'équipe Alpha.
@@ -4434,41 +4434,41 @@
   const RW_PRICE = (k, v) => exclPrice(k, v) || SHOP_PRICE[k] || 400;
   const RARITY = (n) => (!n ? ['Commun', 'r-com'] : n <= 150 ? ['Rare', 'r-rare'] : n <= 400 ? ['Épique', 'r-epic'] : n < 1000 ? ['Légendaire', 'r-leg'] : ['Mythique', 'r-myth']);
   const RW_DEFIS = {
-    g_play: { ico: '🎮', t: 'Jouer une partie classée', gain: 15, game: true, ok: (r) => r.length >= 1 },
-    g_win: { ico: '🏆', t: 'Gagner une partie classée', gain: 20, game: true, ok: (r) => r.some((x) => x.win) },
-    g_d5: { ico: '❤️', t: 'Une partie à 5 morts ou moins', gain: 20, game: true, ok: (r) => r.some((x) => x.morts <= 5) },
-    g_kda3: { ico: '⚔️', t: 'Une partie avec un KDA de 3 ou plus', gain: 25, game: true, ok: (r) => r.some((x) => x.kda >= 3) },
-    g_cs7: { ico: '🌾', t: 'Une partie à 7 CS par minute', gain: 25, game: true, noSup: true, ok: (r) => r.some((x) => x.cs_min >= 7) },
-    g_vis: { ico: '🔦', t: 'Une partie avec 40 de score de vision', gain: 25, game: true, sup: true, ok: (r) => r.some((x) => x.vision >= 40) },
-    g_pink: { ico: '👁️', t: 'Poser 2 balises de contrôle dans une partie', gain: 20, game: true, ok: (r) => r.some((x) => x.pinks >= 2) },
-    g_play2: { ico: '🎮', t: 'Jouer 2 parties classées', gain: 25, game: true, ok: (r) => r.length >= 2 },
-    g_win2: { ico: '🏆', t: 'Gagner 2 parties classées', gain: 40, game: true, ok: (r) => r.filter((x) => x.win).length >= 2 },
-    g_d2: { ico: '🛡️', t: 'Une partie à 2 morts ou moins', gain: 35, game: true, ok: (r) => r.some((x) => x.morts <= 2 && x.duree.length >= 5) },
-    g_k8: { ico: '🗡️', t: 'Faire 8 kills dans une partie', gain: 25, game: true, noSup: true, ok: (r) => r.some((x) => x.kills >= 8) },
-    g_a12: { ico: '🤝', t: 'Faire 12 assists dans une partie', gain: 25, game: true, ok: (r) => r.some((x) => x.assists >= 12) },
-    g_kp: { ico: '🔗', t: 'Participer à 60 % des kills de ton équipe', gain: 25, game: true, ok: (r) => r.some((x) => x.kp != null && (x.kp > 1 ? x.kp : x.kp * 100) >= 60) },
-    g_gold15: { ico: '💰', t: 'Avoir 500 golds d’avance à 15 min', gain: 30, game: true, ok: (r) => r.some((x) => x.gold15 != null && x.gold15 >= 500) },
-    g_cs15: { ico: '🌾', t: 'Avoir 10 CS d’avance à 15 min', gain: 25, game: true, noSup: true, ok: (r) => r.some((x) => x.cs15 != null && x.cs15 >= 10) },
-    g_dmg: { ico: '💥', t: 'Faire 25 % des dégâts de ton équipe', gain: 25, game: true, noSup: true, ok: (r) => r.some((x) => x.part_degats != null && (x.part_degats > 1 ? x.part_degats : x.part_degats * 100) >= 25) },
-    g_solo: { ico: '⚔️', t: 'Faire un solo kill', gain: 20, game: true, ok: (r) => r.some((x) => (x.solo_kills || 0) >= 1) },
-    g_plates: { ico: '🧱', t: 'Prendre 2 plaques de tour dans une partie', gain: 20, game: true, ok: (r) => r.some((x) => (x.plates || 0) >= 2) },
-    g_wards: { ico: '🕯️', t: 'Détruire 4 balises adverses dans une partie', gain: 20, game: true, ok: (r) => r.some((x) => (x.wards_detruites || 0) >= 4) },
-    a_stats: { ico: '📊', t: 'Regarder tes stats', gain: 10, ev: 'stats', n: 1 },
-    a_draft: { ico: '⚡', t: 'Suivre une sélection dans la Draft en direct', gain: 15, ev: 'draft', n: 1 },
-    a_clip: { ico: '🎬', t: 'Enregistrer un clip', gain: 15, ev: 'clip', n: 1 },
-    a_puz: { ico: '🧩', t: 'Réussir le puzzle du jour', gain: 20, ev: 'puzzle', n: 1, sec: 'puzzle' },
-    a_scen: { ico: '🧭', t: 'Répondre à 3 scénarios de lane', gain: 20, ev: 'scen', n: 3, sec: 'guides' },
-    a_quiz: { ico: '❓', t: 'Finir un quiz ou une étape du parcours', gain: 15, ev: 'quiz', n: 1, sec: 'jeux' },
-    a_vocal: { ico: '🎙️', t: 'Passer dans le vocal de l’équipe', gain: 10, ev: 'vocal', n: 1, sec: 'vocal', team: true },
-    a_chat: { ico: '💬', t: 'Écrire un message à l’équipe', gain: 10, ev: 'chat', n: 1, sec: 'chat', team: true },
-    a_plan: { ico: '📅', t: 'Répondre au planning de la semaine', gain: 15, ev: 'plan', n: 1, sec: 'planning', team: true },
-    a_puzdraft: { ico: '🧩', t: 'Résoudre 3 puzzles de draft', gain: 20, ev: 'puzdraft', n: 3, sec: 'puzdraft' },
-    a_tl: { ico: '📊', t: 'Regarder la tier list du moment', gain: 10, ev: 'tl', n: 1, sec: 'draft' },
-    a_lolpatch: { ico: '📜', t: 'Lire le dernier patch de LoL', gain: 10, ev: 'p_lolpatch', n: 1, sec: 'lolpatch' },
-    a_esport: { ico: '🏆', t: 'Suivre l’e-sport', gain: 10, ev: 'p_worlds', n: 1, sec: 'worlds' },
-    a_look: { ico: '🛍️', t: 'Changer une apparence dans la boutique', gain: 10, ev: 'look', n: 1, sec: 'boutique' },
-    a_quiz3: { ico: '🎓', t: 'Finir 3 quiz ou étapes du parcours', gain: 30, ev: 'quiz', n: 3, sec: 'parcours' },
-    a_scen6: { ico: '🧭', t: 'Répondre à 6 scénarios de lane', gain: 30, ev: 'scen', n: 6, sec: 'guides' },
+    g_play: { ico: '🎮', t: 'Jouer une partie classée', gain: 30, game: true, ok: (r) => r.length >= 1 },
+    g_win: { ico: '🏆', t: 'Gagner une partie classée', gain: 40, game: true, ok: (r) => r.some((x) => x.win) },
+    g_d5: { ico: '❤️', t: 'Une partie à 5 morts ou moins', gain: 40, game: true, ok: (r) => r.some((x) => x.morts <= 5) },
+    g_kda3: { ico: '⚔️', t: 'Une partie avec un KDA de 3 ou plus', gain: 50, game: true, ok: (r) => r.some((x) => x.kda >= 3) },
+    g_cs7: { ico: '🌾', t: 'Une partie à 7 CS par minute', gain: 50, game: true, noSup: true, ok: (r) => r.some((x) => x.cs_min >= 7) },
+    g_vis: { ico: '🔦', t: 'Une partie avec 40 de score de vision', gain: 50, game: true, sup: true, ok: (r) => r.some((x) => x.vision >= 40) },
+    g_pink: { ico: '👁️', t: 'Poser 2 balises de contrôle dans une partie', gain: 40, game: true, ok: (r) => r.some((x) => x.pinks >= 2) },
+    g_play2: { ico: '🎮', t: 'Jouer 2 parties classées', gain: 50, game: true, ok: (r) => r.length >= 2 },
+    g_win2: { ico: '🏆', t: 'Gagner 2 parties classées', gain: 80, game: true, ok: (r) => r.filter((x) => x.win).length >= 2 },
+    g_d2: { ico: '🛡️', t: 'Une partie à 2 morts ou moins', gain: 70, game: true, ok: (r) => r.some((x) => x.morts <= 2 && x.duree.length >= 5) },
+    g_k8: { ico: '🗡️', t: 'Faire 8 kills dans une partie', gain: 50, game: true, noSup: true, ok: (r) => r.some((x) => x.kills >= 8) },
+    g_a12: { ico: '🤝', t: 'Faire 12 assists dans une partie', gain: 50, game: true, ok: (r) => r.some((x) => x.assists >= 12) },
+    g_kp: { ico: '🔗', t: 'Participer à 60 % des kills de ton équipe', gain: 50, game: true, ok: (r) => r.some((x) => x.kp != null && (x.kp > 1 ? x.kp : x.kp * 100) >= 60) },
+    g_gold15: { ico: '💰', t: 'Avoir 500 golds d’avance à 15 min', gain: 60, game: true, ok: (r) => r.some((x) => x.gold15 != null && x.gold15 >= 500) },
+    g_cs15: { ico: '🌾', t: 'Avoir 10 CS d’avance à 15 min', gain: 50, game: true, noSup: true, ok: (r) => r.some((x) => x.cs15 != null && x.cs15 >= 10) },
+    g_dmg: { ico: '💥', t: 'Faire 25 % des dégâts de ton équipe', gain: 50, game: true, noSup: true, ok: (r) => r.some((x) => x.part_degats != null && (x.part_degats > 1 ? x.part_degats : x.part_degats * 100) >= 25) },
+    g_solo: { ico: '⚔️', t: 'Faire un solo kill', gain: 40, game: true, ok: (r) => r.some((x) => (x.solo_kills || 0) >= 1) },
+    g_plates: { ico: '🧱', t: 'Prendre 2 plaques de tour dans une partie', gain: 40, game: true, ok: (r) => r.some((x) => (x.plates || 0) >= 2) },
+    g_wards: { ico: '🕯️', t: 'Détruire 4 balises adverses dans une partie', gain: 40, game: true, ok: (r) => r.some((x) => (x.wards_detruites || 0) >= 4) },
+    a_stats: { ico: '📊', t: 'Regarder tes stats', gain: 20, ev: 'stats', n: 1 },
+    a_draft: { ico: '⚡', t: 'Suivre une sélection dans la Draft en direct', gain: 30, ev: 'draft', n: 1 },
+    a_clip: { ico: '🎬', t: 'Enregistrer un clip', gain: 30, ev: 'clip', n: 1 },
+    a_puz: { ico: '🧩', t: 'Réussir le puzzle du jour', gain: 40, ev: 'puzzle', n: 1, sec: 'puzzle' },
+    a_scen: { ico: '🧭', t: 'Répondre à 3 scénarios de lane', gain: 40, ev: 'scen', n: 3, sec: 'guides' },
+    a_quiz: { ico: '❓', t: 'Finir un quiz ou une étape du parcours', gain: 30, ev: 'quiz', n: 1, sec: 'jeux' },
+    a_vocal: { ico: '🎙️', t: 'Passer dans le vocal de l’équipe', gain: 20, ev: 'vocal', n: 1, sec: 'vocal', team: true },
+    a_chat: { ico: '💬', t: 'Écrire un message à l’équipe', gain: 20, ev: 'chat', n: 1, sec: 'chat', team: true },
+    a_plan: { ico: '📅', t: 'Répondre au planning de la semaine', gain: 30, ev: 'plan', n: 1, sec: 'planning', team: true },
+    a_puzdraft: { ico: '🧩', t: 'Résoudre 3 puzzles de draft', gain: 40, ev: 'puzdraft', n: 3, sec: 'puzdraft' },
+    a_tl: { ico: '📊', t: 'Regarder la tier list du moment', gain: 20, ev: 'tl', n: 1, sec: 'draft' },
+    a_lolpatch: { ico: '📜', t: 'Lire le dernier patch de LoL', gain: 20, ev: 'p_lolpatch', n: 1, sec: 'lolpatch' },
+    a_esport: { ico: '🏆', t: 'Suivre l’e-sport', gain: 20, ev: 'p_worlds', n: 1, sec: 'worlds' },
+    a_look: { ico: '🛍️', t: 'Changer une apparence dans la boutique', gain: 20, ev: 'look', n: 1, sec: 'boutique' },
+    a_quiz3: { ico: '🎓', t: 'Finir 3 quiz ou étapes du parcours', gain: 60, ev: 'quiz', n: 3, sec: 'parcours' },
+    a_scen6: { ico: '🧭', t: 'Répondre à 6 scénarios de lane', gain: 60, ev: 'scen', n: 6, sec: 'guides' },
   };
   const rwSt = () => load('fire.rw', null) || { b: 0, tot: 0, streak: 0, last: '', own: [], badges: [], hist: [] };
   const rwSave = (st) => save('fire.rw', st);
@@ -4499,7 +4499,7 @@
   // Les 3 défis du jour : toujours les mêmes pour la journée, différents chaque jour.
   function rwDay(st) {
     const day = todayYmd();
-    if (st.day && st.day.d === day && st.day.v === 2) return st.day;
+    if (st.day && st.day.d === day && st.day.v === 3) return st.day;
     const keep = st.day && st.day.d === day ? st.day : null; // ancienne liste du jour (3 défis) : on garde ce qui est déjà fait
     const me = rwMe(), sup = me && me.role_id === 'support';
     const seed = [...(day + (S.moi || ''))].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
@@ -4507,8 +4507,8 @@
     const pick = (list, n) => list.map((k, i) => [k, rnd(i)]).sort((a, b) => a[1] - b[1]).slice(0, n).map((x) => x[0]);
     const games = Object.keys(RW_DEFIS).filter((k) => { const x = RW_DEFIS[k]; return x.game && !(x.sup && !sup) && !(x.noSup && sup); });
     const apps = Object.keys(RW_DEFIS).filter((k) => { const x = RW_DEFIS[k]; return !x.game && (!x.sec || planOk(x.sec)) && !(x.team && basicView()) && !(x.ev === 'scen' && !diapoOk()); });
-    st.day = { d: day, v: 2, picks: [...pick(games, 2), ...pick(apps, 2)], ev: {}, done: {}, claimed: {} };
-    if (keep) { st.day.ev = keep.ev || {}; st.day.picks = [...new Set([...(keep.picks || []).filter((k) => RW_DEFIS[k]), ...st.day.picks])].slice(0, 4); st.day.done = keep.done || {}; st.day.claimed = keep.claimed || {}; }
+    st.day = { d: day, v: 3, picks: [...pick(games, 3), ...pick(apps, 3)], ev: {}, done: {}, claimed: {} };
+    if (keep) { st.day.ev = keep.ev || {}; st.day.picks = [...new Set([...(keep.picks || []).filter((k) => RW_DEFIS[k]), ...st.day.picks])].slice(0, 6); st.day.done = keep.done || {}; st.day.claimed = keep.claimed || {}; }
     return st.day;
   }
   function rwDone(st, k) {
@@ -4591,7 +4591,7 @@
     const mon = dOf(mondayOf(todayYmd())); mon.setHours(0, 0, 0, 0);
     let n = 0;
     for (const p of tit) { const d = S.data[p.slug]; if (d) n += FC.toRows(p, d.matches, mon.getTime()).length; }
-    return { n, need: Math.max(20, tit.length * 6), gain: 50 };
+    return { n, need: Math.max(20, tit.length * 6), gain: 100 };
   }
   function renderRecompenses() {
     const view = $('view');
@@ -4623,7 +4623,7 @@
     };
     const defis = h('div', { class: 'card rw-defis' }, h('div', { class: 'row' }, h('h2', null, '🎯 Défis du jour'), h('span', { class: 'spacer' }),
       me && day.picks.some((k) => RW_DEFIS[k].game) ? h('button', { class: 'btn-ghost small-btn', disabled: RWB.games ? true : null, onclick: rwRefreshGames }, RWB.games ? 'Lecture…' : '⟳ Vérifier mes games') : null),
-      h('p', { class: 'muted small' }, 'Quatre nouveaux défis chaque jour à minuit : deux sur tes games classées (vérifiés tout seuls avec tes stats) et deux dans FIRE.'),
+      h('p', { class: 'muted small' }, 'Six nouveaux défis chaque jour à minuit : trois sur tes games classées (vérifiés tout seuls avec tes stats) et trois dans FIRE.'),
       day.picks.map(defi));
     // Défi de la semaine
     const wd = Math.min(st.wkD || 0, RW_WEEK.need);
