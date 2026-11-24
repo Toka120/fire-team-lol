@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "2.0.26",
+   "date": "2026-11-24",
+   "titre": "Bouton 🔑 CODE",
+   "items": [
+    [
+     "new",
+     "Nouveau bouton « 🔑 CODE » en haut de FIRE : un seul endroit pour entrer n'importe quel code."
+    ],
+    [
+     "new",
+     "FIRE reconnaît tout seul ce que c'est : code d'équipe (Alpha, Bravo…), code remplaçant, code coach, code chef d'équipe ou clé Premium (Premium Joueur, Premium Complet)."
+    ],
+    [
+     "new",
+     "Un code d'équipe fait redémarrer FIRE sur la bonne équipe ; un code chef active tout de suite le mode chef."
+    ]
+   ]
+  },
+  {
    "v": "2.0.25",
    "date": "2026-11-24",
    "titre": "Code chef d'équipe plus facile à trouver",

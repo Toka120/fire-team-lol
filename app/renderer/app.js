@@ -560,6 +560,7 @@
     };
     since.onchange = () => { if (since.value && since.validity.valid) { S.since = since.value; S.jour = 'tous'; render(); } };
     $('refresh').onclick = () => refreshContent(true);
+    if ($('code-btn')) $('code-btn').onclick = () => codeModal();
     $('back').onclick = () => {
       if (S.section === 'stats') { S.view = 'hub'; S.player = null; } else if (S.section === 'guides') { if (S.theme) S.theme = null; else S.guideCat = null; } else S.ficheId = null;
       render();
@@ -4743,6 +4744,63 @@
     const l = (typeof shopList === 'function' ? shopList(k) : SHOP[k] || []).find(([vv]) => JSON.stringify(vv) === JSON.stringify(v));
     const kind = { fx: 'Effet de pseudo', font: 'Police', grad: 'Dégradé', deco: 'Décoration', plate: 'Plaque', card: 'Carte', pfx: 'Effet de profil', pet: 'Compagnon', bubble: 'Effet de messages' }[k] || k;
     return kind + ' « ' + (l ? l[1] : String(v)) + ' »';
+  }
+  // ----- Bouton « CODE » : un seul endroit pour tous les codes (équipe, remplaçant, coach, chef) et les clés Premium -----
+  function codeModal() {
+    const old = document.getElementById('code-modal'); if (old) old.remove();
+    const close = () => el.remove();
+    const inp = h('input', { class: 'inp code-in', placeholder: 'Ton code (ex. FIRE-XXXX-XXXX) ou ta clé Premium', autocomplete: 'off', spellcheck: 'false' });
+    const msg = h('p', { class: 'small code-msg' });
+    const say = (t, cls) => { msg.textContent = t; msg.className = 'small code-msg ' + (cls || ''); };
+    const btn = h('button', { class: 'btn-fire' }, 'Valider');
+    const go_ = async () => {
+      const v = inp.value.trim();
+      if (!v) { inp.focus(); return; }
+      btn.disabled = true; say('Vérification…', 'muted');
+      try {
+        // 1. Clé Premium (Premium Joueur ou Premium Complet)
+        if (/^FIREPLAN1\./i.test(v.replace(/\s+/g, ''))) {
+          const r = window.fire.plan ? await window.fire.plan.set(v).catch(() => null) : null;
+          if (r && r.plan) {
+            S.planKey = r.plan; S.planWho = r.who || '';
+            say(`⭐ ${PLAN_NAMES[r.plan]} activé${r.who ? ' pour ' + r.who : ''} !${S.basic ? '' : ' (elle sert en version Classique, sans code d’équipe)'}`, 'ok');
+            renderNav(); render(); setTimeout(close, 1800); return;
+          }
+          say('⚠ ' + ((r && r.error) || (r && r.revoked ? 'cette clé a été retirée' : 'clé refusée')), 'bad'); return;
+        }
+        // 2. Code d'équipe, de remplaçant ou de coach (il peut aussi faire passer ce PC sur une autre équipe, comme Bravo)
+        const u = await window.fire.unlock(v).catch(() => null);
+        if (u && u.ok) {
+          save('fire.basique', false);
+          say(u.coach ? '🎓 Code coach accepté : FIRE redémarre en mode coach…' : u.remplacant ? '🔁 Code remplaçant accepté : FIRE redémarre…' : '✅ Code d’équipe accepté : FIRE redémarre…', 'ok');
+          setTimeout(() => location.reload(), 1200); return;
+        }
+        // 3. Code chef d'équipe
+        const c = window.fire.coach && window.fire.coach.chefUnlock ? await window.fire.coach.chefUnlock(v).catch(() => null) : null;
+        if (c && c.ok) {
+          S.coachState = c; renderNav(); render();
+          say('👑 Mode chef d’équipe activé : tu peux accepter les membres, choisir les rôles et gérer le planning.', 'ok');
+          setTimeout(close, 2200); return;
+        }
+        say(S.basic ? '⚠ Code inconnu. Pour le code chef, entre d’abord le code de ton équipe.' : '⚠ Code inconnu. Vérifie-le avec ton chef ou le créateur de FIRE.', 'bad');
+        inp.select();
+      } finally { btn.disabled = false; }
+    };
+    btn.onclick = go_;
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') go_(); if (e.key === 'Escape') close(); });
+    const el = h('div', { id: 'code-modal', class: 'code-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Entrer un code', onclick: (e) => { if (e.target === el) close(); } },
+      h('div', { class: 'code-card' },
+        h('button', { class: 'code-x', 'aria-label': 'Fermer', onclick: close }, '✕'),
+        h('h2', null, '🔑 Entrer un code'),
+        h('p', { class: 'muted small' }, 'Code d’équipe, de remplaçant, de coach, de chef d’équipe, ou clé Premium : FIRE reconnaît tout seul ce que c’est.'),
+        h('div', { class: 'row' }, inp, btn), msg,
+        h('ul', { class: 'muted small code-help' },
+          h('li', null, '👥 Code d’équipe (Alpha, Bravo…) ou de remplaçant : ouvre l’espace de ton équipe.'),
+          h('li', null, '👑 Code chef : à entrer après le code de ton équipe.'),
+          h('li', null, '🎓 Code coach : les outils du coach.'),
+          h('li', null, '⭐ Clé Premium (FIREPLAN1…) : Premium Joueur ou Premium Complet, sans équipe.'))));
+    document.body.append(el);
+    setTimeout(() => inp.focus(), 30);
   }
   // ----- Ouverture d'un cadeau : une fenêtre au milieu de FIRE, la boîte qui s'ouvre, puis ce qu'il y a dedans -----
   const GIFTQ = { list: [], open: false };
