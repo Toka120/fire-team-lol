@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "2.0.24",
+   "date": "2026-11-24",
+   "titre": "Lanes réservées à Alpha",
+   "items": [
+    [
+     "new",
+     "Lanes et principes : les lanes (Top, Jungle, Mid, ADC, Support) avec leurs diaporamas, quiz et scénarios sont réservées à l'équipe Alpha et à la clé Premium Complet."
+    ],
+    [
+     "new",
+     "Premium Joueur et Premium Équipe (Bravo) gardent les 12 principes du jeu : wave, fights, vision, macro, recall, mental…"
+    ],
+    [
+     "new",
+     "FIRE Launcher 2.0.10 : le comparatif des formules est mis à jour."
+    ]
+   ]
+  },
+  {
    "v": "2.0.23",
    "date": "2026-11-24",
    "titre": "Cadeaux à ouvrir, plus de défis",

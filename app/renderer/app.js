@@ -4504,7 +4504,7 @@
     const rnd = (i) => ((seed * (i + 3) * 2654435761) >>> 0) / 4294967296;
     const pick = (list, n) => list.map((k, i) => [k, rnd(i)]).sort((a, b) => a[1] - b[1]).slice(0, n).map((x) => x[0]);
     const games = Object.keys(RW_DEFIS).filter((k) => { const x = RW_DEFIS[k]; return x.game && !(x.sup && !sup) && !(x.noSup && sup); });
-    const apps = Object.keys(RW_DEFIS).filter((k) => { const x = RW_DEFIS[k]; return !x.game && (!x.sec || planOk(x.sec)) && !(x.team && basicView()); });
+    const apps = Object.keys(RW_DEFIS).filter((k) => { const x = RW_DEFIS[k]; return !x.game && (!x.sec || planOk(x.sec)) && !(x.team && basicView()) && !(x.ev === 'scen' && !diapoOk()); });
     st.day = { d: day, v: 2, picks: [...pick(games, 2), ...pick(apps, 2)], ev: {}, done: {}, claimed: {} };
     if (keep) { st.day.ev = keep.ev || {}; st.day.picks = [...new Set([...(keep.picks || []).filter((k) => RW_DEFIS[k]), ...st.day.picks])].slice(0, 4); st.day.done = keep.done || {}; st.day.claimed = keep.claimed || {}; }
     return st.day;
@@ -8503,8 +8503,9 @@
     for (const t of S.guides || []) if (!seenThemes.has(t.id)) { seenThemes.add(t.id); themes.push(t); }
     view.replaceChildren(
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '📚'), h('div', null, h('h1', { class: 'title' }, 'Lanes et principes'),
-        h('p', { class: 'muted' }, 'Choisis ta lane pour son diaporama et ses conseils, ou ouvre directement un principe du jeu.'))),
-      h('div', { class: 'lane-grid' }, S.guideCats.map((c) => {
+        h('p', { class: 'muted' }, diapoOk() ? 'Choisis ta lane pour son diaporama et ses conseils, ou ouvre directement un principe du jeu.' : 'Ouvre un principe du jeu : wave, fights, vision, macro, mental… Les lanes et leurs formations sont réservées à l’équipe Alpha.'))),
+      // Les lanes (diaporamas, quiz, scénarios) : seulement pour l'équipe Alpha et la clé Premium Complet.
+      !diapoOk() ? null : h('div', { class: 'lane-grid' }, S.guideCats.map((c) => {
         const mine = role && (c.roles || []).includes(role);
         const art = laneArt(c);
         const nNew = c.themes.filter((x) => { const t = themeOf(x.id); return t && themeIsNew(t); }).length;
@@ -8529,7 +8530,7 @@
 
   function renderCategory(c) {
     const view = $('view');
-    if (!c) { S.guideCat = null; renderCategories(); return; }
+    if (!c || !diapoOk()) { S.guideCat = null; renderCategories(); return; }
     view.replaceChildren(
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, c.ico), h('div', null, h('h1', { class: 'title' }, c.titre), h('p', { class: 'muted' }, c.intro))),
       !c.diapo ? null : !diapoOk()
@@ -12602,10 +12603,10 @@
   const planNeed = (sec) => (PLAN_JOUEUR.has(sec) ? 'joueur' : 'elite');
   const PLAN_LIST = {
     basique: ['Tes stats de joueur et la draft en direct', 'FIRE Kiting et FIRE Listen en solo', 'Tes clips, enregistrés sur ton PC', 'La boutique : quelques apparences de base', 'E-sport, patchs LoL, stream Twitch et outils'],
-    equipe: ['Tout le Premium Joueur (Lanes et principes sans diaporama ni quiz)', 'L’espace de ton équipe : stats, POOL, planning, draft, salons, vocal, scrims, annonces', 'Séparé d’Alpha : tes données restent dans ton équipe'],
-    complet: ['Tout le Premium Joueur', 'Les diaporamas et les quiz de Lanes et principes', 'La boutique complète, packs compris', 'Sans l’espace de l’équipe Alpha (stats, planning, discussion, coaching)'],
-    joueur: ['Tout le Classique', 'L’analyse complète de tes stats : bilan détaillé, série, arbre des points forts, jour par jour', 'Lanes et principes : les principes et 20 scénarios par lane', 'Apprendre en jouant, puzzle du jour, puzzles de draft, parcours', 'Micro, Détente et patch notes', 'Une boutique plus large'],
-    elite: ['Tout le Premium Joueur', 'Les diaporamas et les quiz de Lanes et principes', 'L’espace de l’équipe : stats, POOL, planning, draft, salons, vocal, scrims, clips partagés', 'Le coaching : parole du coach, créneaux, salle de réunion, revues, analyses par l’IA', 'La boutique complète et les apparences de l’équipe'],
+    equipe: ['Tout le Premium Joueur : les principes du jeu (sans les lanes)', 'L’espace de ton équipe : stats, POOL, planning, draft, salons, vocal, scrims, annonces', 'Séparé d’Alpha : tes données restent dans ton équipe'],
+    complet: ['Tout le Premium Joueur', 'Les lanes : diaporamas, quiz et 20 scénarios par lane', 'La boutique complète, packs compris', 'Sans l’espace de l’équipe Alpha (stats, planning, discussion, coaching)'],
+    joueur: ['Tout le Classique', 'L’analyse complète de tes stats : bilan détaillé, série, arbre des points forts, jour par jour', 'Les principes du jeu : wave, fights, vision, macro, mental…', 'Apprendre en jouant, puzzle du jour, puzzles de draft, parcours', 'Micro, Détente et patch notes', 'Une boutique plus large'],
+    elite: ['Tout le Premium Joueur', 'Les lanes : diaporamas, quiz et 20 scénarios par lane', 'L’espace de l’équipe : stats, POOL, planning, draft, salons, vocal, scrims, clips partagés', 'Le coaching : parole du coach, créneaux, salle de réunion, revues, analyses par l’IA', 'La boutique complète et les apparences de l’équipe'],
   };
   async function planKeyEnter(box) {
     const inp = h('textarea', { class: 'inp', rows: 3, placeholder: 'Colle ici ta clé Premium (FIREPLAN1.…)', spellcheck: 'false' });
@@ -12655,7 +12656,7 @@
       h('div', { class: 'bh-grid' },
         tile('equipes', '🌐', 'Équipes FIRE', 'Suis Alpha : joueurs, matchs, résultats'), tile('clips', '🎬', 'Clips', 'Tes meilleurs moments, sur ton PC'), tile('boutique', '🛍️', 'Boutique', 'Personnalise ton profil'),
         tile('worlds', '🏆', 'E-sport', 'Les matchs pros'), tile('lolpatch', '📜', 'Patchs LoL', 'Ce qui change dans le jeu'), tile('stream', '🟣', 'Stream', 'Le live de l’équipe'), tile('outils', '🧰', 'Outils', 'Les sites utiles'),
-        tile('guides', '🧭', 'Lanes et principes', 'Principes et scénarios'), tile('apprendre', '🎓', 'Apprendre en jouant', 'Les bases en jouant'), tile('puzzle', '🧩', 'Puzzle du jour', 'Une situation par jour'),
+        tile('guides', '🧭', 'Lanes et principes', 'Les principes du jeu'), tile('apprendre', '🎓', 'Apprendre en jouant', 'Les bases en jouant'), tile('puzzle', '🧩', 'Puzzle du jour', 'Une situation par jour'),
         tile('stats', '📊', 'Mes stats', 'Ton rang, tes champions, tes games'), tile('draft', '⚡', 'Draft en direct', 'Matchup et runes pendant la sélection'),
         tile('planning', '👥', 'Espace d’équipe', ''), tile('coach', '📣', 'Coaching', '')),
       p === 'elite' || p === 'complet' ? null : h('div', { class: 'card plan-up' }, h('b', null, p === 'basique' ? '⭐ Passe en Premium Joueur' : '⭐ Rejoins l’équipe Alpha'),
