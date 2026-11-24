@@ -10619,10 +10619,49 @@
     if (!S.planEdit && S.section === 'planning') render(); else renderNav();
   }
 
+  // Créateur (FIRE en équipe Alpha) : il peut regarder le planning des autres équipes, sans rien y changer.
+  const planTeamsOk = () => isAdmin() && !(S.cfg && S.cfg.team_id) && !!(window.fire.teams && window.fire.teams.planning);
+  function planTeamBar() {
+    if (!planTeamsOk()) return null;
+    if (!S.planTeams) { S.planTeams = []; window.fire.teams.info().then((r) => { S.planTeams = r && r.ok ? r.teams : []; if (S.section === 'planning' && !S.planEdit && !typing()) render(); }).catch(() => {}); }
+    if (!S.planTeams.length) return null;
+    const cur = S.planTeam || '';
+    const btn = (id, label) => h('button', { class: 'plan-tab', 'aria-pressed': String(cur === id), onclick: () => { if (cur === id && !id) return; S.planTeam = id; if (id) planOtherLoad(id); render(); } }, label);
+    return h('div', { class: 'row plan-teams' }, h('span', { class: 'muted small' }, '👁️ Planning de l’équipe :'),
+      btn('', '🔥 ' + ((S.cfg && S.cfg.equipe) || 'Alpha')), S.planTeams.map((t) => btn(t.id, '🛡️ ' + t.name)));
+  }
+  async function planOtherLoad(id) {
+    S.planOther = { id, loading: true };
+    let r; try { r = await window.fire.teams.planning(id); } catch (e) { r = { ok: false, error: String(e) }; }
+    if (S.planTeam !== id) return;
+    if (r && r.ok) {
+      const players = (r.joueurs || []).filter((x) => x && x.slug).map((x) => ({ ...x }));
+      for (const m of r.membres || []) if (!players.some((x) => x.slug === m.slug)) players.push({ slug: m.slug, pseudo: m.pseudo, role: m.role, role_id: roleIdOf(m.role) });
+      const coachs = [...new Map((r.coachsListe || []).filter((c) => c && c.slug).map((c) => [c.slug, c])).values()];
+      S.planOther = { id, name: r.name, plan: planFrom(r), players, coachs, at: Date.now() };
+    } else S.planOther = { id, err: (r && r.error) || 'planning indisponible' };
+    if (S.section === 'planning' && !S.planEdit && !typing()) render();
+  }
+  function renderPlanningOther(view) {
+    const o = S.planOther;
+    if (!o || o.id !== S.planTeam || o.loading || o.err) {
+      if (!o || o.id !== S.planTeam) planOtherLoad(S.planTeam);
+      view.replaceChildren(h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🗓️'), h('div', null, h('h1', { class: 'title' }, 'Planning'), h('p', { class: 'muted' }, 'Vue créateur, en lecture seule.'))),
+        planTeamBar(), h('div', { class: 'card plan-empty' }, h('p', { class: o && o.err ? 'bad' : 'muted' }, o && o.err ? '⚠ ' + o.err : 'Chargement du planning…')));
+      return;
+    }
+    const keep = { plan: S.plan, players: S.players, coachs: S.coachs, moi: S.moi, cs: S.coachState, w: S.planWrite, err: S.planErr };
+    Object.assign(S, { plan: o.plan, players: o.players, coachs: o.coachs, moi: '', coachState: { ...keep.cs, coach: false, chef: false }, planWrite: false, planErr: '', planOtherView: true });
+    try { renderPlanning(); }
+    finally { Object.assign(S, { plan: keep.plan, players: keep.players, coachs: keep.coachs, moi: keep.moi, coachState: keep.cs, planWrite: keep.w, planErr: keep.err, planOtherView: false }); }
+  }
+
   function renderPlanning() {
     const view = $('view');
     if (SUB()) { renderPlanningSub(view); return; }
+    if (S.planTeam && planTeamsOk() && !S.planOtherView) { renderPlanningOther(view); return; }
     if (S.planEdit) { renderPlanEditor(view); return; }
+    const other = !!S.planOtherView;
     const t = todayYmd();
     const mon = S.planWeek || mondayOf(t);
     S.planWeek = mon;
@@ -10634,17 +10673,21 @@
     const pend = coachPending();
     const nodes = [h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, tabC ? '🎓' : '🗓️'),
       h('div', null, h('h1', { class: 'title' }, 'Planning'),
-        h('p', { class: 'muted' }, tabC ? (S.coachState.coach ? 'Coche tes dispos, puis valide ou refuse les créneaux que les joueurs demandent.' : 'Les coachs mettent leurs dispos : demande un créneau, le coach le valide.')
+        h('p', { class: 'muted' }, other ? 'Vue créateur : tu vois le planning et les dispos des coachs de cette équipe, sans pouvoir les modifier.' : tabC ? (S.coachState.coach ? 'Coche tes dispos, puis valide ou refuse les créneaux que les joueurs demandent.' : 'Les coachs mettent leurs dispos : demande un créneau, le coach le valide.')
           : coach ? 'Coche les jours et heures de jeu, puis regarde qui sera là.' : 'Dis au coach si tu seras là : ✅ présent · ❔ incertain · ❌ absent.'))),
       h('div', { class: 'row plan-tabs' },
         h('button', { class: 'plan-tab', 'aria-pressed': String(!tabC), onclick: () => { S.planTab = 'equipe'; render(); } }, '🗓️ Planning d’équipe'),
         h('button', { class: 'plan-tab', 'aria-pressed': String(tabC), onclick: () => { S.planTab = 'coachs'; render(); } }, '🎓 Dispos des coachs', pend ? h('span', { class: 'plan-tab-n' }, String(pend)) : null))];
-    const chefBox = chefAccess();
+    const bar = planTeamBar();
+    if (bar) nodes.splice(1, 0, bar);
+    if (other) nodes.push(h('p', { class: 'plan-ro' }, `👁️ Planning de ${S.planOther.name} · lecture seule (vue créateur). `,
+      h('button', { class: 'linkbtn', onclick: () => planOtherLoad(S.planTeam) }, '↻ Actualiser')));
+    const chefBox = other ? null : chefAccess();
     if (chefBox) nodes.push(chefBox);
     if (S.flash) nodes.push(h('div', { class: 'flash' }, S.flash, h('button', { class: 'flash-x', onclick: () => { S.flash = ''; render(); } }, '✕')));
     if (S.planErr) nodes.push(h('p', { class: 'muted small' }, '⚠ ' + S.planErr));
 
-    nodes.push(h('div', { class: 'row me-row' }, h('label', { class: 'fld-inline' }, '👤 Je suis ', meSelect()),
+    if (!other) nodes.push(h('div', { class: 'row me-row' }, h('label', { class: 'fld-inline' }, '👤 Je suis ', meSelect()),
       !S.moi ? h('span', { class: 'muted small' }, '← choisis ton pseudo pour répondre') : null,
       S.moi && meSub() ? h('span', { class: 'muted small' }, '👀 Planning de l’équipe 1 et du coach : tu peux le consulter, mais tu n’y réponds pas.') : null,
       S.moi && !planCanWrite() ? h('span', { class: 'muted small' }, "Les réponses s'ouvriront dès que le coach aura activé le jeton d'équipe.") : null));
@@ -10788,7 +10831,7 @@
           coachMode ? h('button', { class: 'btn-fire small-btn', disabled: planCanWrite() ? null : true, onclick: () => startPlanEdit(mon, c.slug) }, S.moi === c.slug ? '✏️ Mes dispos' : `✏️ Dispos de ${c.pseudo}`) : null),
         ...body));
     }
-    if (!meP && !coachMode) nodes.push(h('p', { class: 'muted small' }, '👤 Choisis ton pseudo dans « Je suis » pour demander un créneau.'));
+    if (!meP && !coachMode && !S.planOtherView) nodes.push(h('p', { class: 'muted small' }, '👤 Choisis ton pseudo dans « Je suis » pour demander un créneau.'));
   }
 
   function startPlanEdit(mon, coach) {

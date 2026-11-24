@@ -2042,6 +2042,28 @@ async function teamsInfo() {
   }
   return { ok: true, teams: out, current: getConfig().team_id || '' };
 }
+// Le créateur (FIRE en équipe Alpha) lit le planning d'une autre équipe activée, en lecture seule.
+async function planningOf(id) {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  if (getConfig().team_id) return { ok: false, error: 'fais-le depuis ton FIRE en équipe Alpha' };
+  const t = (getRaw().equipes || {})[id];
+  if (!t) return { ok: false, error: 'équipe inconnue' };
+  const hex = teamKeys()[id];
+  if (!hex) return { ok: false, error: "active d'abord cette équipe dans Admin › Équipes FIRE (avec son code d'équipe)" };
+  const dr = getConfig().data_repo || null;
+  if (!dr) return { ok: false, error: "FIRE Team n'est pas connecté au dépôt de l'équipe" };
+  const key = Buffer.from(hex, 'hex');
+  const tok = await teamToken();
+  const rd = async (rel) => { const b = await readPublic('equipes/' + id + '/' + rel, dr, tok); return b ? openWith(key, b) : null; };
+  let p, pc;
+  try { [p, pc] = await Promise.all([rd('planning.json'), rd(PLANNING_C_DATA)]); }
+  catch (e) { return { ok: false, error: 'planning de ' + (t.equipe || id) + ' illisible : ' + String((e && e.message) || e) }; }
+  const mb = await rd(MEMBRES).catch(() => null);
+  const co = await rd(TEAM_COACHS).catch(() => null);
+  const membresOk = (mb && Array.isArray(mb.membres) ? mb.membres : []).map(cleanMembre).filter((m) => m && m.statut === 'ok');
+  return { ok: true, id, name: t.equipe || id, ...mergePlanning(p || {}, pc), joueurs: Array.isArray(t.joueurs) ? t.joueurs : [], membres: membresOk,
+    coachsListe: [...(Array.isArray(t.coachs) ? t.coachs : []), ...coachClean(co && co.coachs)] };
+}
 async function teamActivate(id, code) {
   if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
   if (getConfig().team_id) return { ok: false, error: 'fais-le depuis ton FIRE en équipe Alpha' };
@@ -2400,4 +2422,4 @@ async function appsRelay() {
 const appsRelay0 = appsRelay;
 appsRelay = async function () { const r = await appsRelay0(); try { await launcherRelay(); } catch (e) { /* */ } return r; };
 
-module.exports = { coachsList, coachsAdd, maintGet, rwRemoteGet, rwRemotePost, rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { planningOf, coachsList, coachsAdd, maintGet, rwRemoteGet, rwRemotePost, rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

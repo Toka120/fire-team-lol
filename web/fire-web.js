@@ -73,7 +73,7 @@ window.fire = {
   maint: async () => ({ team: null }),
   coachs: { list: async () => ({ ok: false, coachs: [] }), add: async () => ({ ok: false, error: 'disponible dans FIRE Team sur PC' }) },
   rw: { push: async () => ({ ok: false }), board: async () => ({ ok: false }), remote: async () => ({ ok: true, gifts: [], events: [] }), publish: async () => ({ ok: false, error: 'disponible dans FIRE Team sur PC' }) },
-  teams: { info: async () => ({ ok: false, error: 'disponible dans FIRE Team sur PC' }), activate: async () => ({ ok: false, error: 'disponible dans FIRE Team sur PC' }) },
+  teams: { info: async () => ({ ok: false, error: 'disponible dans FIRE Team sur PC' }), activate: async () => ({ ok: false, error: 'disponible dans FIRE Team sur PC' }), planning: async () => ({ ok: false, error: 'disponible dans FIRE Team sur PC' }) },
   fiches: () => coach.list(),
   pools: () => coach.pools(),
   planning: () => coach.planning(),
