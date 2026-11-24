@@ -544,6 +544,7 @@ ipcMain.handle('rw:publish', (e, data) => coach.rwRemotePost(data));
 ipcMain.handle('rw:push', (e, slug, c) => coach.rwPush(slug, c));
 ipcMain.handle('rw:board', (e, slugs) => coach.rwBoard(slugs));
 ipcMain.handle('teams:info', () => coach.teamsInfo());
+ipcMain.handle('teams:membre', (e, id, slug, ok, role) => coach.teamMembre(String(id || '').slice(0, 40), String(slug || '').slice(0, 100), ok === 'retirer' ? 'retirer' : !!ok, role));
 ipcMain.handle('teams:planning', (e, id) => coach.planningOf(String(id || '').slice(0, 40)));
 ipcMain.handle('teams:activate', (e, id, code) => coach.teamActivate(id, code));
 const PUZ_URL = 'https://toka120.github.io/fire-team-lol/puzzles-draft.json';

@@ -12457,6 +12457,28 @@
   const PA = { d: null, team: 'alpha', ds: {}, optin: null, busy: false, msg: '', m: { vs: '', event: '', date: '', time: '20:00' }, n: { t: '', txt: '' }, c: { title: '', url: '' } };
   // ----- Admin › Équipes FIRE : les autres équipes (Bravo…) -----
   const TA = { list: null, busy: '', msg: '', code: {} };
+  // Membres d'une autre équipe (Bravo…) : acceptés, en attente, refusés ; le créateur peut décider à la place du chef.
+  const decU = (x) => { try { return decodeURIComponent(String(x || '')); } catch (e) { return String(x || ''); } };
+  function teamMembresBox(t) {
+    const act = async (m, ok) => {
+      if (ok === 'retirer' && !confirm(`Retirer ${m.pseudo} de ${t.name} ?`)) return;
+      TA.busy = t.id + m.slug; renderAdmin();
+      const r = await window.fire.teams.membre(t.id, m.slug, ok, m.role).catch((e) => ({ ok: false, error: String(e) }));
+      TA.busy = '';
+      if (r && r.ok) { t.membres = r.membres.map((x) => ({ ...x })); t.players = t.membres.filter((x) => x.statut === 'ok').length; TA.msg = ok === 'retirer' ? `${m.pseudo} retiré de ${t.name}.` : ok ? `✅ ${m.pseudo} accepté dans ${t.name}.` : `${m.pseudo} refusé.`; }
+      else TA.msg = '⚠ ' + ((r && r.error) || 'impossible');
+      renderAdmin();
+    };
+    const ord = { attente: 0, ok: 1, refus: 2 };
+    const list = t.membres.slice().sort((a, b) => ord[a.statut] - ord[b.statut] || String(a.pseudo).localeCompare(b.pseudo));
+    if (!list.length) return h('p', { class: 'muted small' }, 'Personne n’a encore demandé à rejoindre l’équipe.');
+    const busy = (m) => TA.busy === t.id + m.slug;
+    return h('div', { class: 'tm-list' }, list.map((m) => h('div', { class: 'tm-row ' + m.statut },
+      h('span', null, m.statut === 'ok' ? '✅' : m.statut === 'attente' ? '⏳' : '❌'), h('b', null, m.pseudo), h('span', { class: 'muted small' }, m.role + (m.statut === 'ok' && m.par ? ' · accepté par ' + decU(m.par).replace(/-\w+$/, '') : m.statut === 'attente' ? ' · en attente' : '')),
+      h('span', { class: 'spacer' }),
+      m.statut === 'attente' ? [h('button', { class: 'btn-fire small-btn', disabled: busy(m) ? true : null, onclick: () => act(m, true) }, 'Accepter'), h('button', { class: 'btn-ghost small-btn', disabled: busy(m) ? true : null, onclick: () => act(m, false) }, 'Refuser')]
+        : h('button', { class: 'linkbtn small', disabled: busy(m) ? true : null, onclick: () => act(m, 'retirer') }, 'Retirer'))));
+  }
   function teamsAdminTab() {
     if (TA.list === null && window.fire.teams) { TA.list = []; window.fire.teams.info().then((r) => { TA.list = r && r.ok ? r.teams : []; if (!(r && r.ok)) TA.msg = '⚠ ' + ((r && r.error) || 'liste indisponible'); if (S.section === 'admin' && ADM.tab === 'teams') renderAdmin(); }).catch(() => {}); }
     const activate = async (t) => {
@@ -12472,7 +12494,8 @@
       (TA.list || []).length ? TA.list.map((t) => h('div', { class: 'card adm-grp' },
         h('div', { class: 'row' }, h('b', null, '👥 ' + t.name), h('span', { class: 'spacer' }),
           h('span', { class: 'small ' + (t.active && t.key ? 'good' : 'muted') }, t.active && t.key ? '✅ Activée' : t.active ? '⚠ Activée sur un autre PC' : '⏸ Pas encore activée')),
-        h('p', { class: 'muted small' }, `${t.players} joueur${t.players > 1 ? 's' : ''} dans la liste de départ. Les autres arrivent avec le code de l’équipe, et le chef les accepte.`),
+        h('p', { class: 'muted small' }, `${t.players} joueur${t.players > 1 ? 's' : ''} dans l’équipe. Les joueurs arrivent avec le code de l’équipe, puis le chef${t.chef ? ' (' + decodeURIComponent(t.chef) + ')' : ''} ou toi les acceptez.`),
+        t.membres ? teamMembresBox(t) : t.active && t.key ? null : h('p', { class: 'muted small' }, 'Active l’équipe sur ce PC pour voir ses membres.'),
         !(t.active && t.key) ? h('div', { class: 'row' },
           h('input', { class: 'inp', type: 'password', autocomplete: 'off', placeholder: 'Code de l’équipe ' + t.name, value: TA.code[t.id] || '', oninput: (e) => { TA.code[t.id] = e.target.value; } }),
           h('button', { class: 'btn-fire small-btn', disabled: TA.busy ? true : null, onclick: () => activate(t) }, TA.busy === t.id ? 'Activation…' : '⚡ Activer')) : null))

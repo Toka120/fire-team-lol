@@ -2112,9 +2112,15 @@ async function teamsInfo() {
   const keys = teamKeys();
   const out = [];
   for (const [id, t] of Object.entries(getRaw().equipes || {})) {
-    let active = false;
+    let active = false, membres = null;
     try { active = !!(dr && await readPublic('equipes/' + id + '/coach/acces.json', dr, null)); } catch (e) { /* hors ligne */ }
-    out.push({ id, name: t.equipe || id, players: (t.joueurs || []).length, active, key: !!keys[id] });
+    // Membres de l'équipe (demandes et joueurs acceptés), lus avec la clé de l'équipe gardée sur ce PC.
+    if (dr && keys[id]) {
+      try { const b = await readPublic('equipes/' + id + '/' + MEMBRES, dr, await teamToken()); const d = b ? openWith(Buffer.from(keys[id], 'hex'), b) : null; membres = (d && Array.isArray(d.membres) ? d.membres : []).map(cleanMembre).filter(Boolean); } catch (e) { membres = null; }
+    }
+    const base = Array.isArray(t.joueurs) ? t.joueurs : [];
+    const ok = new Set([...base.map((j) => j && j.slug).filter(Boolean), ...(membres || []).filter((m) => m.statut === 'ok').map((m) => m.slug)]);
+    out.push({ id, name: t.equipe || id, players: ok.size, active, key: !!keys[id], membres, chef: t.chef || '' });
   }
   return { ok: true, teams: out, current: getConfig().team_id || '' };
 }
@@ -2139,6 +2145,31 @@ async function planningOf(id) {
   const membresOk = (mb && Array.isArray(mb.membres) ? mb.membres : []).map(cleanMembre).filter((m) => m && m.statut === 'ok');
   return { ok: true, id, name: t.equipe || id, ...mergePlanning(p || {}, pc), joueurs: Array.isArray(t.joueurs) ? t.joueurs : [], membres: membresOk,
     coachsListe: [...(Array.isArray(t.coachs) ? t.coachs : []), ...coachClean(co && co.coachs)] };
+}
+// Le créateur accepte, refuse ou retire un membre d'une autre équipe (Bravo…), depuis Admin › Équipes FIRE.
+async function teamMembre(id, slug, ok, role) {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  if (getConfig().team_id) return { ok: false, error: 'fais-le depuis ton FIRE en équipe Alpha' };
+  const hex = teamKeys()[id];
+  if (!hex || !(getRaw().equipes || {})[id]) return { ok: false, error: "active d'abord cette équipe avec son code" };
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, error: "FIRE Team n'est pas connecté à l'équipe" };
+  const key = Buffer.from(hex, 'hex'), p = 'equipes/' + id + '/' + MEMBRES;
+  try {
+    for (let i = 0; i < 4; i++) {
+      const cur = await ghGet(tok, p, dr);
+      const l = (cur && cur.json ? (openWith(key, cur.json).membres || []) : []).map(cleanMembre).filter(Boolean);
+      const x = l.find((y) => y.slug === slug);
+      if (!x) return { ok: false, error: 'membre introuvable' };
+      let next = l;
+      if (ok === 'retirer') next = l.filter((y) => y.slug !== slug);
+      else { x.statut = ok ? 'ok' : 'refus'; if (ROLE_RE.test(String(role || ''))) x.role = role; x.par = 'Créateur'; x.decide = Date.now(); }
+      const r = await ghPut(tok, p, sealWith(key, { membres: next }, MEMBRES), cur && cur.sha, (ok === 'retirer' ? 'Membre retiré' : ok ? 'Membre accepté' : 'Membre refusé') + ' (' + id + ')', dr);
+      if (r.ok) return { ok: true, membres: next };
+    }
+    return { ok: false, error: 'la liste a changé pendant l’envoi, réessaie' };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
 }
 async function teamActivate(id, code) {
   if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
@@ -2504,4 +2535,4 @@ async function appsRelay() {
 const appsRelay0 = appsRelay;
 appsRelay = async function () { const r = await appsRelay0(); try { await launcherRelay(); } catch (e) { /* */ } return r; };
 
-module.exports = { devKeyMake, devSet, devClear, planningOf, coachsList, coachsAdd, maintGet, rwRemoteGet, rwRemotePost, rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { teamMembre, devKeyMake, devSet, devClear, planningOf, coachsList, coachsAdd, maintGet, rwRemoteGet, rwRemotePost, rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

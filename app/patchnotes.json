@@ -1,6 +1,25 @@
 {
   "versions": [
     {
+      "v": "2.0.35",
+      "date": "2026-11-24",
+      "titre": "Le créateur voit les membres des autres équipes",
+      "items": [
+        [
+          "fix",
+          "Admin › Équipes FIRE : le nombre de joueurs compte enfin ceux qui ont rejoint l’équipe avec son code (Bravo affichait 0)."
+        ],
+        [
+          "new",
+          "Admin › Équipes FIRE : la liste des membres de chaque équipe (acceptés, en attente, refusés) et qui les a acceptés."
+        ],
+        [
+          "new",
+          "Le créateur peut accepter, refuser ou retirer un membre de Bravo à la place du chef."
+        ]
+      ]
+    },
+    {
       "v": "2.0.34",
       "date": "2026-11-24",
       "titre": "Codes dev et codes admin",
