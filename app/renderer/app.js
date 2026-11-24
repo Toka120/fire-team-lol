@@ -8402,7 +8402,7 @@
             h('div', { class: 'lane-t' }, c.titre),
             h('p', { class: 'lane-intro' }, c.intro),
             h('div', { class: 'lane-meta' },
-              c.diapo ? h('span', { class: 'lane-go' }, `▶ Diaporama · ${c.diapo.slides.length} slides`) : null,
+              c.diapo && diapoOk() ? h('span', { class: 'lane-go' }, `▶ Diaporama · ${c.diapo.slides.length} slides`) : null,
               h('span', { class: 'lane-n' }, `${c.themes.length} principes`))));
       })),
       h('h2', { class: 'hub-sec' }, h('span', null, '🧭 Les principes du jeu'), h('small', { class: 'muted' }, `${themes.length} thèmes, utiles à toutes les lanes`)),
@@ -8417,9 +8417,14 @@
     if (!c) { S.guideCat = null; renderCategories(); return; }
     view.replaceChildren(
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, c.ico), h('div', null, h('h1', { class: 'title' }, c.titre), h('p', { class: 'muted' }, c.intro))),
-      (c.diapo && ((c.diapo.quiz || []).length || (c.diapo.defis || []).length))
-        ? h('div', { class: 'diapo-row' }, diapoCard(c), h('div', { class: 'diapo-side' }, (c.diapo.quiz || []).length ? quizCard(c) : null, (c.diapo.scenarios || []).length ? scenCard(c) : null, (c.diapo.defis || []).length ? defisCard(c) : null))
-        : diapoCard(c),
+      !c.diapo ? null : !diapoOk()
+        // Diaporama et quiz : réservés à l'équipe Alpha. Les autres formules gardent les scénarios et le carnet de défis.
+        ? h('div', { class: 'diapo-row' }, h('div', { class: 'diapo-card diapo-lock' }, h('div', { class: 'diapo-info' }, h('div', { class: 'diapo-kick' }, '🔒 Diaporama et quiz'),
+            h('div', { class: 'diapo-t' }, `${c.diapo.slides.length} slides et le quiz de ${c.titre}`), h('p', { class: 'muted small' }, 'Réservés à l’équipe Alpha (formule Premium Élite). Les principes, les scénarios et les défis restent ouverts.'))),
+          h('div', { class: 'diapo-side' }, (c.diapo.scenarios || []).length ? scenCard(c) : null, (c.diapo.defis || []).length ? defisCard(c) : null))
+        : ((c.diapo.quiz || []).length || (c.diapo.defis || []).length)
+          ? h('div', { class: 'diapo-row' }, diapoCard(c), h('div', { class: 'diapo-side' }, (c.diapo.quiz || []).length ? quizCard(c) : null, (c.diapo.scenarios || []).length ? scenCard(c) : null, (c.diapo.defis || []).length ? defisCard(c) : null))
+          : diapoCard(c),
       h('div', { class: 'cat-list' }, c.themes.map((x, i) => {
         const t = themeOf(x.id);
         if (!t) return null;
@@ -12455,11 +12460,11 @@
   const PLAN_JOUEUR = new Set([...PLAN_BASIC, 'guides', 'apprendre', 'puzzle', 'puzdraft', 'parcours', 'train', 'jeux', 'patch']);
   // Premium Équipe (Bravo et les autres équipes) : l'espace d'équipe, sans Lanes et principes ni coaching.
   const PLAN_EQUIPE = new Set([...PLAN_JOUEUR, 'stats', 'pool', 'planning', 'draft', 'scrims', 'chat', 'vocal', 'annonces', 'carnet']);
-  PLAN_EQUIPE.delete('guides');
   const PLAN_NAMES = { basique: 'Classique', joueur: 'Premium Joueur', equipe: 'Premium Équipe', elite: 'Premium Élite' };
   // Aperçu du créateur : FIRE affiché comme dans une autre formule, sans rien perdre (Admin et Paramètres restent ouverts).
   const PLAN = () => S.planPreview || (S.basic ? (S.planKey === 'joueur' ? 'joueur' : 'basique') : S.cfg && S.cfg.team_id ? 'equipe' : 'elite');
   const planGate = () => PLAN() !== 'elite';
+  const diapoOk = () => PLAN() === 'elite';
   function basicView() { return S.basic || S.planPreview === 'basique' || S.planPreview === 'joueur'; }
   function planPreview(p) {
     S.planPreview = p && p !== 'elite' ? p : null;
@@ -12478,9 +12483,9 @@
   const planNeed = (sec) => (PLAN_JOUEUR.has(sec) ? 'joueur' : 'elite');
   const PLAN_LIST = {
     basique: ['Tes stats de joueur et la draft en direct', 'FIRE Kiting et FIRE Listen en solo', 'Tes clips, enregistrés sur ton PC', 'La boutique : quelques apparences de base', 'E-sport, patchs LoL, stream Twitch et outils'],
-    equipe: ['Tout le Premium Joueur, sauf Lanes et principes', 'L’espace de ton équipe : stats, POOL, planning, draft, salons, vocal, scrims, annonces', 'Séparé d’Alpha : tes données restent dans ton équipe'],
-    joueur: ['Tout le Classique', 'L’analyse complète de tes stats : bilan détaillé, série, arbre des points forts, jour par jour', 'Lanes et principes : slides, 20 scénarios par lane et quiz', 'Apprendre en jouant, puzzle du jour, puzzles de draft, parcours', 'Micro, Détente et patch notes', 'Une boutique plus large'],
-    elite: ['Tout le Premium Joueur', 'L’espace de l’équipe : stats, POOL, planning, draft, salons, vocal, scrims, clips partagés', 'Le coaching : parole du coach, créneaux, salle de réunion, revues, analyses par l’IA', 'La boutique complète et les apparences de l’équipe'],
+    equipe: ['Tout le Premium Joueur (Lanes et principes sans diaporama ni quiz)', 'L’espace de ton équipe : stats, POOL, planning, draft, salons, vocal, scrims, annonces', 'Séparé d’Alpha : tes données restent dans ton équipe'],
+    joueur: ['Tout le Classique', 'L’analyse complète de tes stats : bilan détaillé, série, arbre des points forts, jour par jour', 'Lanes et principes : les principes et 20 scénarios par lane', 'Apprendre en jouant, puzzle du jour, puzzles de draft, parcours', 'Micro, Détente et patch notes', 'Une boutique plus large'],
+    elite: ['Tout le Premium Joueur', 'Les diaporamas et les quiz de Lanes et principes', 'L’espace de l’équipe : stats, POOL, planning, draft, salons, vocal, scrims, clips partagés', 'Le coaching : parole du coach, créneaux, salle de réunion, revues, analyses par l’IA', 'La boutique complète et les apparences de l’équipe'],
   };
   async function planKeyEnter(box) {
     const inp = h('textarea', { class: 'inp', rows: 3, placeholder: 'Colle ici ta clé Premium (FIREPLAN1.…)', spellcheck: 'false' });
@@ -12530,7 +12535,7 @@
       h('div', { class: 'bh-grid' },
         tile('equipes', '🌐', 'Équipes FIRE', 'Suis Alpha : joueurs, matchs, résultats'), tile('clips', '🎬', 'Clips', 'Tes meilleurs moments, sur ton PC'), tile('boutique', '🛍️', 'Boutique', 'Personnalise ton profil'),
         tile('worlds', '🏆', 'E-sport', 'Les matchs pros'), tile('lolpatch', '📜', 'Patchs LoL', 'Ce qui change dans le jeu'), tile('stream', '🟣', 'Stream', 'Le live de l’équipe'), tile('outils', '🧰', 'Outils', 'Les sites utiles'),
-        tile('guides', '🧭', 'Lanes et principes', 'Slides, scénarios et quiz'), tile('apprendre', '🎓', 'Apprendre en jouant', 'Les bases en jouant'), tile('puzzle', '🧩', 'Puzzle du jour', 'Une situation par jour'),
+        tile('guides', '🧭', 'Lanes et principes', 'Principes et scénarios'), tile('apprendre', '🎓', 'Apprendre en jouant', 'Les bases en jouant'), tile('puzzle', '🧩', 'Puzzle du jour', 'Une situation par jour'),
         tile('stats', '📊', 'Mes stats', 'Ton rang, tes champions, tes games'), tile('draft', '⚡', 'Draft en direct', 'Matchup et runes pendant la sélection'),
         tile('planning', '👥', 'Espace d’équipe', ''), tile('coach', '📣', 'Coaching', '')),
       p === 'elite' ? null : h('div', { class: 'card plan-up' }, h('b', null, p === 'basique' ? '⭐ Passe en Premium Joueur' : '⭐ Rejoins l’équipe Alpha'),

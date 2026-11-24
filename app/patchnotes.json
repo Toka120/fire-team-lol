@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "2.0.21",
+   "date": "2026-11-24",
+   "titre": "Lanes et principes : ouvert à Bravo, diaporamas et quiz pour Alpha",
+   "items": [
+    [
+     "new",
+     "Premium Équipe (Bravo) : la rubrique Lanes et principes est ouverte, avec les principes, les 20 scénarios par lane et les défis."
+    ],
+    [
+     "new",
+     "Les diaporamas et les quiz des lanes sont réservés à l'équipe Alpha (Premium Élite). Les autres formules voient une carte « 🔒 Diaporama et quiz » à leur place."
+    ],
+    [
+     "new",
+     "FIRE Launcher 2.0.9 : le comparatif des formules est mis à jour."
+    ]
+   ]
+  },
+  {
    "v": "2.0.20",
    "date": "2026-11-24",
    "titre": "Récompenses : cadeaux et événements du créateur",
