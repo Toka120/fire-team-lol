@@ -2161,7 +2161,7 @@ async function publicOptins() {
 // ---------- Formules : clés Premium Joueur ----------
 // « FIREPLAN1.<certificat>.<signature du créateur> » : le certificat dit qui et quelle formule. Pas de clé privée dedans :
 // la clé ne sert qu'à prouver que le créateur l'a donnée. Elle se retire comme les clés des apps (liste apps/keys.json).
-const PLANS = ['joueur'];
+const PLANS = ['joueur', 'complet']; // complet : tout FIRE sauf l'espace de l'équipe Alpha
 async function planKeyMake(who, plan) {
   if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
   who = String(who || '').trim().slice(0, 40);

@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "2.0.22",
+   "date": "2026-11-24",
+   "titre": "Nouvelle clé : Premium Complet",
+   "items": [
+    [
+     "new",
+     "Admin › Clés des apps : le créateur choisit la formule de la clé, Premium Joueur ou Premium Complet."
+    ],
+    [
+     "new",
+     "Premium Complet : tout FIRE pour un joueur hors de l'équipe Alpha. Diaporamas et quiz des lanes, tout l'apprentissage, l'analyse complète de ses stats, la draft en direct et toute la boutique (packs compris)."
+    ],
+    [
+     "new",
+     "Premium Complet ne donne aucun accès à l'espace de l'équipe Alpha : ni stats de l'équipe, ni planning, ni discussion, ni vocal, ni coaching. La Collection Braises reste à gagner avec des Braises."
+    ],
+    [
+     "new",
+     "Admin › « Voir FIRE comme… » : aperçu Premium Complet ajouté."
+    ]
+   ]
+  },
+  {
    "v": "2.0.21",
    "date": "2026-11-24",
    "titre": "Lanes et principes : ouvert à Bravo, diaporamas et quiz pour Alpha",

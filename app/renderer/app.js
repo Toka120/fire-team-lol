@@ -1267,7 +1267,7 @@
     const p = PLAN();
     if (v == null || v === '') return true;
     if (exclPrice(k, v)) return rwOwned(k, v);
-    if (p === 'elite') return true;
+    if (p === 'elite' || p === 'complet') return true;
     if ((p === 'joueur' || p === 'equipe') && ['fx', 'font', 'grad', 'deco', 'plate', 'card'].includes(k)) return true;
     const list = (acfg().shopBasic || []).length ? acfg().shopBasic : SHOP_BASIC0;
     return list.includes(shopKey(k, v)) || rwOwned(k, v);
@@ -1325,7 +1325,7 @@
           h('div', { class: 'shop-grid shop-excl' }, pack, ...SHOP_EXCL.map(([k, v, l, d]) => item(k, v, l, d, prevOf(k, v)))));
       })(),
       sec('🎁 Packs', 'Tout un style d’un coup : survole pour l’essayer, clique pour l’équiper.', PACKS.map(([id, l, d, P]) => { const on = JSON.stringify(L) === JSON.stringify(P);
-        const pk = PLAN() !== 'elite' && !(rwSt().own || []).includes('pack:' + id);
+        const pk = PLAN() !== 'elite' && PLAN() !== 'complet' && !(rwSt().own || []).includes('pack:' + id);
         return h('button', { class: 'shop-it shop-pack' + (on ? ' on' : '') + (pk ? ' locked' : ''), onclick: () => { if (pk && !shopBuyPack(id, P, SHOP_PRICE.pack)) return; setUx({ look: { ...P } }); shopRedraw(); }, onmouseenter: () => { const Pv = document.querySelector('.shop-preview'); if (Pv) Pv.replaceWith(previewOf(P, true)); }, onmouseleave: () => tryOn('fx', undefined) },
           h('div', { class: 'shop-prev shop-packprev' + (P.card ? ' pf-themed' : ''), style: P.card ? `--pc1:${P.card[0]};--pc2:${P.card[1]}` : '' }, P.pfx ? pfxEl(P.pfx) : null, lav(P, 'shop-av')), h('b', null, l), h('small', { class: 'muted' }, d), on ? h('span', { class: 'shop-tag' }, '✓ Équipé') : pk ? h('span', { class: 'shop-tag shop-price r-myth' }, h('b', null, '🔥 ' + SHOP_PRICE.pack), ' · Pack') : h('span', { class: 'shop-tag' }, 'Tout équiper')); })),
       sec('✨ Effet de pseudo', 'Il s’anime partout où ton pseudo apparaît.', SHOP.fx.map(([v, l, d]) => item('fx', v, l, d, name(v, L.font, L.grad)))),
@@ -12063,15 +12063,19 @@
         h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', onclick: () => akCopy(AK.last.key) }, '📋 Copier la clé')),
         h('p', { class: 'muted small' }, AK.last.plan ? 'Envoie-la en message privé. Dans FIRE Team (version Classique) : Accueil ou Paramètres › « J’ai une clé Premium », puis colle la clé. Tu peux la retirer quand tu veux.' : 'Envoie-la en message privé. Dans FIRE Kiting ou FIRE Listen : bouton « 🔧 Admin », puis colle la clé. Garde-la secrète : elle permet de publier au nom de cette personne.')) : null,
       // Clés Premium Joueur : la version Basique + l'apprentissage, pour un joueur hors de l'équipe Alpha.
-      window.fire.plan ? h('div', { class: 'card adm-grp' }, h('b', null, '⭐ Nouvelle clé Premium Joueur'),
+      window.fire.plan ? h('div', { class: 'card adm-grp' }, h('b', null, '⭐ Nouvelle clé Premium'),
         h('p', { class: 'muted small' }, 'Pour un joueur hors de l’équipe Alpha : il ouvre FIRE Team en version Classique, puis colle la clé (Accueil ou Paramètres). Il débloque Lanes et principes, les scénarios, les quiz, les puzzles, le parcours, Micro, Détente et une boutique plus large.'),
+        h('div', { class: 'row' }, h('select', { class: 'inp', style: 'max-width:340px', onchange: (e) => { AK.pplan = e.target.value; renderAdmin(); } },
+          [['joueur', '⭐ Premium Joueur : l’apprentissage (sans diaporamas ni quiz)'], ['complet', '👑 Premium Complet : tout FIRE, sans l’équipe Alpha']].map(([v, l]) => h('option', { value: v, selected: (AK.pplan || 'joueur') === v ? true : null }, l)))),
+        (AK.pplan || 'joueur') === 'complet' ? h('p', { class: 'muted small' }, 'Premium Complet : tout l’apprentissage avec les diaporamas et les quiz, l’analyse complète de ses stats, la draft en direct, la boutique complète (packs compris). Il ne voit rien de l’équipe Alpha : ni stats de l’équipe, ni planning, ni discussion, ni vocal, ni coaching.') : null,
         h('div', { class: 'row' }, h('input', { class: 'inp', placeholder: 'Pour qui ? (pseudo)', value: AK.pwho || '', maxlength: 40, style: 'max-width:240px', oninput: (e) => { AK.pwho = e.target.value; } }),
           h('button', { class: 'btn-fire small-btn', disabled: AK.busy ? true : null, onclick: async () => {
             if (!(AK.pwho || '').trim()) { AK.msg = '⚠ Indique pour qui est la clé.'; renderAdmin(); return; }
             AK.busy = true; renderAdmin();
-            const r = await window.fire.plan.make(AK.pwho.trim(), 'joueur').catch((e) => ({ ok: false, error: String(e) }));
+            const pl = AK.pplan || 'joueur';
+            const r = await window.fire.plan.make(AK.pwho.trim(), pl).catch((e) => ({ ok: false, error: String(e) }));
             AK.busy = false;
-            if (r && r.ok) { AK.last = { who: AK.pwho.trim(), apps: [], plan: 'joueur', key: r.key }; AK.pwho = ''; AK.msg = r.warn ? '⚠ Clé créée, mais la liste de l’équipe n’a pas pu être mise à jour : ' + r.warn : '✅ Clé Premium Joueur créée.'; akLoad(); }
+            if (r && r.ok) { AK.last = { who: AK.pwho.trim(), apps: [], plan: pl, key: r.key }; AK.pwho = ''; AK.msg = r.warn ? '⚠ Clé créée, mais la liste de l’équipe n’a pas pu être mise à jour : ' + r.warn : '✅ Clé ' + PLAN_NAMES[pl] + ' créée.'; akLoad(); }
             else AK.msg = '⚠ ' + ((r && r.error) || 'création impossible');
             renderAdmin();
           } }, '⭐ Créer la clé'))) : null,
@@ -12378,7 +12382,7 @@
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🛠️'), h('div', null, h('h1', { class: 'title' }, 'Admin'),
         h('p', { class: 'muted' }, 'Modifie FIRE pour toute l’équipe, sans mise à jour : menu, catégories, pages, textes, apparence. Tes changements sont signés par ta clé de créateur : personne d’autre ne peut publier ici.'))),
       h('div', { class: 'card adm-pv' }, h('b', null, '👁️ Voir FIRE comme…'), h('small', { class: 'muted' }, 'Un aperçu pour toi seul : ton Admin, tes réglages et tes droits restent intacts.'),
-        h('div', { class: 'row' }, ['basique', 'joueur', 'equipe'].map((k) => h('button', { class: 'btn-ghost small-btn', onclick: () => { planPreview(k); go('accueil'); } }, PLAN_NAMES[k])))),
+        h('div', { class: 'row' }, ['basique', 'joueur', 'complet', 'equipe'].map((k) => h('button', { class: 'btn-ghost small-btn', onclick: () => { planPreview(k); go('accueil'); } }, PLAN_NAMES[k])))),
       h('div', { class: 'row plan-tabs adm-tabs' }, tabs.map(([k, l]) => h('button', { class: 'plan-tab', 'aria-pressed': String(ADM.tab === k), onclick: () => { ADM.tab = k; renderAdmin(); } }, l))),
       h('div', { class: 'card adm-body' }, body),
       (ADM.tab === 'apps' || ADM.tab === 'pub' || ADM.tab === 'teams' || ADM.tab === 'rw') && !dirty ? '' : h('div', { class: 'card adm-bar' },
@@ -12460,12 +12464,12 @@
   const PLAN_JOUEUR = new Set([...PLAN_BASIC, 'guides', 'apprendre', 'puzzle', 'puzdraft', 'parcours', 'train', 'jeux', 'patch']);
   // Premium Équipe (Bravo et les autres équipes) : l'espace d'équipe, sans Lanes et principes ni coaching.
   const PLAN_EQUIPE = new Set([...PLAN_JOUEUR, 'stats', 'pool', 'planning', 'draft', 'scrims', 'chat', 'vocal', 'annonces', 'carnet']);
-  const PLAN_NAMES = { basique: 'Classique', joueur: 'Premium Joueur', equipe: 'Premium Équipe', elite: 'Premium Élite' };
+  const PLAN_NAMES = { basique: 'Classique', joueur: 'Premium Joueur', complet: 'Premium Complet', equipe: 'Premium Équipe', elite: 'Premium Élite' };
   // Aperçu du créateur : FIRE affiché comme dans une autre formule, sans rien perdre (Admin et Paramètres restent ouverts).
-  const PLAN = () => S.planPreview || (S.basic ? (S.planKey === 'joueur' ? 'joueur' : 'basique') : S.cfg && S.cfg.team_id ? 'equipe' : 'elite');
+  const PLAN = () => S.planPreview || (S.basic ? (['joueur', 'complet'].includes(S.planKey) ? S.planKey : 'basique') : S.cfg && S.cfg.team_id ? 'equipe' : 'elite');
   const planGate = () => PLAN() !== 'elite';
-  const diapoOk = () => PLAN() === 'elite';
-  function basicView() { return S.basic || S.planPreview === 'basique' || S.planPreview === 'joueur'; }
+  const diapoOk = () => PLAN() === 'elite' || PLAN() === 'complet';
+  function basicView() { return S.basic || ['basique', 'joueur', 'complet'].includes(S.planPreview); }
   function planPreview(p) {
     S.planPreview = p && p !== 'elite' ? p : null;
     document.body.classList.toggle('plan-previewing', !!S.planPreview);
@@ -12474,16 +12478,17 @@
     else {
       if (!bar) { bar = h('div', { id: 'plan-preview-bar', class: 'plan-pv-bar', role: 'status' }); document.body.append(bar); }
       bar.replaceChildren(h('span', null, '👁️ Aperçu : ', h('b', null, PLAN_NAMES[S.planPreview])), h('small', null, 'Rien n’est changé : seulement ce que tu vois.'),
-        ...['basique', 'joueur', 'equipe', 'elite'].map((k) => h('button', { class: 'plan-pv-b' + (k === (S.planPreview || 'elite') ? ' on' : ''), onclick: () => planPreview(k) }, k === 'elite' ? 'Quitter' : PLAN_NAMES[k])));
+        ...['basique', 'joueur', 'complet', 'equipe', 'elite'].map((k) => h('button', { class: 'plan-pv-b' + (k === (S.planPreview || 'elite') ? ' on' : ''), onclick: () => planPreview(k) }, k === 'elite' ? 'Quitter' : PLAN_NAMES[k])));
     }
     try { chatPaint(); } catch (e) { /* */ }
     renderNav(); render();
   }
-  function planOk(sec) { if (S.planPreview && (sec === 'admin' || sec === 'settings')) return true; const p = PLAN(); return p === 'elite' || (p === 'joueur' ? PLAN_JOUEUR : p === 'equipe' ? PLAN_EQUIPE : PLAN_BASIC).has(sec); }
+  function planOk(sec) { if (S.planPreview && (sec === 'admin' || sec === 'settings')) return true; const p = PLAN(); return p === 'elite' || (p === 'joueur' || p === 'complet' ? PLAN_JOUEUR : p === 'equipe' ? PLAN_EQUIPE : PLAN_BASIC).has(sec); }
   const planNeed = (sec) => (PLAN_JOUEUR.has(sec) ? 'joueur' : 'elite');
   const PLAN_LIST = {
     basique: ['Tes stats de joueur et la draft en direct', 'FIRE Kiting et FIRE Listen en solo', 'Tes clips, enregistrés sur ton PC', 'La boutique : quelques apparences de base', 'E-sport, patchs LoL, stream Twitch et outils'],
     equipe: ['Tout le Premium Joueur (Lanes et principes sans diaporama ni quiz)', 'L’espace de ton équipe : stats, POOL, planning, draft, salons, vocal, scrims, annonces', 'Séparé d’Alpha : tes données restent dans ton équipe'],
+    complet: ['Tout le Premium Joueur', 'Les diaporamas et les quiz de Lanes et principes', 'La boutique complète, packs compris', 'Sans l’espace de l’équipe Alpha (stats, planning, discussion, coaching)'],
     joueur: ['Tout le Classique', 'L’analyse complète de tes stats : bilan détaillé, série, arbre des points forts, jour par jour', 'Lanes et principes : les principes et 20 scénarios par lane', 'Apprendre en jouant, puzzle du jour, puzzles de draft, parcours', 'Micro, Détente et patch notes', 'Une boutique plus large'],
     elite: ['Tout le Premium Joueur', 'Les diaporamas et les quiz de Lanes et principes', 'L’espace de l’équipe : stats, POOL, planning, draft, salons, vocal, scrims, clips partagés', 'Le coaching : parole du coach, créneaux, salle de réunion, revues, analyses par l’IA', 'La boutique complète et les apparences de l’équipe'],
   };
@@ -12538,7 +12543,7 @@
         tile('guides', '🧭', 'Lanes et principes', 'Principes et scénarios'), tile('apprendre', '🎓', 'Apprendre en jouant', 'Les bases en jouant'), tile('puzzle', '🧩', 'Puzzle du jour', 'Une situation par jour'),
         tile('stats', '📊', 'Mes stats', 'Ton rang, tes champions, tes games'), tile('draft', '⚡', 'Draft en direct', 'Matchup et runes pendant la sélection'),
         tile('planning', '👥', 'Espace d’équipe', ''), tile('coach', '📣', 'Coaching', '')),
-      p === 'elite' ? null : h('div', { class: 'card plan-up' }, h('b', null, p === 'basique' ? '⭐ Passe en Premium Joueur' : '⭐ Rejoins l’équipe Alpha'),
+      p === 'elite' || p === 'complet' ? null : h('div', { class: 'card plan-up' }, h('b', null, p === 'basique' ? '⭐ Passe en Premium Joueur' : '⭐ Rejoins l’équipe Alpha'),
         h('p', { class: 'muted small' }, (p === 'basique' ? PLAN_LIST.joueur : PLAN_LIST.elite).slice(1).join(' · ')),
         h('div', { class: 'row' }, p === 'basique' ? h('button', { class: 'btn-fire small-btn', onclick: () => planKeyEnter(keyBox) }, '🔑 J’ai une clé Premium') : null,
           h('button', { class: 'btn-ghost small-btn', onclick: planToTeam }, '👥 J’ai un code d’équipe')), keyBox));
