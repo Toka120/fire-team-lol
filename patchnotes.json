@@ -1,6 +1,21 @@
 {
  "versions": [
   {
+   "v": "2.0.28",
+   "date": "2026-11-24",
+   "titre": "Aperçus plus clairs",
+   "items": [
+    [
+     "fix",
+     "Admin › « Voir FIRE comme… » : les aperçus portent des noms simples avec une explication : un joueur sans code, un joueur avec une clé Joueur, un joueur avec une clé Complète, un joueur de Bravo."
+    ],
+    [
+     "fix",
+     "La barre d'aperçu dit « Tu vois FIRE comme : … » et se ferme avec « Revenir à Alpha »."
+    ]
+   ]
+  },
+  {
    "v": "2.0.27",
    "date": "2026-11-24",
    "titre": "Plus de défis et plus de Braises",

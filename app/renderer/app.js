@@ -12560,7 +12560,8 @@
       h('header', { class: 'sec-hero' }, h('div', { class: 'sec-ico' }, '🛠️'), h('div', null, h('h1', { class: 'title' }, 'Admin'),
         h('p', { class: 'muted' }, 'Modifie FIRE pour toute l’équipe, sans mise à jour : menu, catégories, pages, textes, apparence. Tes changements sont signés par ta clé de créateur : personne d’autre ne peut publier ici.'))),
       h('div', { class: 'card adm-pv' }, h('b', null, '👁️ Voir FIRE comme…'), h('small', { class: 'muted' }, 'Un aperçu pour toi seul : ton Admin, tes réglages et tes droits restent intacts.'),
-        h('div', { class: 'row' }, ['basique', 'joueur', 'complet', 'equipe'].map((k) => h('button', { class: 'btn-ghost small-btn', onclick: () => { planPreview(k); go('accueil'); } }, PLAN_NAMES[k])))),
+        h('div', { class: 'pv-grid' }, ['basique', 'joueur', 'complet', 'equipe'].map((k) => h('button', { class: 'pv-opt', onclick: () => { planPreview(k); go('accueil'); } },
+          h('b', null, PV_LABEL[k][0]), h('small', { class: 'muted' }, PV_LABEL[k][1]))))),
       h('div', { class: 'row plan-tabs adm-tabs' }, tabs.map(([k, l]) => h('button', { class: 'plan-tab', 'aria-pressed': String(ADM.tab === k), onclick: () => { ADM.tab = k; renderAdmin(); } }, l))),
       h('div', { class: 'card adm-body' }, body),
       (ADM.tab === 'apps' || ADM.tab === 'pub' || ADM.tab === 'teams' || ADM.tab === 'rw') && !dirty ? '' : h('div', { class: 'card adm-bar' },
@@ -12646,6 +12647,14 @@
   // Aperçu du créateur : FIRE affiché comme dans une autre formule, sans rien perdre (Admin et Paramètres restent ouverts).
   const PLAN = () => S.planPreview || (S.basic ? (['joueur', 'complet'].includes(S.planKey) ? S.planKey : 'basique') : S.cfg && S.cfg.team_id ? 'equipe' : 'elite');
   const planGate = () => PLAN() !== 'elite';
+  // Noms des aperçus : qui voit quoi, sans le jargon des formules.
+  const PV_LABEL = {
+    basique: ['👤 Un joueur sans code', 'Classique : ce que voit n’importe qui, sans code ni clé'],
+    joueur: ['⭐ Un joueur avec une clé Joueur', 'Premium Joueur : clé que tu donnes, apprentissage sans les lanes'],
+    complet: ['👑 Un joueur avec une clé Complète', 'Premium Complet : clé que tu donnes, tout sauf l’équipe Alpha'],
+    equipe: ['🛡️ Un joueur de Bravo', 'Premium Équipe : l’espace de Bravo, avec le code Bravo'],
+    elite: ['🔥 Un joueur d’Alpha', 'Premium Élite : tout FIRE (ce que tu vois d’habitude)'],
+  };
   const diapoOk = () => PLAN() === 'elite' || PLAN() === 'complet';
   function basicView() { return S.basic || ['basique', 'joueur', 'complet'].includes(S.planPreview); }
   function planPreview(p) {
@@ -12655,8 +12664,8 @@
     if (!S.planPreview) { if (bar) bar.remove(); }
     else {
       if (!bar) { bar = h('div', { id: 'plan-preview-bar', class: 'plan-pv-bar', role: 'status' }); document.body.append(bar); }
-      bar.replaceChildren(h('span', null, '👁️ Aperçu : ', h('b', null, PLAN_NAMES[S.planPreview])), h('small', null, 'Rien n’est changé : seulement ce que tu vois.'),
-        ...['basique', 'joueur', 'complet', 'equipe', 'elite'].map((k) => h('button', { class: 'plan-pv-b' + (k === (S.planPreview || 'elite') ? ' on' : ''), onclick: () => planPreview(k) }, k === 'elite' ? 'Quitter' : PLAN_NAMES[k])));
+      bar.replaceChildren(h('span', null, '👁️ Tu vois FIRE comme : ', h('b', null, PV_LABEL[S.planPreview][0])), h('small', null, 'Rien n’est changé, c’est seulement un aperçu.'),
+        ...['basique', 'joueur', 'complet', 'equipe', 'elite'].map((k) => h('button', { class: 'plan-pv-b' + (k === (S.planPreview || 'elite') ? ' on' : ''), title: PV_LABEL[k][1], onclick: () => planPreview(k) }, k === 'elite' ? '✕ Revenir à Alpha' : PV_LABEL[k][0])));
     }
     try { chatPaint(); } catch (e) { /* */ }
     renderNav(); render();

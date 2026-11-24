@@ -3766,3 +3766,9 @@ html[data-calm] .gift-box, html[data-calm] .gift-open { animation: none; }
 .code-msg.ok { color: var(--ok, #3ecf8e); }
 .code-help { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; }
 .code-card .row { flex-wrap: nowrap; } .code-card .row .btn-fire { width: auto; flex: none; padding: 0 20px; }
+.pv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-top: 6px; }
+.pv-opt { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel2); color: inherit; cursor: pointer; }
+.pv-opt:hover { border-color: var(--fire1, #ff5e3a); }
+.plan-pv-bar { flex-wrap: wrap; white-space: normal; border-radius: 18px; max-width: min(1100px, calc(100vw - 280px)); left: calc(50% + 110px); }
+.plan-pv-bar > span { flex-basis: 100%; text-align: center; }
+.plan-pv-bar small { display: none; }
