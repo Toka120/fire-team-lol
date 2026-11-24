@@ -199,3 +199,34 @@ export function keyScreen(app, appName, onUnlocked) {
     inp, h('div', { class: 'fa-row' }, h('button', { class: 'fa-btn primary', type: 'button', onclick: go }, 'Déverrouiller')), st]);
   setTimeout(() => inp.focus(), 50);
 }
+
+// ----- Maintenance : quand le créateur met cette app « en maintenance » dans le studio du FIRE Launcher, elle se bloque
+// chez tout le monde (sauf chez ceux qui ont une clé admin de l'app), et se débloque toute seule à la fin.
+const MAINT_APP = typeof location !== 'undefined' && /kiting/i.test(location.pathname) ? 'kiting' : 'listen';
+let maintOn = false;
+async function maintCheck() {
+  const a = api(); if (!a || !a.launcher_cfg) return;
+  let f = null; try { f = await a.launcher_cfg(); } catch { return; }
+  let msg = null;
+  try {
+    if (f && f.payload && f.sig && (await byCreator(b64u.dec(f.sig), te.encode(canon(f.payload))))) {
+      const m = (f.payload.cfg && f.payload.cfg.maint) || {};
+      if (m[MAINT_APP] != null) msg = String(m[MAINT_APP]).slice(0, 160);
+    }
+  } catch { return; }
+  let admin = false; try { admin = (await myKey(MAINT_APP)).state === 'ok'; } catch { /* */ }
+  const el = document.getElementById('fa-maint');
+  if (msg != null && !admin) {
+    if (!el) {
+      const box = h('div', { id: 'fa-maint', class: 'fa-maint', role: 'alertdialog', 'aria-modal': 'true' },
+        h('div', { class: 'fa-maint-card' }, h('div', { class: 'fa-maint-ico' }, '🛠️'),
+          h('h1', null, (MAINT_APP === 'kiting' ? 'FIRE Kiting' : 'FIRE Listen') + ' est en maintenance'),
+          h('p', { class: 'fa-maint-msg' }), h('p', { class: 'fa-muted' }, 'L’app se débloque toute seule dès que c’est fini : pas besoin de la relancer.')));
+      document.body.append(box);
+      try { document.querySelectorAll('audio,video').forEach((m) => m.pause()); } catch { /* */ }
+    }
+    document.querySelector('#fa-maint .fa-maint-msg').textContent = msg || 'Une mise à jour est en cours. Retour très vite.';
+    maintOn = true;
+  } else if (el) { el.remove(); if (maintOn) toast('✅ Maintenance terminée : bon jeu !'); maintOn = false; }
+}
+if (typeof window !== 'undefined') bridgeReady().then((ok) => { if (!ok) return; maintCheck(); setInterval(maintCheck, 45000); });

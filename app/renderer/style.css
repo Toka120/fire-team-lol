@@ -3772,3 +3772,17 @@ html[data-calm] .gift-box, html[data-calm] .gift-open { animation: none; }
 .plan-pv-bar { flex-wrap: wrap; white-space: normal; border-radius: 18px; max-width: min(1100px, calc(100vw - 280px)); left: calc(50% + 110px); }
 .plan-pv-bar > span { flex-basis: 100%; text-align: center; }
 .plan-pv-bar small { display: none; }
+
+/* Maintenance */
+.maint-screen { position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center; background: radial-gradient(circle at 50% 40%, rgb(255 120 50 / 18%), #07080a 65%); backdrop-filter: blur(8px); }
+.maint-card { width: min(560px, 92vw); text-align: center; padding: 36px 30px 28px; border-radius: 26px; background: rgb(20 18 18 / 92%); border: 1px solid rgb(255 140 60 / 40%); box-shadow: 0 30px 90px rgb(0 0 0 / 60%); }
+.maint-ico { font-size: 64px; animation: maintTurn 2.4s ease-in-out infinite; display: inline-block; }
+@keyframes maintTurn { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(12deg); } }
+.maint-card h1 { margin: 10px 0 8px; font-size: 26px; }
+.maint-msg { font-size: 16px; margin: 0 0 10px; }
+.maint-dots { display: flex; gap: 8px; justify-content: center; margin: 16px 0; }
+.maint-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--fire1, #ff5e3a); animation: maintDot 1.2s ease-in-out infinite; }
+.maint-dots i:nth-child(2) { animation-delay: .2s; } .maint-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes maintDot { 50% { transform: translateY(-6px); opacity: .5; } }
+.maint-btns { justify-content: center; gap: 10px; }
+.maint-strip { position: fixed; top: 0; left: 50%; transform: translateX(-50%); z-index: 9000; padding: 4px 14px; border-radius: 0 0 12px 12px; background: #b8461f; color: #fff; font-size: 12px; font-weight: 700; box-shadow: 0 4px 14px rgb(0 0 0 / 40%); }

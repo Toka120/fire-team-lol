@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld('fire', {
   unlock: call('unlock'),
   unlocked: call('unlocked'),
   teams: { info: call('teams:info'), activate: call('teams:activate') },
+  maint: call('maint:get'),
+  quit: call('app:quit'),
   rw: { push: call('rw:push'), board: call('rw:board'), remote: call('rw:remote'), publish: call('rw:publish') },
   fiches: call('fiches'),
   pools: call('pools'),

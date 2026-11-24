@@ -367,7 +367,7 @@
         h('button', { class: 'sw' + (B.on ? ' on' : ''), 'aria-pressed': String(!!B.on), onclick: () => { B.on = !B.on; adSave(true); } })),
       B.on ? h('div', { class: 'ad-grid' }, fld('Message', inp(B, 'text', 200, 'Ex. : Séance obligatoire ce soir 20h')), fld('Couleur', h('input', { type: 'color', value: B.color || '#ff7a2e', oninput: (e) => { B.color = e.target.value; adSave(); } })), fld('Lien (facultatif)', inp(B, 'url', 300, 'https://…'))) : null,
       h('h3', { class: 'ad-h3' }, '🚧 Maintenance'),
-      h('p', { class: 'ad-help' }, 'Une app en maintenance ne se lance plus chez l’équipe (bouton grisé + ton message). Toi, tu peux toujours la lancer.'),
+      h('p', { class: 'ad-help' }, 'Une app en maintenance ne se lance plus chez l’équipe (bouton grisé + ton message), et celles déjà ouvertes se bloquent derrière un écran de maintenance en moins d’une minute. Elles se débloquent toutes seules quand tu coupes la maintenance. Toi, tu peux toujours les utiliser.'),
       ...IDS.map((a) => { const on = D.maint[a] != null;
         return h('div', { class: 'set-row' }, h('div', { style: 'flex:1' }, h('b', null, APPN[a]), on ? inp(D.maint, a, 160, 'Ex. : mise à jour en cours, retour vers 21h') : null),
           h('button', { class: 'sw' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick: () => { if (on) delete D.maint[a]; else D.maint[a] = 'En maintenance, retour très vite.'; adSave(true); } })); })];

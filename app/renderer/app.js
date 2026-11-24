@@ -487,6 +487,7 @@
     render();
     // Récompenses : la connexion du jour (et au passage de minuit si FIRE reste ouvert).
     setTimeout(() => { try { rwLogin(); } catch (e) { console.error(e); } try { rwRemoteLoad(); } catch (e) { /* */ } }, 4000);
+    maintStart();
     setInterval(() => { try { rwLogin(); rwRemoteLoad(); } catch (e) { /* */ } }, 30 * 60000);
     chatInit();
     actInit();
@@ -4433,26 +4434,47 @@
   const exclPrice = (k, v) => { const x = SHOP_EXCL.find(([kk, vv]) => kk === k && JSON.stringify(vv) === JSON.stringify(v)); return x ? x[4] : 0; };
   const RW_PRICE = (k, v) => exclPrice(k, v) || SHOP_PRICE[k] || 400;
   const RARITY = (n) => (!n ? ['Commun', 'r-com'] : n <= 150 ? ['Rare', 'r-rare'] : n <= 400 ? ['Épique', 'r-epic'] : n < 1000 ? ['Légendaire', 'r-leg'] : ['Mythique', 'r-myth']);
+  const rwPct = (v) => (v == null ? -1 : v > 1 ? v : v * 100);
+  const rwMin = (x) => { const [m, sec] = String(x.duree || '0:0').split(':').map(Number); return (m || 0) + (sec || 0) / 60; };
+  const rwLong = (x) => rwMin(x) >= 15; // une partie finie à 3 minutes (remake) ne compte pas
+  const RW_ROLES = { top: ['Top', 'Top'], jungle: ['Jungle', 'Jungle'], mid: ['Mid', 'Mid'], adc: ['ADC', 'ADC'], support: ['Support', 'Support'] };
   const RW_DEFIS = {
+    // Défis sur les games, pour tous les postes (vérifiés sur les games classées du jour).
     g_play: { ico: '🎮', t: 'Jouer une partie classée', gain: 30, game: true, ok: (r) => r.length >= 1 },
-    g_win: { ico: '🏆', t: 'Gagner une partie classée', gain: 40, game: true, ok: (r) => r.some((x) => x.win) },
-    g_d5: { ico: '❤️', t: 'Une partie à 5 morts ou moins', gain: 40, game: true, ok: (r) => r.some((x) => x.morts <= 5) },
-    g_kda3: { ico: '⚔️', t: 'Une partie avec un KDA de 3 ou plus', gain: 50, game: true, ok: (r) => r.some((x) => x.kda >= 3) },
-    g_cs7: { ico: '🌾', t: 'Une partie à 7 CS par minute', gain: 50, game: true, noSup: true, ok: (r) => r.some((x) => x.cs_min >= 7) },
-    g_vis: { ico: '🔦', t: 'Une partie avec 40 de score de vision', gain: 50, game: true, sup: true, ok: (r) => r.some((x) => x.vision >= 40) },
-    g_pink: { ico: '👁️', t: 'Poser 2 balises de contrôle dans une partie', gain: 40, game: true, ok: (r) => r.some((x) => x.pinks >= 2) },
     g_play2: { ico: '🎮', t: 'Jouer 2 parties classées', gain: 50, game: true, ok: (r) => r.length >= 2 },
+    g_play3: { ico: '🎮', t: 'Jouer 3 parties classées', gain: 80, game: true, ok: (r) => r.length >= 3 },
+    g_win: { ico: '🏆', t: 'Gagner une partie classée', gain: 40, game: true, ok: (r) => r.some((x) => x.win) },
     g_win2: { ico: '🏆', t: 'Gagner 2 parties classées', gain: 80, game: true, ok: (r) => r.filter((x) => x.win).length >= 2 },
-    g_d2: { ico: '🛡️', t: 'Une partie à 2 morts ou moins', gain: 70, game: true, ok: (r) => r.some((x) => x.morts <= 2 && x.duree.length >= 5) },
-    g_k8: { ico: '🗡️', t: 'Faire 8 kills dans une partie', gain: 50, game: true, noSup: true, ok: (r) => r.some((x) => x.kills >= 8) },
-    g_a12: { ico: '🤝', t: 'Faire 12 assists dans une partie', gain: 50, game: true, ok: (r) => r.some((x) => x.assists >= 12) },
-    g_kp: { ico: '🔗', t: 'Participer à 60 % des kills de ton équipe', gain: 50, game: true, ok: (r) => r.some((x) => x.kp != null && (x.kp > 1 ? x.kp : x.kp * 100) >= 60) },
-    g_gold15: { ico: '💰', t: 'Avoir 500 golds d’avance à 15 min', gain: 60, game: true, ok: (r) => r.some((x) => x.gold15 != null && x.gold15 >= 500) },
-    g_cs15: { ico: '🌾', t: 'Avoir 10 CS d’avance à 15 min', gain: 50, game: true, noSup: true, ok: (r) => r.some((x) => x.cs15 != null && x.cs15 >= 10) },
-    g_dmg: { ico: '💥', t: 'Faire 25 % des dégâts de ton équipe', gain: 50, game: true, noSup: true, ok: (r) => r.some((x) => x.part_degats != null && (x.part_degats > 1 ? x.part_degats : x.part_degats * 100) >= 25) },
-    g_solo: { ico: '⚔️', t: 'Faire un solo kill', gain: 40, game: true, ok: (r) => r.some((x) => (x.solo_kills || 0) >= 1) },
-    g_plates: { ico: '🧱', t: 'Prendre 2 plaques de tour dans une partie', gain: 40, game: true, ok: (r) => r.some((x) => (x.plates || 0) >= 2) },
-    g_wards: { ico: '🕯️', t: 'Détruire 4 balises adverses dans une partie', gain: 40, game: true, ok: (r) => r.some((x) => (x.wards_detruites || 0) >= 4) },
+    g_d5: { ico: '❤️', t: 'Une partie à 5 morts ou moins', gain: 40, game: true, ok: (r) => r.some((x) => x.morts <= 5 && rwLong(x)) },
+    g_d2: { ico: '🛡️', t: 'Une partie à 2 morts ou moins', gain: 70, game: true, ok: (r) => r.some((x) => x.morts <= 2 && rwLong(x)) },
+    g_kda3: { ico: '⚔️', t: 'Une partie avec un KDA de 3 ou plus', gain: 50, game: true, ok: (r) => r.some((x) => x.kda >= 3) },
+    g_kda5: { ico: '⚔️', t: 'Une partie avec un KDA de 5 ou plus', gain: 70, game: true, ok: (r) => r.some((x) => x.kda >= 5) },
+    g_kp: { ico: '🔗', t: 'Participer à 55 % des kills de ton équipe', gain: 50, game: true, ok: (r) => r.some((x) => rwPct(x.kp) >= 55) },
+    g_pink: { ico: '👁️', t: 'Poser 2 balises de contrôle dans une partie', gain: 40, game: true, ok: (r) => r.some((x) => x.pinks >= 2) },
+    g_wards: { ico: '🕯️', t: 'Détruire 3 balises adverses dans une partie', gain: 40, game: true, ok: (r) => r.some((x) => (x.wards_detruites || 0) >= 3) },
+    g_nodeath15: { ico: '⏱️', t: 'Une victoire en moins de 25 minutes', gain: 60, game: true, ok: (r) => r.some((x) => x.win && rwMin(x) < 25) },
+    // Défis d'un poste : comptés seulement sur les games jouées à ce poste, avec des repères faits pour lui.
+    r_top_cs: { ico: '🌾', t: '7 CS par minute dans une partie', gain: 50, game: true, role: 'top', ok: (r) => r.some((x) => x.cs_min >= 7) },
+    r_top_cs15: { ico: '📈', t: '+10 CS d’avance à 15 min', gain: 50, game: true, role: 'top', ok: (r) => r.some((x) => x.cs15 != null && x.cs15 >= 10) },
+    r_top_solo: { ico: '🗡️', t: 'Faire un solo kill en lane', gain: 40, game: true, role: 'top', ok: (r) => r.some((x) => (x.solo_kills || 0) >= 1) },
+    r_top_plates: { ico: '🧱', t: 'Prendre 2 plaques de tour', gain: 40, game: true, role: 'top', ok: (r) => r.some((x) => (x.plates || 0) >= 2) },
+    r_jgl_cs10: { ico: '🌲', t: '50 camps de jungle avant 10 min', gain: 50, game: true, role: 'jungle', ok: (r) => r.some((x) => x.cs10 != null && x.cs10 >= 50) },
+    r_jgl_kp: { ico: '🔗', t: 'Participer à 65 % des kills de ton équipe', gain: 50, game: true, role: 'jungle', ok: (r) => r.some((x) => rwPct(x.kp) >= 65) },
+    r_jgl_gold: { ico: '💰', t: '+300 golds d’avance sur le jungler adverse à 15 min', gain: 50, game: true, role: 'jungle', ok: (r) => r.some((x) => x.gold15 != null && x.gold15 >= 300) },
+    r_jgl_cs: { ico: '🌾', t: '6 CS par minute dans une partie', gain: 40, game: true, role: 'jungle', ok: (r) => r.some((x) => x.cs_min >= 6) },
+    r_mid_cs: { ico: '🌾', t: '7,5 CS par minute dans une partie', gain: 50, game: true, role: 'mid', ok: (r) => r.some((x) => x.cs_min >= 7.5) },
+    r_mid_solo: { ico: '🗡️', t: 'Faire un solo kill en lane', gain: 40, game: true, role: 'mid', ok: (r) => r.some((x) => (x.solo_kills || 0) >= 1) },
+    r_mid_dmg: { ico: '💥', t: 'Faire 25 % des dégâts de ton équipe', gain: 50, game: true, role: 'mid', ok: (r) => r.some((x) => rwPct(x.part_degats) >= 25) },
+    r_mid_cs15: { ico: '📈', t: '+8 CS d’avance à 15 min', gain: 50, game: true, role: 'mid', ok: (r) => r.some((x) => x.cs15 != null && x.cs15 >= 8) },
+    r_adc_cs: { ico: '🌾', t: '8 CS par minute dans une partie', gain: 60, game: true, role: 'adc', ok: (r) => r.some((x) => x.cs_min >= 8) },
+    r_adc_dmg: { ico: '💥', t: 'Faire 28 % des dégâts de ton équipe', gain: 50, game: true, role: 'adc', ok: (r) => r.some((x) => rwPct(x.part_degats) >= 28) },
+    r_adc_d3: { ico: '❤️', t: 'Une partie à 3 morts ou moins', gain: 50, game: true, role: 'adc', ok: (r) => r.some((x) => x.morts <= 3 && rwLong(x)) },
+    r_adc_k8: { ico: '🎯', t: 'Faire 8 kills dans une partie', gain: 50, game: true, role: 'adc', ok: (r) => r.some((x) => x.kills >= 8) },
+    r_sup_vis: { ico: '🔦', t: '45 de score de vision dans une partie', gain: 50, game: true, role: 'support', ok: (r) => r.some((x) => x.vision >= 45) },
+    r_sup_pink: { ico: '👁️', t: 'Poser 3 balises de contrôle dans une partie', gain: 40, game: true, role: 'support', ok: (r) => r.some((x) => x.pinks >= 3) },
+    r_sup_a15: { ico: '🤝', t: 'Faire 15 assists dans une partie', gain: 50, game: true, role: 'support', ok: (r) => r.some((x) => x.assists >= 15) },
+    r_sup_wards: { ico: '🕯️', t: 'Détruire 5 balises adverses dans une partie', gain: 50, game: true, role: 'support', ok: (r) => r.some((x) => (x.wards_detruites || 0) >= 5) },
+    r_sup_kp: { ico: '🔗', t: 'Participer à 65 % des kills de ton équipe', gain: 50, game: true, role: 'support', ok: (r) => r.some((x) => rwPct(x.kp) >= 65) },
     a_stats: { ico: '📊', t: 'Regarder tes stats', gain: 20, ev: 'stats', n: 1 },
     a_draft: { ico: '⚡', t: 'Suivre une sélection dans la Draft en direct', gain: 30, ev: 'draft', n: 1 },
     a_clip: { ico: '🎬', t: 'Enregistrer un clip', gain: 30, ev: 'clip', n: 1 },
@@ -4490,6 +4512,15 @@
     const me = load('fire.solo', null);
     return me && me.riot ? soloPlayer(me.riot) : null;
   }
+  function rwRole() {
+    const p = rwMe(); if (!p) return '';
+    const ok = { top: 'top', jungle: 'jungle', mid: 'mid', middle: 'mid', adc: 'adc', bottom: 'adc', support: 'support', utility: 'support' };
+    if (p.role_id && ok[p.role_id] && !(p.solo && !(load('fire.solo', null) || {}).role)) return ok[p.role_id];
+    const d = S.data[p.slug]; if (!d) return ok[p.role_id] || '';
+    const n = {}; for (const g of FC.toRows(p, d.matches, Date.now() - 30 * 864e5)) if (g.lane) n[g.lane] = (n[g.lane] || 0) + 1;
+    const best = Object.entries(n).sort((a, b) => b[1] - a[1])[0];
+    return best ? (Object.keys(RW_ROLES).find((k) => RW_ROLES[k][1] === best[0]) || '') : '';
+  }
   function rwToday() {
     const p = rwMe(); const d = p && S.data[p.slug];
     if (!d) return null;
@@ -4499,22 +4530,30 @@
   // Les 3 défis du jour : toujours les mêmes pour la journée, différents chaque jour.
   function rwDay(st) {
     const day = todayYmd();
-    if (st.day && st.day.d === day && st.day.v === 3) return st.day;
-    const keep = st.day && st.day.d === day ? st.day : null; // ancienne liste du jour (3 défis) : on garde ce qui est déjà fait
-    const me = rwMe(), sup = me && me.role_id === 'support';
-    const seed = [...(day + (S.moi || ''))].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    if (st.day && st.day.d === day && st.day.v === 4) return st.day;
+    const keep = st.day && st.day.d === day ? st.day : null; // ancienne liste du jour : on garde les défis déjà récupérés
+    const role = rwRole();
+    const seed = [...(day + (S.moi || '') + ((rwMe() || {}).slug || ''))].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
     const rnd = (i) => ((seed * (i + 3) * 2654435761) >>> 0) / 4294967296;
     const pick = (list, n) => list.map((k, i) => [k, rnd(i)]).sort((a, b) => a[1] - b[1]).slice(0, n).map((x) => x[0]);
-    const games = Object.keys(RW_DEFIS).filter((k) => { const x = RW_DEFIS[k]; return x.game && !(x.sup && !sup) && !(x.noSup && sup); });
+    const games = Object.keys(RW_DEFIS).filter((k) => RW_DEFIS[k].game && !RW_DEFIS[k].role);
+    const mine = role ? Object.keys(RW_DEFIS).filter((k) => RW_DEFIS[k].role === role) : [];
     const apps = Object.keys(RW_DEFIS).filter((k) => { const x = RW_DEFIS[k]; return !x.game && (!x.sec || planOk(x.sec)) && !(x.team && basicView()) && !(x.ev === 'scen' && !diapoOk()); });
-    st.day = { d: day, v: 3, picks: [...pick(games, 3), ...pick(apps, 3)], ev: {}, done: {}, claimed: {} };
-    if (keep) { st.day.ev = keep.ev || {}; st.day.picks = [...new Set([...(keep.picks || []).filter((k) => RW_DEFIS[k]), ...st.day.picks])].slice(0, 6); st.day.done = keep.done || {}; st.day.claimed = keep.claimed || {}; }
+    const got = keep ? (keep.picks || []).filter((k) => RW_DEFIS[k] && (keep.claimed || {})[k]) : [];
+    const fill = (have, list, n) => { const out = have.slice(); for (const k of pick(list, list.length)) { if (out.length >= n) break; if (!out.includes(k)) out.push(k); } return out; };
+    const gHave = got.filter((k) => RW_DEFIS[k].game), aHave = got.filter((k) => !RW_DEFIS[k].game);
+    // 1 défi de mon poste (si je le connais) + des défis pour tous, 3 en tout.
+    let gameList = [...gHave.filter((k) => RW_DEFIS[k].role).slice(0, 1), ...gHave.filter((k) => !RW_DEFIS[k].role)];
+    if (mine.length && !gameList.some((k) => RW_DEFIS[k].role)) gameList = fill(gameList, mine, gameList.length + 1);
+    gameList = fill(gameList, games, 3);
+    st.day = { d: day, v: 4, picks: [...gameList.slice(0, 3), ...fill(aHave, apps, 3).slice(0, 3)], ev: (keep && keep.ev) || {}, done: {}, claimed: {} };
+    if (keep) for (const k of got) { st.day.done[k] = true; st.day.claimed[k] = true; }
     return st.day;
   }
   function rwDone(st, k) {
     const x = RW_DEFIS[k], day = rwDay(st);
     if (day.done[k]) return true;
-    if (x.game) { const r = rwToday(); return !!(r && x.ok(r)); }
+    if (x.game) { const r = rwToday(); return !!(r && x.ok(x.role ? r.filter((g) => g.lane === RW_ROLES[x.role][1]) : r)); }
     return (day.ev[x.ev] || 0) >= (x.n || 1);
   }
   function rwClaimable(st) {
@@ -4616,7 +4655,7 @@
       const prog = !x.game && (x.n || 1) > 1 ? ` (${Math.min(day.ev[x.ev] || 0, x.n)}/${x.n})` : '';
       return h('div', { class: 'rw-defi' + (got ? ' got' : done ? ' done' : '') },
         h('span', { class: 'rw-dico' }, x.ico), h('div', { class: 'rw-dt' }, h('b', null, x.t + prog),
-          h('small', { class: 'muted' }, got ? 'Récupéré ✓' : done ? 'Réussi !' : x.game ? (me ? (r ? 'Vérifié sur tes games classées d’aujourd’hui' : 'Tes games ne sont pas encore lues') : 'Indique ton compte dans Mes stats') : x.sec ? 'Dans la rubrique ' + ((S.navItems || []).find((y) => y[0] === x.sec) || [0, 0, x.sec])[2] : 'Dans FIRE')),
+          h('small', { class: 'muted' }, got ? 'Récupéré ✓' : done ? 'Réussi !' : x.game ? (me ? (r ? (x.role ? `Défi ${RW_ROLES[x.role][0]} : compté sur tes games jouées ${x.role === 'support' || x.role === 'jungle' ? 'en' : 'en'} ${RW_ROLES[x.role][0]}` : 'Pour tous les postes · vérifié sur tes games classées d’aujourd’hui') : 'Tes games ne sont pas encore lues') : 'Indique ton compte dans Mes stats') : x.sec ? 'Dans la rubrique ' + ((S.navItems || []).find((y) => y[0] === x.sec) || [0, 0, x.sec])[2] : 'Dans FIRE')),
         h('span', { class: 'rw-gain' }, '+' + x.gain + ' 🔥'),
         got ? null : done ? h('button', { class: 'btn-fire small-btn', onclick: () => rwClaim(k) }, 'Récupérer')
           : x.game && !me ? h('button', { class: 'btn-ghost small-btn', onclick: () => go('stats') }, 'Mes stats') : x.sec ? h('button', { class: 'btn-ghost small-btn', onclick: () => go(x.sec) }, 'Y aller') : null);
@@ -4744,6 +4783,54 @@
     const l = (typeof shopList === 'function' ? shopList(k) : SHOP[k] || []).find(([vv]) => JSON.stringify(vv) === JSON.stringify(v));
     const kind = { fx: 'Effet de pseudo', font: 'Police', grad: 'Dégradé', deco: 'Décoration', plate: 'Plaque', card: 'Carte', pfx: 'Effet de profil', pet: 'Compagnon', bubble: 'Effet de messages' }[k] || k;
     return kind + ' « ' + (l ? l[1] : String(v)) + ' »';
+  }
+  // ----- Maintenance : réglée dans le studio du FIRE Launcher, FIRE se bloque chez tout le monde (sauf le créateur) -----
+  const MNT = { on: false, msg: '', timer: null };
+  async function maintCheck() {
+    if (!window.fire.maint) return;
+    const m = await window.fire.maint().catch(() => null);
+    if (!m) return;
+    const on = m.team != null, admin = !!m.admin;
+    if (on && !admin) maintShow(m.team);
+    else maintHide();
+    // Le créateur continue, avec un rappel discret.
+    let strip = document.getElementById('maint-strip');
+    if (on && admin) {
+      if (!strip) { strip = h('div', { id: 'maint-strip', class: 'maint-strip' }); document.body.append(strip); }
+      strip.textContent = '🛠️ Maintenance active : toute l’équipe voit l’écran de maintenance. Toi, tu continues. (À couper dans le studio du FIRE Launcher)';
+    } else if (strip) strip.remove();
+  }
+  function maintShow(msg) {
+    MNT.msg = msg || '';
+    let el = document.getElementById('maint-screen');
+    if (!MNT.on) {
+      MNT.on = true;
+      // On quitte le vocal et on ferme les fenêtres ouvertes : FIRE est « fermé » pendant la maintenance.
+      try { const v = FV() && FV().state && FV().state(); if (v && v.on) FV().leave(); } catch (e) { /* */ }
+      for (const id of ['gift-modal', 'code-modal']) { const x = document.getElementById(id); if (x) x.remove(); }
+      if (!document.hasFocus()) deskNotify({ title: '🛠️ FIRE Team en maintenance', body: MNT.msg || 'FIRE revient très vite.', force: true }).catch(() => {});
+    }
+    if (!el) { el = h('div', { id: 'maint-screen', class: 'maint-screen', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': 'FIRE Team en maintenance' }); document.body.append(el); }
+    el.replaceChildren(h('div', { class: 'maint-card' },
+      h('div', { class: 'maint-ico' }, '🛠️'),
+      h('h1', null, 'FIRE Team est en maintenance'),
+      h('p', { class: 'maint-msg' }, MNT.msg || 'Une mise à jour est en cours. FIRE revient très vite.'),
+      h('p', { class: 'muted small' }, 'FIRE se débloque tout seul dès que c’est fini : pas besoin de le relancer.'),
+      h('div', { class: 'maint-dots' }, h('i'), h('i'), h('i')),
+      h('div', { class: 'row maint-btns' },
+        h('button', { class: 'btn-ghost', onclick: () => maintCheck() }, '⟳ Revérifier'),
+        window.fire.quit ? h('button', { class: 'btn-fire', onclick: () => window.fire.quit() }, 'Fermer FIRE') : null)));
+  }
+  function maintHide() {
+    if (!MNT.on) return;
+    MNT.on = false;
+    const el = document.getElementById('maint-screen'); if (el) el.remove();
+    popup('✅ Maintenance terminée', 'FIRE Team est de retour. Bon jeu !', null);
+  }
+  function maintStart() {
+    if (MNT.timer) return;
+    maintCheck();
+    MNT.timer = setInterval(maintCheck, 45000);
   }
   // ----- Bouton « CODE » : un seul endroit pour tous les codes (équipe, remplaçant, coach, chef) et les clés Premium -----
   function codeModal() {

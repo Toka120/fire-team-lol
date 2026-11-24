@@ -535,6 +535,8 @@ ipcMain.handle('config', async () => {
   lastCfg = j;
   return teamCfg(j);
 });
+ipcMain.handle('maint:get', () => coach.maintGet());
+ipcMain.handle('app:quit', () => { quitting = true; setTimeout(() => app.quit(), 200); return true; });
 ipcMain.handle('rw:remote', (e, ids) => coach.rwRemoteGet(ids));
 ipcMain.handle('rw:publish', (e, data) => coach.rwRemotePost(data));
 ipcMain.handle('rw:push', (e, slug, c) => coach.rwPush(slug, c));

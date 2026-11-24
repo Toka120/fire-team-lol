@@ -129,6 +129,13 @@ class Api:
             return {'pending': True}
         return {'pending': False, 'missing': True}
 
+    # ----- Maintenance réglée dans le studio du FIRE Launcher (fichier signé, vérifié dans l'interface) -----
+    def launcher_cfg(self):
+        try:
+            return json.loads(_get(DATA_RAW + 'launcher/config.json').decode('utf-8'))
+        except Exception:
+            return None
+
     def pending(self, app):
         try:
             return len([p for p in OUTBOX.glob(str(app) + '-*.json') if not p.name.endswith('.resultat.json')])

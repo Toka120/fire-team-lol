@@ -2090,6 +2090,28 @@ async function publicPost(page) {
   }
   return { ok: false, error: 'la page a changé pendant l’envoi, réessaie' };
 }
+// ---------- Maintenance (réglée par le créateur dans le studio du FIRE Launcher) ----------
+// Le launcher publie launcher/config.json, signé par le créateur. Quand FIRE Team y est « en maintenance », chaque FIRE
+// ouvert le voit en moins d'une minute et se bloque derrière un écran de maintenance (sauf chez le créateur).
+let maintCache = { at: 0, v: null };
+async function maintGet() {
+  if (maintCache.v && Date.now() - maintCache.at < 40000) return { ...maintCache.v, admin: adminOn() };
+  const dr = (getRaw() || {}).data_repo || getConfig().data_repo || 'Toka120/fire-lol-data';
+  let v = maintCache.v || { team: null, kiting: null, listen: null, at: 0 };
+  try {
+    const r = await http('https://raw.githubusercontent.com/' + dr + '/main/launcher/config.json?t=' + Date.now(), {}, 15000);
+    if (r.status === 404) v = { team: null, kiting: null, listen: null, at: 0 };
+    else if (r.ok) {
+      const f = JSON.parse(await r.text());
+      if (f && f.payload && f.sig && byAdmin(f.sig, canonJ(f.payload))) {
+        const m = (require('./launcher-clean').launcherClean(f.payload.cfg) || {}).maint || {};
+        v = { team: m.team != null ? String(m.team) : null, kiting: m.kiting != null ? String(m.kiting) : null, listen: m.listen != null ? String(m.listen) : null, at: Number(f.payload.at) || 0 };
+      }
+    }
+  } catch (e) { /* hors ligne : on garde le dernier état connu */ }
+  maintCache = { at: Date.now(), v };
+  return { ...v, admin: adminOn() };
+}
 // ---------- Récompenses du créateur : cadeaux et événements (fichier public signé, lu par toutes les formules) ----------
 // Les destinataires d'un cadeau ne sont pas écrits en clair : seulement une empreinte de leur pseudo ou de leur compte.
 const RW_FILE = 'public/recompenses.json';
@@ -2362,4 +2384,4 @@ async function appsRelay() {
 const appsRelay0 = appsRelay;
 appsRelay = async function () { const r = await appsRelay0(); try { await launcherRelay(); } catch (e) { /* */ } return r; };
 
-module.exports = { rwRemoteGet, rwRemotePost, rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { maintGet, rwRemoteGet, rwRemotePost, rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

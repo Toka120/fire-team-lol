@@ -98,3 +98,10 @@ details > summary { cursor: pointer; margin: 6px 0; font-size: 13.5px; font-weig
 .le-box:fullscreen .le-it>span:last-child,.le-box.le-full .le-it>span:last-child{display:none}
 .le-box:fullscreen .le-opts,.le-box.le-full .le-opts{grid-template-columns:1fr}
 .le-box .le-rate{width:auto}
+
+/* Maintenance */
+.fa-maint { position: fixed; inset: 0; z-index: 99999; display: grid; place-items: center; background: radial-gradient(circle at 50% 40%, rgb(255 120 50 / 18%), #07080a 65%); backdrop-filter: blur(8px); }
+.fa-maint-card { width: min(520px, 92vw); text-align: center; padding: 34px 28px; border-radius: 24px; background: rgb(20 18 18 / 94%); border: 1px solid rgb(255 140 60 / 40%); color: #f4ece6; font-family: system-ui, sans-serif; }
+.fa-maint-ico { font-size: 60px; }
+.fa-maint-card h1 { font-size: 24px; margin: 10px 0 8px; }
+.fa-maint-msg { font-size: 16px; margin: 0 0 10px; }

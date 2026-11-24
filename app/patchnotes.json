@@ -1,6 +1,41 @@
 {
  "versions": [
   {
+   "v": "2.0.29",
+   "date": "2026-11-24",
+   "titre": "Maintenance pour tout le monde, défis adaptés à chaque poste",
+   "items": [
+    [
+     "new",
+     "Maintenance : quand le créateur met FIRE Team en maintenance dans le studio du FIRE Launcher, chaque FIRE ouvert se bloque en moins d'une minute derrière un écran de maintenance (le vocal est coupé). Il se débloque tout seul quand la maintenance est finie."
+    ],
+    [
+     "new",
+     "FIRE Kiting et FIRE Listen font pareil quand ils sont mis en maintenance (sauf pour ceux qui ont une clé admin de l'app)."
+    ],
+    [
+     "new",
+     "Le créateur, lui, continue d'utiliser FIRE, avec un bandeau qui rappelle que la maintenance est active."
+    ],
+    [
+     "new",
+     "Défis sur les games revus : des défis pour tous les postes (parties, victoires, morts, KDA, participation aux kills, balises, victoire rapide) et 1 défi de ton poste chaque jour."
+    ],
+    [
+     "new",
+     "Défis de poste avec des repères faits pour lui, comptés seulement sur les games jouées à ce poste : Top (CS, avance à 15 min, solo kill, plaques), Jungle (camps avant 10 min, participation, avance en or), Mid, ADC (CS, dégâts, survie, kills) et Support (vision, balises, assists, participation)."
+    ],
+    [
+     "fix",
+     "Plus de défi de CS pour un support ni de défi de vision pour un ADC : ton poste vient de ta fiche (ou de « Mes stats »), sinon du poste que tu joues le plus."
+    ],
+    [
+     "new",
+     "FIRE Launcher 2.0.11 : l'explication de la maintenance dans le studio est à jour."
+    ]
+   ]
+  },
+  {
    "v": "2.0.28",
    "date": "2026-11-24",
    "titre": "Aperçus plus clairs",
