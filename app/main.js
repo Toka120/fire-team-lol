@@ -745,6 +745,10 @@ function liveEvents(d) {
 }
 function liveSummary(d) {
   if (!d || !Array.isArray(d.allPlayers) || !d.gameData) return null;
+  // Mode spectateur (un coach qui regarde la partie d'un joueur) : il n'y a pas de « joueur actif ». Ce n'est pas
+  // une partie jouée sur ce PC : on n'affiche pas « En direct » et on n'enregistre rien.
+  const ap = d.activePlayer;
+  if (!ap || ap.error || ap.errorCode || !(ap.riotId || ap.summonerName)) return null;
   const champ = (p) => String(p.rawChampionName || '').split('_').pop() || String(p.championName || '');
   return {
     mode: String(d.gameData.gameMode || ''), time: Math.round(Number(d.gameData.gameTime) || 0),

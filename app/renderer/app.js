@@ -272,7 +272,8 @@
     if (b.__on) { for (const [t, f] of Object.entries(b.__on)) a.addEventListener(t, f); a.__on = b.__on; }
     const ak = [...a.childNodes], bk = [...b.childNodes];
     // Listes avec des clés (data-k) : chaque ligne garde son élément même si la liste se décale (pas d'images rechargées, pas de clignotement).
-    if (bk.length && bk.every((n) => n.nodeType === 1 && n.dataset && n.dataset.k) && ak.length && ak.every((n) => n.nodeType === 1 && n.dataset && n.dataset.k)) {
+    const uniq = (l) => new Set(l.map((n) => n.dataset.k)).size === l.length;
+    if (bk.length && bk.every((n) => n.nodeType === 1 && n.dataset && n.dataset.k) && ak.length && ak.every((n) => n.nodeType === 1 && n.dataset && n.dataset.k) && uniq(ak) && uniq(bk)) {
       const old = new Map(ak.map((n) => [n.dataset.k, n]));
       const out = bk.map((n) => { const o = old.get(n.dataset.k); if (o) { old.delete(n.dataset.k); morph(o, n); return o; } return n; });
       old.forEach((n) => n.remove());
@@ -3968,10 +3969,10 @@
         o.grubs ? h('span', { title: 'Larves du Néant' }, '🪲 ', o.grubs) : null, o.herald ? h('span', { title: 'Héraut' }, '👁 ', o.herald) : null,
         o.baron ? h('span', { title: 'Nashor' }, '🟣 ', o.baron) : null, o.atakhan ? h('span', { title: 'Atakhan' }, '🔥 ', o.atakhan) : null);
     };
-    const row = (p) => h('div', { class: 'sp-p' + (ours.has(p.n.toLowerCase()) ? ' ours' : '') + (p.dead ? ' dead' : ''), 'data-k': p.n },
+    const row = (p, i) => h('div', { class: 'sp-p' + (ours.has(p.n.toLowerCase()) ? ' ours' : '') + (p.dead ? ' dead' : ''), 'data-k': `${p.team}-${i}-${p.c}` },
       h('span', { class: 'sp-ch' }, champIcon(p.c, 34), h('b', { class: 'sp-lvl' }, p.lvl), p.dead ? h('span', { class: 'sp-dead' }, p.dead) : null),
       h('span', { class: 'sp-sps' }, (p.sp || []).map(spell)),
-      h('span', { class: 'sp-n' }, h('b', null, p.n.split('#')[0]), h('small', { class: 'muted' }, `${p.cs} CS${p.ward ? ' · vision ' + p.ward : ''}`)),
+      h('span', { class: 'sp-n' }, h('b', null, p.n.split('#')[0] || FC.champName(p.c)), h('small', { class: 'muted' }, `${p.cs} CS${p.ward ? ' · vision ' + p.ward : ''}`)),
       h('span', { class: 'sp-its' }, ...((p.it && p.it.length ? p.it : [0, 0, 0, 0, 0, 0, 0]).slice(0, 7).map(item))),
       h('span', { class: 'sp-k' }, `${p.k} / ${p.d} / ${p.a}`));
     const FEED = { drag: '🐉', baron: '🟣', herald: '👁', grubs: '🪲', atakhan: '🔥', tower: '🏰', inhib: '⬢' };
@@ -4008,8 +4009,10 @@
     const all = liveAll();
     // Plusieurs joueurs de FIRE dans la même partie : une seule carte.
     const games = [];
-    for (const [slug, g] of Object.entries(all)) {
-      const key = g.players.map((p) => p.n).sort().join('|');
+    for (const [slug, g0] of Object.entries(all)) {
+      const seenP = new Set();
+      const g = { ...g0, players: (g0.players || []).filter((p) => { const k = p.team + '|' + p.c + '|' + p.n; if (seenP.has(k)) return false; seenP.add(k); return true; }).slice(0, 12) };
+      const key = g.players.filter((p) => p.n.split('#')[0]).map((p) => p.n).sort().join('|') || g.players.map((p) => p.c).sort().join('|');
       const ex = games.find((x) => x.key === key);
       if (ex) { ex.slugs.push(slug); if (g.at > ex.g.at) ex.g = g; } else games.push({ key, g, slugs: [slug] });
     }
@@ -4021,7 +4024,7 @@
     const isOurs = (p) => ours.has(p.n.toLowerCase());
     const team = (g, side) => h('div', { class: 'lv-team ' + (side === 'ORDER' ? 'blue' : 'red') }, g.players.filter((p) => p.team === side).map((p) =>
       h('div', { class: 'lv-p' + (isOurs(p) ? ' ours' : '') }, champIcon(p.c, 24),
-        h('span', { class: 'lv-n' }, h('b', null, p.n.split('#')[0]), h('small', { class: 'muted' }, ` niv. ${p.lvl} · ${p.cs} CS`)),
+        h('span', { class: 'lv-n' }, h('b', null, p.n.split('#')[0] || FC.champName(p.c)), h('small', { class: 'muted' }, ` niv. ${p.lvl} · ${p.cs} CS`)),
         h('span', { class: 'lv-k' }, `${p.k} / ${p.d} / ${p.a}`))));
     LIVE.open = LIVE.open || {};
     const n = games.reduce((t, x) => t + x.slugs.length, 0) + bare.length;

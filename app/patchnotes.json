@@ -1,6 +1,25 @@
 {
  "versions": [
   {
+   "v": "2.0.31",
+   "date": "2026-11-24",
+   "titre": "Corrections des bugs signalés",
+   "items": [
+    [
+     "fix",
+     "Partie en direct : l'équipe adverse ne s'affiche plus plusieurs fois à la suite. Riot cache maintenant les noms des adversaires, et FIRE confondait leurs lignes à chaque mise à jour (signalé par Heoulh et Seuf93)."
+    ],
+    [
+     "fix",
+     "Les adversaires au nom caché s'affichent avec le nom de leur champion."
+    ],
+    [
+     "fix",
+     "Mode spectateur : regarder la partie d'un joueur (coaching) n'affiche plus « En direct · Classée » comme si tu jouais, et la partie n'est plus enregistrée dans ta Revue (signalé par Heoulh)."
+    ]
+   ]
+  },
+  {
    "v": "2.0.30",
    "date": "2026-11-24",
    "titre": "Coachs de Bravo et leur planning",
