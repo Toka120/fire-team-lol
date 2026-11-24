@@ -2090,6 +2090,64 @@ async function publicPost(page) {
   }
   return { ok: false, error: 'la page a changé pendant l’envoi, réessaie' };
 }
+// ---------- Récompenses du créateur : cadeaux et événements (fichier public signé, lu par toutes les formules) ----------
+// Les destinataires d'un cadeau ne sont pas écrits en clair : seulement une empreinte de leur pseudo ou de leur compte.
+const RW_FILE = 'public/recompenses.json';
+const RW_KINDS = ['login', 'games', 'wins', 'defis', 'mult'];
+const RW_LOOK = ['fx', 'font', 'grad', 'deco', 'plate', 'card', 'pfx', 'pet', 'bubble'];
+const rwHash = (id) => crypto.createHash('sha256').update('fire-rw:' + String(id || '').trim().toLowerCase()).digest('hex').slice(0, 16);
+function rwClean(p) {
+  p = p && typeof p === 'object' ? p : {};
+  const s2 = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, n);
+  const int = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
+  const hex = (c) => /^#[0-9a-fA-F]{6}$/.test(c || '');
+  const item = (x) => {
+    if (!x || !RW_LOOK.includes(x.k)) return null;
+    if (Array.isArray(x.v)) return x.v.length === 2 && hex(x.v[0]) && hex(x.v[1]) ? { k: x.k, v: [x.v[0], x.v[1]] } : null;
+    const v = s2(x.v, 30); return /^[\w-]{1,30}$/.test(v) ? { k: x.k, v } : null;
+  };
+  const old = Date.now() - 90 * 864e5;
+  const gifts = (Array.isArray(p.gifts) ? p.gifts : []).map((g) => ({
+    id: s2(g && g.id, 24).replace(/[^\w-]/g, '') || 'g' + crypto.randomBytes(5).toString('hex'),
+    to: (Array.isArray(g && g.to) ? g.to : []).map((x) => (x === '*' ? '*' : s2(x, 16).replace(/[^0-9a-f]/g, ''))).filter((x) => x === '*' || x.length === 16).slice(0, 80),
+    n: int(g && g.n, 0, 10000), item: item(g && g.item), msg: s2(g && g.msg, 160), at: int(g && g.at, 0, 4e12),
+  })).filter((g) => g.to.length && (g.n || g.item) && g.at > old).slice(-200);
+  const events = (Array.isArray(p.events) ? p.events : []).map((e) => ({
+    id: s2(e && e.id, 24).replace(/[^\w-]/g, '') || 'e' + crypto.randomBytes(5).toString('hex'),
+    ico: s2(e && e.ico, 4) || '🎉', t: s2(e && e.t, 60) || 'Événement', d: s2(e && e.d, 220),
+    kind: RW_KINDS.includes(e && e.kind) ? e.kind : 'login', goal: int(e && e.goal, 1, 200), gain: int(e && e.gain, 0, 10000), mult: Math.max(1, Math.min(3, Number(e && e.mult) || 1)),
+    start: int(e && e.start, 0, 4e12), end: int(e && e.end, 0, 4e12),
+  })).filter((e) => e.end > e.start && e.end > old).slice(-30);
+  return { gifts, events };
+}
+async function rwRemoteGet(ids) {
+  const dr = getConfig().data_repo || null;
+  let f = null;
+  try { f = dr ? await readPublic(RW_FILE, dr, null) : null; if (f) saveCache('recompenses', f); } catch (e) { f = loadCache('recompenses'); }
+  if (!f) f = loadCache('recompenses');
+  if (!f || !f.payload || !f.sig || !byAdmin(f.sig, canonJ(f.payload))) return { ok: true, gifts: [], events: [], all: null };
+  const c = rwClean(f.payload);
+  const mine = new Set((Array.isArray(ids) ? ids : []).map(String).filter(Boolean).slice(0, 10).map(rwHash));
+  return { ok: true, at: Number(f.payload.at) || 0, gifts: c.gifts.filter((g) => g.to.includes('*') || g.to.some((h) => mine.has(h))).map(({ to, ...g }) => ({ ...g, all: to.includes('*') })),
+    events: c.events, all: adminOn() ? c : null };
+}
+async function rwRemotePost(data, names) {
+  if (!adminOn()) return { ok: false, error: 'réservé au créateur' };
+  const dr = getConfig().data_repo || null;
+  const tok = dr ? await teamToken() : null;
+  if (!dr || !tok) return { ok: false, error: "FIRE Team n'est pas connecté à l'équipe" };
+  // Les nouveaux destinataires arrivent en clair (pseudos) : on ne publie que leurs empreintes.
+  const d = { ...(data || {}) };
+  d.gifts = (Array.isArray(d.gifts) ? d.gifts : []).map((g) => ({ ...g, to: (g.to || []).map((x) => (x === '*' || /^[0-9a-f]{16}$/.test(x) ? x : rwHash(x))) }));
+  const payload = { v: 1, at: Date.now(), ...rwClean(d) };
+  const file = { payload, sig: b64u(crypto.sign('sha256', Buffer.from(canonJ(payload)), p1363(crypto.createPrivateKey(adminKey().priv)))) };
+  for (let i = 0; i < 4; i++) {
+    const cur = await ghGet(tok, RW_FILE, dr);
+    const r = await ghPut(tok, RW_FILE, file, cur && cur.sha, 'Récompenses : cadeaux et événements', dr);
+    if (r.ok) { saveCache('recompenses', file); return { ok: true, all: rwClean(payload) }; }
+  }
+  return { ok: false, error: 'le fichier a changé pendant l’envoi, réessaie' };
+}
 // Chaque joueur choisit d'apparaître (pseudo, rang, 3 champions) ou non : fichier chiffré de l'équipe.
 async function publicOptin(slug, on) {
   slug = String(slug || '').slice(0, 80);
@@ -2304,4 +2362,4 @@ async function appsRelay() {
 const appsRelay0 = appsRelay;
 appsRelay = async function () { const r = await appsRelay0(); try { await launcherRelay(); } catch (e) { /* */ } return r; };
 
-module.exports = { rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };
+module.exports = { rwRemoteGet, rwRemotePost, rwPush, rwBoard, teamsInfo, teamActivate, activeTeam, publicGet, publicPost, publicOptin, publicOptins, planKeyMake, planGet, planSet, planClear, appSelfKey, appKeysList, appKeyMake, appKeyRevoke, appsRelay, _apps: { canonJ, appCert, relayOne, outboxDir }, appCfgGet, appCfgPost, appAssetPut, appAssetGet, clipShare, clipFeed, clipThumb, clipOp, clipFetch, _clipCrypto: { sealBuf, openBuf }, forumGet, forumOp, bugReply, bugReplies, annonceGet, annoncePost, annonceLu, annonceLus, puzzleBank, puzzleRequest, puzzleGenerate, statsPush, statsGet, revues, revueGet, revueShare, revueNote, revueShots, revueIa, scrims, scrimSave, rempSeal, rempOpen, chat, chatSend, chatDelete, membres, membreDemande, membreDecision, salons, salonsSave, adminSetup, roles, rolesSave, activityPush, activityAll, staffNotes, staffNoteSave, sendBug, listBugs, closeBug, pools, savePools, planning, savePlanning, champions, init, unlock, isUnlocked, coachState, coachUnlock, coachLeave, chefUnlock, chefLeave, coachSave, generate, publish, unpublish, list, message, _test: { pickJson, cleanFiche, cleanSvg, scrypt, norm } };

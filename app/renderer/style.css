@@ -3703,3 +3703,5 @@ html[data-lite] #fire-pet,html[data-lite] .acc-tick,html[data-lite] #fire-fx,htm
 @keyframes plFlow{to{background-position:-200% 0}}
 html[data-calm] .pl-inferno,html[data-calm] .pl-prisme,html[data-calm] .dk-phenix::after{animation:none!important}
 .shop-it.locked:has(.shop-price){opacity:.8}
+.rw-gifts, .rw-events { margin-top: 14px; border-color: color-mix(in srgb, var(--fire2, #ffb02e) 45%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--fire2, #ffb02e) 10%, transparent), transparent 60%); }
+.rw-mult { color: var(--fire2, #ffb02e); font-weight: 700; margin-top: 10px; }

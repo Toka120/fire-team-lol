@@ -70,7 +70,7 @@ window.fire = {
   gpuz: { bank: () => coach.puzzleBank(), request: (slug, level, have) => coach.puzzleRequest(slug, level, have), generate: no },
   unlock: (code) => coach.unlock(code),
   unlocked: async () => coach.isUnlocked(),
-  rw: { push: async () => ({ ok: false }), board: async () => ({ ok: false }) },
+  rw: { push: async () => ({ ok: false }), board: async () => ({ ok: false }), remote: async () => ({ ok: true, gifts: [], events: [] }), publish: async () => ({ ok: false, error: 'disponible dans FIRE Team sur PC' }) },
   teams: { info: async () => ({ ok: false, error: 'disponible dans FIRE Team sur PC' }), activate: async () => ({ ok: false, error: 'disponible dans FIRE Team sur PC' }) },
   fiches: () => coach.list(),
   pools: () => coach.pools(),

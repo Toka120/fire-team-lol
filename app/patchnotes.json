@@ -1,6 +1,33 @@
 {
  "versions": [
   {
+   "v": "2.0.20",
+   "date": "2026-11-24",
+   "titre": "Récompenses : cadeaux et événements du créateur",
+   "items": [
+    [
+     "new",
+     "Admin › 🎁 Récompenses : le créateur offre des Braises et/ou un objet de la boutique (Collection Braises comprise) à un ou plusieurs joueurs, ou à tout le monde, avec un message."
+    ],
+    [
+     "new",
+     "Les joueurs en Classique peuvent aussi recevoir un cadeau : il suffit d'indiquer leur pseudo ou leur identifiant Riot."
+    ],
+    [
+     "new",
+     "Événements : se connecter, jouer N parties classées, gagner N parties, réussir N défis du jour (avec un gain en Braises), ou multiplier les Braises des défis (× 1,5, × 2, × 3), avec une date de début et de fin."
+    ],
+    [
+     "new",
+     "Dans 🎁 Récompenses : une carte « Cadeaux pour toi » et une carte « Événements » avec la progression. Une fenêtre prévient à l'ouverture de FIRE."
+    ],
+    [
+     "new",
+     "Tout est signé par la clé du créateur ; les noms des joueurs qui reçoivent un cadeau ne sont pas publiés en clair."
+    ]
+   ]
+  },
+  {
    "v": "2.0.19",
    "date": "2026-11-24",
    "titre": "Synergies réparées (nouvelle source : OP.GG)",

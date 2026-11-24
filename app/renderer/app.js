@@ -486,8 +486,8 @@
       if (sec && sec !== 'stats' && START_PAGES.some(([k]) => k === sec)) go(sec); }
     render();
     // Récompenses : la connexion du jour (et au passage de minuit si FIRE reste ouvert).
-    setTimeout(() => { try { rwLogin(); } catch (e) { console.error(e); } }, 4000);
-    setInterval(() => { try { rwLogin(); } catch (e) { /* */ } }, 30 * 60000);
+    setTimeout(() => { try { rwLogin(); } catch (e) { console.error(e); } try { rwRemoteLoad(); } catch (e) { /* */ } }, 4000);
+    setInterval(() => { try { rwLogin(); rwRemoteLoad(); } catch (e) { /* */ } }, 30 * 60000);
     chatInit();
     actInit();
     modInit(); voiceTrayInit();
@@ -4496,6 +4496,8 @@
     const day = rwDay(st);
     let n = day.picks.filter((k) => !day.claimed[k] && rwDone(st, k)).length;
     if (!st.wkClaim && (st.wkD || 0) >= RW_WEEK.need) n++;
+    n += ((RWR.data && RWR.data.gifts) || []).filter((g) => !(st.gifts || {})[g.id]).length;
+    n += rwEvents().filter((e) => e.kind !== 'mult' && !(st.evGot || {})[e.id] && (() => { const p = rwEvProg(e, st); return p.n >= p.goal; })()).length;
     return n;
   }
   // Événements de l'app (puzzle, scénario, clip…) : comptés pour les défis du jour.
@@ -4535,7 +4537,9 @@
     const st = rwWeek(rwSt()), day = rwDay(st);
     if (day.claimed[k] || !rwDone(st, k)) return;
     day.done[k] = true; day.claimed[k] = true; st.wkD = (st.wkD || 0) + 1;
-    rwGain(st, RW_DEFIS[k].gain, 'Défi : ' + RW_DEFIS[k].t);
+    st.dlog = [...(st.dlog || []), Date.now()].slice(-300);
+    const mult = rwMult();
+    rwGain(st, Math.round(RW_DEFIS[k].gain * mult), 'Défi : ' + RW_DEFIS[k].t + (mult > 1 ? ` (× ${fr(mult, mult % 1 ? 1 : 0)})` : ''));
     rwSave(st); renderNav(); render();
   }
   // Classement de l'équipe : chacun envoie ses chiffres de la semaine (chiffrés pour l'équipe), sans aucun gain à la clé.
@@ -4603,7 +4607,10 @@
       st.wkClaim ? h('p', { class: 'ok small' }, '✓ Récupéré cette semaine') : wd >= RW_WEEK.need ? h('button', { class: 'btn-fire small-btn', onclick: () => {
         const s2 = rwWeek(rwSt()); if (s2.wkClaim) return; s2.wkClaim = true; s2.badges = [{ id: 'regulier', wk: s2.wk, at: Date.now() }, ...(s2.badges || [])].slice(0, 30);
         rwGain(s2, RW_WEEK.gain, 'Défi de la semaine'); rwSave(s2); renderNav(); render(); } }, 'Récupérer +' + RW_WEEK.gain + ' 🔥') : null);
-    const parts = [hero, h('div', { class: 'rw-grid' }, login, week), defis];
+    rwRemoteLoad();
+    const mult = rwMult();
+    if (mult > 1) defis.append(h('p', { class: 'small rw-mult' }, `🎉 Événement en cours : les Braises des défis sont multipliées par ${fr(mult, mult % 1 ? 1 : 0)} !`));
+    const parts = [hero, ...rwRemoteCards(st), h('div', { class: 'rw-grid' }, login, week), defis];
     // Équipe : objectif commun et classement pour le plaisir
     if (!basicView() && S.players.length) {
       const g = rwTeamGoal();
@@ -4658,6 +4665,162 @@
     st.b -= price; st.own = [...new Set([...(st.own || []), 'pack:' + id, ...Object.entries(P).map(([k, v]) => shopKey(k, v))])];
     st.hist = [{ t: Date.now(), n: -price, txt: 'Pack débloqué' }, ...(st.hist || [])].slice(0, 12);
     rwSave(st); return true;
+  }
+  // ----- Cadeaux et événements du créateur (fichier public signé : Classique compris) -----
+  const RWR = { data: null, at: 0, busy: false };
+  function rwIds() {
+    const me = load('fire.solo', null);
+    return [vocalMe(), S.moi, me && me.riot, me && me.riot ? soloSlug(me.riot) : '', load('fire.moi', '')].filter((x) => typeof x === 'string' && x).map((x) => { try { return decodeURIComponent(x); } catch (e) { return x; } })
+      .concat([vocalMe(), S.moi].filter(Boolean));
+  }
+  async function rwRemoteLoad(force) {
+    if (!window.fire.rw || !window.fire.rw.remote || RWR.busy || (!force && RWR.data && Date.now() - RWR.at < 10 * 60000)) return;
+    RWR.busy = true;
+    const r = await window.fire.rw.remote([...new Set(rwIds())]).catch(() => null);
+    RWR.busy = false; RWR.at = Date.now();
+    if (!r || !r.ok) return;
+    const first = !RWR.data; RWR.data = r;
+    const st = rwSt(), got = st.gifts || {};
+    const fresh = (r.gifts || []).filter((g) => !got[g.id]);
+    if (fresh.length && (first || force)) popup('🎁 Un cadeau t’attend !', fresh[0].msg || `Le créateur de FIRE t’offre ${fresh[0].n ? fresh[0].n + ' Braises' : 'une apparence'}.`, 'recompenses');
+    const ev = rwEvents().filter((e) => !(st.evGot || {})[e.id]);
+    if (ev.length && first && !fresh.length) popup(`${ev[0].ico} Événement en cours`, ev[0].t + (ev[0].d ? ' : ' + ev[0].d : ''), 'recompenses');
+    renderNav();
+    if (S.section === 'recompenses' && !typing()) render();
+  }
+  const rwEvents = () => ((RWR.data && RWR.data.events) || []).filter((e) => Date.now() >= e.start && Date.now() <= e.end);
+  const rwMult = () => rwEvents().filter((e) => e.kind === 'mult').reduce((m, e) => Math.max(m, e.mult || 1), 1);
+  function rwEvProg(e, st) {
+    if (e.kind === 'login' || e.kind === 'mult') return { n: 1, goal: 1 };
+    if (e.kind === 'defis') return { n: (st.dlog || []).filter((t) => t >= e.start && t <= e.end).length, goal: e.goal };
+    const p = rwMe(), d = p && S.data[p.slug];
+    if (!d) return { n: 0, goal: e.goal, noAcc: !p };
+    const rows = FC.toRows(p, d.matches, e.start, e.end);
+    return { n: e.kind === 'wins' ? rows.filter((x) => x.win).length : rows.length, goal: e.goal };
+  }
+  function lookLabel(k, v) {
+    const x = SHOP_EXCL.find(([kk, vv]) => kk === k && JSON.stringify(vv) === JSON.stringify(v));
+    if (x) return x[2];
+    const l = (typeof shopList === 'function' ? shopList(k) : SHOP[k] || []).find(([vv]) => JSON.stringify(vv) === JSON.stringify(v));
+    const kind = { fx: 'Effet de pseudo', font: 'Police', grad: 'Dégradé', deco: 'Décoration', plate: 'Plaque', card: 'Carte', pfx: 'Effet de profil', pet: 'Compagnon', bubble: 'Effet de messages' }[k] || k;
+    return kind + ' « ' + (l ? l[1] : String(v)) + ' »';
+  }
+  function rwGiftClaim(g) {
+    const st = rwWeek(rwSt()); st.gifts = st.gifts || {};
+    if (st.gifts[g.id]) return;
+    st.gifts[g.id] = Date.now();
+    if (g.item) st.own = [...new Set([...(st.own || []), shopKey(g.item.k, g.item.v)])];
+    if (g.n) rwGain(st, g.n, 'Cadeau du créateur' + (g.msg ? ' : ' + g.msg.slice(0, 40) : ''));
+    else st.hist = [{ t: Date.now(), n: 0, txt: 'Cadeau : ' + lookLabel(g.item.k, g.item.v) }, ...(st.hist || [])].slice(0, 12);
+    rwSave(st); renderNav(); render();
+    popup('🎁 Cadeau récupéré', [g.n ? `+${g.n} Braises` : '', g.item ? lookLabel(g.item.k, g.item.v) + ' ajouté à ta boutique' : ''].filter(Boolean).join(' · '), g.item ? 'boutique' : null);
+  }
+  function rwEvClaim(e) {
+    const st = rwWeek(rwSt()); st.evGot = st.evGot || {};
+    if (st.evGot[e.id]) return;
+    const pr = rwEvProg(e, st); if (pr.n < pr.goal) return;
+    st.evGot[e.id] = Date.now(); rwGain(st, e.gain, 'Événement : ' + e.t); rwSave(st); renderNav(); render();
+  }
+  function rwRemoteCards(st) {
+    const out = [];
+    const gifts = ((RWR.data && RWR.data.gifts) || []).filter((g) => !(st.gifts || {})[g.id]);
+    if (gifts.length) out.push(h('div', { class: 'card rw-gifts' }, h('h2', null, '🎁 Cadeaux pour toi'),
+      gifts.map((g) => h('div', { class: 'rw-defi done' }, h('span', { class: 'rw-dico' }, g.item ? '🎀' : '🔥'),
+        h('div', { class: 'rw-dt' }, h('b', null, [g.n ? g.n + ' Braises' : '', g.item ? lookLabel(g.item.k, g.item.v) : ''].filter(Boolean).join(' + ')), h('small', { class: 'muted' }, g.msg || (g.all ? 'Offert à tout le monde par le créateur de FIRE' : 'Offert par le créateur de FIRE'))),
+        h('button', { class: 'btn-fire small-btn', onclick: () => rwGiftClaim(g) }, 'Récupérer')))));
+    const evs = rwEvents();
+    if (evs.length) out.push(h('div', { class: 'card rw-events' }, h('h2', null, '🎉 Événements'),
+      evs.map((e) => {
+        const pr = rwEvProg(e, st), got = (st.evGot || {})[e.id], done = pr.n >= pr.goal;
+        const left = Math.max(0, e.end - Date.now()), dl = left > 864e5 ? `${Math.ceil(left / 864e5)} j` : `${Math.ceil(left / 36e5)} h`;
+        const what = e.kind === 'mult' ? `Braises des défis × ${fr(e.mult, e.mult % 1 ? 1 : 0)}` : e.kind === 'login' ? 'Connecte-toi pendant l’événement' : e.kind === 'games' ? `Joue ${e.goal} partie${e.goal > 1 ? 's' : ''} classée${e.goal > 1 ? 's' : ''}` : e.kind === 'wins' ? `Gagne ${e.goal} partie${e.goal > 1 ? 's' : ''} classée${e.goal > 1 ? 's' : ''}` : `Réussis ${e.goal} défi${e.goal > 1 ? 's' : ''} du jour`;
+        return h('div', { class: 'rw-defi' + (got ? ' got' : done && e.kind !== 'mult' ? ' done' : '') }, h('span', { class: 'rw-dico' }, e.ico),
+          h('div', { class: 'rw-dt' }, h('b', null, e.t), h('small', null, what + (e.kind !== 'mult' && e.kind !== 'login' ? ` (${Math.min(pr.n, pr.goal)}/${pr.goal})` : '')), e.d ? h('small', { class: 'muted' }, e.d) : null, h('small', { class: 'muted' }, 'Encore ' + dl)),
+          e.kind === 'mult' ? h('span', { class: 'rw-gain' }, '× ' + fr(e.mult, e.mult % 1 ? 1 : 0)) : h('span', { class: 'rw-gain' }, '+' + e.gain + ' 🔥'),
+          e.kind === 'mult' ? null : got ? h('small', { class: 'ok' }, 'Récupéré ✓') : done ? h('button', { class: 'btn-fire small-btn', onclick: () => rwEvClaim(e) }, 'Récupérer') : pr.noAcc ? h('button', { class: 'btn-ghost small-btn', onclick: () => go('stats') }, 'Mes stats') : null);
+      })));
+    return out;
+  }
+  // ----- Admin › Récompenses : offrir des Braises ou un objet, créer des événements -----
+  const RWA = { all: null, busy: false, msg: '', to: [], free: '', n: 50, item: '', gmsg: '', ev: { ico: '🎉', t: '', d: '', kind: 'games', goal: 3, gain: 100, mult: 2, start: '', end: '' } };
+  async function rwAdminLoad() {
+    if (!window.fire.rw || !window.fire.rw.remote) return;
+    const r = await window.fire.rw.remote([]).catch(() => null);
+    RWA.all = (r && r.all) || { gifts: [], events: [] };
+    if (S.section === 'admin' && ADM.tab === 'rw') renderAdmin();
+  }
+  async function rwAdminSave(next, okMsg) {
+    RWA.busy = true; RWA.msg = 'Envoi…'; renderAdmin();
+    const r = await window.fire.rw.publish(next).catch((e) => ({ ok: false, error: String(e) }));
+    RWA.busy = false;
+    if (r && r.ok) { RWA.all = r.all; RWA.msg = okMsg; RWR.at = 0; rwRemoteLoad(true); } else RWA.msg = '⚠ ' + ((r && r.error) || 'envoi impossible');
+    renderAdmin();
+  }
+  function rwAdminTab() {
+    if (RWA.all === null) { RWA.all = { gifts: [], events: [], loading: true }; rwAdminLoad(); }
+    const A = RWA.all, roster = admRoster();
+    const names = load('fire.rw.names', {});
+    // Objets possibles : toute la boutique et la Collection Braises.
+    const kinds = ['fx', 'deco', 'plate', 'card', 'grad', 'font', 'pfx', 'pet'];
+    const opts = [h('option', { value: '' }, '— aucun objet —')].concat(h('optgroup', { label: '🔥 Collection Braises' }, SHOP_EXCL.map(([k, v, l]) => h('option', { value: JSON.stringify({ k, v }) }, l))),
+      ...kinds.map((k) => h('optgroup', { label: lookLabel(k, '').split(' « ')[0] }, shopList(k).filter(([v]) => v != null && v !== '').map(([v, l]) => h('option', { value: JSON.stringify({ k, v }) }, l)))));
+    const sel = h('select', { class: 'inp', onchange: (e) => { RWA.item = e.target.value; } }, opts); sel.value = RWA.item;
+    const chip = (id, label) => { const on = RWA.to.includes(id); return h('label', { class: 'ann-chip' + (on ? ' on' : '') }, h('input', { type: 'checkbox', checked: on ? true : null, onchange: (e) => { RWA.to = e.target.checked ? RWA.to.concat(id) : RWA.to.filter((x) => x !== id); renderAdmin(); } }), label); };
+    const give = () => {
+      const free = RWA.free.split(/[,;\n]/).map((x) => x.trim()).filter(Boolean);
+      const all = RWA.to.includes('*');
+      const who = all ? ['*'] : RWA.to.flatMap((sl) => { const p = roster.find((x) => x.slug === sl); return [sl, p && p.pseudo].filter(Boolean); }).concat(free);
+      const n = Math.max(0, Math.min(10000, Math.round(Number(RWA.n) || 0)));
+      let item = null; try { item = RWA.item ? JSON.parse(RWA.item) : null; } catch (e) { item = null; }
+      if (!who.length) { RWA.msg = '⚠ Choisis au moins un joueur, ou « Tout le monde ».'; renderAdmin(); return; }
+      if (!n && !item) { RWA.msg = '⚠ Indique des Braises ou un objet.'; renderAdmin(); return; }
+      const id = 'g' + Date.now().toString(36);
+      const label = all ? 'Tout le monde' : RWA.to.map((sl) => (roster.find((x) => x.slug === sl) || {}).pseudo || sl).concat(free).join(', ');
+      save('fire.rw.names', { ...names, [id]: label });
+      if (!confirm(`Offrir ${[n ? n + ' Braises' : '', item ? lookLabel(item.k, item.v) : ''].filter(Boolean).join(' + ')} à ${label} ?`)) return;
+      rwAdminSave({ gifts: [...(A.gifts || []), { id, to: who, n, item, msg: RWA.gmsg.trim(), at: Date.now() }], events: A.events || [] }, '✅ Cadeau envoyé : il apparaîtra dans « Récompenses » à leur prochaine ouverture de FIRE.');
+      RWA.to = []; RWA.free = ''; RWA.gmsg = '';
+    };
+    const E = RWA.ev;
+    const dIn = (k) => h('input', { class: 'inp', type: 'datetime-local', value: E[k], onchange: (e) => { E[k] = e.target.value; } });
+    const addEv = () => {
+      const start = E.start ? new Date(E.start).getTime() : Date.now(), end = E.end ? new Date(E.end).getTime() : start + 7 * 864e5;
+      if (!E.t.trim()) { RWA.msg = '⚠ Donne un nom à l’événement.'; renderAdmin(); return; }
+      if (!(end > start)) { RWA.msg = '⚠ La fin doit être après le début.'; renderAdmin(); return; }
+      rwAdminSave({ gifts: A.gifts || [], events: [...(A.events || []), { id: 'e' + Date.now().toString(36), ico: E.ico || '🎉', t: E.t.trim(), d: E.d.trim(), kind: E.kind, goal: +E.goal || 1, gain: +E.gain || 0, mult: +E.mult || 2, start, end }] }, '✅ Événement publié pour tout le monde.');
+      RWA.ev = { ...E, t: '', d: '' };
+    };
+    const when = (t) => new Date(t).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const KN = { login: 'Se connecter', games: 'Jouer N parties classées', wins: 'Gagner N parties classées', defis: 'Réussir N défis du jour', mult: 'Braises des défis multipliées' };
+    return h('div', { class: 'adm-sec' },
+      h('p', { class: 'muted small' }, 'Offre des Braises ou un objet de la boutique, et crée des événements. Tout est signé par ta clé de créateur et vaut pour toutes les formules, Classique compris.'),
+      A.loading ? h('p', { class: 'muted' }, 'Chargement…') : null,
+      h('div', { class: 'card adm-grp' }, h('b', null, '🎁 Offrir une récompense'),
+        h('p', { class: 'muted small' }, 'Les joueurs de l’équipe, ou un pseudo / identifiant Riot (pseudo#tag) pour un joueur en Classique. Le cadeau l’attend dans « Récompenses ».'),
+        h('div', { class: 'adm-who' }, chip('*', '🌍 Tout le monde'), RWA.to.includes('*') ? null : roster.map((p) => chip(p.slug, shortName(p.pseudo || p.slug)))),
+        RWA.to.includes('*') ? null : h('input', { class: 'inp', placeholder: 'Autres joueurs : Pseudo#TAG, pseudo… (séparés par des virgules)', value: RWA.free, oninput: (e) => { RWA.free = e.target.value; } }),
+        h('div', { class: 'row' }, h('label', { class: 'adm-f' }, h('b', null, '🔥 Braises'), h('input', { class: 'inp', type: 'number', min: 0, max: 10000, step: 10, value: RWA.n, oninput: (e) => { RWA.n = e.target.value; } })),
+          h('label', { class: 'adm-f', style: 'flex:1' }, h('b', null, '🎀 Objet de la boutique (facultatif)'), sel)),
+        h('input', { class: 'inp', placeholder: 'Message (facultatif) : ex. « Bravo pour le tournoi ! »', maxlength: 160, value: RWA.gmsg, oninput: (e) => { RWA.gmsg = e.target.value; } }),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', disabled: RWA.busy ? true : null, onclick: give }, '🎁 Offrir'))),
+      (A.gifts || []).length ? h('div', { class: 'card adm-grp' }, h('b', null, 'Cadeaux envoyés'),
+        A.gifts.slice().reverse().slice(0, 15).map((g) => h('div', { class: 'row rw-h' }, h('span', { class: 'rw-gain' }, g.n ? '+' + g.n + ' 🔥' : '🎀'), h('span', null, (names[g.id] || (g.to.includes('*') ? 'Tout le monde' : g.to.length + ' joueur(s)')) + (g.item ? ' · ' + lookLabel(g.item.k, g.item.v) : '') + (g.msg ? ' · « ' + g.msg + ' »' : '')), h('small', { class: 'muted' }, when(g.at)),
+          h('button', { class: 'linkbtn small', onclick: () => { if (confirm('Retirer ce cadeau ? Ceux qui l’ont déjà récupéré le gardent.')) rwAdminSave({ gifts: A.gifts.filter((x) => x.id !== g.id), events: A.events || [] }, 'Cadeau retiré.'); } }, '🗑')))) : null,
+      h('div', { class: 'card adm-grp' }, h('b', null, '🎉 Créer un événement'),
+        h('div', { class: 'row' }, h('input', { class: 'inp', style: 'max-width:70px', value: E.ico, maxlength: 4, oninput: (e) => { E.ico = e.target.value; } }), h('input', { class: 'inp', style: 'flex:1', placeholder: 'Nom : ex. « Semaine des Worlds »', maxlength: 60, value: E.t, oninput: (e) => { E.t = e.target.value; } })),
+        h('input', { class: 'inp', placeholder: 'Description (facultatif)', maxlength: 220, value: E.d, oninput: (e) => { E.d = e.target.value; } }),
+        h('div', { class: 'row' },
+          h('label', { class: 'adm-f' }, h('b', null, 'Type'), h('select', { class: 'inp', onchange: (e) => { E.kind = e.target.value; renderAdmin(); } }, Object.entries(KN).map(([k, l]) => h('option', { value: k, selected: E.kind === k ? true : null }, l)))),
+          E.kind === 'mult' ? h('label', { class: 'adm-f' }, h('b', null, 'Multiplicateur'), h('select', { class: 'inp', onchange: (e) => { E.mult = e.target.value; } }, [1.5, 2, 3].map((m) => h('option', { value: m, selected: +E.mult === m ? true : null }, '× ' + String(m).replace('.', ','))))) : null,
+          ['games', 'wins', 'defis'].includes(E.kind) ? h('label', { class: 'adm-f' }, h('b', null, 'Objectif (N)'), h('input', { class: 'inp', type: 'number', min: 1, max: 200, value: E.goal, oninput: (e) => { E.goal = e.target.value; } })) : null,
+          E.kind !== 'mult' ? h('label', { class: 'adm-f' }, h('b', null, '🔥 Gain'), h('input', { class: 'inp', type: 'number', min: 0, max: 10000, step: 10, value: E.gain, oninput: (e) => { E.gain = e.target.value; } })) : null),
+        h('div', { class: 'row' }, h('label', { class: 'adm-f' }, h('b', null, 'Début'), dIn('start')), h('label', { class: 'adm-f' }, h('b', null, 'Fin'), dIn('end')), h('small', { class: 'muted' }, 'Vide : maintenant, et 7 jours.')),
+        h('div', { class: 'row' }, h('button', { class: 'btn-fire small-btn', disabled: RWA.busy ? true : null, onclick: addEv }, '🎉 Publier l’événement'))),
+      (A.events || []).length ? h('div', { class: 'card adm-grp' }, h('b', null, 'Événements'),
+        A.events.slice().reverse().map((e) => h('div', { class: 'row rw-h' }, h('span', null, e.ico), h('span', null, h('b', null, e.t), ' · ' + KN[e.kind].replace('N', e.goal) + (e.kind === 'mult' ? ' × ' + e.mult : ' · +' + e.gain + ' 🔥')),
+          h('small', { class: 'muted' }, `${when(e.start)} → ${when(e.end)}${Date.now() > e.end ? ' (fini)' : Date.now() < e.start ? ' (à venir)' : ' (en cours)'}`),
+          h('button', { class: 'linkbtn small', onclick: () => { if (confirm('Supprimer cet événement ?')) rwAdminSave({ gifts: A.gifts || [], events: A.events.filter((x) => x.id !== e.id) }, 'Événement supprimé.'); } }, '🗑')))) : null,
+      RWA.msg ? h('p', { class: 'small' }, RWA.msg) : null);
   }
   // ===== Mes stats (Classique et Premium Joueur) : ton compte Riot, comme sur les sites de stats =====
   const SOLO = { busy: false, err: '', show: null };
@@ -12029,7 +12192,7 @@
     admOpen();
     const D = ADM.draft;
     const set = (patch) => { Object.assign(D, patch); if (ADM.preview) { ADM.preview = clone(D); appCfgApply(); renderNav(); } renderAdmin(); };
-    const tabs = [['look', '🎨 Apparence'], ['switch', '🔧 Interrupteurs'], ['menu', '🗂️ Menu et catégories'], ['pages', '📄 Pages'], ['texts', '✍️ Textes'], ['home', '🏠 Accueil'], ['team', '👥 Équipe'], ['shop', '🛍️ Boutique'], ['apps', '🔑 Clés des apps'], ['pub', '🌐 Page publique'], ['teams', '👥 Équipes FIRE'], ['css', '🧪 CSS avancé']];
+    const tabs = [['look', '🎨 Apparence'], ['switch', '🔧 Interrupteurs'], ['menu', '🗂️ Menu et catégories'], ['pages', '📄 Pages'], ['texts', '✍️ Textes'], ['home', '🏠 Accueil'], ['team', '👥 Équipe'], ['shop', '🛍️ Boutique'], ['apps', '🔑 Clés des apps'], ['pub', '🌐 Page publique'], ['rw', '🎁 Récompenses'], ['teams', '👥 Équipes FIRE'], ['css', '🧪 CSS avancé']];
     const field = (label, help, el) => h('label', { class: 'adm-f' }, h('b', null, label), help ? h('small', { class: 'muted' }, help) : null, el);
     let body;
     if (ADM.tab === 'look') {
@@ -12198,6 +12361,8 @@
       body = pubAdminTab();
     } else if (ADM.tab === 'teams') {
       body = teamsAdminTab();
+    } else if (ADM.tab === 'rw') {
+      body = rwAdminTab();
     } else {
       body = h('div', { class: 'adm-sec' },
         field('CSS de l’équipe', 'Pour aller au bout : tout ce que tu écris ici s’applique au style de FIRE chez tout le monde (couleurs, tailles, arrondis, cacher un bloc…). « Essayer sur mon PC » pour voir avant de publier.',
@@ -12211,7 +12376,7 @@
         h('div', { class: 'row' }, ['basique', 'joueur', 'equipe'].map((k) => h('button', { class: 'btn-ghost small-btn', onclick: () => { planPreview(k); go('accueil'); } }, PLAN_NAMES[k])))),
       h('div', { class: 'row plan-tabs adm-tabs' }, tabs.map(([k, l]) => h('button', { class: 'plan-tab', 'aria-pressed': String(ADM.tab === k), onclick: () => { ADM.tab = k; renderAdmin(); } }, l))),
       h('div', { class: 'card adm-body' }, body),
-      (ADM.tab === 'apps' || ADM.tab === 'pub' || ADM.tab === 'teams') && !dirty ? '' : h('div', { class: 'card adm-bar' },
+      (ADM.tab === 'apps' || ADM.tab === 'pub' || ADM.tab === 'teams' || ADM.tab === 'rw') && !dirty ? '' : h('div', { class: 'card adm-bar' },
         h('div', { class: 'row' },
           h('button', { class: 'btn-ghost', 'aria-pressed': String(!!ADM.preview), onclick: () => { ADM.preview = ADM.preview ? null : clone(D); appCfgApply(); render(); } }, ADM.preview ? '👁️ Aperçu actif (cliquer pour l’arrêter)' : '👁️ Essayer sur mon PC'),
           h('button', { class: 'btn-fire', disabled: ADM.busy || !dirty ? true : null, onclick: () => admPublish(D) }, '📤 Publier pour toute l’équipe'),
