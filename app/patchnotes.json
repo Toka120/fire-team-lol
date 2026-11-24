@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "2.0.18",
+   "date": "2026-11-24",
+   "titre": "Boutique : les prix en Braises et la Collection Braises",
+   "items": [
+    [
+     "new",
+     "Chaque objet de la boutique a son prix en Braises et sa rareté : Rare (100 à 150), Épique (250 à 400), Légendaire (500 à 800), Mythique (1 000 et plus)."
+    ],
+    [
+     "new",
+     "Barème : polices 100, dégradés et cartes 150, plaques et effets de messages 250, effets de pseudo 350, décorations 400, bannières et fonds 500, effets de profil 600, compagnons 800, packs 1 500."
+    ],
+    [
+     "new",
+     "Ce qui est compris dans ta formule reste à toi sans rien payer ; le reste se débloque avec tes Braises."
+    ],
+    [
+     "new",
+     "🔥 Collection Braises : des objets exclusifs qu'on ne peut avoir qu'avec des Braises, même dans l'équipe Alpha. Aurore boréale (700), Phénix (1 000), Prisme (800), Ailes du phénix (1 200), plaques Inferno et Prisme (600), carte Volcan (400) et le Pack Phénix complet (3 000)."
+    ]
+   ]
+  },
+  {
    "v": "2.0.17",
    "date": "2026-11-24",
    "titre": "Lancement plus fluide",

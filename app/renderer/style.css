@@ -3678,3 +3678,28 @@ html[data-lite] #fire-pet,html[data-lite] .acc-tick,html[data-lite] #fire-fx,htm
 .rw-h { gap: 12px; padding: 4px 0; align-items: baseline; }
 .rw-h span:nth-child(2) { flex: 1; }
 .rw-chip { margin-top: 10px; cursor: pointer; }
+
+/* Boutique : prix en Braises et rareté */
+.shop-price b { font-weight: 800; }
+.shop-it .shop-tag.shop-price.r-rare { color: #6fb8ff; }
+.shop-it .shop-tag.shop-price.r-epic { color: #c48bff; }
+.shop-it .shop-tag.shop-price.r-leg { color: #ffb02e; }
+.shop-it .shop-tag.shop-price.r-myth { color: #ff6a3d; text-shadow: 0 0 8px rgb(255 90 40 / 55%); }
+.shop-it.locked:has(.r-leg), .shop-it.locked:has(.r-myth) { border-color: rgb(255 140 50 / 45%); }
+.shop-excl .shop-it { border-color: rgb(255 120 40 / 40%); background: linear-gradient(160deg, rgb(255 94 58 / 10%), transparent 60%); }
+.shop-excl-pack { box-shadow: 0 0 18px rgb(255 94 58 / 30%); }
+/* Collection Braises : effets exclusifs */
+.nm-aurore{background:linear-gradient(90deg,#2effaa,#4aa8ff,#b06bff,#2effaa) 0 0/300% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 6px rgb(74 168 255 / 60%));animation:nmAurore 6s ease-in-out infinite}
+@keyframes nmAurore{0%,100%{background-position:0 0}50%{background-position:100% 0}}
+.nm-phenix{background:linear-gradient(100deg,#ff3b1f 0%,#ff8a1f 30%,#ffd23d 50%,#fff3c4 55%,#ffd23d 60%,#ff8a1f 80%,#ff3b1f 100%) 0 0/250% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:nmPhenix 2.8s linear infinite,nmPhenixG 1.4s ease-in-out infinite alternate}
+@keyframes nmPhenix{to{background-position:-250% 0}}
+@keyframes nmPhenixG{from{filter:drop-shadow(0 0 4px rgb(255 120 31 / 60%))}to{filter:drop-shadow(0 0 10px rgb(255 200 60 / 90%))}}
+.dk-prisme::before{background:conic-gradient(#fff,#9ff0ff,#ffb3f0,#fff7a8,#b3ffd1,#fff);animation:dkSpin 5s linear infinite;box-shadow:0 0 10px rgb(255 255 255 / 70%),0 0 22px rgb(159 240 255 / 50%)}
+.dk-phenix::before{background:conic-gradient(from 0deg,#ff3b1f,#ffd23d,#ff8a1f,#fff3c4,#ff3b1f);animation:dkSpin 1.8s linear infinite,dkPhenix 1.6s ease-in-out infinite alternate;box-shadow:0 0 16px #ff7a1f,0 0 30px rgb(255 200 60 / 60%)}
+.dk-phenix::after{content:'';position:absolute;inset:-10px;border-radius:50%;border:2px solid rgb(255 180 60 / 55%);z-index:-1;pointer-events:none;animation:dkPhenix 1.6s ease-in-out infinite alternate-reverse}
+@keyframes dkPhenix{from{transform:scale(.97);opacity:.75}to{transform:scale(1.05);opacity:1}}
+.pl-inferno{background:linear-gradient(90deg,rgb(255 59 31 / 65%),rgb(255 176 46 / 40%),rgb(255 59 31 / 55%),transparent) 0 0/200% 100%!important;animation:plFlow 4s linear infinite}
+.pl-prisme{background:linear-gradient(90deg,rgb(255 61 110 / 35%),rgb(255 210 61 / 30%),rgb(61 255 138 / 30%),rgb(61 216 255 / 30%),rgb(177 61 255 / 35%),transparent) 0 0/200% 100%!important;animation:plFlow 6s linear infinite}
+@keyframes plFlow{to{background-position:-200% 0}}
+html[data-calm] .pl-inferno,html[data-calm] .pl-prisme,html[data-calm] .dk-phenix::after{animation:none!important}
+.shop-it.locked:has(.shop-price){opacity:.8}

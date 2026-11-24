@@ -980,9 +980,9 @@
   }
   // Statut et petite carte de profil d'un coéquipier (Paramètres › Mon profil) : seulement des champs connus et courts.
   // Boutique FIRE (gratuite) : effets de pseudo, décorations… seulement des valeurs connues.
-  const LOOK = { fx: ['shine', 'neon', 'rainbow', 'feu', 'givre', 'glitch', 'pulse', 'or', 'spectre', 'sang'], font: ['cinzel', 'orbitron', 'bangers', 'fredoka', 'press', 'marker', 'bebas', 'mono'],
-    deco: ['flammes', 'neon', 'arc', 'petales', 'givre', 'hextech', 'couronne', 'void', 'eclair', 'coeurs', 'ailes', 'cornes', 'halo', 'epines'], pfx: ['petales', 'neige', 'etincelles', 'braises', 'etoiles', 'confettis', 'bulles', 'coeurs', 'regards', 'sourire', 'chauves', 'ombres', 'brume', 'toiles'],
-    plate: ['aube', 'ocean', 'foret', 'nuit', 'lave', 'neon', 'or', 'glace', 'sakura', 'matrix', 'galaxie', 'abime', 'hantee', 'sangp'],
+  const LOOK = { fx: ['shine', 'neon', 'rainbow', 'feu', 'givre', 'glitch', 'pulse', 'or', 'spectre', 'sang', 'aurore', 'phenix'], font: ['cinzel', 'orbitron', 'bangers', 'fredoka', 'press', 'marker', 'bebas', 'mono'],
+    deco: ['flammes', 'neon', 'arc', 'petales', 'givre', 'hextech', 'couronne', 'void', 'eclair', 'coeurs', 'ailes', 'cornes', 'halo', 'epines', 'prisme', 'phenix'], pfx: ['petales', 'neige', 'etincelles', 'braises', 'etoiles', 'confettis', 'bulles', 'coeurs', 'regards', 'sourire', 'chauves', 'ombres', 'brume', 'toiles'],
+    plate: ['aube', 'ocean', 'foret', 'nuit', 'lave', 'neon', 'or', 'glace', 'sakura', 'matrix', 'galaxie', 'abime', 'hantee', 'sangp', 'inferno', 'prisme'],
     pet: ['flammi', 'givro', 'slimy', 'boo', 'neko', 'robo', 'shroom', 'astro', 'drako', 'bulle'] };
   function cleanLook(l) {
     if (!l || typeof l !== 'object') return null;

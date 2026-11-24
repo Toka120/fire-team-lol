@@ -1265,10 +1265,19 @@
   const shopKey = (k, v) => k + ':' + JSON.stringify(v == null || v === '' ? null : v);
   function shopAllowed(k, v) {
     const p = PLAN();
-    if (p === 'elite' || v == null || v === '') return true;
+    if (v == null || v === '') return true;
+    if (exclPrice(k, v)) return rwOwned(k, v);
+    if (p === 'elite') return true;
     if ((p === 'joueur' || p === 'equipe') && ['fx', 'font', 'grad', 'deco', 'plate', 'card'].includes(k)) return true;
     const list = (acfg().shopBasic || []).length ? acfg().shopBasic : SHOP_BASIC0;
     return list.includes(shopKey(k, v)) || rwOwned(k, v);
+  }
+  // Étiquette d'un objet : équipé, acheté, compris dans la formule, ou son prix en Braises avec sa rareté.
+  function shopTag(k, v, on, lock) {
+    const price = RW_PRICE(k, v), [rar, rc] = RARITY(v == null || v === '' ? 0 : price);
+    if (on) return h('span', { class: 'shop-tag' }, '✓ Équipé');
+    if (lock) return h('span', { class: 'shop-tag shop-price ' + rc }, h('b', null, '🔥 ' + price), ' · ' + rar);
+    return h('span', { class: 'shop-tag' }, exclPrice(k, v) || (rwOwned(k, v) && PLAN() !== 'elite') ? 'Acheté · Équiper' : 'Équiper');
   }
   const shopLocked = () => { popup('🔒 Apparence Premium', `Ta formule ${PLAN_NAMES[PLAN()]} donne accès à quelques apparences. Les autres sont réservées à la formule ${PLAN() === 'basique' ? 'Premium Joueur ou à l’équipe Alpha' : 'Premium Élite (équipe Alpha)'}.`, null); };
   const setLook = (k, v) => { if (!shopAllowed(k, v) && !shopBuy(k, v)) return; const L = { ...looks() }; if (v == null || v === '') delete L[k]; else L[k] = v; setUx({ look: Object.keys(L).length ? L : null }); shopRedraw(); petSync(); if (k !== 'pet') petReact('look'); };
@@ -1281,7 +1290,7 @@
     const tryOn = (k, val) => { const P = document.querySelector('.shop-preview'); if (P) P.replaceWith(previewOf(val === undefined ? L : { ...L, [k]: val || undefined }, val !== undefined)); };
     const item = (k, val, label, desc, prev) => { const on = same(L[k] || (k === 'grad' || k === 'card' ? null : ''), val), lock = !shopAllowed(k, val); return h('button', { class: 'shop-it' + (on ? ' on' : '') + (lock ? ' locked' : ''), onclick: () => setLook(k, val),
       onmouseenter: () => tryOn(k, val), onfocus: () => tryOn(k, val), onmouseleave: () => tryOn(k, undefined), onblur: () => tryOn(k, undefined) },
-      h('div', { class: 'shop-prev' }, prev), h('b', null, label), desc ? h('small', { class: 'muted' }, desc) : null, h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : lock ? '🔒 Premium' : 'Gratuit · Équiper')); };
+      h('div', { class: 'shop-prev' }, prev), h('b', null, label), desc ? h('small', { class: 'muted' }, desc) : null, shopTag(k, val, on, lock)); };
     const name = (fx, font, grad) => h('span', { class: 'nm' + (grad ? ' nm-grad' : '') + (fx ? ' nm-' + fx : ''), style: (grad ? `--n1:${grad[0]};--n2:${grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (font && LOOK_FONT[font] ? `font-family:${LOOK_FONT[font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
     // L'aperçu : la carte de profil, une ligne de discussion, la liste des membres et la case du vocal, avec le look donné.
     const lname = (X) => h('span', { class: 'nm' + (X.grad ? ' nm-grad' : '') + (X.fx ? ' nm-' + X.fx : ''), style: (X.grad ? `--n1:${X.grad[0]};--n2:${X.grad[1]};` : `color:${UX.color || 'var(--fg)'};`) + (X.font && LOOK_FONT[X.font] ? `font-family:${LOOK_FONT[X.font]};` : ''), 'data-t': vocalName(me) }, vocalName(me));
@@ -1301,11 +1310,24 @@
     const sec = (title, sub, list) => uxCard(title, sub, h('div', { class: 'shop-grid' }, list));
     return [
       preview,
-      uxCard('🛍️ Boutique FIRE', 'Comme la boutique de Discord, mais tout est gratuit. Survole un objet pour l’essayer sur l’aperçu, clique pour l’équiper. Tes coéquipiers voient ce que tu portes dans la discussion, le vocal et sur ta carte de profil.',
+      uxCard('🛍️ Boutique FIRE', 'Comme la boutique de Discord : ce qui est compris dans ta formule est à toi, le reste se débloque avec tes Braises 🔥 (Rare, Épique, Légendaire, Mythique). Survole un objet pour l’essayer sur l’aperçu, clique pour l’équiper. Tes coéquipiers voient ce que tu portes dans la discussion, le vocal et sur ta carte de profil.',
         h('div', { class: 'row' }, h('button', { class: 'linkbtn small', onclick: () => { setUx({ look: null }); shopRedraw(); } }, '↺ Tout déséquiper'), h('button', { class: 'linkbtn small', onclick: () => { setClose(true); promoShop(true); } }, '▶ Revoir la présentation'))),
+      (() => {
+        const [pid, pl, pd, PP, pprice] = SHOP_EXCL_PACK;
+        const owned = (rwSt().own || []).includes('pack:' + pid), pon = JSON.stringify(L) === JSON.stringify(PP);
+        const pack = h('button', { class: 'shop-it shop-pack shop-excl-pack' + (pon ? ' on' : '') + (owned ? '' : ' locked'), onclick: () => { if (!owned && !shopBuyPack(pid, PP, pprice)) return; setUx({ look: { ...PP } }); shopRedraw(); },
+          onmouseenter: () => { const Pv = document.querySelector('.shop-preview'); if (Pv) Pv.replaceWith(previewOf(PP, true)); }, onmouseleave: () => { const Pv = document.querySelector('.shop-preview'); if (Pv) Pv.replaceWith(previewOf(L, false)); } },
+          h('div', { class: 'shop-prev shop-packprev pf-themed', style: `--pc1:${PP.card[0]};--pc2:${PP.card[1]}` }, pfxEl(PP.pfx), lav(PP, 'shop-av')), h('b', null, pl), h('small', { class: 'muted' }, pd),
+          pon ? h('span', { class: 'shop-tag' }, '✓ Équipé') : owned ? h('span', { class: 'shop-tag' }, 'Acheté · Tout équiper') : h('span', { class: 'shop-tag shop-price r-myth' }, h('b', null, '🔥 ' + pprice), ' · Mythique'));
+        const prevOf = (k, v) => k === 'fx' ? name(v, L.font, L.grad) : k === 'deco' ? h('span', { class: 'vc-av shop-av dk dk-' + v }, ini(me), decoExtra(v))
+          : k === 'plate' ? h('div', { class: 'cp-cv shop-plate plate pl-' + v }, h('span', { class: 'chat-cv-l' }, vocalName(me))) : h('div', { class: 'shop-card pf-themed', style: `--pc1:${v[0]};--pc2:${v[1]}` });
+        return uxCard('🔥 Collection Braises', 'Des objets exclusifs, qu’on ne peut avoir qu’avec des Braises, même dans l’équipe Alpha. Gagne-les dans « 🎁 Récompenses ».',
+          h('div', { class: 'shop-grid shop-excl' }, pack, ...SHOP_EXCL.map(([k, v, l, d]) => item(k, v, l, d, prevOf(k, v)))));
+      })(),
       sec('🎁 Packs', 'Tout un style d’un coup : survole pour l’essayer, clique pour l’équiper.', PACKS.map(([id, l, d, P]) => { const on = JSON.stringify(L) === JSON.stringify(P);
-        return h('button', { class: 'shop-it shop-pack' + (on ? ' on' : '') + (PLAN() !== 'elite' ? ' locked' : ''), onclick: () => { if (PLAN() !== 'elite') { shopLocked(); return; } setUx({ look: { ...P } }); shopRedraw(); }, onmouseenter: () => { const Pv = document.querySelector('.shop-preview'); if (Pv) Pv.replaceWith(previewOf(P, true)); }, onmouseleave: () => tryOn('fx', undefined) },
-          h('div', { class: 'shop-prev shop-packprev' + (P.card ? ' pf-themed' : ''), style: P.card ? `--pc1:${P.card[0]};--pc2:${P.card[1]}` : '' }, P.pfx ? pfxEl(P.pfx) : null, lav(P, 'shop-av')), h('b', null, l), h('small', { class: 'muted' }, d), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Tout équiper')); })),
+        const pk = PLAN() !== 'elite' && !(rwSt().own || []).includes('pack:' + id);
+        return h('button', { class: 'shop-it shop-pack' + (on ? ' on' : '') + (pk ? ' locked' : ''), onclick: () => { if (pk && !shopBuyPack(id, P, SHOP_PRICE.pack)) return; setUx({ look: { ...P } }); shopRedraw(); }, onmouseenter: () => { const Pv = document.querySelector('.shop-preview'); if (Pv) Pv.replaceWith(previewOf(P, true)); }, onmouseleave: () => tryOn('fx', undefined) },
+          h('div', { class: 'shop-prev shop-packprev' + (P.card ? ' pf-themed' : ''), style: P.card ? `--pc1:${P.card[0]};--pc2:${P.card[1]}` : '' }, P.pfx ? pfxEl(P.pfx) : null, lav(P, 'shop-av')), h('b', null, l), h('small', { class: 'muted' }, d), on ? h('span', { class: 'shop-tag' }, '✓ Équipé') : pk ? h('span', { class: 'shop-tag shop-price r-myth' }, h('b', null, '🔥 ' + SHOP_PRICE.pack), ' · Pack') : h('span', { class: 'shop-tag' }, 'Tout équiper')); })),
       sec('✨ Effet de pseudo', 'Il s’anime partout où ton pseudo apparaît.', SHOP.fx.map(([v, l, d]) => item('fx', v, l, d, name(v, L.font, L.grad)))),
       sec('🎨 Dégradé de pseudo', 'Deux couleurs pour ton pseudo (sinon, ta couleur de Profil).', shopList('grad').map(([v, l]) => item('grad', v, l, '', name(L.fx, L.font, v)))),
       sec('🔤 Police du pseudo', null, SHOP.font.map(([v, l]) => item('font', v, l, '', name(L.fx, v, L.grad)))),
@@ -1316,9 +1338,9 @@
       sec('🃏 Thème de carte de profil', null, shopList('card').map(([v, l]) => item('card', v, l, '', h('div', { class: 'shop-card' + (v ? ' pf-themed' : ''), style: v ? `--pc1:${v[0]};--pc2:${v[1]}` : '' })))),
       shopList('bubble').length > 1 ? sec('💬 Effet de messages', 'Le fond de tes messages dans la discussion, chez tout le monde.', shopList('bubble').map(([v, l]) => item('bubble', v, l, '', h('div', { class: 'chat-m' + (v ? ' bub-' + v : '') }, h('div', { class: 'chat-tx' }, 'GG !'))))) : null,
       shopItems('banner').length ? sec('🖼️ Bannière de profil', 'En haut de ta carte de profil.', [h('button', { class: 'shop-it' + (!(UX.banner && UX.banner.a) ? ' on' : ''), onclick: () => { if (UX.banner && UX.banner.a) setUx({ banner: null }); shopRedraw(); } }, h('div', { class: 'shop-prev' }, h('span', { class: 'muted' }, '—')), h('b', null, 'Aucune'), h('span', { class: 'shop-tag' }, 'Gratuit'))]
-        .concat(shopItems('banner').map((x) => { const on = !!(UX.banner && UX.banner.a === x.id); return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => { if (PLAN() !== 'elite') { shopLocked(); return; } setUx({ banner: { a: x.id } }); shopRedraw(); } }, h('div', { class: 'shop-prev shop-ban', style: banStyle({ a: x.id }) }), h('b', null, x.name + ' ✨'), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); }))) : null,
+        .concat(shopItems('banner').map((x) => { const on = !!(UX.banner && UX.banner.a === x.id); return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => { if (!shopAllowed('banner', x.id) && !shopBuy('banner', x.id)) return; setUx({ banner: { a: x.id } }); shopRedraw(); } }, h('div', { class: 'shop-prev shop-ban', style: banStyle({ a: x.id }) }), h('b', null, x.name + ' ✨'), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); }))) : null,
       shopItems('appbg').length ? sec('🌄 Fond d’app', 'Derrière tout FIRE, chez toi seulement (flou et assombrissement dans Paramètres › Apparence).', [h('button', { class: 'shop-it' + ((UX.bg || {}).type !== 'admin' ? ' on' : ''), onclick: () => { if ((UX.bg || {}).type === 'admin') setUx({ bg: { ...(UX.bg || {}), type: 'none' } }); shopRedraw(); } }, h('div', { class: 'shop-prev' }, h('span', { class: 'muted' }, '—')), h('b', null, 'Aucun'), h('span', { class: 'shop-tag' }, 'Gratuit'))]
-        .concat(shopItems('appbg').map((x) => { const on = (UX.bg || {}).type === 'admin' && UX.bg.a === x.id; return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => { if (PLAN() !== 'elite') { shopLocked(); return; } setUx({ bg: { blur: 6, dim: 60, ...(UX.bg || {}), type: 'admin', a: x.id } }); shopRedraw(); } }, h('div', { class: 'shop-prev shop-ban', style: (() => { const u = shopAsset(x.id); return u ? `background-image:url("${u}");background-size:cover;background-position:center` : ''; })() }), h('b', null, x.name + ' ✨'), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); }))) : null,
+        .concat(shopItems('appbg').map((x) => { const on = (UX.bg || {}).type === 'admin' && UX.bg.a === x.id; return h('button', { class: 'shop-it' + (on ? ' on' : ''), onclick: () => { if (!shopAllowed('appbg', x.id) && !shopBuy('appbg', x.id)) return; setUx({ bg: { blur: 6, dim: 60, ...(UX.bg || {}), type: 'admin', a: x.id } }); shopRedraw(); } }, h('div', { class: 'shop-prev shop-ban', style: (() => { const u = shopAsset(x.id); return u ? `background-image:url("${u}");background-size:cover;background-position:center` : ''; })() }), h('b', null, x.name + ' ✨'), h('span', { class: 'shop-tag' }, on ? '✓ Équipé' : 'Gratuit · Équiper')); }))) : null,
     ].filter(Boolean);
   }
   // Aperçu du fond d'écran : une mini-FIRE (menu, cartes) par-dessus l'image, avec le flou et l'assombrissement choisis.
@@ -4392,7 +4414,22 @@
   // est pour le plaisir : il ne rapporte rien.
   const RW_LOGIN = [10, 15, 20, 25, 30, 40, 60];
   const RW_WEEK = { need: 12, gain: 100 };
-  const RW_PRICE = (k) => (['fx', 'font', 'grad', 'deco', 'plate', 'card'].includes(k) ? 150 : 400);
+  // Barème de la boutique en Braises : plus l'objet est animé ou complet, plus il est cher.
+  const SHOP_PRICE = { font: 100, grad: 150, card: 150, plate: 250, bubble: 250, fx: 350, deco: 400, banner: 500, appbg: 500, pfx: 600, pet: 800, pack: 1500 };
+  // Collection Braises : des objets exclusifs, qui ne s'obtiennent qu'avec des Braises, même pour l'équipe Alpha.
+  const SHOP_EXCL = [
+    ['fx', 'aurore', '🌌 Aurore boréale', 'Vert, bleu et violet qui ondulent', 700],
+    ['fx', 'phenix', '🔥 Phénix', 'Le feu qui devient or, avec un éclat', 1000],
+    ['deco', 'prisme', '💎 Prisme', 'Un anneau de diamant aux reflets arc-en-ciel', 800],
+    ['deco', 'phenix', '🦅 Ailes du phénix', 'Un double anneau de feu qui respire', 1200],
+    ['plate', 'inferno', '🌋 Inferno', 'Une plaque de lave qui coule', 600],
+    ['plate', 'prisme', '🌈 Prisme', 'Des reflets qui glissent sous ton pseudo', 600],
+    ['card', ['#2a0700', '#000000'], '🃏 Volcan', 'Carte de profil noire et braise', 400],
+  ];
+  const SHOP_EXCL_PACK = ['phenix', '👑 Pack Phénix', 'Tout le set du Phénix d’un coup, effet de profil compris', { fx: 'phenix', deco: 'phenix', plate: 'inferno', pfx: 'braises', card: ['#2a0700', '#000000'], grad: ['#ff3b1f', '#ffd23d'] }, 3000];
+  const exclPrice = (k, v) => { const x = SHOP_EXCL.find(([kk, vv]) => kk === k && JSON.stringify(vv) === JSON.stringify(v)); return x ? x[4] : 0; };
+  const RW_PRICE = (k, v) => exclPrice(k, v) || SHOP_PRICE[k] || 400;
+  const RARITY = (n) => (!n ? ['Commun', 'r-com'] : n <= 150 ? ['Rare', 'r-rare'] : n <= 400 ? ['Épique', 'r-epic'] : n < 1000 ? ['Légendaire', 'r-leg'] : ['Mythique', 'r-myth']);
   const RW_DEFIS = {
     g_play: { ico: '🎮', t: 'Jouer une partie classée', gain: 15, game: true, ok: (r) => r.length >= 1 },
     g_win: { ico: '🏆', t: 'Gagner une partie classée', gain: 20, game: true, ok: (r) => r.some((x) => x.win) },
@@ -4590,7 +4627,7 @@
     if ((st.badges || []).length || (st.hist || []).length) parts.push(h('div', { class: 'card rw-hist' }, h('h2', null, '📜 Derniers gains'),
       (st.badges || []).length ? h('p', { class: 'small' }, '🏅 Badges : ', `Régulier × ${(st.badges || []).filter((b) => b.id === 'regulier').length}`) : null,
       (st.hist || []).slice(0, 8).map((x) => h('div', { class: 'row rw-h' }, h('span', { class: 'rw-gain' }, '+' + x.n + ' 🔥'), h('span', null, x.txt), h('small', { class: 'muted' }, new Date(x.t).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }))))));
-    parts.push(h('div', { class: 'card rw-shop' }, h('b', null, '🛍️ Dépense tes Braises'), h('p', { class: 'muted small' }, 'Dans la boutique, les apparences 🔒 se débloquent aussi avec tes Braises : 150 pour une apparence simple, 400 pour les autres.'),
+    parts.push(h('div', { class: 'card rw-shop' }, h('b', null, '🛍️ Dépense tes Braises'), h('p', { class: 'muted small' }, 'Rare 100 à 150 (polices, dégradés, cartes) · Épique 250 à 400 (plaques, effets de pseudo, décorations) · Légendaire 500 à 800 (bannières, effets de profil, compagnons) · Mythique 1 000 et plus (packs et Collection Braises, exclusive même pour Alpha).'),
       h('button', { class: 'btn-ghost small-btn', onclick: () => go('boutique') }, 'Ouvrir la boutique')));
     view.replaceChildren(...parts);
   }
@@ -4605,14 +4642,23 @@
   }
   // Boutique : une apparence 🔒 s'achète avec des Braises.
   function shopBuy(k, v) {
-    const key = shopKey(k, v), price = RW_PRICE(k), st = rwSt();
-    if ((st.b || 0) < price) { popup('🔒 Apparence verrouillée', `Débloque-la avec ${price} Braises (tu en as ${st.b || 0}), ou avec la formule ${PLAN() === 'basique' ? 'Premium Joueur' : 'Premium Élite'}. Gagne des Braises dans « Récompenses ».`, 'recompenses'); return false; }
+    const key = shopKey(k, v), price = RW_PRICE(k, v), st = rwSt();
+    if ((st.b || 0) < price) { popup('🔒 Il te manque ' + (price - (st.b || 0)) + ' Braises', exclPrice(k, v) ? `Cet objet de la Collection Braises coûte ${price} Braises (tu en as ${st.b || 0}). Gagne-les dans « Récompenses ».` : `Débloque-le avec ${price} Braises (tu en as ${st.b || 0}), ou avec la formule ${PLAN() === 'basique' ? 'Premium Joueur' : 'Premium Élite'}. Gagne des Braises dans « Récompenses ».`, 'recompenses'); return false; }
     if (!confirm(`Débloquer cette apparence pour ${price} Braises ? (il t’en restera ${(st.b || 0) - price})`)) return false;
     st.b -= price; st.own = [...new Set([...(st.own || []), key])];
     st.hist = [{ t: Date.now(), n: -price, txt: 'Apparence débloquée' }, ...(st.hist || [])].slice(0, 12);
     rwSave(st); return true;
   }
   const rwOwned = (k, v) => (rwSt().own || []).includes(shopKey(k, v));
+  function shopBuyPack(id, P, price) {
+    const st = rwSt();
+    if ((st.own || []).includes('pack:' + id)) return true;
+    if ((st.b || 0) < price) { popup('🔒 Il te manque ' + (price - (st.b || 0)) + ' Braises', `Ce pack coûte ${price} Braises (tu en as ${st.b || 0}). Gagne-les dans « Récompenses ».`, 'recompenses'); return false; }
+    if (!confirm(`Débloquer ce pack pour ${price} Braises ? Toutes ses pièces seront à toi. (il t’en restera ${(st.b || 0) - price})`)) return false;
+    st.b -= price; st.own = [...new Set([...(st.own || []), 'pack:' + id, ...Object.entries(P).map(([k, v]) => shopKey(k, v))])];
+    st.hist = [{ t: Date.now(), n: -price, txt: 'Pack débloqué' }, ...(st.hist || [])].slice(0, 12);
+    rwSave(st); return true;
+  }
   // ===== Mes stats (Classique et Premium Joueur) : ton compte Riot, comme sur les sites de stats =====
   const SOLO = { busy: false, err: '', show: null };
   const soloSlug = (riot) => { const [n, t] = String(riot).split('#'); return encodeURIComponent(n.trim()) + '-' + encodeURIComponent((t || '').trim()); };
@@ -11473,9 +11519,9 @@
     if (shopNew()) { save('fire.shop.vu', 2); setTimeout(() => { try { renderNav(); } catch (e) { /* */ } }, 0); }
     const view = $('view');
     const hero = h('header', { class: 'acc-hero shop-hero' },
-      h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE Team · tout est gratuit'), h('h1', null, '🛍️ Boutique FIRE'),
+      h('div', { class: 'acc-hero-txt' }, h('small', { class: 'acc-kick' }, 'FIRE Team · à débloquer avec tes Braises'), h('h1', null, '🛍️ Boutique FIRE'),
         h('p', { class: 'muted' }, 'Effets de profil, décorations d’avatar, pseudos animés, packs complets… Survole pour essayer, clique pour équiper.'),
-        PLAN() !== 'elite' ? h('button', { class: 'chip rw-chip', onclick: () => go('recompenses') }, `🔥 ${rwSt().b || 0} Braises · les apparences 🔒 se débloquent aussi avec tes Braises`) : null));
+        h('button', { class: 'chip rw-chip', onclick: () => go('recompenses') }, `🔥 ${rwSt().b || 0} Braises · en gagner plus →`)));
     view.replaceChildren(hero, h('div', { class: 'shop-page' }, ...shopCards()));
   }
   function renderAnnonces() {
