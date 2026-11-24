@@ -1065,100 +1065,31 @@ async function dpmDuoGrab(tierLabel, r1, r2) {
   return { url: location.href, patch: patch ? patch[1] : '', rows: read() };
 }
 
-// Synergies d'un champion (dpm.lol › page du champion › « Synergies ») : on lit les cartes affichées pour chaque rôle
-// allié (on clique sur l'icône du rôle, comme un joueur). Exécutée DANS la page, doit rester autonome.
-async function dpmChampGrab() {
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const sigs = { top: 'M6.20711 21C5.76', jungle: 'M5.14 2c1.58', middle: 'M13.7929 3C14.23', bottom: 'M17.7929 3C18.23', support: 'M12.4622 10.2574' };
-  const roleOf = (b) => { const p = b.querySelector('path'); const d = (p && p.getAttribute('d')) || ''; return Object.keys(sigs).find((k) => d.startsWith(sigs[k])) || ''; };
-  const press = (el) => { for (const t of ['pointerdown', 'mousedown', 'pointerup', 'mouseup']) el.dispatchEvent(new (t.startsWith('pointer') ? PointerEvent : MouseEvent)(t, { bubbles: true, cancelable: true, button: 0 })); el.click(); };
-  const tabs = () => [...document.querySelectorAll('[role=tab]')].filter((b) => /^(matchups|synergies)$/i.test(b.textContent.trim()));
-  // Le bloc qui contient les onglets et les icônes de rôle (les cartes peuvent être en train de charger).
-  const panel = () => {
-    let box = tabs()[0];
-    while (box && [...box.querySelectorAll('button')].filter((b) => roleOf(b)).length < 3) box = box.parentElement;
-    if (!box) return null;
-    // Les cartes sont un peu plus haut que les icônes : on remonte jusqu'au premier bloc qui en contient.
-    let up = box;
-    for (let k = 0; k < 4 && up; k++, up = up.parentElement) if (up.querySelector('a[href^="/champions/"] img')) return up;
-    return box.parentElement || box;
-  };
-  const cards = (box) => !box ? [] : [...box.querySelectorAll('a[href^="/champions/"]')].map((a) => { const im = a.querySelector('img'); const t = a.innerText.split('\n').map((s) => s.trim()).filter(Boolean); return { c: im ? im.alt : '', d: t[0] || '', g: t[1] || '' }; }).filter((x) => x.c);
-  const sig = (box) => JSON.stringify(cards(box).slice(0, 4));
-  const settle = async (old) => { for (let i = 0; i < 40; i++) { const b = panel(); if (b && cards(b).length && sig(b) !== old) return true; await sleep(250); } return false; };
-  // Le bloc des synergies ne se charge qu'une fois visible : on fait défiler la page (ou son conteneur qui défile).
-  const down = () => { window.scrollBy(0, 600); const sc = [...document.querySelectorAll('main, body *')].find((e) => e.scrollHeight > e.clientHeight + 200 && /auto|scroll/.test(getComputedStyle(e).overflowY)); if (sc) sc.scrollBy(0, 600); };
-  for (let i = 0; i < 120 && !(tabs().length && panel() && cards(panel()).length); i++) { if (i % 6 === 5) down(); await sleep(250); }
-  const tb = tabs()[0]; if (tb) tb.scrollIntoView({ block: 'start' });
-  if (!panel()) return { err: 'bloc des synergies introuvable sur la page « ' + document.title.slice(0, 60) + ' » : ' + (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 120) };
-  const t = tabs().find((x) => /synerg/i.test(x.textContent));
-  if (t && t.getAttribute('data-state') !== 'active') { const s = sig(panel()); press(t); await settle(s); }
-  const roles = {};
-  const roleBtns = () => [...((panel() || document).querySelectorAll('button'))].filter((b) => !b.textContent.trim() && roleOf(b));
-  for (const r of roleBtns().map(roleOf)) {
-    const b = roleBtns().find((x) => roleOf(x) === r);
-    if (!b) continue;
-    if (!/bg-/.test(b.className)) { const s = sig(panel()); press(b); await settle(s); }
-    for (let i = 0; i < 20 && !cards(panel()).length; i++) await sleep(250);
-    const more = [...((panel() || document).querySelectorAll('button'))].find((x) => /liste|list/i.test(x.textContent));
-    if (more) { const n0 = cards(panel()).length; press(more); await sleep(500); if (cards(panel()).length < n0) { press(more); await sleep(500); } }
-    const seen = new Set(); roles[r] = cards(panel()).filter((x) => !seen.has(x.c) && seen.add(x.c));
-  }
-  // Un rôle resté vide (cartes pas encore chargées) : on y revient une fois.
-  for (const r of Object.keys(roles).filter((k) => !roles[k].length)) {
-    const b = roleBtns().find((x) => roleOf(x) === r);
-    if (!b) continue;
-    const other = roleBtns().find((x) => roleOf(x) !== r);
-    if (other) { press(other); await sleep(800); }
-    press(b);
-    for (let i = 0; i < 40 && !cards(panel()).length; i++) await sleep(250);
-    await sleep(600);
-    const more = [...((panel() || document).querySelectorAll('button'))].find((x) => /liste|list/i.test(x.textContent));
-    if (more) { const n0 = cards(panel()).length; press(more); await sleep(500); if (cards(panel()).length < n0) { press(more); await sleep(500); } }
-    const seen = new Set(); roles[r] = cards(panel()).filter((x) => !seen.has(x.c) && seen.add(x.c));
-  }
-  const patch = (document.body.innerText.match(/\b(\d{2}\.\d{1,2})\b/) || [])[1] || '';
-  return { roles, patch };
-}
 const champCache = new Map();
-let champQueue = Promise.resolve();
-const DPM_LANE = { top: 'top', jungle: 'jungle', middle: 'middle', bottom: 'bottom', support: 'utility' };
-ipcMain.handle('dpm:champ', (e, champ, lane, tier) => {
+// Synergies d'un champion : page publique « Synergies » d'OP.GG (rendue côté serveur, lue comme les counters).
+// dpm.lol a changé sa page et son bloc des synergies ne se lisait plus. Gardé 6 h par champion, rôle, rang et région.
+const OPGG_LANE = { top: 'top', jungle: 'jungle', middle: 'mid', bottom: 'adc', support: 'support' };
+const OPGG_TIERS = ['all', 'iron', 'bronze', 'silver', 'gold', 'gold_plus', 'platinum', 'platinum_plus', 'emerald', 'emerald_plus', 'diamond', 'diamond_plus', 'master', 'master_plus', 'grandmaster', 'challenger'];
+ipcMain.handle('dpm:champ', async (e, champ, lane, tier, region) => {
   const id = String(champ || '').replace(/[^A-Za-z0-9]/g, '');
   if (!id) return { ok: false, error: 'champion manquant' };
-  const ln = DPM_LANE[lane] || '';
-  const t = DUO_TIERS[tier] ? tier : 'emerald_plus';
-  const url = `https://dpm.lol/champions/${id}/build?tier=${t}${ln ? '&lane=' + ln : ''}`;
+  const ln = OPGG_LANE[lane] || '';
+  const t = OPGG_TIERS.includes(tier) ? tier : 'emerald_plus';
+  const rg = ['kr', 'euw', 'na', 'eune'].includes(region) ? region : 'euw';
+  const url = `https://www.op.gg/lol/champions/${id.toLowerCase()}/synergies${ln ? '/' + ln : ''}?tier=${t}&region=${rg}`;
   const hit = champCache.get(url);
   if (hit && Date.now() - hit.at < 6 * 3600e3) return hit.r;
-  const run = async () => {
-    const again = champCache.get(url); if (again && Date.now() - again.at < 6 * 3600e3) return again.r;
-    // dpm.lol ne charge le bloc des synergies que quand il est réellement affiché : une fenêtre cachée ou « hors écran »
-    // ne s'affiche jamais, et le bloc restait vide. On ouvre donc une vraie fenêtre, mais invisible (opacité 0),
-    // placée hors de l'écran, sans barre des tâches, qui ne prend jamais le focus ni les clics.
-    const win = new BrowserWindow({ show: false, x: -32000, y: -32000, width: 1400, height: 1500, frame: false, skipTaskbar: true, focusable: false, resizable: false, webPreferences: { session: dpmSession(), backgroundThrottling: false, contextIsolation: true, sandbox: true } });
-    win.webContents.setAudioMuted(true);
-    try { win.setOpacity(0); win.setIgnoreMouseEvents(true); win.showInactive(); } catch (e) { /* */ }
-    try {
-      await win.loadURL(url).catch(() => { /* la page peut se recharger */ });
-      const res = await Promise.race([
-        win.webContents.executeJavaScript(`(${dpmChampGrab.toString()})()`),
-        new Promise((ok) => setTimeout(() => ok(null), 50000)),
-      ]);
-      const num = (x) => { const n = parseFloat(String(x || '').replace(/\s/g, '').replace(',', '.').replace('%', '')); return Number.isFinite(n) ? n : null; };
-      const roles = {};
-      for (const [r, list] of Object.entries((res && res.roles) || {})) {
-        if (!DPM_LANE[r] || !Array.isArray(list)) continue;
-        roles[r] = list.slice(0, 80).map((x) => ({ c: String(x.c || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 30), syn: num(x.d), games: parseInt(String(x.g || '').replace(/\D/g, ''), 10) || 0 })).filter((x) => x.c && x.syn != null);
-      }
-      const r = Object.keys(roles).length ? { ok: true, champ: id, lane: lane || '', tier: t, roles, patch: (res && res.patch) || '', url } : { ok: false, error: (res && res.err) || 'page de dpm.lol pas encore chargée', url };
-      if (r.ok) champCache.set(url, { at: Date.now(), r });
-      return r;
-    } catch (err) { return { ok: false, error: String((err && err.message) || err), url }; }
-    finally { try { win.destroy(); } catch (e2) { /* */ } }
-  };
-  const p = champQueue.then(run, run); champQueue = p.catch(() => {});
-  return p;
+  try {
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FIRE Team', 'Accept-Language': 'en' } });
+    if (!r.ok) return { ok: false, error: 'OP.GG a répondu ' + r.status, url };
+    const P = require('./opgg').parseSynergies(await r.text());
+    if (!P.ok) return { ok: false, error: 'tableau des synergies introuvable sur OP.GG', url };
+    const roles = {};
+    for (const [k, list] of Object.entries(P.roles)) roles[k] = list.slice(0, 40).map((x) => ({ c: x.c, wr: x.wr, games: x.games, pick: x.pick, syn: P.base != null ? Math.round((x.wr - P.base) * 100) / 100 : 0 }));
+    const out = { ok: true, champ: id, lane: lane || P.lane || '', tier: t, region: rg, base: P.base, roles, patch: P.patch, url, source: 'OP.GG' };
+    champCache.set(url, { at: Date.now(), r: out });
+    return out;
+  } catch (err) { return { ok: false, error: String((err && err.message) || err), url }; }
 });
 // Counters d'un champion (page publique « Counters » de LoLalytics, une lane adverse à la fois, gardée 6 h).
 const ctCache = new Map();

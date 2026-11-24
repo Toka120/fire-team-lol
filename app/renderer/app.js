@@ -7533,24 +7533,25 @@
     const moreBtn = (l, n) => (l.length > n ? h('button', { class: 'linkbtn small sc-more', onclick: () => scSet({ all: !showAll }) }, showAll ? 'Afficher moins' : `Tout afficher (${l.length})`) : null);
     let body;
     if (C.mode !== 'ct') {
-      const key = 'syn|' + C.champ + '|' + lane + '|' + dt;
+      const key = 'syn|' + C.champ + '|' + lane + '|' + P.elo + '|' + P.region;
       const R = SCX.data[key];
       if (!R && window.fire.dpmChamp) {
         SCX.data[key] = { loading: true };
-        window.fire.dpmChamp(C.champ, lane, dt).then((r) => { SCX.data[key] = r || { ok: false }; }).catch((e) => { SCX.data[key] = { ok: false, error: String(e) }; }).finally(scRerender);
+        window.fire.dpmChamp(C.champ, lane, P.elo, P.region === 'kr' ? 'kr' : 'euw').then((r) => { SCX.data[key] = r || { ok: false }; }).catch((e) => { SCX.data[key] = { ok: false, error: String(e) }; }).finally(scRerender);
       }
       const X = SCX.data[key] || {};
-      if (X.loading) body = h('p', { class: 'muted' }, `Lecture de la page de ${A} sur dpm.lol… (une dizaine de secondes la première fois)`);
+      if (X.loading) body = h('p', { class: 'muted' }, `Lecture des synergies de ${A} sur OP.GG…`);
       else if (!X.ok) body = h('p', { class: 'muted small' }, 'Synergies indisponibles pour l’instant' + (X.error ? ` (${X.error})` : '') + '. ', h('button', { class: 'linkbtn small', onclick: () => { delete SCX.data[key]; renderTierList(); } }, 'Réessayer'));
       else {
         const l = ((X.roles || {})[role] || []).filter((x) => x.c !== C.champ);
         const good = l.filter((x) => x.syn > 0).sort((a, b) => b.syn - a.syn);
         const bad = l.filter((x) => x.syn <= 0).sort((a, b) => a.syn - b.syn);
-        body = !l.length ? h('p', { class: 'muted small' }, `dpm.lol n’a pas de synergie ${laneName(role)} pour ${A} en ${laneName(lane)} à ce rang.`)
+        const wrTxt = (x) => (x.wr != null ? `${fr(x.wr, 1)} % de victoires ensemble` : 'de synergie');
+        body = !l.length ? h('p', { class: 'muted small' }, `OP.GG n’a pas de synergie ${laneName(role)} pour ${A} en ${laneName(lane)} à ce rang.`)
           : h('div', null,
-            good.length ? grid(`Les meilleurs ${laneName(role)} avec ${A}`, cut(good, 12).map((x) => cardEl(x.c, pct(x.syn), 'good', 'de synergie', nb(x.games), `${FC.champName(x.c)} + ${A} : ${pct(x.syn)} de victoires en plus ensemble, sur ${nb(x.games)}`)), moreBtn(good, 12)) : null,
-            bad.length ? grid(`À éviter avec ${A}`, cut(bad, 6).map((x) => cardEl(x.c, pct(x.syn), 'bad', 'de synergie', nb(x.games), `${FC.champName(x.c)} + ${A} : ${pct(x.syn)} ensemble, sur ${nb(x.games)}`)), moreBtn(bad, 6)) : null);
-        body.append(h('p', { class: 'muted small' }, `La synergie : combien de victoires le duo gagne (ou perd) ensemble par rapport à ce qu’ils font d’habitude. dpm.lol ne publie pas le taux de victoire du duo sur la page du champion, seulement cet écart et le nombre de parties. Source : dpm.lol · ${eloName}${X.patch ? ' · patch ' + X.patch : ''}${P.elo && !DPM_T[P.elo] ? ' (dpm.lol n’a pas ce regroupement d’elo : Émeraude+ affiché)' : ''}.`));
+            good.length ? grid(`Les meilleurs ${laneName(role)} avec ${A}`, cut(good, 12).map((x) => cardEl(x.c, pct(x.syn), 'good', wrTxt(x), nb(x.games), `${FC.champName(x.c)} + ${A} : ${wrTxt(x)} (${pct(x.syn)} par rapport à ${A} seul), sur ${nb(x.games)}`)), moreBtn(good, 12)) : null,
+            bad.length ? grid(`À éviter avec ${A}`, cut(bad, 6).map((x) => cardEl(x.c, pct(x.syn), 'bad', wrTxt(x), nb(x.games), `${FC.champName(x.c)} + ${A} : ${wrTxt(x)} (${pct(x.syn)} par rapport à ${A} seul), sur ${nb(x.games)}`)), moreBtn(bad, 6)) : null);
+        body.append(h('p', { class: 'muted small' }, `Le grand chiffre : combien le duo gagne de plus (ou de moins) que ${A} seul${X.base != null ? ` (${fr(X.base, 1)} % de victoires)` : ''}. Les alliés montrés sont les plus joués avec ${A}. Source : OP.GG · ${X.region === 'kr' ? 'Corée' : 'Europe Ouest'} · ${(TL_RANKS.find(([k]) => k === P.elo) || [0, eloName])[1]}${X.patch ? ' · patch ' + X.patch : ''}.`));
       }
     } else {
       const key = 'ct|' + C.champ + '|' + lane + '|' + role + '|' + P.elo;

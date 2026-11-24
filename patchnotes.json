@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "2.0.19",
+   "date": "2026-11-24",
+   "titre": "Synergies réparées (nouvelle source : OP.GG)",
+   "items": [
+    [
+     "fix",
+     "Draft › Tier list › Synergies : les synergies s'affichent à nouveau. dpm.lol avait changé sa page et FIRE n'y trouvait plus le bloc des synergies."
+    ],
+    [
+     "new",
+     "Nouvelle source : la page publique « Synergies » d'OP.GG, lue directement (plus rapide, plus besoin d'ouvrir une page invisible)."
+    ],
+    [
+     "new",
+     "Chaque allié affiche maintenant le taux de victoires du duo ensemble, l'écart avec le champion seul et le nombre de parties."
+    ],
+    [
+     "new",
+     "Les synergies suivent la région choisie (Corée ou Europe) et le rang exact sélectionné."
+    ]
+   ]
+  },
+  {
    "v": "2.0.18",
    "date": "2026-11-24",
    "titre": "Boutique : les prix en Braises et la Collection Braises",
