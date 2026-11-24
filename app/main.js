@@ -428,6 +428,7 @@ function ensureWebView() {
   webView = new WebContentsView({ webPreferences: { partition: 'persist:fire-web', sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: true } });
   webView.setBackgroundColor('#0B0D10');
   const wc = webView.webContents;
+  adblockWeb().catch(() => {});
   blockAdsWeb(wc);
   wc.setWindowOpenHandler(({ url }) => { if (isInstaller(url)) shell.openExternal(url); else if (WEB_OK.test(url)) wc.loadURL(url).catch(() => {}); return { action: 'deny' }; });
   wc.on('will-navigate', (e, url) => { if (!WEB_OK.test(url)) e.preventDefault(); });
@@ -836,13 +837,30 @@ function recSave(r) {
   } catch (e) { /* disque plein ou dossier protégé */ }
 }
 app.on('before-quit', () => { try { if (REC) { recSave(REC); REC = null; } } catch (e) { /* */ } });
-ipcMain.handle('parties:list', () => {
+// Liste des parties enregistrées : chaque fichier (souvent lourd) n'est lu qu'une fois, sans bloquer FIRE ;
+// on garde son résumé en mémoire tant qu'il ne change pas.
+const PARTY_SUM = new Map();
+ipcMain.handle('parties:list', async () => {
   try {
-    if (!fs.existsSync(partiesDir())) return [];
-    return fs.readdirSync(partiesDir()).filter((f) => /^\d+\.json$/.test(f)).sort().reverse().slice(0, 150).map((f) => {
-      try { const d = JSON.parse(fs.readFileSync(path.join(partiesDir(), f), 'utf8')); if (!revueOk(d.queue)) return null; return { id: d.id, start: d.start, mode: d.mode, queue: d.queue, me: d.me, duration: d.duration, result: d.result, players: d.players, notes: (d.notes || []).length }; }
-      catch (e) { return null; }
-    }).filter(Boolean);
+    const dir = partiesDir();
+    const files = (await fs.promises.readdir(dir).catch(() => [])).filter((f) => /^\d+\.json$/.test(f)).sort().reverse().slice(0, 150);
+    const out = [];
+    for (const f of files) {
+      const p = path.join(dir, f);
+      let st; try { st = await fs.promises.stat(p); } catch (e) { continue; }
+      const k = f + ':' + st.mtimeMs + ':' + st.size;
+      let sum = PARTY_SUM.get(f);
+      if (!sum || sum.k !== k) {
+        try {
+          const d = JSON.parse(await fs.promises.readFile(p, 'utf8'));
+          sum = { k, v: revueOk(d.queue) ? { id: d.id, start: d.start, mode: d.mode, queue: d.queue, me: d.me, duration: d.duration, result: d.result, players: d.players, notes: (d.notes || []).length } : null };
+        } catch (e) { sum = { k, v: null }; }
+        PARTY_SUM.set(f, sum);
+        await new Promise((r) => setImmediate(r)); // laisse respirer la fenêtre entre deux gros fichiers
+      }
+      if (sum.v) out.push(sum.v);
+    }
+    return out;
   } catch (e) { return []; }
 });
 ipcMain.handle('parties:get', (e, id) => { try { if (!/^\d+$/.test(String(id))) return null; return JSON.parse(fs.readFileSync(path.join(partiesDir(), id + '.json'), 'utf8')); } catch (err) { return null; } });
@@ -923,11 +941,14 @@ ipcMain.handle('clips:save', (e, data, meta) => {
   } catch (err) { return { ok: false, error: String(err && err.message || err) }; }
 });
 function clipMeta() { try { return JSON.parse(fs.readFileSync(path.join(clipDir(), 'clips.json'), 'utf8')) || {}; } catch (e) { return {}; } }
-ipcMain.handle('clips:list', () => {
+ipcMain.handle('clips:list', async () => {
   try {
-    const dir = clipDir(); if (!fs.existsSync(dir)) return [];
+    const dir = clipDir();
+    const names = (await fs.promises.readdir(dir).catch(() => null));
+    if (!names) return [];
     const meta = clipMeta();
-    return fs.readdirSync(dir).filter((f) => /\.mp4$/i.test(f)).map((f) => { const st = fs.statSync(path.join(dir, f)); return { name: f, path: path.join(dir, f), size: st.size, t: st.mtimeMs, url: require('url').pathToFileURL(path.join(dir, f)).href, meta: meta[f] || null }; })
+    const stats = new Map(await Promise.all(names.filter((f) => /\.mp4$/i.test(f)).map(async (f) => [f, await fs.promises.stat(path.join(dir, f)).catch(() => null)])));
+    return [...stats].filter(([, st]) => st).map(([f, st]) => { return { name: f, path: path.join(dir, f), size: st.size, t: st.mtimeMs, url: require('url').pathToFileURL(path.join(dir, f)).href, meta: meta[f] || null }; })
       .sort((a, b) => b.t - a.t).slice(0, 300);
   } catch (err) { return []; }
 });
@@ -935,17 +956,17 @@ ipcMain.handle('clips:list', () => {
 ipcMain.handle('clips:keep', (e, name, on) => {
   try { name = path.basename(String(name || '')); if (!/\.mp4$/i.test(name)) return false; const all = clipMeta(); all[name] = { ...(all[name] || {}), keep: !!on }; fs.writeFileSync(path.join(clipDir(), 'clips.json'), JSON.stringify(all)); return true; } catch (err) { return false; }
 });
-ipcMain.handle('clips:purge', (e, days) => {
+ipcMain.handle('clips:purge', async (e, days) => {
   days = Number(days) || 0;
   if (days <= 0) return { n: 0, bytes: 0 };
   try {
-    const dir = clipDir(); if (!fs.existsSync(dir)) return { n: 0, bytes: 0 };
+    const dir = clipDir(); const names = await fs.promises.readdir(dir).catch(() => null); if (!names) return { n: 0, bytes: 0 };
     const all = clipMeta(); let n = 0, bytes = 0;
-    for (const f of fs.readdirSync(dir)) {
+    for (const f of names) {
       if (!/\.mp4$/i.test(f) || (all[f] && all[f].keep)) continue;
-      const p = path.join(dir, f), st = fs.statSync(p);
-      if (!st.isFile() || Date.now() - st.mtimeMs < days * 86400000) continue;
-      try { fs.unlinkSync(p); n++; bytes += st.size; delete all[f]; } catch (err) { /* clip ouvert ailleurs */ }
+      const p = path.join(dir, f), st = await fs.promises.stat(p).catch(() => null);
+      if (!st || !st.isFile() || Date.now() - st.mtimeMs < days * 86400000) continue;
+      try { await fs.promises.unlink(p); n++; bytes += st.size; delete all[f]; } catch (err) { /* clip ouvert ailleurs */ }
     }
     if (n) fs.writeFileSync(path.join(dir, 'clips.json'), JSON.stringify(all));
     return { n, bytes };
@@ -1856,6 +1877,8 @@ if (!single) {
   if (process.platform === 'win32' && !store) app.setAppUserModelId('lol.fire.team');
   // Un 2e lancement par Windows (démarrage auto) ne doit pas afficher la fenêtre : seulement un double-clic du joueur.
   app.on('second-instance', (e, argv) => { if (!(argv || []).includes('--hidden')) showMain(); openFromArgs(argv); });
-  app.whenReady().then(() => { lockPermissions(); blockAds(); adblockWeb().catch(() => {}); screenShare(); launcher().catch(() => { if (!mainWin || mainWin.isDestroyed()) createMainWindow(); setupUpdater(true); }); });
+  // Le bloqueur complet du navigateur intégré (listes lourdes à charger) n'est préparé qu'à sa première ouverture :
+  // au lancement, il bloquait FIRE quelques secondes (« ne répond pas »).
+  app.whenReady().then(() => { lockPermissions(); blockAds(); screenShare(); launcher().catch(() => { if (!mainWin || mainWin.isDestroyed()) createMainWindow(); setupUpdater(true); }); });
   app.on('window-all-closed', () => { if ((!bgPrefs().bg && !inVoice) || quitting) app.quit(); });
 }

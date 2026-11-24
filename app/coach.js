@@ -33,20 +33,30 @@ async function matches(code, spec) {
 }
 
 // Chiffré par Windows quand c'est possible ; sinon (ou si le chiffrement échoue) en clair dans le dossier de l'application.
+// Copie en mémoire des secrets déjà lus : le déchiffrement Windows (DPAPI) bloque le processus principal à chaque
+// lecture, et FIRE en fait des dizaines au démarrage. Seul FIRE écrit ces fichiers, la copie reste donc juste.
+const SECRETS = new Map();
 function writeSecret(name, obj) {
   const txt = JSON.stringify(obj);
+  SECRETS.delete(name);
   let buf = null;
   try { if (safeStorage.isEncryptionAvailable()) buf = safeStorage.encryptString(txt); } catch (e) { buf = null; }
   fs.mkdirSync(dir(), { recursive: true });
   fs.writeFileSync(file(name), buf || Buffer.from(txt, 'utf8'));
+  SECRETS.set(name, txt);
 }
 function readSecret(name) {
-  let buf;
-  try { buf = fs.readFileSync(file(name)); } catch (e) { return null; }
-  if (buf[0] === 0x7b) { try { return JSON.parse(buf.toString('utf8')); } catch (e) { return null; } }
-  try { return JSON.parse(safeStorage.decryptString(buf)); } catch (e) { return null; }
+  if (SECRETS.has(name)) { const t = SECRETS.get(name); try { return t == null ? null : JSON.parse(t); } catch (e) { return null; } }
+  let buf, txt = null;
+  try { buf = fs.readFileSync(file(name)); } catch (e) { SECRETS.set(name, null); return null; }
+  if (buf[0] === 0x7b) txt = buf.toString('utf8');
+  else { try { txt = safeStorage.decryptString(buf); } catch (e) { return null; } } // pas gardé : on réessaiera
+  let out = null;
+  try { out = txt == null ? null : JSON.parse(txt); } catch (e) { out = null; }
+  SECRETS.set(name, out == null ? null : txt);
+  return out;
 }
-function removeFile(name) { try { fs.unlinkSync(file(name)); } catch (e) { /* déjà absent */ } }
+function removeFile(name) { SECRETS.delete(name); try { fs.unlinkSync(file(name)); } catch (e) { /* déjà absent */ } }
 
 async function http(url, opts = {}, ms = 30000) {
   const ctl = new AbortController();

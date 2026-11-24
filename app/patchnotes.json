@@ -1,6 +1,29 @@
 {
  "versions": [
   {
+   "v": "2.0.17",
+   "date": "2026-11-24",
+   "titre": "Lancement plus fluide",
+   "items": [
+    [
+     "fix",
+     "FIRE ne se met plus en « ne répond pas » au lancement : le bloqueur de pubs du navigateur intégré (de grosses listes à charger) n'est préparé qu'à la première ouverture du navigateur."
+    ],
+    [
+     "fix",
+     "Les codes et clés gardés sur le PC ne sont plus déchiffrés par Windows à chaque utilisation : une seule fois, puis gardés en mémoire."
+    ],
+    [
+     "fix",
+     "Revue de parties : la liste des parties enregistrées ne relit plus tous les fichiers d'un coup toutes les 4 minutes (petits blocages réguliers)."
+    ],
+    [
+     "fix",
+     "Clips : la liste et le ménage automatique ne bloquent plus FIRE quand il y a beaucoup de clips."
+    ]
+   ]
+  },
+  {
    "v": "2.0.16",
    "date": "2026-11-24",
    "titre": "Récompenses : Braises, défis du jour et classement d'équipe",
